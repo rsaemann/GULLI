@@ -1,0 +1,112 @@
+package view.timeline;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import model.timeline.list.Value;
+import org.jfree.data.general.Series;
+import view.timeline.customCell.ShapeEditor;
+
+/**
+ *
+ * @author saemann
+ */
+public class SeriesKey<E> implements Comparable<SeriesKey> {
+
+    public enum YAXIS {
+
+        OWN, CONCENTRATION, VELOCITY, WATERLVL
+    };
+
+    private static BasicStroke defaultstroke = new BasicStroke(1.5f);
+
+    public final String name, symbol, unit;
+    public Color lineColor;
+    public AxisKey axis = null;
+    public int containerIndex = 0;
+    public boolean isVisible = true;
+    public String label;
+    public String file;
+    public boolean renderAsBar = false;
+    public BasicStroke stroke = defaultstroke;
+    public ShapeEditor.SHAPES shape = null;
+    public boolean shapeFilled = false;
+    public E element;
+    public Series timeseries;
+
+    public SeriesKey(Value v, Color lineColor) {
+        this(v.getName(), v.getSymbol(), v.getUnit(), lineColor);
+    }
+
+    public SeriesKey(E e, Value v, Color lineColor) {
+        this(e.toString(), v.getSymbol(), v.getUnit(), lineColor);
+    }
+
+    public SeriesKey(Value v, Color lineColor, AxisKey yaxis) {
+        this(v, lineColor);
+        this.axis = yaxis;
+    }
+
+    public SeriesKey(String name, String symbol, String unit, Color lineColor) {
+        this(name, symbol, unit, lineColor, 0);
+    }
+
+    public SeriesKey(String name, String symbol, String unit, Color lineColor, int containerIndex) {
+        this(name, symbol, unit, lineColor, null, containerIndex);
+    }
+
+    public SeriesKey(String name, String symbol, String unit, Color lineColor, AxisKey yaxis) {
+        this(name, symbol, unit, lineColor, yaxis, 0);
+    }
+
+    public SeriesKey(String name, String symbol, String unit, Color lineColor, AxisKey yaxis, int containerIndex) {
+        this(name, symbol, unit, lineColor, yaxis, containerIndex, "");
+    }
+
+    public SeriesKey(String name, String symbol, String unit, Color lineColor, AxisKey yaxis, int containerIndex, String file) {
+        this.name = name;
+        this.symbol = symbol;
+        this.unit = unit;
+        this.lineColor = lineColor;
+        this.axis = yaxis;
+        this.containerIndex = containerIndex;
+        this.file = file;
+
+        this.label = symbol + " [" + unit + "]";
+        if (containerIndex > 0) {
+            label = symbol + " [" + unit + "](" + containerIndex + ")";
+        }
+    }
+
+    @Override
+    public int compareTo(SeriesKey t) {
+        if (true) {
+            return 0;
+        }
+        if (t == null) {
+            return -1;
+        }
+        if (t == this) {
+            return 0;
+        }
+        if (this.name == null) {
+            return -1;
+        }
+
+        if (file != null) {
+            return file.compareTo(t.file);
+        }
+
+        if (name.equals(t.name)) {
+            return this.containerIndex - t.containerIndex;
+        }
+
+        return name.compareTo(t.name);
+    }
+
+    @Override
+    public String toString() {
+
+        return label;
+    }
+
+}
