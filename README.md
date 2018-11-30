@@ -11,4 +11,4 @@ Output: - concentration breakthrough curves in pipes
 This transport model is a product of the research project "Real-Time Prediction of Pluvial Floods and Induced Water Contamination in Urban Areas (EVUS)" (https://www.pluvialfloods.uni-hannover.de/pluvialfloods.html).
 Goal of the transport model is providing very fast forecast of contamination areas in case that a spill event was reported. Therefore the focus lies on computational speed.
 
-For more information, please contact Robert Sämann (https://www.hydromech.uni-hannover.de/details.html?&no_cache=1&L=1&tx_tkinstpersonen_pi1%5Balias%5D=saemann)
+For more information, please contact Robert Sämann (https://www.hydromech.uni-hannover.de/de/ueber-uns/personenverzeichnis/)
