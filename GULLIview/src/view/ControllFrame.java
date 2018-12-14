@@ -2,6 +2,8 @@ package view;
 
 import control.Action.Action;
 import control.Controller;
+import control.LocationIDListener;
+import control.listener.CapacitySelectionListener;
 import control.listener.LoadingActionListener;
 import control.listener.SimulationActionListener;
 import java.awt.BorderLayout;
@@ -18,13 +20,14 @@ import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import model.surface.Surface;
+import model.topology.Capacity;
 import model.topology.Network;
 
 /**
  *
  * @author saemann
  */
-public class ControllFrame extends JFrame implements ActionListener, LoadingActionListener, SimulationActionListener {
+public class ControllFrame extends JFrame implements ActionListener, LoadingActionListener, SimulationActionListener{
 
     private JCheckBox checkAlwaysOnTop;
     private JButton buttonHighlightVisualization;
@@ -34,7 +37,7 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
     private SingleControllPanel singleControl;
     private MultiControllPanel multiControl;
     private JPanel panelBottomButtons;
-
+    
     public ControllFrame(Controller controller, PaintManager pm) throws HeadlessException {
         super("Control");
         this.controller = controller;

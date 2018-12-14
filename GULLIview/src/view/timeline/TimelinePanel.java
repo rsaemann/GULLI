@@ -351,15 +351,15 @@ public class TimelinePanel extends JPanel {
                     } else {
                         yAxis = new NumberAxis("[" + key.unit + "]");
                     }
-                     if (key.axis != null) {
-                            if (key.axis.manualBounds) {
-                                yAxis.setLowerBound(key.axis.lowerBound);
-                                yAxis.setUpperBound(key.axis.upperBound);
-                            }else{
-                                key.axis.lowerBound=yAxis.getLowerBound();
-                                key.axis.upperBound=yAxis.getUpperBound();                                
-                            }
+                    if (key.axis != null) {
+                        if (key.axis.manualBounds) {
+                            yAxis.setLowerBound(key.axis.lowerBound);
+                            yAxis.setUpperBound(key.axis.upperBound);
+                        } else {
+                            key.axis.lowerBound = yAxis.getLowerBound();
+                            key.axis.upperBound = yAxis.getUpperBound();
                         }
+                    }
                     yAxisMap.put(yAxis.getLabel(), indexDataset);
                     renderer = new XYLineAndShapeRenderer(true, false);
                     renderer.setSeriesStroke(indexSeries, key.stroke);

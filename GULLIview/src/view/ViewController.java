@@ -6,9 +6,9 @@
 package view;
 
 import control.Controller;
-import java.awt.BorderLayout;
 import javax.swing.JFrame;
-import view.timeline.TimelinePanel;
+import view.timeline.CapacityTimelinePanel;
+import view.timeline.EditorTableFrame;
 
 /**
  * Controls the interfaces between GUI/view and core-Controller
@@ -23,10 +23,10 @@ public class ViewController {
     //Frames
     protected final SimpleMapViewerFrame mapFrame;
     protected final ControllFrame controlFrame;
-    protected final JFrame timeLineFrame;
+    protected final EditorTableFrame timeLineFrame;
 
     //Frame content
-    protected final TimelinePanel timelinePanel;
+    protected final CapacityTimelinePanel timelinePanel;
     protected final MapViewer mapViewer;
 
     public ViewController(Controller c) {
@@ -38,19 +38,17 @@ public class ViewController {
         //Control frame
         controlFrame = new ControllFrame(control, paintManager);
         controlFrame.setVisible(true);
-        
 
         //TableFrame
-        timeLineFrame = new JFrame("Timelines");
+        timeLineFrame = new EditorTableFrame("No pipe or manhole selected yet", control);
         timeLineFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        timelinePanel = new TimelinePanel("Select Pipe or Manhole", false);
-        timeLineFrame.setLayout(new BorderLayout());
-        timeLineFrame.add(timelinePanel, BorderLayout.CENTER);
-        timeLineFrame.setVisible(true);
-        
+        timelinePanel = timeLineFrame.getTimelinePanel();//new CapacityTimelinePanel("Nothing selected yet", c);// new TimelinePanel("Select Pipe or Manhole", false);
+      
+        paintManager.addCapacitySelectionListener(timelinePanel);
+
         //Order Frames
         controlFrame.setBounds(50, 50, 250, 900);
-        mapFrame.setBounds(320,50,1200,900);
+        mapFrame.setBounds(320, 50, 1200, 900);
         timeLineFrame.setBounds(1200, 200, 700, 400);
         mapFrame.requestFocus();
     }

@@ -7,6 +7,7 @@ import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 import control.Controller;
+import control.listener.CapacitySelectionListener;
 import control.multievents.PipeResultData;
 import control.threads.ThreadController;
 import io.timeline.TimeSeries_IO;
@@ -71,7 +72,7 @@ import org.jfree.ui.RectangleInsets;
  *
  * @author saemann
  */
-public class CapacityTimelinePanel extends JPanel {
+public class CapacityTimelinePanel extends JPanel implements CapacitySelectionListener {
 
     protected ChartPanel panelChart;
     protected TimeSeriesCollection collection;
@@ -267,10 +268,9 @@ public class CapacityTimelinePanel extends JPanel {
 
     public void markTime(long time) {
 
-        if (showSimulationTime && controller != null) {
-            time = calcSimulationTime(time, controller.getThreadController().getSimulationStartTime());
-        }
-
+//        if (showSimulationTime && controller != null) {
+//            time = calcSimulationTime(time, controller.getThreadController().getSimulationStartTime());
+//        }
         if (showMarkerLabelTime == false && marker == null) {
 //            System.out.println(" out 1");
             return;
@@ -778,9 +778,9 @@ public class CapacityTimelinePanel extends JPanel {
                             if (key.axis.manualBounds) {
                                 yAxis.setLowerBound(key.axis.lowerBound);
                                 yAxis.setUpperBound(key.axis.upperBound);
-                            }else{
-                                key.axis.lowerBound=yAxis.getLowerBound();
-                                key.axis.upperBound=yAxis.getUpperBound();                                
+                            } else {
+                                key.axis.lowerBound = yAxis.getLowerBound();
+                                key.axis.upperBound = yAxis.getUpperBound();
                             }
                         }
                         yAxisMap.put(yAxis.getLabel(), indexDataset);
@@ -1196,6 +1196,11 @@ public class CapacityTimelinePanel extends JPanel {
         System.out.println("10000: " + new Color(old.getRGB() * 10000));
         System.out.println("100000:" + new Color(old.getRGB() * 100000));
         System.out.println("1000000:" + new Color(old.getRGB() * 1000000));
+    }
+
+    @Override
+    public void selectCapacity(Capacity c, Object caller) {
+        this.setStorage(c, c.toString());
     }
 
 }

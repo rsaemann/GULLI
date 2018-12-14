@@ -5,6 +5,7 @@ import control.multievents.PipeResultData;
 import io.timeline.TimeSeries_IO;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.HeadlessException;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -40,23 +41,26 @@ public class EditorTableFrame extends JFrame {
     JSplitPane splitpane;
 
     public EditorTableFrame() {
-        this(null, null, new PipeResultData[0]);
+        this(null, null);
     }
 
-    public EditorTableFrame(String title, Controller control, PipeResultData... container) throws HeadlessException {
-        super("Grapheditor");
+    public EditorTableFrame(String title, Controller control) throws HeadlessException {
+        super("Graphs");
         this.setLayout(new BorderLayout());
         tablePanel = new TimeSeriesEditorTablePanel();
+        tablePanel.setMinimumSize(new Dimension(100, 100));
         timelinePanel = new CapacityTimelinePanel(title, control);
         timelinePanel.showCheckBoxPanel(false);
+        timelinePanel.setMinimumSize(new Dimension(100, 100));
         timelinePanel.collection = tablePanel.getTable().collection;
         tablePanel.setTimelinePanel(timelinePanel);
+
         splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, timelinePanel, tablePanel);
         this.setBounds(200, 200, 600, 700);
-
-        splitpane.setDividerLocation(0);
         this.add(splitpane, BorderLayout.CENTER);
+        this.setVisible(true);
         splitpane.setDividerLocation(0.7);
+        this.revalidate();
 //        System.out.println("Timelinepanel.collection="+timelinePanel.getCollection());
 //        System.out.println("Editorpanel  .collection=" + tablePanel.getTable().collection);
 

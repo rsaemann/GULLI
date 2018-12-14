@@ -128,8 +128,8 @@ public class NamedPipeConnectionFrame extends JFrame implements PipeActionListen
 //        try {
 //            Controller control = new Controller();
 ////            control.loadSingleEventFirebirdDatabase(new File("L:\\HE_Ergebnisse\\Modell_flutung.idbf"));
-////            HE_Firebird.isUTMinput = true;
-//            control.importNetwork(HE_Firebird.loadNetwork(new File("L:\\HE_Ergebnisse\\Modell_flutung.idbf")));
+////            HE_Database.isUTMinput = true;
+//            control.importNetwork(HE_Database.loadNetwork(new File("L:\\HE_Ergebnisse\\Modell_flutung.idbf")));
 ////            System.out.println("UTM:"+Network.crsUTM));
 ////            System.out.println("GLOBAL:"+Network.crsWGS84);
 //            NamedPipeInterpreter interpreter = new NamedPipeInterpreter(control);
