@@ -80,10 +80,10 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     public void loadTimelineFlux(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
-            dataprovider.fillTimelinePipe(pipeManualId, pipeName, tl);
+            System.out.println(getClass() + ": request loading Flux timeline for pipe " + pipeName + " / " + pipeManualId);
         }
-        System.out.println(getClass() + ": request loading Flux timeline for pipe " + pipeName + " / " + pipeManualId);
 
+        dataprovider.fillTimelinePipe(pipeManualId, pipeName, tl);
 //        tl.setFlux(dataprovider.loadTimeLineFlux(pipeManualId, pipeName, getNumberOfTimes()));
     }
 

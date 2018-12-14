@@ -1503,7 +1503,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                         if (control.getLoadingCoordinator() != null && control.getLoadingCoordinator().getInjections() != null) {
                             if (control.getLoadingCoordinator().getInjections().size() != panelInjections.getComponentCount() - 1) {
-                                System.out.println("new size: injections: " + (control.getLoadingCoordinator().getInjections().size()) + "  componennts: " + panelInjections.getComponentCount());
+//                                System.out.println("new size: injections: " + (control.getLoadingCoordinator().getInjections().size()) + "  componennts: " + panelInjections.getComponentCount());
                                 panelInjections.removeAll();
                                 ArrayList<InjectionInformation> injections = control.getLoadingCoordinator().getInjections();
                                 if (injections.isEmpty()) {
@@ -1574,7 +1574,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                             }
                         } else {
-                            System.out.println("Park update thread");
+//                            System.out.println("Park update thread");
                             //Reset the layout to non-working style
                             progressLoading.setIndeterminate(false);
                             progressLoading.setValue(0);
@@ -1585,7 +1585,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             revalidate();
                             synchronized (updatethreadBarrier) {
                                 updatethreadBarrier.wait();
-                                System.out.println("update thread revoken");
+//                                System.out.println("update thread revoken");
                             }
                         }
                     } catch (Exception e) {

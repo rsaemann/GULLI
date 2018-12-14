@@ -79,7 +79,7 @@ public class SynchronizationThread extends Thread {
                      */
 //                particleCount.clear();
 //                    particlePipes.clear();
-                    boolean stopCalculating = true;
+//                    boolean stopCalculating = true;
 //                    for (ParticleThread pT : control.getThreadController().getParticleThreads()) {
 //                    for (ParticleThread pT : particleThreads) {
 //                        for (Particle p : pT.getParticles()) {
@@ -124,9 +124,9 @@ public class SynchronizationThread extends Thread {
 //                            }
 //                        }
 //                    }
-                    if (stopCalculating) {
-                        allFinished = true;
-                    }
+//                    if (stopCalculating) {
+//                        allFinished = true;
+//                    }
 
                     // Schreibe die Gesammelten Werte in die Mess-Zeitreihe der Rohre
                     ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();

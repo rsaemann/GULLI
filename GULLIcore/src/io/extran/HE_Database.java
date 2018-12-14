@@ -70,7 +70,7 @@ import org.sqlite.SQLiteConfig;
  */
 public class HE_Database implements SparseTimeLineDataProvider {
 
-    public static boolean verbose = true;
+    public static boolean verbose = false;
 
     public static boolean orientPipesGravityFlown = true;
 
@@ -121,6 +121,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public static boolean register() {
         try {
+            Class.forName("org.sqlite.JDBC");
             Class.forName("org.firebirdsql.jdbc.FBDriver").newInstance();
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
@@ -131,7 +132,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
         } catch (IllegalAccessException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         }
-//        System.out.println("Firebird Database Driver registered. ");
         return true;
     }
 
@@ -245,10 +245,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         System.out.println("Create temporary file in " + temporalPath + "\torigin: " + databaseFile.getAbsolutePath());
                     }
                     this.localFile = temporalPath.toFile();
-//                if (markCopiedFilesToDeleteAtProgramEnd) {
                     //Always delete them, the can not be found either to be used again.
                     this.localFile.deleteOnExit();
-//                }
+
                     try {
                         url = "jdbc:firebirdsql:embedded:" + this.localFile.getAbsolutePath().replaceAll("\\\\", "/").toLowerCase();
                         con = DriverManager.getConnection(url, connectionProperties);
@@ -265,14 +264,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
             isSQLite = true;
             try {
                 //SQlite
-                Class.forName("org.sqlite.JDBC");
+
                 SQLiteConfig config = new SQLiteConfig();
                 config.setEncoding(SQLiteConfig.Encoding.UTF8);
                 con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
                 this.databaseFile = databaseFile;
                 this.localFile = databaseFile;
-            } catch (ClassNotFoundException ex) {
-                Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+
             } catch (SQLException ex) {
                 Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -283,6 +281,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public void close() throws SQLException {
         if (con != null && !con.isClosed()) {
             con.close();
+            con = null;
         }
     }
 
@@ -296,15 +295,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public Connection getConnection() throws SQLException, IOException {
         if (con == null || con.isClosed()) {
             if (isSQLite) {
-                try {
-                    Class.forName("org.sqlite.JDBC");
-                    SQLiteConfig config = new SQLiteConfig();
-                    config.setEncoding(SQLiteConfig.Encoding.UTF8);
-                    con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
-                    return con;
-                } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
-                }
+//                try {
+//                    Class.forName("org.sqlite.JDBC");
+                SQLiteConfig config = new SQLiteConfig();
+                config.setEncoding(SQLiteConfig.Encoding.UTF8);
+                config.setReadOnly(true);
+                con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
+                return con;
+//                } catch (ClassNotFoundException ex) {
+//                    Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+//                }
             } else {
                 //Firebird
 
@@ -348,40 +348,27 @@ public class HE_Database implements SparseTimeLineDataProvider {
     }
 
     public String loadCoordinateReferenceSystem() throws SQLException, IOException {
-        Statement st = getConnection().createStatement();
-        ResultSet rs = st.executeQuery("SELECT INHALT FROM ITWH$VARIABLEN WHERE NAME='Koordinatenbezugssystem'");
-        if (!rs.isBeforeFirst()) {
-            throw new SQLException("No Coordinate Reference System set.");
+        int crs;
+        try (Statement st = getConnection().createStatement(); ResultSet rs = st.executeQuery("SELECT INHALT FROM ITWH$VARIABLEN WHERE NAME='Koordinatenbezugssystem'")) {
+            if (!rs.isBeforeFirst()) {
+                throw new SQLException("No Coordinate Reference System set.");
+            }
+            rs.next();
+            crs = Integer.parseInt(rs.getString(1));
         }
-        rs.next();
-        int crs = Integer.parseInt(rs.getString(1));
-        rs.close();
-        st.close();
         return "EPSG:" + crs;
     }
 
     public Network loadNetwork() throws SQLException, ClassNotFoundException {
         CoordinateReferenceSystem crsDB = null;
         try {
-            //TODO: Read coordinate reference system from poly.xml next to this idbf file
+            //Read coordinate reference system from poly.xml next to this idbf file
             String crscode = loadCoordinateReferenceSystem();
             if (verbose) {
                 System.out.println("Model DB Network's CRS is " + crscode);
             }
             crsDB = CRS.decode(crscode);
-//            if (crsDB != null && crsDB.getCoordinateSystem().getAxis(0).getUnit().toString().equals("m")) {
-////                System.out.println(HE_Database.class
-////                        + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
-//                Network.crsUTM = crsDB;
-//            } 
-//            else {
-//                System.out.println(HE_Database.class
-//                        + "::loadNetwork: Coordinatensystem der Datenbank ist nicht cartesisch: " + crsDB);
-//                Network.crsUTM = CRS.decode("EPSG:25832");
-//            }
         } catch (Exception exception) {
-//            System.out.println("axis:" + crsDB.getCoordinateSystem().getAxis(0));
-//            System.out.println("unit:" + crsDB.getCoordinateSystem().getAxis(0).getUnit());
             exception.printStackTrace();
         }
         if (crsDB == null) {
@@ -406,12 +393,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (Network.crsUTM == null) {
                     try {
                         if (crsDB != null && crsDB.getCoordinateSystem().getAxis(0).getUnit().toString().equals("m")) {
-                            System.out.println(HE_Database.class
-                                    + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
+                            if (verbose) {
+                                System.out.println(this.getClass() + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
+                            }
                             Network.crsUTM = crsDB;
                         } else {
-                            System.out.println(HE_Database.class
-                                    + "::loadNetwork: Coordinatensystem der Datenbank ist nicht cartesisch: " + crsDB);
+                            System.out.println(this.getClass() + "::loadNetwork: Coordinatensystem der Datenbank ist nicht cartesisch: " + crsDB);
                             Network.crsUTM = CRS.decode("EPSG:25832");
                         }
                     } catch (Exception exception) {
@@ -438,7 +425,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //                int c = 0;//Columncount
                 if (isSQLite) {
 
-                    res = st.executeQuery("SELECT name,geometry,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID from schacht ORDER BY ID;");
+                    res = st.executeQuery("SELECT name,geometry,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID,KANALART from schacht ORDER BY ID;");
                     while (res.next()) {
                         String name = res.getString(1);
                         byte[] buffer = res.getBytes(2);
@@ -461,6 +448,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             m.setTop_height(res.getFloat(5));
                             m.setSole_height(res.getFloat(6));
                             m.setManualID(res.getInt(7));
+                            int raintype = res.getInt(8);
+                            if (raintype == 0) {
+                                m.setWaterType(Capacity.SEWER_TYPE.MIX);
+                            } else if (raintype == 1) {
+                                m.setWaterType(Capacity.SEWER_TYPE.DRAIN);
+                            } else if (raintype == 2) {
+                                m.setWaterType(Capacity.SEWER_TYPE.SEWER);
+                            }
                             smap.put(name, m);
                         } catch (MismatchedDimensionException ex) {
                             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
@@ -1033,7 +1028,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         rs.next();
         GregorianCalendar gcdaystart = new GregorianCalendar();
         if (isSQLite) {
-            System.out.println(rs.getString(1));
+//            System.out.println(rs.getString(1));
             gcdaystart.setTimeInMillis(sqliteDateTimeFormat.parse(rs.getString(1)).getTime());
         } else {
             Timestamp simulationStart = rs.getTimestamp(1);
@@ -1076,7 +1071,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         rs.close();
         st.close();
-        con.close();
         return particles;
     }
 
@@ -1095,7 +1089,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
         int interval_durarion = rs.getInt(1);
         rs.close();
         st.close();
-        con.close();
         return interval_durarion;
     }
 
@@ -1117,7 +1110,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
         int interval_durarion = rs.getInt(1);
         rs.close();
         st.close();
-        con.close();
         return interval_durarion;
     }
 
@@ -1160,7 +1152,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         rs.getString("KOMMENTAR"));
             }
         }
-        con.close();
         return rrf;
     }
 
@@ -1214,7 +1205,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //            String nameRR = rs.getString(1);
             } //This will only return 1 result row, because Regenschreiberzuordnung only contains one row after a single simulation.
         }
-        con.close();
         return rrf;
     }
 
@@ -1248,7 +1238,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 regen.add(rrf);
             }
         }
-        con.close();
         return regen.toArray(new Raingauge_Firebird[regen.size()]);
     }
 
@@ -2136,7 +2125,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
     }
 
 //    private boolean workingonpipe = false;
-
     @Override
     public boolean fillTimelinePipe(long pipeManualID, String pipeName, SparseTimelinePipe timeline) {
 //        if (workingonpipe) {
@@ -2151,24 +2139,24 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //            System.out.println(Thread.currentThread().getName() + " starts loading Pipe " + pipeManualID);
             try {
                 Connection c = getConnection();
-                Statement st = c.createStatement();
-                //in HE Database only use Pipe ID.
-                ResultSet rs = st.executeQuery("SELECT GESCHWINDIGKEIT,DURCHFLUSS,WASSERSTAND,KANTE,ID,ZEITPUNKT FROM LAU_GL_EL WHERE ID=" + pipeManualID + " ORDER BY ID,ZEITPUNKT ");
-                int times = timeline.getNumberOfTimes();
-                float[] velocity, flux, waterlevel;
-                velocity = new float[times];
-                flux = new float[times];
-                waterlevel = new float[times];
-                int index = 0;
-                while (rs.next()) {
-                    velocity[index] = rs.getFloat(1);
-                    flux[index] = rs.getFloat(2);
-                    waterlevel[index] = rs.getFloat(3);
-                    index++;
+                try ( //in HE Database only use Pipe ID.
+                        Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT GESCHWINDIGKEIT,DURCHFLUSS,WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_EL WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ")) {
+                    int times = timeline.getNumberOfTimes();
+                    float[] velocity, flux, waterlevel;
+                    velocity = new float[times];
+                    flux = new float[times];
+                    waterlevel = new float[times];
+                    int index = 0;
+                    while (rs.next()) {
+                        velocity[index] = rs.getFloat(1);
+                        flux[index] = rs.getFloat(2);
+                        waterlevel[index] = rs.getFloat(3);
+                        index++;
+                    }
+                    timeline.setVelocity(velocity);
+                    timeline.setFlux(flux);
+                    timeline.setWaterlevel(waterlevel);
                 }
-                timeline.setVelocity(velocity);
-                timeline.setFlux(flux);
-                timeline.setWaterlevel(waterlevel);
 //                workingonpipe = false;
                 return true;
 

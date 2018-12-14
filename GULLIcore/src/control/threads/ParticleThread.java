@@ -14,6 +14,7 @@ import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
+import model.timeline.TemporalTimelineMeasurement;
 import model.topology.measurement.ParticleMeasurement;
 
 /**
@@ -65,6 +66,7 @@ public class ParticleThread extends Thread {
     public ParticlePipeComputing pc;
     private final ThreadBarrier<ParticleThread> barrier;
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(4);
+//    private final TemporalTimelineMeasurement temporalMeasurementsPipe = new TemporalTimelineMeasurement();
     boolean runendless = true;
 
     public int particleID = -1;
@@ -80,7 +82,7 @@ public class ParticleThread extends Thread {
 
     public ParticleThread(String string, long seed, ThreadBarrier<ParticleThread> barrier) {
         super(string);
-        pc = new ParticlePipeComputing(seed);
+        pc = new ParticlePipeComputing(seed, this);
 //        surfcomp = new ParticleSurfaceComputing1D(null, seed);
         surfcomp = new ParticleSurfaceComputing2D(null, seed);
         this.barrier = barrier;
@@ -149,7 +151,7 @@ public class ParticleThread extends Thread {
             }
 
             simulationTime = barrier.getSimulationtime();
-            boolean loopTestAllParticlesReachedOutlet = waitingindex == particles.length;
+//            boolean loopTestAllParticlesReachedOutlet = waitingindex == particles.length;
             status = 0;
             for (int i = waitingindex; i < particles.length; i++) {
                 p = particles[i];
@@ -187,8 +189,8 @@ public class ParticleThread extends Thread {
             //Start treating movement
             status = 3;
             particleID = -20;
-            int oldactiveIndex = activeIndex;
-            int inactivejumps = 0;
+//            int oldactiveIndex = activeIndex;
+//            int inactivejumps = 0;
 
             for (int i = activeIndex; i < waitingindex; i++) {
                 p = particles[i];
@@ -197,11 +199,11 @@ public class ParticleThread extends Thread {
                     if (activeIndex == i) {
                         activeIndex++;
                     }
-                    inactivejumps++;
+//                    inactivejumps++;
                     continue;
                 }
 
-                loopTestAllParticlesReachedOutlet = false;
+//                loopTestAllParticlesReachedOutlet = false;
                 particleID = p.getId();
                 particle = p;
 
@@ -239,9 +241,9 @@ public class ParticleThread extends Thread {
 //                }
 
             }
-            if (oldactiveIndex != activeIndex) {
-                System.out.println(id + ":old:" + oldactiveIndex + "\t new:" + activeIndex + "   \tinactives:" + inactivejumps);
-            }
+//            if (oldactiveIndex != activeIndex) {
+//                System.out.println(id + ":old:" + oldactiveIndex + "\t new:" + activeIndex + "   \tinactives:" + inactivejumps);
+//            }
 //            particleID = -3;
 //            status = 10;
 //            try {
@@ -261,7 +263,7 @@ public class ParticleThread extends Thread {
 //                status = 14;
 //                this.allParticlesReachedOutlet = false;
 //            }
-            this.allParticlesReachedOutlet = loopTestAllParticlesReachedOutlet;
+            this.allParticlesReachedOutlet = activeIndex == particles.length;//loopTestAllParticlesReachedOutlet;
             particleID = -5;
             //System.out.println("     "+toString()+" finished run()");
             activeCalculation = false;
@@ -501,6 +503,10 @@ public class ParticleThread extends Thread {
         }
         return particles.length;//waitingList.size() + activeList.size() + completedList.size();
     }
+
+//    public TemporalTimelineMeasurement getTemporalMeasurementsPipe() {
+//        return temporalMeasurementsPipe;
+//    }
 
     void clearParticles() {
         particles = new Particle[0];

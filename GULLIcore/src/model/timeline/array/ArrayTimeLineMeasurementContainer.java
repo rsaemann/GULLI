@@ -176,7 +176,7 @@ public class ArrayTimeLineMeasurementContainer {
     }
 
     public void clearValues() {
-        System.out.println("Clear Measurement values for "+numberOfCapacities+" pipes.");
+//        System.out.println("Clear Measurement values for "+numberOfCapacities+" pipes.");
         long start=System.currentTimeMillis();
       
          this.counts = new int[numberOfCapacities * times.getNumberOfTimes()];
@@ -200,7 +200,7 @@ public class ArrayTimeLineMeasurementContainer {
 //            }
 //        }
         maxConcentration_global = 0;
-        System.out.println(((System.currentTimeMillis()-start)/1000)+" s");
+//        System.out.println(((System.currentTimeMillis()-start)/1000)+" s");
     }
 
     public float[] getMassForTimeIndex(int timeIndex) {

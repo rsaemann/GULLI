@@ -12,16 +12,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,7 +27,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.GeoTools;
 import model.surface.Surface;
-import model.surface.SurfaceLocalMinimumArea;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.surface.SurfaceTriangle;
 import model.surface.measurement.SurfaceMeasurementRaster;
@@ -43,7 +38,6 @@ import model.topology.Position3D;
 import model.topology.graph.Pair;
 import org.geotools.referencing.CRS;
 import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
@@ -370,7 +364,7 @@ public class SurfaceIO {
         }
         br.close();
         fr.close();
-        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
+//        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
         start=System.currentTimeMillis();
         String epsgCode = "EPSG:25832"; //Use this standard code for Hannover
@@ -386,7 +380,7 @@ public class SurfaceIO {
                 epsgCode = "EPSG:" + epsgCode;
             }
         }
-        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
+//        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
 
         //fileTriangleIndizes  //TRIMOD2.dat
         start = System.currentTimeMillis();
@@ -417,7 +411,7 @@ public class SurfaceIO {
         }
         br.close();
         fr.close();
-        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
+//        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
         //fileNeighbours
         start = System.currentTimeMillis();
         fr = new FileReader(fileNeighbours);
@@ -439,12 +433,12 @@ public class SurfaceIO {
         }
         br.close();
         fr.close();
-        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
+//        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
         start = System.currentTimeMillis();
         Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
         surf.setTriangleMids(triangleMidPoints);
         surf.fileTriangles = fileCoordinates.getParentFile();
-        System.out.println("  Building Surface Object took " + (System.currentTimeMillis() - start) + "ms.");
+//        System.out.println("  Building Surface Object took " + (System.currentTimeMillis() - start) + "ms.");
 //        System.out.println("Smallest: " + surf.calcSmallestTriangleArea() + "m²\t largest: " + surf.calcLargestTriangleArea() + "m²\t mean: " + surf.calcMeanTriangleArea() + "m²");
         return surf;
     }

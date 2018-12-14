@@ -28,6 +28,7 @@ import control.maths.RandomDistribution;
 import control.maths.TriangleDistribution;
 import control.maths.UniformDistribution;
 import control.maths.VelocityDistribution;
+import control.threads.ParticleThread;
 import control.threads.ThreadController;
 import java.util.Random;
 import model.particle.HistoryParticle;
@@ -117,6 +118,8 @@ public class ParticlePipeComputing {
 
     public RandomDistribution randDist;
 
+    private ParticleThread thread;
+
     public static int[] passedPipesCounter;
 
     private int passedPipes;
@@ -139,8 +142,9 @@ public class ParticlePipeComputing {
 //    public boolean foundNaN = false;
 //    public static final double sqrt2 = Math.sqrt(2.);
 //    public int steps = 0;
-    public ParticlePipeComputing(long seed) {
+    public ParticlePipeComputing(long seed, ParticleThread pt) {
         this(seed, RANDOM_DISTRIBUTION.NORMAL_GAUSS);
+        this.thread = pt;
     }
 
     public ParticlePipeComputing(long seed, RANDOM_DISTRIBUTION distributiontype) {
@@ -1017,6 +1021,7 @@ public class ParticlePipeComputing {
     private void moveParticle4_transfersensitive(Particle p) {
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
+
         if (Double.isNaN(position1d)) {
             position1d = 0;
         }
@@ -1030,6 +1035,7 @@ public class ParticlePipeComputing {
         if (c.getWaterlevel() < 0.001) {
             return;
         }
+        int oldCapacityID = (int) c.getAutoID();
 
         if (useDeposition) {
 //Test for deposition
@@ -1496,7 +1502,12 @@ public class ParticlePipeComputing {
 
         if (c instanceof Pipe) {
             Pipe pipe = (Pipe) c;
-            pipe.getMeasurementTimeLine().addParticle(p);
+
+//            if (thread != null) {
+//                thread.getTemporalMeasurementsPipe().addParticle((int) c.getAutoID(), p, c.getAutoID() != oldCapacityID);
+//            } else {
+                pipe.getMeasurementTimeLine().addParticle(p);
+//            }
             p.setVelocity1d(pipe.getVelocity());
         }
 

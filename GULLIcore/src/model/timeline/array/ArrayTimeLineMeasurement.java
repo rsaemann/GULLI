@@ -150,9 +150,10 @@ public class ArrayTimeLineMeasurement {
                 }
             }
         }
-        this.particleMassInTimestep += particleToCount.particleMass;
-        this.numberOfParticlesInTimestep++;
-
+        synchronized (this) {
+            this.particleMassInTimestep += particleToCount.particleMass;
+            this.numberOfParticlesInTimestep++;
+        }
     }
 
     public void resetNumberOfParticles() {

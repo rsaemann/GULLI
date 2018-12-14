@@ -10,19 +10,12 @@ import control.Controller;
 import control.StartParameters;
 import control.scenario.injection.InjectionInformation;
 import control.scenario.Scenario;
-import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import model.GeoTools;
 import model.particle.Material;
 import model.timeline.array.ArrayTimeLineManhole;
@@ -56,10 +49,11 @@ public class MatlabIO {
     public MatlabIO(File f) throws IOException {
 
         long start = System.currentTimeMillis();
-        System.out.println((System.currentTimeMillis() - start) + "ms\tinit MatlabFileReader...");
+       
         MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s", "m2s"});
 
-        mfr = new MatFileReader();
+        mfr = new MatFileReader(); 
+        System.out.println((System.currentTimeMillis() - start) + "ms\tinit MatlabFileReader...");
         mfr.read(f, filter, 2);
         System.out.println((System.currentTimeMillis() - start) + "ms\t MatlabFileReader loaded.");
 //        System.exit(-1);

@@ -58,6 +58,9 @@ public class SparseTimelinePipe implements TimeLinePipe {
      */
     private float[] mass_reference;
 
+    private float actualVelocity, actualWaterlevel, actualFlux;
+    private long actualTimestamp;
+
     public SparseTimelinePipe(SparseTimeLinePipeContainer container, Pipe pipe) {
         this.container = container;
         this.pipeManualID = pipe.getManualID();
@@ -114,12 +117,22 @@ public class SparseTimelinePipe implements TimeLinePipe {
         return container.getNumberOfTimes();
     }
 
+    private void calculateActualValues() {
+        this.actualVelocity = getValue_DoubleIndex(velocity, container.getActualTimeIndex_double());
+        this.actualWaterlevel = getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
+        this.actualFlux = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+        this.actualTimestamp = container.getActualTime();
+    }
+
     @Override
     public float getVelocity() {
         if (velocity == null) {
             container.loadTimelineVelocity(this, pipeManualID, pipeName);
         }
-        return getValue_DoubleIndex(velocity, container.getActualTimeIndex_double());
+        if (actualTimestamp != container.getActualTime()) {
+            calculateActualValues();
+        }
+        return this.actualVelocity;//getValue_DoubleIndex(velocity, container.getActualTimeIndex_double());
     }
 
     @Override
@@ -127,7 +140,10 @@ public class SparseTimelinePipe implements TimeLinePipe {
         if (flux == null) {
             container.loadTimelineFlux(this, pipeManualID, pipeName);
         }
-        return getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+        if (actualTimestamp != container.getActualTime()) {
+            calculateActualValues();
+        }
+        return this.actualFlux;//return getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
     }
 
     @Override
@@ -135,7 +151,10 @@ public class SparseTimelinePipe implements TimeLinePipe {
         if (waterlevel == null) {
             container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
         }
-        return getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
+        if (actualTimestamp != container.getActualTime()) {
+            calculateActualValues();
+        }
+        return this.actualWaterlevel;//return getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
     }
 
     public void setFlux(float[] flux) {

@@ -2326,6 +2326,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     private String[] prepareManholeTags(Manhole mh) {
         String str = mh.toString() + ";";
+        str += mh.getWaterType() + ";";
         if (mh.isSetAsOutlet()) {
             str += " Outlet;";
         }
@@ -2945,7 +2946,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     @Override
     public void loadNetwork(Network network, Object caller) {
-        System.out.println("paintmanager network loaded.");
         this.setNetwork(network);
     }
 

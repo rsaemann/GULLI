@@ -135,8 +135,15 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         this.directory = directory;
         this.db = FileGDBFactory.open(this.directory.toPath());
         analyseHEDatabase();
-        System.out.println(getClass() + "::created " + directory.getParentFile().getName() + " velocity timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps);
+//        System.out.println(getClass() + "::created " + directory.getParentFile().getName() + " velocity timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps);
     }
+
+    @Override
+    public String toString() {
+        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps+",@ "+directory.getAbsolutePath()+"}";
+    }
+    
+    
 
     /**
      * Find content of waterlevel and velocity if existent and sets needed

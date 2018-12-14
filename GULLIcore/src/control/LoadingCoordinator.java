@@ -101,7 +101,10 @@ public class LoadingCoordinator implements LoadingActionListener {
     private HE_Database modelDatabase, resultDatabase;
     private static HE_Database tempFBDB;
 
-    public static boolean verbose = true;
+    /**
+     * enables the console logging output.
+     */
+    public static boolean verbose = false;
 
     private boolean isLoading = false;
 
@@ -205,6 +208,7 @@ public class LoadingCoordinator implements LoadingActionListener {
 
             @Override
             public void run() {
+                long startLoadingtime = System.currentTimeMillis();
                 requestLoading = true;
                 isLoading = true;
                 action.child = null;
@@ -292,7 +296,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                         break;
                     }
                     if (requestLoading) {
-                        System.out.println(getClass() + " is requested to load again.");
+                        if (verbose) {
+                            System.out.println(getClass() + " is requested to load again.");
+                        }
                     }
                 }
                 isLoading = false;
@@ -310,6 +316,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                 } else {
                     System.out.println("Loading thread interrupted. Do not inform listeners at the end");
                 }
+
+                System.out.println("Loading took " + (System.currentTimeMillis() - startLoadingtime) + " ms in total.");
             }
         };
 
@@ -680,7 +688,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         try {
             long start = System.currentTimeMillis();
             Surface surf = SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
-            System.out.println("Load pure triangles took " + (System.currentTimeMillis() - start) + "ms");
+//            System.out.println("Load pure triangles took " + (System.currentTimeMillis() - start) + "ms");
             start = System.currentTimeMillis();
             //load neighbour definitions
             {
@@ -694,13 +702,13 @@ public class LoadingCoordinator implements LoadingActionListener {
                     if (!outNodeTriangles.exists()) {
                         ArrayList<Integer>[] n2t = SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
                         SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
-                        System.out.println("Created new Nodes->Triangle File " + outNodeTriangles);
+//                        System.out.println("Created new Nodes->Triangle File " + outNodeTriangles);
                         fileSufaceNode2Triangle = outNodeTriangles;
                         surf.setNodeNeighbours(SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
                     }
                 }
             }
-            System.out.println("Applying nodes'triangles took " + (System.currentTimeMillis() - start) + "ms.");
+//            System.out.println("Applying nodes'triangles took " + (System.currentTimeMillis() - start) + "ms.");
             start = System.currentTimeMillis();
             if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
                 surf.mooreNeighbours = SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
@@ -711,12 +719,13 @@ public class LoadingCoordinator implements LoadingActionListener {
                 fireLoadingActionUpdate();
                 fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
                 if (!fileTriangleMooreNeighbours.exists()) {
+                    System.out.println("Create new Moore Neighbours File @" + fileTriangleMooreNeighbours);
                     SurfaceIO.writeMooreTriangleNeighbours(surf.getTriangleNodes(), surf.getVerticesPosition().length, fileTriangleMooreNeighbours);
                     System.out.println("Created new Moore Neighbours File " + fileTriangleMooreNeighbours);
                     surf.mooreNeighbours = SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
                 }
             }
-            System.out.println("Moor Neighbours took " + (System.currentTimeMillis() - start) + "ms.");
+//            System.out.println("Moor Neighbours took " + (System.currentTimeMillis() - start) + "ms.");
 
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInformation injection : injections) {
@@ -763,7 +772,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                 fireLoadingActionUpdate();
 
                 String lowername = fileSurfaceWaterlevels.getName().toLowerCase();
-                System.out.println("loading waterlevels from " + fileSurfaceWaterlevels.getParentFile().getName() + "/" + fileSurfaceWaterlevels.getName());
+                if (verbose) {
+                    System.out.println("loading waterlevels from " + fileSurfaceWaterlevels.getParentFile().getName() + "/" + fileSurfaceWaterlevels.getName());
+                }
                 SurfaceVelocityLoader velocityLoader = null;
                 SurfaceWaterlevelLoader waterlevelLoader = null;
                 if (lowername.endsWith("shp")) {
@@ -791,7 +802,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                             } else {
                                 gdb.applyWaterlevelsToSurface(surface);
                                 surface.waterlevelLoader = gdb;
-                                System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                                if (verbose) {
+                                    System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                                }
                             }
 
                         } else {
@@ -810,7 +823,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                             fireLoadingActionUpdate();
                             gdb.applyVelocitiesToSurface(surface);
                             gdb.close();
-                            System.out.println("Loading GDB Velocities took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                            if (verbose) {
+                                System.out.println("Loading GDB Velocities took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                            }
                         }
                     } else {
                         loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
@@ -1022,7 +1037,9 @@ public class LoadingCoordinator implements LoadingActionListener {
 
     public boolean addInjectionInformation(InjectionInformation inj) {
         if (injections.contains(inj)) {
-            System.out.println("Loadingcoordinator already contains injection @" + inj.getPosition());
+            if (verbose) {
+                System.out.println("Loadingcoordinator already contains injection @" + inj.getPosition());
+            }
             injections.remove(inj);
             injections.add(inj);
             if (control.getScenario() != null) {
@@ -1213,7 +1230,9 @@ public class LoadingCoordinator implements LoadingActionListener {
 
         try {
             bestFilePipeNetwork = LoadingCoordinator.findCorrespondingPipeNetworkFile(bestPipeResultFile);
-            System.out.println("found best fit to " + pipeResult.getName() + "  to be " + bestFilePipeNetwork);
+            if (verbose) {
+                System.out.println("found best fit to " + pipeResult.getName() + "  to be " + bestFilePipeNetwork);
+            }
             if (bestFilePipeNetwork != null && (bestFilePipeNetwork.getName().endsWith("idbf") || bestFilePipeNetwork.getName().endsWith("idbr"))) {
                 if (bestFilePipeNetwork != null && bestFilePipeNetwork.exists()) {
                     if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
@@ -1241,10 +1260,14 @@ public class LoadingCoordinator implements LoadingActionListener {
                     if (oldnumber == newnumber) {
                         //Seems to be identical to the already loaded surface.
                         oldFilecorrespondsSurfaceTopology = true;
-                        System.out.println("Number of Triangles identical, no need to load again.");
+                        if (verbose) {
+                            System.out.println("Number of Triangles identical, no need to load again.");
+                        }
                         //Do not need to be loaded again
                     } else {
-                        System.out.println("Surface: loaded: " + oldnumber + " triangles, new:" + newnumber);
+                        if (verbose) {
+                            System.out.println("Surface: loaded: " + oldnumber + " triangles, new:" + newnumber);
+                        }
                     }
                 }
             }
@@ -1316,7 +1339,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                 tempFBDB = new HE_Database(resultFile, true);
             }
             String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Database.readModelnamePipeNetwork(resultFile);
-            System.out.println("Network corresponding file: " + filePath);
+            if (verbose) {
+                System.out.println("Network corresponding file: " + filePath);
+            }
             File f = new File(filePath);
             if (f.exists()) {
 
@@ -1336,7 +1361,9 @@ public class LoadingCoordinator implements LoadingActionListener {
             }
             String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Database.readModelnamePipeNetwork(resultFile);
 
-            System.out.println("Network corresponding file: " + filePath);
+            if (verbose) {
+                System.out.println("Network corresponding file: " + filePath);
+            }
             File f = new File(filePath);
             if (f.exists()) {
                 return f;
@@ -1350,7 +1377,9 @@ public class LoadingCoordinator implements LoadingActionListener {
 
             File file = new File(newfile);
             if (file.exists()) {
-                System.out.println("Corresponding SWMM network '" + file.getAbsolutePath() + "'");
+                if (verbose) {
+                    System.out.println("Corresponding SWMM network '" + file.getAbsolutePath() + "'");
+                }
                 return file;
             }
             System.out.println("Corresponding SWMM network not found @" + file.getAbsolutePath());

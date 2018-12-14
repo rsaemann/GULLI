@@ -1506,7 +1506,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         if (numberOfMaterials == this.numberOfMaterials) {
             return;
         }
-        System.out.println(getClass() + "::setNumberOfMaterials to " + numberOfMaterials + "   was " + this.numberOfMaterials);
+//        System.out.println(getClass() + "::setNumberOfMaterials to " + numberOfMaterials + "   was " + this.numberOfMaterials);
 
         this.numberOfMaterials = numberOfMaterials;
         if (this.measurementRaster != null) {
@@ -1735,7 +1735,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         for (Manhole manhole : nw.getManholes()) {
             map.put(manhole.getName(), manhole);
         }
-        System.out.println("temporal building names map took " + (System.currentTimeMillis() - start) + "ms. has " + map.size() + " entries");
+//        System.out.println("temporal building names map took " + (System.currentTimeMillis() - start) + "ms. has " + map.size() + " entries");
         return map;
     }
 
