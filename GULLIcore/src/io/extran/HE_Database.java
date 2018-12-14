@@ -4,7 +4,6 @@ import com.vividsolutions.jts.geom.Coordinate;
 import control.scenario.injection.HEInjectionInformation;
 import io.SHP_IO_GULLI;
 import io.SparseTimeLineDataProvider;
-import io.SurfaceIO;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -112,6 +111,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
     private java.util.Properties connectionProperties;
 
     protected boolean isSQLite = false;
+
+    private final String synchronizationObject = "sync";
 
     /**
      * Can parse text based timestamps in sqlite format.
@@ -1632,7 +1633,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineValuesPipe(long pipeMaualID, String pipeName, int numberOfTimes, String columname) {
         float[] values = new float[numberOfTimes];
         try {
-            synchronized (localFile) {
+            synchronized (synchronizationObject) {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
                 //in HE Database only use Pipe ID.
@@ -1717,7 +1718,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineWaterheightManhole(long manholeMaualID, String manholeName, int numberOfTimes) {
         float[] values = new float[numberOfTimes];
         try {
-            synchronized (localFile) {
+            synchronized (synchronizationObject) {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
                 //in HE Database only use Manhole ID.
@@ -1746,7 +1747,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineSpilloutFlux(long manholeID, String manholeName, int numberOfTimes) {
         // Read Spillout Flow from Manhole to Surface
         //NEW SCHEME INCLUDING 2D SURFACE
-        synchronized (localFile) {
+        synchronized (synchronizationObject) {
             try {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
@@ -1776,7 +1777,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public String[] getOverspillingManholes(double minFlux) {
         LinkedList<String> names = new LinkedList<>();
-        synchronized (localFile) {
+        synchronized (synchronizationObject) {
             try {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
@@ -2134,9 +2135,20 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     }
 
+//    private boolean workingonpipe = false;
+
     @Override
     public boolean fillTimelinePipe(long pipeManualID, String pipeName, SparseTimelinePipe timeline) {
-        synchronized (localFile) {
+//        if (workingonpipe) {
+//            System.out.println(Thread.currentThread().getName() + " has to wait to load Pipe " + pipeManualID);
+//        }
+        synchronized (synchronizationObject) {
+            if (timeline.isInitialized()) {
+                //Does not need to be loaded any more. another Thread did that for us, while this thread was waiting for the monitor.
+                return true;
+            }
+//            workingonpipe = true;
+//            System.out.println(Thread.currentThread().getName() + " starts loading Pipe " + pipeManualID);
             try {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
@@ -2157,6 +2169,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 timeline.setVelocity(velocity);
                 timeline.setFlux(flux);
                 timeline.setWaterlevel(waterlevel);
+//                workingonpipe = false;
                 return true;
 
             } catch (SQLException ex) {
@@ -2166,6 +2179,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Logger.getLogger(HE_Database.class
                         .getName()).log(Level.SEVERE, null, ex);
             }
+//            workingonpipe = false;
             return false;
         }
     }

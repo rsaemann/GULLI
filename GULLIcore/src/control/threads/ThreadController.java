@@ -368,7 +368,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
 //        int packageSize = particles.size() / threadCount;
         ArrayList<Particle>[] threadlists = new ArrayList[threadCount];
-        System.out.println("add to threads");
+//        System.out.println("add to threads");
         long start = System.currentTimeMillis();
         for (int i = 0; i < threadlists.length; i++) {
             threadlists[i] = new ArrayList<>(particles.size() / threadCount + 1);
@@ -387,7 +387,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             barrier_particle.getThreads().get(i).addParticles(threadlists[i]);
         }
         barrier_positionUpdate.getThread().setParticles(particles.toArray(new Particle[particles.size()]));
-        System.out.println("adding to threads completed " + ((System.currentTimeMillis() - start)) + "ms");
+//        System.out.println("adding to threads completed " + ((System.currentTimeMillis() - start)) + "ms");
 
 //        Iterator<ParticleThread> it = barrier_particle.getThreads().iterator();
 //        if (packageSize > 0) {

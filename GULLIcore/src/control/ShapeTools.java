@@ -95,7 +95,8 @@ public class ShapeTools {
             for (int j = 0; j < clusternodes.length; j++) {
                 double[] mid = surf.getTriangleMids()[j];
 
-                double tempDist = clusternodes[j].distance(new Coordinate(mid[0], mid[1]));
+//                double tempDist = clusternodes[j].distance(new Coordinate(mid[0], mid[1]));
+                double tempDist = (clusternodes[j].x - mid[0]) * (clusternodes[j].x - mid[0]) + (clusternodes[j].y - mid[1]) * (clusternodes[j].y - mid[1]);
                 if (tempDist < distance) {
                     distance = tempDist;
                     bestIndex = j;
@@ -131,7 +132,9 @@ public class ShapeTools {
                 int bestIndex = -1;
                 for (int j = 0; j < clusternodes.length; j++) {
                     double[] mid = surf.getTriangleMids()[j];
-                    double tempDist = clusternodes[j].distance(new Coordinate(mid[0], mid[1]));
+                    //double tempDist = clusternodes[j].distance(new Coordinate(mid[0], mid[1]));
+                    double tempDist = (clusternodes[j].x - mid[0]) * (clusternodes[j].x - mid[0]) + (clusternodes[j].y - mid[1]) * (clusternodes[j].y - mid[1]);
+
                     if (tempDist < distance) {
                         distance = tempDist;
                         bestIndex = j;

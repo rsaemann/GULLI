@@ -14,7 +14,7 @@ import model.topology.profile.RectangularProfile;
  */
 public class SurfaceTriangle extends Capacity {
 
-    public Inlet inlet;
+//    public Inlet inlet;
     public Manhole manhole;
 
     protected static RectangularProfile fakeprofile = new RectangularProfile(1, 1);
@@ -75,7 +75,7 @@ public class SurfaceTriangle extends Capacity {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " " + manual_ID + " " + (manhole == null ? "" : "Manhole(" + manhole.getManualID() + ")") + (inlet == null ? "" : "Inlet(" + inlet.getNetworkCapacity() + ")");
+        return getClass().getSimpleName() + " " + manual_ID + " " + (manhole == null ? "" : "Manhole(" + manhole.getManualID() + ")")/* + (inlet == null ? "" : "Inlet(" + inlet.getNetworkCapacity() + ")")*/;
     }
 
     @Override
@@ -118,13 +118,13 @@ public class SurfaceTriangle extends Capacity {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
-    /**
-     * @deprecated 
-     * @return 
-     */
-    private Inlet getInlet() {
-        return inlet;
-    }
+//    /**
+//     * @deprecated 
+//     * @return 
+//     */
+//    private Inlet getInlet() {
+//        return inlet;
+//    }
 
     public Manhole getManhole() {
         return manhole;

@@ -25,7 +25,6 @@ package control;
 
 import control.listener.SimulationActionListener;
 import control.particlecontrol.ParticlePipeComputing;
-import com.vividsolutions.jts.geom.Coordinate;
 import control.Action.Action;
 import control.listener.LoadingActionListener;
 import control.listener.ParticleListener;
@@ -39,14 +38,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.GeoTools;
 import model.particle.HistoryParticle;
 import model.particle.Material;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
-import model.timeline.array.TimeIndexContainer;
 import model.topology.Capacity;
 import model.topology.Connection;
 import model.topology.Connection_Manhole_Pipe;
@@ -54,11 +51,9 @@ import model.topology.Manhole;
 import model.topology.Network;
 import model.topology.measurement.ParticleMeasurementSegment;
 import model.topology.Pipe;
-import model.topology.Position;
 import model.topology.graph.GraphSearch;
 import model.topology.graph.Pair;
 import model.topology.measurement.ParticleMeasurementSection;
-import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -74,7 +69,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     private final ThreadController threadController;
     private final LoadingCoordinator loadingCoordinator;
-    private GeoTools geoTools;
+//    private GeoTools geoTools;
 
     private final ArrayList<PipeResultData> multiInputData = new ArrayList<>(1);
 
@@ -102,7 +97,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
 //    public final ArrayList<InjectionInformation> injections = new ArrayList<>(1);
     public Controller() throws Exception {
-        geoTools = new GeoTools("EPSG:4326", "EPSG:31467", StartParameters.JTS_WGS84_LONGITUDE_FIRST);
+//        geoTools = new GeoTools("EPSG:4326", "EPSG:31467", StartParameters.JTS_WGS84_LONGITUDE_FIRST);
 
         threadController = new ThreadController(8, this);
 
@@ -111,30 +106,42 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     }
 
-    public void importSurface(Surface surface) {
-        this.surface = surface;
-
-        //Apply timecontainer for surface
-        if (surface != null) {
-            if (surface.getNumberOfTimestamps() > 1) {
-                long[] times = new long[surface.getNumberOfTimestamps()];
-                if (scenario != null) {
-                    long dt = (scenario.getEndTime() - scenario.getStartTime()) / (surface.getNumberOfTimestamps() - 1);
-                    for (int i = 0; i < times.length; i++) {
-                        times[i] = scenario.getStartTime() + i * dt;
-                    }
-
-                    TimeIndexContainer tc = new TimeIndexContainer(times);
-                    surface.setTimeContainer(tc);
-                } else {
-                }
-            } else {
-                System.err.println("Surface hat nur " + surface.getNumberOfTimestamps() + " Timestamps");
-            }
-            threadController.loadSurface(surface, this);
-        }
-    }
-
+//    private void importSurface(Surface surface) {
+//        
+//        System.out.println("++++++Controllr.importSurface");
+//        this.surface = surface;
+//
+//        //Apply timecontainer for surface
+//        if (surface != null) {
+//            if (surface.getNumberOfTimestamps() > 1) {
+//
+//                long[] times = new long[surface.getNumberOfTimestamps()];
+//                if (scenario != null) {
+//                    currentAction.description = "Setup Times for Surface";
+//                    currentAction.hasProgress = false;
+//                    currentAction.progress = 0;
+//                    fireAction(currentAction);
+//                    long dt = (scenario.getEndTime() - scenario.getStartTime()) / (surface.getNumberOfTimestamps() - 1);
+//                    for (int i = 0; i < times.length; i++) {
+//                        times[i] = scenario.getStartTime() + i * dt;
+//                    }
+//
+//                    TimeIndexContainer tc = new TimeIndexContainer(times);
+//                    surface.setTimeContainer(tc);
+//                    currentAction.progress = 1;
+//                } else {
+//                }
+//            } else {
+//                System.err.println("Surface hat nur " + surface.getNumberOfTimestamps() + " Timestamps");
+//            }
+//            currentAction.description = "Threadcontroller load Surface";
+//            currentAction.hasProgress = false;
+//            currentAction.progress = 0;
+//            fireAction(currentAction);
+//            threadController.loadSurface(surface, this);
+//            currentAction.progress = 1;
+//        }
+//    }
     public boolean addActioListener(LoadingActionListener listener) {
         if (!actionListener.contains(listener)) {
             return actionListener.add(listener);
@@ -179,16 +186,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
         this.network = newNetwork;
 
-        if (network != null && Network.crsUTM != null && Network.crsWGS84 != null) {
-            try {
-                ReferenceIdentifier idWGS = Network.crsWGS84.getIdentifiers().iterator().next();
-                ReferenceIdentifier idUTM = Network.crsUTM.getIdentifiers().iterator().next();
-
-                this.geoTools = new GeoTools(idWGS.getCodeSpace() + ":" + idWGS.getCode(), idUTM.getCodeSpace() + ":" + idUTM.getCode(), StartParameters.JTS_WGS84_LONGITUDE_FIRST);
-            } catch (Exception ex) {
-                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
+        
 
         //Reference Injections, if Capacity was only referenced ba its name.
         for (InjectionInformation injection : loadingCoordinator.getInjections()) {
@@ -446,17 +444,17 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         threadController.barrier_sync.getThreads().get(0).addParticlemeasurement(pms);
     }
 
-    public Position getPositionFromLatLon(double longitude, double latitude) throws TransformException {
-        Coordinate c = new Coordinate(latitude, longitude);
-        c = geoTools.toUTM(c);
-        return new Position(longitude, latitude, c.x, c.y);
-    }
-
-    public Position getPositionFromGK(double x, double y) throws TransformException {
-        Coordinate c = new Coordinate(x, y);
-        c = geoTools.toGlobal(c);
-        return new Position(c.y, c.x, x, y);
-    }
+//    public Position getPositionFromLatLon(double longitude, double latitude) throws TransformException {
+//        Coordinate c = new Coordinate(latitude, longitude);
+//        c = geoTools.toUTM(c);
+//        return new Position(longitude, latitude, c.x, c.y);
+//    }
+//
+//    public Position getPositionFromGK(double x, double y) throws TransformException {
+//        Coordinate c = new Coordinate(x, y);
+//        c = geoTools.toGlobal(c);
+//        return new Position(c.y, c.x, x, y);
+//    }
 
     public Network getNetwork() {
         return network;
@@ -507,7 +505,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (NamedPipe_IO.instance != null) {
             NamedPipe_IO.instance.reset();
         }
-        currentAction.progress=1f;
+        currentAction.progress = 1f;
         fireAction(currentAction);
         currentAction.description = "";
     }
@@ -776,7 +774,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (surface != null) {
             surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
 //            System.out.println("new number of materials: "+surface.getNumberOfMaterials());
-        } 
+        }
     }
 
     @Override
@@ -879,6 +877,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //        if (caller instanceof LoadingCoordinator) {
         this.surface = surface;
         for (LoadingActionListener ll : actionListener) {
+            currentAction.description = "contrl. loadsurface inform " + ll;
+            currentAction.progress = 0f;
+            fireAction(currentAction);
             ll.loadSurface(surface, caller);
         }
 //        }

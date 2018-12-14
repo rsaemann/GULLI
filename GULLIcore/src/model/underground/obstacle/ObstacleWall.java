@@ -23,6 +23,7 @@
  */
 package model.underground.obstacle;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import control.maths.GeometryTools;
 import java.awt.geom.Line2D;
 import model.topology.Position3D;
@@ -38,31 +39,30 @@ public class ObstacleWall implements Obstacle3D {
     protected double lowerZ, upperZ;
 
     @Override
-    public void checkMovement(Position3D start, Position3D target, double length) throws Blocked3DMovement {
-        if (line.intersectsLine(start.getX(), start.getY(), target.getX(), target.getZ())) {
+    public void checkMovement(Coordinate start, Coordinate target, double length) throws Blocked3DMovement {
+        if (line.intersectsLine(start.x, start.y, target.x, target.y)) {
             //Intersection of streamline and wall
             //check if movement is blocked in height
-            if (start.getZ() > upperZ && target.getZ() > upperZ) {
+            if (start.z > upperZ && target.z > upperZ) {
                 //Movement is above wall -> no blocking
                 return;
             }
-            if (start.getZ() < lowerZ && target.getZ() < lowerZ) {
+            if (start.z < lowerZ && target.z < lowerZ) {
                 //Movement is below wall -> no blocking
                 return;
             }
             //Movement is bloked by wall. -> transform back to position before wall
-            double s = GeometryTools.lineIntersectionS(start.getX(), start.getY(), target.getX(), target.getY(), line.getX1(), line.getY1(), line.getX2(), line.getY2());
+            double s = GeometryTools.lineIntersectionS(start.x, start.y, target.x, target.y, line.getX1(), line.getY1(), line.getX2(), line.getY2());
             double factor1mm = 0.001 / length;
             s -= factor1mm; //particle shall stop 1mm before obstacle position to prevent point-in-obstacle-case.
             //Create inteprolated position.
-            double x_new = start.getX() + s * (target.getX() - start.getX());
-            double y_new = start.getY() + s * (target.getY() - start.getY());
-            double z_new = start.getZ() + s * (target.getZ() - start.getZ());
+            double x_new = start.x + s * (target.x - start.x);
+            double y_new = start.y + s * (target.y - start.y);
+            double z_new = start.z + s * (target.z - start.z);
 
-            double lat_new = start.getLatitude() + s * (target.getLatitude() - start.getLatitude());
-            double lon_new = start.getLongitude() + s * (target.getLongitude() - start.getLongitude());
-
-            throw new Blocked3DMovement(this, new Position3D(lon_new, lat_new, x_new, y_new, z_new));
+//            double lat_new = start.getLatitude() + s * (target.getLatitude() - start.getLatitude());
+//            double lon_new = start.getLongitude() + s * (target.getLongitude() - start.getLongitude());
+            throw new Blocked3DMovement(this, new Coordinate(x_new, y_new, z_new));
 
         } else {
             //No intersection -> do nothing

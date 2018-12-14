@@ -23,6 +23,7 @@
  */
 package model.underground.obstacle;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import model.topology.Position3D;
 
 /**
@@ -36,15 +37,15 @@ public class Blocked3DMovement extends Exception {
     /**
      * New position representing the position when blocked by the obstacle.
      */
-    public final Position3D deflected_Position;
+    public final Coordinate deflected_Position;
 
-    public Blocked3DMovement(Obstacle3D obstacle, Position3D deflected_Position, String string) {
+    public Blocked3DMovement(Obstacle3D obstacle, Coordinate deflected_Position, String string) {
         super(string);
         this.obstacle = obstacle;
         this.deflected_Position = deflected_Position;
     }
 
-    public Blocked3DMovement(Obstacle3D obstacle, Position3D deflected_Position) {
+    public Blocked3DMovement(Obstacle3D obstacle, Coordinate deflected_Position) {
         super();
         this.obstacle = obstacle;
         this.deflected_Position = deflected_Position;

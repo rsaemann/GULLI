@@ -90,7 +90,7 @@ public class ParticleSoilComputing {
      * @param p Particle in 3D Domain
      */
     public void moveParticle(Particle p) {
-        Coordinate c = p.getPosition3d().get3DCoordinate();
+        Coordinate c = p.getPosition3d();
 
         int index = underground.getNearestCoordinateIndex(c);
         if (index < 0) {
@@ -109,8 +109,8 @@ public class ParticleSoilComputing {
 
         if (!underground.obstacles.isEmpty()) {
             //check collision
-            Position3D target = new Position3D(0, 0, tx, ty, tz);
-            double distance = p.getPosition3d().distanceUTM3D(target);
+            Coordinate target = new Coordinate(tx, ty, tz);
+            double distance = p.getPosition3d().distance(target);
             for (Obstacle3D obstacle : underground.obstacles) {
                 try {
                     obstacle.checkMovement(p.getPosition3d(), target, distance);
@@ -122,7 +122,7 @@ public class ParticleSoilComputing {
             }
         }
 
-        p.getPosition3d().setZ(tz);
+        p.getPosition3d().z = tz;
         p.getPosition3d().x = tx;
         p.getPosition3d().y = ty;
     }

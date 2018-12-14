@@ -130,7 +130,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
     @Override
     public void setTimeContainer(TimeIndexContainer times) {
         this.times = times;
-        System.out.println(getClass() + "::setTimeContainer to " + this.times.getNumberOfTimes());
+//        System.out.println(getClass() + "::setTimeContainer to " + this.times.getNumberOfTimes());
         for (int i = 0; i < measurements.length; i++) {
             if (measurements[i] != null) {
                 createMeasurement(i);

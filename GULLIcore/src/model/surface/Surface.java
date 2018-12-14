@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.GeoPosition2D;
@@ -196,7 +197,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     /**
      * possible Inlet on/for every triangle ID
      */
-    protected HashMap<Integer, Inlet> inlets;
+    protected ConcurrentHashMap<Integer, Inlet> inlets;
 
     protected Inlet[] inletArray;
     /**
@@ -207,6 +208,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public HashMap<Capacity, Integer> sourcesForSpilloutParticles = new HashMap<>();
 
     public boolean detailedInformationAboutIDNotFound = true;
+
+    public HashMap<String, Capacity> capacityNames;
 
     /**
      *
@@ -416,9 +419,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
         }
         if (timeInterpolatedValues) {
-             return (float) (waterlevels[ID][ timeIndexInt]+(waterlevels[ID][ timeIndexInt+1]-waterlevels[ID][timeIndexInt])*timeFrac);
+            return (float) (waterlevels[ID][timeIndexInt] + (waterlevels[ID][timeIndexInt + 1] - waterlevels[ID][timeIndexInt]) * timeFrac);
         } else {
-            return waterlevels[ID][ timeIndexInt];
+            return waterlevels[ID][timeIndexInt];
         }
     }
 
@@ -1522,7 +1525,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             if (tc == null) {
                 continue;
             }
-            if (tc.inlet != null || tc.manhole != null) {
+            if (/*tc.inlet != null ||*/tc.manhole != null) {
 //                tc.getMeasurementTimeLine().resetNumberOfParticles();
 //                tc.getMeasurementTimeLine().resetVisitedParticlesStorage();
                 //only reset the counter
@@ -1536,9 +1539,15 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
     }
 
+    /**
+     * @deprecated use applyStreetInlets(Network network,
+     * ArrayList<HE_InletReference> inletRefs) instead
+     * @param nw
+     * @param pipeANDTriangleIDs
+     */
     public void applyStreetInlets(Network nw, Collection<Pair<String, Integer>> pipeANDTriangleIDs) {
-        inlets = new HashMap<>(pipeANDTriangleIDs.size());//new Inlet[triangleNodes.length];
-        inletArray=new Inlet[getMaxTriangleID()+1];
+        inlets = new ConcurrentHashMap<>(pipeANDTriangleIDs.size());//new Inlet[triangleNodes.length];
+        inletArray = new Inlet[getMaxTriangleID() + 1];
         ArrayList<Inlet> inletList = new ArrayList<>(pipeANDTriangleIDs.size());
 
         for (Pair<String, Integer> pipeANDTriangleID : pipeANDTriangleIDs) {
@@ -1605,10 +1614,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
             try {
                 Inlet inlet = new Inlet(tri.position, (Pipe) cap, distancealongPipe);
-                tri.inlet = inlet;
+//                tri.inlet = inlet;
                 inletList.add(inlet);
                 inlets.put(triangleID, inlet);
-                inletArray[triangleID]=inlet;
+                inletArray[triangleID] = inlet;
 //                inlets[triangleID] = inlet;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1619,52 +1628,56 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        this.inlets = inlets;
     }
 
-    public void applyStreetInlets(Network network, ArrayList<HE_InletReference> inletRefs) {
-        inlets = new HashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
+    public void applyStreetInlets(Network network, ArrayList<HE_InletReference> inletRefs) throws TransformException {
+        inlets = new ConcurrentHashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
-
+        manholes = new Manhole[triangleNodes.length];
         for (HE_InletReference inletRef : inletRefs) {
             String capacityName = inletRef.capacityName;
             int triangleID = inletRef.triangleID;
 
             //1. check if pipe with this name exists
             Capacity cap = null;
-            try {
-                cap = network.getManholeByName(capacityName);
-            } catch (NullPointerException nullPointerException) {
-            }
-            if (cap == null) {
-                try {
-                    cap = network.getPipeByName(capacityName);
-                } catch (NullPointerException nullPointerException) {
-                }
-            }
+            cap = capacityNames.get(capacityName);
+//            try {
+//                cap = network.getManholeByName(capacityName);
+//            } catch (NullPointerException nullPointerException) {
+//            }
+//            if (cap == null) {
+//                try {
+//                    cap = network.getPipeByName(capacityName);
+//                } catch (NullPointerException nullPointerException) {
+//                }
+//            }
             if (cap == null) {
                 System.err.println("Could not find Pipe with name '" + capacityName + "' to apply a treetinlet next to it.");
                 continue;
             }
-            //2. check if triangle is existant
-            SurfaceTriangle tri = null;
-            try {
-                tri = requestSurfaceTriangle(triangleID);
 
-            } catch (Exception e) {
-            }
-            if (tri == null) {
-                System.err.println("Could not find a Traingle with ID '" + triangleID + "' to create an inlet next to pipe " + capacityName);
-                continue;
-            }
+            //2. check if triangle is existant
+//            SurfaceTriangle tri = null;
+//            try {
+//                tri = requestSurfaceTriangle(triangleID);
+//            } catch (Exception e) {
+//            }
+//            if (tri == null) {
+//                System.err.println("Could not find a Traingle with ID '" + triangleID + "' to create an inlet next to pipe " + capacityName);
+//                continue;
+//            }
             //Transform Pipe to surface coordinates
             double distancealongPipe = 0;
+            double[] tpos = getTriangleMids()[triangleID];
+            Coordinate tposUTM = new Coordinate(tpos[0], tpos[1], tpos[2]);
+            Coordinate tposWGS84 = geotools.toGlobal(tposUTM, true);
+
             if (cap instanceof Pipe) {
-                try {
-                    Pipe pipe = (Pipe) cap;
-                    Coordinate start = geotools.toUTM(pipe.getStartConnection().getPosition());
-                    Coordinate end = geotools.toUTM(pipe.getEndConnection().getPosition());
-                    distancealongPipe = GeometryTools.distancePointAlongLine(start.x, start.y, end.x, end.y, tri.position.x, tri.position.y);
-                } catch (TransformException ex) {
-                    Logger.getLogger(Surface.class.getName()).log(Level.SEVERE, null, ex);
-                }
+
+                Pipe pipe = (Pipe) cap;
+                Coordinate start = geotools.toUTM(pipe.getStartConnection().getPosition());
+                Coordinate end = geotools.toUTM(pipe.getEndConnection().getPosition());
+
+                distancealongPipe = GeometryTools.distancePointAlongLine(start.x, start.y, end.x, end.y, tposUTM.x, tposUTM.y);
+
             } else if (cap instanceof Manhole) {
                 //MAp inlet to manholes pipe
                 Manhole mh = (Manhole) cap;
@@ -1692,10 +1705,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
             try {
 //                if (cap instanceof Pipe) {
-                    Inlet inlet = new Inlet(tri.position, cap, distancealongPipe);
-                    tri.inlet = inlet;
-                    inletList.add(inlet);
-                    inlets.put(triangleID, inlet);
+                Inlet inlet = new Inlet(new Position3D(tposWGS84.x, tposWGS84.y, tposUTM.x, tposUTM.y, tposUTM.z), cap, distancealongPipe);
+//                tri.inlet = inlet;
+                inletList.add(inlet);
+                inlets.put(triangleID, inlet);
 //                } else if(cap instanceof Manhole){
 //                    Inlet inlet = new Inlet(tri.position, cap, distancealongPipe);
 //                    tri.inlet = inlet;
@@ -1713,15 +1726,44 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         network.setStreetInlets(inletList);
     }
 
+    public HashMap<String, Capacity> buildNamedCapacityMap(Network nw) {
+        HashMap<String, Capacity> map = new HashMap<>(nw.getManholes().size() + nw.getPipes().size());
+        long start = System.currentTimeMillis();
+        for (Pipe pipe : nw.getPipes()) {
+            map.put(pipe.getName(), pipe);
+        }
+        for (Manhole manhole : nw.getManholes()) {
+            map.put(manhole.getName(), manhole);
+        }
+        System.out.println("temporal building names map took " + (System.currentTimeMillis() - start) + "ms. has " + map.size() + " entries");
+        return map;
+    }
+
+    public void clearNamedCapacityMap() {
+        if (capacityNames != null) {
+            capacityNames.clear();
+        }
+    }
+
     public void applyManholeRefs(Network network, ArrayList<Pair<String, Integer>> manhRefs) {
 //        if (manholes != null) {
 //            manholes.clear();
 //        }
+        if (capacityNames == null || capacityNames.isEmpty()) {
+            capacityNames = buildNamedCapacityMap(network);
+        }
         manholes = new Manhole[triangleNodes.length];
         for (Pair<String, Integer> mr : manhRefs) {
-            Manhole mh = network.getManholeByName(mr.first);
+            Manhole mh = (Manhole) capacityNames.get(mr.first);//network.getManholeByName(mr.first);
             if (mh != null) {
                 manholes[mr.second] = mh;
+                SurfaceTriangle tri = requestSurfaceTriangle(mr.second);
+                if (tri == null) {
+                    System.err.println(getClass() + "::could not find Triangle " + mr.second + " to connect to Manhole.");
+                    continue;
+                }
+                tri.manhole = mh;
+                mh.setSurfaceTriangle(tri);
             }
         }
     }
@@ -2413,6 +2455,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                             double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by);
                             s = st1[0];
                             if (s < 0 || s > 1) {
+                                System.out.println("line1: "+xold+" | "+yold+"  to "+x+" | "+y+"  \t crosses "+ax+" | "+ay+" to "+bx+" | "+by);
                                 System.out.println("BAD: s=" + st1[0] + "|" + st1[1] + "\t edges: " + outs + "   left:" + leftIterations + "\tweights: " + bw[0] + ", " + bw[1] + ", " + bw[2] + "  " + (boundaryFound ? "Boundary hit!" : ""));
                                 throw new BoundHitException(id, new double[]{triangleMids[id][0], triangleMids[id][1]});
                             }

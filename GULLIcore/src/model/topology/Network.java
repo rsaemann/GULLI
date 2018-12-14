@@ -25,7 +25,7 @@ public class Network {
     public static CoordinateReferenceSystem crsUTM;
 
     public static CoordinateReferenceSystem crsWGS84 = initWGS84CRS();
-    
+
     protected Collection<Pipe> pipes;
     protected HashSet<Manhole> manholes;
     protected Collection<Inlet> streetInlets;
@@ -137,7 +137,7 @@ public class Network {
                 return capacity;
             }
         }
-return null;
+        return null;
 //        throw new NullPointerException("Network does not contain a manhole with a name like '" + name + "'.");
     }
 

@@ -43,29 +43,29 @@ public class LocationThread extends Thread {
 //                    for (NodePainting particlePainting : paintManager.getParticlePaintings()) {
 //                        try {
 //                            Particle p = (Particle) particlePainting.getPosition();
-        if (particles != null) {
-            for (Particle p : particles) {
+//        if (particles != null) {
+//            for (Particle p : particles) {
 
-                if (p.getSurrounding_actual() == null || !p.isActive()) {
-                    continue;
-                }
+//                if (p.getSurrounding_actual() == null || !p.isActive()) {
+//                    continue;
+//                }
                             // Wenn 2D position schon gesetzt{
                 // nur in lat/long umrechnen.  
                 //}else{
-                if (p.getPosition2d_actual() != null) {
-                    Coordinate utm = null;
-                    try {
-                        utm = p.getPosition2d_actual().get3DCoordinate();
-                        if (!Double.isNaN(utm.x)) {
-                            Coordinate longlat = barrier.notifyWhenReady.control.getSurface().getGeotools().toGlobal(utm, true);
-                            p.setPosition3d(new Position3D(longlat.x, longlat.y, utm.x, utm.y, 0));
-                        }
-                    } catch (TransformException transformException) {
-                        System.err.println(getClass() + " Particle: " + p.getId() + ". Wrong surface transformation for UTM " + utm + "   in " + p.getSurrounding_actual() + "  Triangle:" + p.surfaceCellID);
-                    }
-                } else {
-                    p.setPosition3d(p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()));
-                }
+//                if (p.getPosition2d_actual() != null) {
+//                    Coordinate utm = null;
+//                    try {
+//                        utm = p.getPosition2d_actual().get3DCoordinate();
+//                        if (!Double.isNaN(utm.x)) {
+//                            Coordinate longlat = barrier.notifyWhenReady.control.getSurface().getGeotools().toGlobal(utm, true);
+//                            p.setPosition3d(new Position3D(longlat.x, longlat.y, utm.x, utm.y, 0));
+//                        }
+//                    } catch (TransformException transformException) {
+//                        System.err.println(getClass() + " Particle: " + p.getId() + ". Wrong surface transformation for UTM " + utm + "   in " + p.getSurrounding_actual() + "  Triangle:" + p.surfaceCellID);
+//                    }
+//                } else {
+//                    p.setPosition3d(p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()));
+//                }
 //                            int relV = (int) (p.getVelocity1d() * 100 / 2);
 //                            particlePainting.setColor(paintManager.getColorHolderVelocityRelative(relV));
 //                        } catch (Exception e) {
@@ -77,8 +77,8 @@ public class LocationThread extends Thread {
 //                e.printStackTrace();
 //            }
 //            paintManager.updateLabel();
-            }
-        }
+//            }
+//        }
 
     }
 

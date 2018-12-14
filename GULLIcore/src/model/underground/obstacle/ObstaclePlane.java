@@ -44,41 +44,41 @@ public class ObstaclePlane implements Obstacle3D {
 
     /**
      * Passing of movement from both sides is blocked.
-     * @param polygon 
+     *
+     * @param polygon
      */
     public ObstaclePlane(Polygon polygon) {
         this.polygon = polygon;
     }
-    
+
     @Override
-    public void checkMovement(Position3D start, Position3D target, double length) throws Blocked3DMovement {
+    public void checkMovement(Coordinate start, Coordinate target, double length) throws Blocked3DMovement {
 
         if (preDistance) {
-            double sqdist = (start.getX() - polygon.getCoordinate().x) * (start.getX() - polygon.getCoordinate().x) + (start.getY() - polygon.getCoordinate().y) * (start.getY() - polygon.getCoordinate().y) + (start.getZ() - polygon.getCoordinate().z) * (start.getZ() - polygon.getCoordinate().z);
+            double sqdist = (start.x - polygon.getCoordinate().x) * (start.x - polygon.getCoordinate().x) + (start.y - polygon.getCoordinate().y) * (start.y - polygon.getCoordinate().y) + (start.z - polygon.getCoordinate().z) * (start.z - polygon.getCoordinate().z);
             if (sqdist > (3 * length + polygon.getLength())) {
-            //particle is not near to this polygon
+                //particle is not near to this polygon
                 // ToDo find something more robust 
                 return;
             }
         }
         //Need more detailed checking.
-        LineString movementline = polygon.getFactory().createLineString(new Coordinate[]{start.get3DCoordinate(), target.get3DCoordinate()});
+        LineString movementline = polygon.getFactory().createLineString(new Coordinate[]{start, target});
         if (polygon.intersects(movementline)) {
             Geometry hit = polygon.intersection(movementline);
             //Move a bit away from the obstacle towards the start point. 
             // Particle shall stop 1mm before the obstacle
-            double s = start.distanceUTM3D(hit.getCoordinate().x, hit.getCoordinate().y, hit.getCoordinate().z);
+            double s = start.distance(hit.getCoordinate());
             //Shift s back by 1 mm.
             s -= 0.001 / length;
             //Interpolate new Particles Position
-            double x_new = start.getX() + s * (target.getX() - start.getX());
-            double y_new = start.getY() + s * (target.getY() - start.getY());
-            double z_new = start.getZ() + s * (target.getZ() - start.getZ());
+            double x_new = start.x + s * (target.x - start.x);
+            double y_new = start.y + s * (target.y - start.y);
+            double z_new = start.z + s * (target.z - start.z);
 
-            double lat_new = start.getLatitude() + s * (target.getLatitude() - start.getLatitude());
-            double lon_new = start.getLongitude() + s * (target.getLongitude() - start.getLongitude());
-
-            throw new Blocked3DMovement(this, new Position3D(lon_new, lat_new, x_new, y_new, z_new));
+//            double lat_new = start.getLatitude() + s * (target.getLatitude() - start.getLatitude());
+//            double lon_new = start.getLongitude() + s * (target.getLongitude() - start.getLongitude());
+            throw new Blocked3DMovement(this, new Coordinate(x_new, y_new, z_new));
         } else {
             // no intersection
         }

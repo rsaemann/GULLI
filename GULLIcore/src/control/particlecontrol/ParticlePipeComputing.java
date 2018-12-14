@@ -391,7 +391,7 @@ public class ParticlePipeComputing {
      * @deprecated @param p
      */
     private void moveParticle2(Particle p) {
-        float position1d = p.getPosition1d_actual();
+        double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (c == null || c.isSetAsOutlet()) {
             p.setInactive();
@@ -414,7 +414,7 @@ public class ParticlePipeComputing {
          * if ds is positive : advective dominant else diffusiv has higher
          * negative influence
          */
-        float ds = (float) (adv + diff);
+        double ds = (adv + diff);
 //        ds=getTraveldistance(p);
 //        System.out.println("Particle " + p + "  adv.= " + adv + "\t diff.= " + diff + "\t =ds: " + ds+"\tpos1d:"+p.getPosition1d_actual());
         /**
@@ -423,7 +423,7 @@ public class ParticlePipeComputing {
         if (c.getClass().equals(Pipe.class)) {
             Pipe pipe = (Pipe) c;
             if (pipe.getVelocity() > 0) {
-                float neuePosition = position1d + ds;
+                double neuePosition = position1d + ds;
 //                    System.out.println("  pipe.velocity>0  position1d: "+position1d+"  ds="+ds);
                 if (neuePosition < 0) {
 //                        System.out.println(  " C <0 = "+position1d+"+"+ds);
@@ -636,7 +636,7 @@ public class ParticlePipeComputing {
 
     private void moveParticle3(Particle p) {
 
-        float position1d = p.getPosition1d_actual();
+        double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (c == null || c.isSetAsOutlet()) {
             p.setInactive();
@@ -672,7 +672,7 @@ public class ParticlePipeComputing {
          * if ds is positive : advective dominant else diffusiv has higher
          * negative influence
          */
-        float ds = (float) (adv + diff);
+        double ds = (adv + diff);
         p.addMovingLength(ds);
 //        p.addTravelledPathLength(adv);
 //        p.ds = ds;
@@ -684,7 +684,7 @@ public class ParticlePipeComputing {
         if (c.getClass().equals(Pipe.class)) {
             Pipe pipe = (Pipe) c;
             if (pipe.getVelocity() > 0) {
-                float neuePosition = position1d + ds;
+                double neuePosition = position1d + ds;
 //                    System.out.println("  pipe.velocity>0  position1d: "+position1d+"  ds="+ds);
                 if (neuePosition < 0) {
 //                        System.out.println(  " C <0 = "+position1d+"+"+ds);
@@ -784,7 +784,7 @@ public class ParticlePipeComputing {
                         Manhole mh = (Manhole) c;
                         if (c.isSetAsOutlet()) {
                             p.setInactive();
-                            p.setPosition1d_actual(0);
+//                            p.setPosition1d_actual(0);
                             p.setSurrounding_actual(c);
                             return;
                         }
@@ -1015,7 +1015,7 @@ public class ParticlePipeComputing {
      * @param p
      */
     private void moveParticle4_transfersensitive(Particle p) {
-        float position1d = p.getPosition1d_actual();
+        double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (Double.isNaN(position1d)) {
             position1d = 0;
@@ -1076,7 +1076,7 @@ public class ParticlePipeComputing {
          * negative influence
          */
         double remaining_dt = dt;
-        float ds;//= (float) (adv + diff);
+        double ds;//= (float) (adv + diff);
         float ds_adv = 0;
 //        p.addTravelledPathLength(adv);
 //        ds = (float) adv;
@@ -1098,7 +1098,7 @@ public class ParticlePipeComputing {
             if (c.getClass().equals(Pipe.class)) {
                 Pipe pipe = (Pipe) c;
                 if (pipe.getVelocity() > 0) {
-                    float neuePosition = position1d + ds;
+                    double neuePosition = position1d + ds;
 //                    System.out.println("  pipe.velocity>0  position1d: "+position1d+"  ds="+ds);
                     if (neuePosition < 0) {
 //                        System.out.println(  " C <0 = "+position1d+"+"+ds);
@@ -1248,10 +1248,11 @@ public class ParticlePipeComputing {
                                         if (mh.getSurfaceTriangle() != null) {
                                             c = mh.getSurfaceTriangle();
                                             p.setSurrounding_actual(mh.getSurfaceTriangle());
+                                            p.setPosition_actual(mh.getSurfaceTriangle().getPosition3D(0).get3DCoordinate());
                                             p.setOnSurface();
                                             p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                                             p.toSurface = mh;
-                                            p.posToSurface = p.getTravelledPathLength();
+                                            p.posToSurface = (float) p.getTravelledPathLength();
                                             if (p.getClass().equals(HistoryParticle.class)) {
                                                 ((HistoryParticle) p).addToHistory(c);
                                             }
@@ -1283,9 +1284,10 @@ public class ParticlePipeComputing {
                                 c = mh.getSurfaceTriangle();
                                 p.setSurrounding_actual(mh.getSurfaceTriangle());
                                 p.setOnSurface();
+                                p.setPosition_actual(mh.getSurfaceTriangle().getPosition3D(0).get3DCoordinate());
                                 p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                                 p.toSurface = mh;
-                                p.posToSurface = p.getTravelledPathLength();
+                                p.posToSurface = (float) p.getTravelledPathLength();
                                 if (p.getClass().equals(HistoryParticle.class)) {
                                     ((HistoryParticle) p).addToHistory(c);
                                 }

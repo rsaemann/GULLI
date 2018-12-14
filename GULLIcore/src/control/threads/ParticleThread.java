@@ -22,10 +22,10 @@ import model.topology.measurement.ParticleMeasurement;
  */
 public class ParticleThread extends Thread {
 
-    private int runningIndex=0;
-    
-    public final int id=runningIndex++;
-    
+    private int runningIndex = 0;
+
+    public final int id = runningIndex++;
+
     /**
      * Field off all particles to be treated by this Thread. Field should be
      * sorted according to release time.
@@ -159,15 +159,19 @@ public class ParticleThread extends Thread {
                 particleID = p.getId();
                 if (p.getInsertionTime() <= simulationTime) {
                     p.setSurrounding_actual(p.injectionSurrounding);
-                    p.setPosition1d_actual(p.injectionPosition1D);
+
                     if (p.injectionSurrounding instanceof SurfaceTriangle) {
                         p.setOnSurface();
                         p.surfaceCellID = p.getInjectionCellID();
+                        p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
                     } else if (p.injectionSurrounding instanceof Surface) {
                         p.setOnSurface();
                         p.surfaceCellID = p.getInjectionCellID();
+                        double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
+                        p.setPosition(pos[0], pos[1]);
                     } else {
                         p.setInPipenetwork();
+                        p.setPosition1d_actual(p.injectionPosition1D);
                     }
                     //Start at this index in the next timestep
                     numberOfActiveParticles++;
@@ -184,15 +188,15 @@ public class ParticleThread extends Thread {
             status = 3;
             particleID = -20;
             int oldactiveIndex = activeIndex;
-            int inactivejumps=0;
-            
+            int inactivejumps = 0;
+
             for (int i = activeIndex; i < waitingindex; i++) {
                 p = particles[i];
 
                 if (p == null || p.isInactive()) {
                     if (activeIndex == i) {
                         activeIndex++;
-                    }                    
+                    }
                     inactivejumps++;
                     continue;
                 }
@@ -236,7 +240,7 @@ public class ParticleThread extends Thread {
 
             }
             if (oldactiveIndex != activeIndex) {
-                System.out.println(id+":old:"+oldactiveIndex+"\t new:"+activeIndex+"   \tinactives:"+inactivejumps);
+                System.out.println(id + ":old:" + oldactiveIndex + "\t new:" + activeIndex + "   \tinactives:" + inactivejumps);
             }
 //            particleID = -3;
 //            status = 10;
@@ -301,11 +305,15 @@ public class ParticleThread extends Thread {
                         if (p.injectionSurrounding instanceof SurfaceTriangle) {
                             p.setOnSurface();
                             p.surfaceCellID = p.getInjectionCellID();
+                            p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
                         } else if (p.injectionSurrounding instanceof Surface) {
                             p.setOnSurface();
                             p.surfaceCellID = p.getInjectionCellID();
+                            double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
+                            p.setPosition(pos[0], pos[1]);
                         } else {
                             p.setInPipenetwork();
+                            p.setPosition1d_actual(p.injectionPosition1D);
                         }
                     } else {
                         //Since all particles are ordered asc by their insertion time
@@ -440,8 +448,8 @@ public class ParticleThread extends Thread {
                 }
                 p.setInactive();
                 p.setPosition1d_actual(p.injectionPosition1D);
-                p.setPosition3d(null);
-                p.setPosition2d_actual(null);
+//                p.setPosition3d(null);
+//                p.setPosition2d_actual(null);
                 p.surfaceCellID = p.getInjectionCellID();
                 if (p.getClass().equals(HistoryParticle.class)) {
                     ((HistoryParticle) p).clearHistory();

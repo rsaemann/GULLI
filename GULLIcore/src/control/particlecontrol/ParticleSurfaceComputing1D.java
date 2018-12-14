@@ -134,14 +134,16 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 //            status = 3;
             ds = (v + dispV) * dt;
 
-            float s = p.getPosition1d_actual() + ds;
+            double s = p.getPosition1d_actual() + ds;
             if (s < 0) {
 //                status = 31;
                 remaining_dt *= Math.abs(p.getPosition1d_actual() / ds);
+                SurfaceTriangle triangle = surface.requestSurfaceTriangle((int) path.getStartTriangleID());
                 p.setPosition1d_actual(0);
-                p.setSurrounding_actual(surface.requestSurfaceTriangle((int) path.getStartTriangleID()));
-//                status = 32;
+                p.setPosition_actual(triangle.getPosition3D(0));
+                p.setSurrounding_actual(triangle);
 
+//                status = 32;
 //                return;
             } else if (s < path.distance) {
 
@@ -354,9 +356,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 
     @Override
     public String reportCalculationStatus() {
-        return status+"";
+        return status + "";
     }
-    
-    
 
 }

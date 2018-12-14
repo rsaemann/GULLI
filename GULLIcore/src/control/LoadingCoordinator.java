@@ -70,6 +70,7 @@ import model.topology.StorageVolume;
 import model.topology.graph.GraphSearch;
 import model.topology.graph.Pair;
 import org.geotools.referencing.CRS;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  *
@@ -236,29 +237,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                     for (LoadingActionListener ll : listener) {
                         ll.loadNetwork(network, this);
                     }
-                    //Show Pipes in Userinterface if GUI exists
-//                    if (control.getPaintManager() != null) {
-//                        control.getPaintManager().setNetwork(control.getNetwork());
-//                    }
-
-                    // Load information about Street inlets. Needed in the next step of surface topology.
-                    //Deprecated because shp is not needed any more. information is in the surface files.
-//                    if (loadingStreetInlets == LOADINGSTATUS.REQUESTED) {
-//                        loadingStreetInlets = LOADINGSTATUS.LOADING;
-//                        action.description = "Load street inlets";
-//                        updateGUI();
-//                        try {
-//                            SHP_IO_GULLI.applyStreetInlets(fileStreetInletsSHP, control.getNetwork());
-//                            loadingStreetInlets = LOADINGSTATUS.LOADED;
-//                        } catch (Exception ex) {
-//                            loadingStreetInlets = LOADINGSTATUS.ERROR;
-//                            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-//                        }
-//                    }
-//                    if (isInterrupted()) {
-//                        System.out.println("   LoadingThread is interrupted -> break");
-//                        break;
-//                    }
                     // Loading Surface topology
                     if (loadingSurface == LOADINGSTATUS.REQUESTED) {
                         surface = loadSurface();
@@ -270,8 +248,12 @@ public class LoadingCoordinator implements LoadingActionListener {
                     // Connect Surface and pipesystem
                     if (changedSurface || changedPipeNetwork) {
                         if (surface != null && network != null) {
-                            mapManholes(surface, network);
-                            mapStreetInlets(surface, network);
+                            try {
+                                mapManholes(surface, network);
+                                mapStreetInlets(surface, network);
+                            } catch (TransformException ex) {
+                                Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                         }
                     }
                     if (isInterrupted()) {
@@ -288,6 +270,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                     for (LoadingActionListener listener1 : listener) {
                         action.description = "Surface inform " + listener1;
                         listener1.loadSurface(surface, this);
+                        action.description = "completed Surface inform " + listener1;
+                        fireLoadingActionUpdate();
                     }
 
 //                    if (control.getPaintManager() != null) {
@@ -358,7 +342,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                 String crsCode = null;
                 try {
                     crsCode = modelDatabase.loadCoordinateReferenceSystem();
-                    if(verbose)System.out.println("Model Database's CRS: "+crsCode);
+                    if (verbose) {
+                        System.out.println("Model Database's CRS: " + crsCode);
+                    }
                 } catch (Exception exception) {
                     System.err.println("Problem with Coordinate Reference System in Model file " + modelDatabase.getDatabaseFile().getAbsolutePath());
                     exception.printStackTrace();
@@ -368,10 +354,11 @@ public class LoadingCoordinator implements LoadingActionListener {
                     crsCode = "EPSG:25832";
                     System.err.println("Use " + crsCode + " as CRS for Network geometry.");
                 }
-                nw = modelDatabase.loadNetwork(CRS.decode(crsCode));//HE_Firebird.loadNetwork(fileNetwork);
+                nw = modelDatabase.loadNetwork(CRS.decode(crsCode));//HE_Database.loadNetwork(fileNetwork);
             } else if (fileNetwork.getName().endsWith(".inp")) {
                 nw = SWMM_IO.readNetwork(fileNetwork);
             } else {
+                loadingpipeNetwork = LOADINGSTATUS.ERROR;
                 throw new Exception("File extension not known for '" + fileNetwork.getName() + "'");
             }
             if (cancelLoading) {
@@ -525,7 +512,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                         action.description = "Load all pipe velocities";
                         if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
 
-                            p = resultDatabase.applyTimelines(nw);//HE_Firebird.readTimelines(fileMainPipeResult, control.getNetwork());
+                            p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
                         } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
                             p = SWMM_IO.readTimeLines(fileMainPipeResult, nw);
                         } else {
@@ -601,7 +588,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                     if (verbose) {
                         System.out.println("try load " + file.first);
                     }
-                    Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p = resultDatabase.applyTimelines(nw);//HE_Firebird.readTimelines(file.first, control.getNetwork());
+                    Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(file.first, control.getNetwork());
                     PipeResultData data = new PipeResultData(file.first, file.first.getName(), p.first, p.second);
 
                     if (file.second) {
@@ -614,7 +601,7 @@ public class LoadingCoordinator implements LoadingActionListener {
 //                                        ArrayTimeLineManholeContainer.instance = p.second;
 
                         //Scenario laden only as mainresult
-                        ArrayList<HEInjectionInformation> injection = resultDatabase.readInjectionInformation();//HE_Firebird.readInjectionInformation(file.first/*, 20000*/);
+                        ArrayList<HEInjectionInformation> injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
                         int materialnumber = 0;
                         for (HEInjectionInformation in : injection) {
                             Capacity c = null;
@@ -691,7 +678,10 @@ public class LoadingCoordinator implements LoadingActionListener {
         action.description = "Load surface grid";
         fireLoadingActionUpdate();
         try {
+            long start = System.currentTimeMillis();
             Surface surf = SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
+            System.out.println("Load pure triangles took " + (System.currentTimeMillis() - start) + "ms");
+            start = System.currentTimeMillis();
             //load neighbour definitions
             {
                 if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
@@ -710,7 +700,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                     }
                 }
             }
-
+            System.out.println("Applying nodes'triangles took " + (System.currentTimeMillis() - start) + "ms.");
+            start = System.currentTimeMillis();
             if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
                 surf.mooreNeighbours = SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
             } else {
@@ -725,6 +716,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                     surf.mooreNeighbours = SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
                 }
             }
+            System.out.println("Moor Neighbours took " + (System.currentTimeMillis() - start) + "ms.");
 
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInformation injection : injections) {
@@ -733,13 +725,9 @@ public class LoadingCoordinator implements LoadingActionListener {
 
             if (cancelLoading) {
                 loadingSurface = LOADINGSTATUS.REQUESTED;
+                System.gc();
                 return null;
             }
-//                            System.out.println(getClass() + "  mean triangle size:" + surf.calcMeanTriangleArea() + "m²");
-            action.description = "Mapping pipe - surface links";
-            fireLoadingActionUpdate();
-            action.description = "Import surface";
-            fireLoadingActionUpdate();
             changedSurface = true;
             action.description = "Surface loaded";
             fireLoadingActionUpdate();
@@ -914,7 +902,6 @@ public class LoadingCoordinator implements LoadingActionListener {
             action.description = "Mapping manhole - surface links";
             fireLoadingActionUpdate();
             long startt = System.currentTimeMillis();
-            SurfaceIO.referenceManholes(manhRefs, network, surface);
             surface.applyManholeRefs(network, manhRefs);
             if (verbose) {
                 System.out.println("Mapping Manholes to surface took " + ((System.currentTimeMillis() - startt)) + "ms");
@@ -924,7 +911,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         return false;
     }
 
-    public boolean mapStreetInlets(Surface sf, Network nw) {
+    public boolean mapStreetInlets(Surface sf, Network nw) throws TransformException {
         if ((inletRefs == null || changedPipeNetwork || changedSurface) && fileSurfaceInlets != null) {
             action.description = "Load Inlet locations";
             fireLoadingActionUpdate();
@@ -1328,7 +1315,7 @@ public class LoadingCoordinator implements LoadingActionListener {
             if (tempFBDB == null || !tempFBDB.getDatabaseFile().equals(resultFile)) {
                 tempFBDB = new HE_Database(resultFile, true);
             }
-            String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Firebird.readModelnamePipeNetwork(resultFile);
+            String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Database.readModelnamePipeNetwork(resultFile);
             System.out.println("Network corresponding file: " + filePath);
             File f = new File(filePath);
             if (f.exists()) {
@@ -1347,7 +1334,7 @@ public class LoadingCoordinator implements LoadingActionListener {
             if (tempFBDB == null || !tempFBDB.getDatabaseFile().equals(resultFile)) {
                 tempFBDB = new HE_Database(resultFile, true);
             }
-            String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Firebird.readModelnamePipeNetwork(resultFile);
+            String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Database.readModelnamePipeNetwork(resultFile);
 
             System.out.println("Network corresponding file: " + filePath);
             File f = new File(filePath);
@@ -1380,7 +1367,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         }
         String surfModelName = tempFBDB.readSurfaceModelname();
         if (surfModelName != null) {
-            String surfaceFiles = resultFile.getParentFile().getParent() + File.separator + surfModelName + ".model";//HE_Firebird.readSurfaceModelname(resultFile) + ".model";
+            String surfaceFiles = resultFile.getParentFile().getParent() + File.separator + surfModelName + ".model";//HE_Database.readSurfaceModelname(resultFile) + ".model";
             File directorySurfaceFiles = new File(surfaceFiles);
             if (directorySurfaceFiles.exists()) {
                 //Find trimod.dat file containing information about triangle indices
@@ -1410,7 +1397,7 @@ public class LoadingCoordinator implements LoadingActionListener {
             if (tempFBDB == null || !tempFBDB.getDatabaseFile().equals(f)) {
                 tempFBDB = new HE_Database(f, true);
             }
-            return tempFBDB.loadNetwork();//HE_Firebird.loadNetwork(f);
+            return tempFBDB.loadNetwork();//HE_Database.loadNetwork(f);
         }
         if (f.getName().toLowerCase().endsWith(".txt")) {
             return CSV_IO.loadNetwork(f);
@@ -1556,7 +1543,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p;
 
         if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-            p = resultDatabase.applyTimelines(control.getNetwork());//HE_Firebird.readTimelines(fileMainPipeResult, control.getNetwork());
+            p = resultDatabase.applyTimelines(control.getNetwork());//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
 
         } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
             p = SWMM_IO.readTimeLines(fileMainPipeResult, control.getNetwork());

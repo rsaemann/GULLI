@@ -5,7 +5,7 @@
  */
 package model.particle;
 
-import model.GeoPosition2D;
+import com.vividsolutions.jts.geom.Coordinate;
 import model.topology.Capacity;
 import model.topology.Position3D;
 
@@ -13,7 +13,7 @@ import model.topology.Position3D;
  *
  * @author saemann
  */
-public class Particle implements GeoPosition2D {
+public class Particle {
 
     /**
      * invisible Counter that is used to give every particle a unique ID
@@ -51,21 +51,20 @@ public class Particle implements GeoPosition2D {
     /**
      * The position in 3D (surface,soil) space
      */
-    protected Position3D position3d;
+    protected Coordinate position3d = new Coordinate(0, 0, 0);
 
-    /**
-     * The position above sea level.
-     */
+//    /**
+//     * The position above sea level.
+//     */
 //    protected float height;
     /**
      * Position in a capacity, especially a pipe, along the axis
      */
     protected float position1d_actual;
-
-    /**
-     * Position in 2d space
-     */
-    protected Position3D position2d_actual;
+//    /**
+//     * Position in 2d space
+//     */
+//    protected Position3D position2d_actual;
     /**
      * Position in a capacity, especially a pipe, along the axis
      */
@@ -89,11 +88,8 @@ public class Particle implements GeoPosition2D {
 
 //    protected long activationTime = 0;
     /**
-     * Status to determine the domain of the particle.
-     * 0:inactive;
-     * 10: pipenetwork
-     * 20:surface;
-     * 30:underground.
+     * Status to determine the domain of the particle. 0:inactive; 10:
+     * pipenetwork 20:surface; 30:underground.
      */
     public byte status = 0;   //0=inactive, 10=pipenetwork , 20=surface, 30=Underground
 
@@ -116,24 +112,24 @@ public class Particle implements GeoPosition2D {
     /**
      * Position along travellength, when the particle was spilled out.
      */
-    public double posToSurface = 0;
+    public float posToSurface = 0;
 
     /**
      * When the particle was spilled to the surface.
      */
     public long toSurfaceTimestamp;
-    
+
     /**
      * ID of the surface triangle/element the particle is contained in.
      */
-    public int surfaceCellID=-1;
-    
-    protected int injectionCellID=-1;
-    
+    public int surfaceCellID = -1;
+
+    protected int injectionCellID = -1;
+
     /**
      * If particle stays on this cell, do not count it again.
      */
-    public int lastSurfaceCellID=-1;
+    public int lastSurfaceCellID = -1;
 
 //    public final ArrayList<Shortcut> usedShortcuts=new ArrayList<>(0);
 //    public float ds=0;
@@ -188,8 +184,8 @@ public class Particle implements GeoPosition2D {
         this.status = 30;
     }
 
-    public float getPosition1d_actual() {
-        return position1d_actual;
+    public double getPosition1d_actual() {
+        return position1d_actual; //position3d.x;//
     }
 
     /**
@@ -224,6 +220,7 @@ public class Particle implements GeoPosition2D {
 
     public void setPosition1d_actual(double position1d) {
         this.position1d_actual = (float) position1d;
+//        this.position3d.x = position1d;
     }
 
 //    public void setPosition1d_past(double position1d) {
@@ -245,10 +242,14 @@ public class Particle implements GeoPosition2D {
 //        this.surrounding_past = surrounding;
 //    }
     public void setPosition3d(Position3D position2d) {
+        this.position3d = position2d.get3DCoordinate();
+    }
+
+    public void setPosition3d(Coordinate position2d) {
         this.position3d = position2d;
     }
 
-    public Position3D getPosition3d() {
+    public Coordinate getPosition3d() {
         return position3d;
     }
 
@@ -262,22 +263,19 @@ public class Particle implements GeoPosition2D {
         this.velocity1d = (float) velocity1d;
     }
 
-    @Override
-    public double getLatitude() {
-        if (position3d == null) {
-            return 0;
-        }
-        return this.position3d.getLatitude();
-    }
-
-    @Override
-    public double getLongitude() {
-        if (position3d == null) {
-            return 0;
-        }
-        return this.position3d.getLongitude();
-    }
-
+//    public double getLatitude() {
+//        if (position3d == null) {
+//            return 0;
+//        }
+//        return this.position3d.getLatitude();
+//    }
+//
+//    public double getLongitude() {
+//        if (position3d == null) {
+//            return 0;
+//        }
+//        return this.position3d.getLongitude();
+//    }
     public int getId() {
         return id;
     }
@@ -377,12 +375,44 @@ public class Particle implements GeoPosition2D {
         this.moveLengthCummulative = 0;
     }
 
-    public Position3D getPosition2d_actual() {
-        return position2d_actual;
+    public Coordinate getPosition2d_actual() {
+        return position3d;
     }
 
-    public void setPosition2d_actual(Position3D position2d) {
-        this.position2d_actual = position2d;
+//    /**
+//     * @deprecated use setPosition_actual instead
+//     * @param position2d
+//     */
+//    public void setPosition2d_actual(Position3D position2d) {
+////        this.position2d_actual = position2d;
+//        this.position3d = position2d.get3DCoordinate();
+//    }
+    public void setPosition_actual(Coordinate c) {
+        if (c == null) {
+            this.position3d.x = 0;
+            this.position3d.y = 0;
+            this.position3d.z = 0;
+        }
+        this.position3d = c;
+    }
+
+    public void setPosition_actual(Position3D p) {
+        if (p == null) {
+            this.position3d = null;
+        } else {
+            this.setPosition(p.x, p.y, p.z);
+        }
+    }
+
+    public void setPosition(double x, double y, double z) {
+        this.position3d.x = x;
+        this.position3d.y = y;
+        this.position3d.z = z;
+    }
+
+    public void setPosition(double x, double y) {
+        this.position3d.x = x;
+        this.position3d.y = y;
     }
 
     public int getInjectionCellID() {
@@ -392,7 +422,5 @@ public class Particle implements GeoPosition2D {
     public void setInjectionCellID(int injectionCellID) {
         this.injectionCellID = injectionCellID;
     }
-    
-    
 
 }

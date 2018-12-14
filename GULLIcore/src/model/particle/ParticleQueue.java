@@ -27,11 +27,11 @@ public class ParticleQueue extends LinkedList<Particle> {
             this.add(p);
             return;
         }
-        if (p.position1d_actual > peekLast().position1d_actual) {
+        if (p.getPosition1d_actual() > peekLast().getPosition1d_actual()) {
             addLast(p);
             return;
         }
-        if (p.position1d_actual < peekFirst().position1d_actual) {
+        if (p.getPosition1d_actual() < peekFirst().getPosition1d_actual()) {
             addFirst(p);
             return;
         }
@@ -40,7 +40,7 @@ public class ParticleQueue extends LinkedList<Particle> {
         while (it.hasNext()) {
             Particle n = it.next();
 
-            if (n.position1d_actual > p.position1d_actual) {
+            if (n.getPosition1d_actual() > p.getPosition1d_actual()) {
                 add(position, p);
                 return;
             }
@@ -60,14 +60,14 @@ public class ParticleQueue extends LinkedList<Particle> {
             Particle now = it.next();
             if (p == now) {
                 if (it.hasNext()) {
-                    vorne = it.next().position1d_actual;
+                    vorne = it.next().getPosition1d_actual();
                     break;
                 } else {
 
                 }
                 break;
             } else {
-                hinten = now.position1d_actual;
+                hinten = now.getPosition1d_actual();
             }
         }
         return new double[]{p.getPosition1d_actual() - hinten, vorne - p.getPosition1d_actual()};
@@ -80,14 +80,14 @@ public class ParticleQueue extends LinkedList<Particle> {
             Particle now = it.next();
             if (p == now) {
                 if (it.hasNext()) {
-                    vorne = it.next().position1d_actual;
+                    vorne = it.next().getPosition1d_actual();
                     break;
                 } else {
 
                 }
                 break;
             } else {
-                hinten = now.position1d_actual;
+                hinten = now.getPosition1d_actual();
             }
         }
         if (p.getVelocity1d() > 0) {

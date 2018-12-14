@@ -1,12 +1,16 @@
 package control;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import io.NamedPipeIO;
 import java.awt.BasicStroke;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.GeoTools;
 import model.topology.Manhole;
+import model.topology.Network;
 import model.topology.Pipe;
 import model.topology.Position;
+import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -32,7 +36,7 @@ public class NamedPipeInterpreter implements PipeActionListener {
         if (ae.action != NamedPipeIO.ACTION.MESSAGE_RECEIVED) {
             return;
         }
-
+        GeoTools geoTools = null;
         if (control != null) {
             String line = ae.message;
             if (line.equals("CLEAR")) {
@@ -53,9 +57,19 @@ public class NamedPipeInterpreter implements PipeActionListener {
                         y = Double.parseDouble(sp[i].substring(2));
                     }
                 }
+                if (control.getNetwork() != null && Network.crsUTM != null && Network.crsWGS84 != null) {
+                    try {
+                        ReferenceIdentifier idWGS = Network.crsWGS84.getIdentifiers().iterator().next();
+                        ReferenceIdentifier idUTM = Network.crsUTM.getIdentifiers().iterator().next();
+
+                        geoTools = new GeoTools(idWGS.getCodeSpace() + ":" + idWGS.getCode(), idUTM.getCodeSpace() + ":" + idUTM.getCode(), StartParameters.JTS_WGS84_LONGITUDE_FIRST);
+                    } catch (Exception ex) {
+                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
                 try {
-                    Position pos = control.getPositionFromGK(x, y);
-                    Manhole mh = control.getNetwork().getManholeNearPositionLatLon(pos.getLatitude(), pos.getLongitude());
+                    Coordinate pos = geoTools.toGlobal(new Coordinate(x, y), true);
+                    Manhole mh = control.getNetwork().getManholeNearPositionLatLon(pos.y, pos.x);
                     if (mh == null) {
                         System.out.println("Manhole near Inlet @" + pos + " could not be found.");
                         return;
@@ -103,7 +117,7 @@ public class NamedPipeInterpreter implements PipeActionListener {
                     }
 
                     if (false) {
-                        Pipe pipe = control.getNetwork().getPipeNearPositionLAtLon(pos.getLatitude(), pos.getLongitude());
+                        Pipe pipe = control.getNetwork().getPipeNearPositionLAtLon(pos.y, pos.x);
                         if (pipe == null) {
                             System.out.println("Pipe near Inlet @" + pos + " could not be found.");
                             return;

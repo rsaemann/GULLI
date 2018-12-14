@@ -137,21 +137,22 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     private void moveParticle2(Particle p) throws Exception {
         int triangleID = p.surfaceCellID;
-        Position3D pos = p.getPosition2d_actual();
+        Coordinate pos = p.getPosition2d_actual();
 
-        if (p.isOnSurface() && triangleID >= 0 && pos != null) {
-            //Everything ok.
+        if (pos != null && triangleID >= 0) {
+//        if (p.isOnSurface() && triangleID >= 0 && pos != null) {
+//            //Everything ok.
         } else {
             if (p.getSurrounding_actual() instanceof Surface) {
 //                p.setOnSurface();
                 if (p.surfaceCellID >= 0) {
                     double[] xy = surface.getTriangleMids()[p.surfaceCellID];
-                    pos = new Position3D(0, 0, xy[0], xy[1], xy[2]);
+                    pos = new Coordinate(xy[0], xy[1], xy[2]);
                 } else if (p.getInjectionCellID() >= 0) {
                     p.surfaceCellID = p.getInjectionCellID();
                     System.out.println("Had to set surfac eCell id to injection for particle " + p);
                     double[] xy = surface.getTriangleMids()[p.surfaceCellID];
-                    pos = (new Position3D(0, 0, xy[0], xy[1], xy[2]));
+                    pos = new Coordinate(xy[0], xy[1], xy[2]);
                 } else {
                     System.err.println("no information of surface ID for Particle " + p);
                     return;
@@ -161,8 +162,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 SurfaceTriangle st = (SurfaceTriangle) p.getSurrounding_actual();
                 triangleID = (int) st.getManualID();
                 if (pos == null) {
-                    Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).latLonCoordinate());
-                    pos = new Position3D(st.getPosition3D(0).getLongitude(), st.getPosition3D(0).getLatitude(), utm.x, utm.y, st.getPosition3D(0).z);
+                    Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).latLonCoordinate(), false);
+                    pos = new Coordinate(utm.x, utm.y, st.getPosition3D(0).z);
                 }
             } else if ((p.getSurrounding_actual() instanceof SurfaceTrianglePath)) {
                 System.out.println("particle is on 1d surface path ... something is wrong!");
@@ -171,17 +172,22 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 Manhole mh = (Manhole) p.getSurrounding_actual();
                 triangleID = (int) mh.getSurfaceTriangle().getManualID();
                 if (pos == null) {
-                    Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().latLonCoordinate());
-                    pos = new Position3D(mh.getPosition().getLongitude(), mh.getPosition().getLatitude(), utm.x, utm.y, mh.getSurface_height());
+                    Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().latLonCoordinate(), false);
+                    System.out.println("Converted manhole to " + utm);
+                    pos = new Coordinate(utm.x, utm.y, mh.getSurface_height());
                 }
             } else {
                 System.out.println("Particle " + p + " is in unknown Capacity " + p.getSurrounding_actual());
             }
-            p.setPosition2d_actual(pos);
+            p.setPosition_actual(pos);
             p.setOnSurface();
             p.setSurrounding_actual(surface);
             p.surfaceCellID = triangleID;
         }
+        if (p.surfaceCellID < 0) {
+            System.out.println("Problem with particle on surface (surfacecell:" + p.surfaceCellID + ", onsurface:" + p.isOnSurface());
+        }
+
 //        //Not correctly initialized since transfer from pipe system.
 //        if (triangleID < 0) {
 //            System.out.println("Particles triangle<0: " + p + "  status:" + p.status + "  surfaceElement:" + p.surfaceCellID + "  capacity:" + p.getSurrounding_actual());
@@ -198,7 +204,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //            System.out.println("Particle is not OK: " + p + "  status:" + p.status + "  surfaceElement:" + p.surfaceCellID + "  capacity:" + p.getSurrounding_actual());
 //            return;
 //        }
-
 //        // Convert the position in UTM coordinates
 //        if (pos == null) {
 //            System.out.println("UTM Position für Particle " + p + " muss berechnet werden :" + p.getPosition2d_actual() + "    capacity:" + p.getSurrounding_actual());
@@ -217,7 +222,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         velo = surface.getParticleVelocity2D(p, triangleID);
         double u = Math.sqrt((velo[0] * velo[0]) + (velo[1] * velo[1]));
         if (u > 5 || u < -5) {
-            System.out.println("velocity is implausible. set to +/- 5m/s");
+            System.out.println("velocity (" + u + ")is implausible. set to +/- 5m/s");
             double veloverhaeltnis = velo[0] / velo[1];
             if (veloverhaeltnis < 1) {
                 velo[1] = 5;
@@ -298,7 +303,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         p.setSurrounding_actual(inlet.getNetworkCapacity());
 //                p.setPosition1d_actual(triangle.getInlet().getPipeposition1d());
                         p.setPosition1d_actual(inlet.getPipeposition1d());
-                        p.setPosition2d_actual(null);
+//                        p.setPosition2d_actual(null);
                         p.setInPipenetwork();
                         p.toPipenetwork = inlet.getNetworkCapacity();
 //                    status = 8;
@@ -326,7 +331,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 //Water can flow back into pipe network
                 p.setSurrounding_actual(m);
                 p.setPosition1d_actual(0);
-                p.setPosition2d_actual(null);
+//                p.setPosition2d_actual(null);
+//                p.setPosition3d(m.getPosition3D(0).get3DCoordinate());
                 p.setInPipenetwork();
                 p.toPipenetwork = m;
 

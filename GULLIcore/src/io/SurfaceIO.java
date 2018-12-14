@@ -345,16 +345,21 @@ public class SurfaceIO {
 
 //        System.out.println("Load surface without filter");
 //Coordinates   //X.dat
+        long start = System.currentTimeMillis();
         FileReader fr = new FileReader(fileCoordinates);
         BufferedReader br = new BufferedReader(fr);
         String line = br.readLine();
         String[] values;
+        //Number of vertices is the first entry in the first line.
         int numberofVertices = Integer.parseInt(line.split(" ")[0]);
         float[][] vertices = new float[numberofVertices][3];
         int index = 0;
+
+        //Here comes information about the coordinates
+        String seperator=" ";
         while (br.ready()) {
             line = br.readLine();
-            values = line.split(" ");
+            values = line.split(seperator);
             float x = Float.parseFloat(values[0]);
             float y = Float.parseFloat(values[1]);
             float ele = Float.parseFloat((values[values.length - 1]));
@@ -365,14 +370,15 @@ public class SurfaceIO {
         }
         br.close();
         fr.close();
-
+        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
+        start=System.currentTimeMillis();
         String epsgCode = "EPSG:25832"; //Use this standard code for Hannover
         if (coordReferenceXML != null && coordReferenceXML.exists() && coordReferenceXML.canRead()) {
             epsgCode = loadSpatialReferenceCode(coordReferenceXML);
             if (epsgCode.equals("102329")) {
                 epsgCode = "EPSG:4647";
-                System.out.println("use EPSG:4647 instead of 102329");
+//                System.out.println("use EPSG:4647 instead of 102329");
 //                for (float[] vertice : verticesL) {
 //                    vertice[0] -= 32000000;
 //                }
@@ -380,8 +386,10 @@ public class SurfaceIO {
                 epsgCode = "EPSG:" + epsgCode;
             }
         }
+        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
 
         //fileTriangleIndizes  //TRIMOD2.dat
+        start = System.currentTimeMillis();
         fr = new FileReader(fileTriangleIndizes);
         br = new BufferedReader(fr);
         line = br.readLine();
@@ -392,7 +400,7 @@ public class SurfaceIO {
         double oneThird = 1. / 3.;
         while (br.ready()) {
             line = br.readLine();
-            values = line.split(" ");
+            values = line.split(seperator);
             int first = Integer.parseInt(values[0]);
             int second = Integer.parseInt(values[1]);
             int third = Integer.parseInt(values[2]);
@@ -409,15 +417,16 @@ public class SurfaceIO {
         }
         br.close();
         fr.close();
-
+        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
         //fileNeighbours
+        start = System.currentTimeMillis();
         fr = new FileReader(fileNeighbours);
         br = new BufferedReader(fr);
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
         while (br.ready()) {
             line = br.readLine();
-            values = line.split(" ");
+            values = line.split(seperator);
             int first = Integer.parseInt(values[0]);
             int second = Integer.parseInt(values[1]);
             int third = Integer.parseInt(values[2]);
@@ -430,15 +439,15 @@ public class SurfaceIO {
         }
         br.close();
         fr.close();
-
+        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
+        start = System.currentTimeMillis();
         Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
         surf.setTriangleMids(triangleMidPoints);
         surf.fileTriangles = fileCoordinates.getParentFile();
+        System.out.println("  Building Surface Object took " + (System.currentTimeMillis() - start) + "ms.");
 //        System.out.println("Smallest: " + surf.calcSmallestTriangleArea() + "m²\t largest: " + surf.calcLargestTriangleArea() + "m²\t mean: " + surf.calcMeanTriangleArea() + "m²");
         return surf;
     }
-
-   
 
     /**
      * Load spatial reference code (e.g. "4326" for WGS84) as defined in polygon
@@ -603,6 +612,12 @@ public class SurfaceIO {
         System.out.println("found manholes and inlets after " + (System.currentTimeMillis() - start) / 1000 + "s. Manholes:" + counterManholes + "/" + nw.getManholes().size());
     }
 
+    /**
+     * @deprecated @param nw
+     * @param surface
+     * @throws TransformException
+     * @throws FactoryException
+     */
     public static void mapStreetInlets(Network nw, Surface surface) throws TransformException, FactoryException {
         int index = 0;
         Coordinate[] in;
@@ -653,8 +668,8 @@ public class SurfaceIO {
                                                 .getName()).log(Level.SEVERE, null, ex);
                                     }
                                 }
-                                Inlet mh = inlets[j];
-                                tri.inlet = mh;
+//                                Inlet mh = inlets[j];
+//                                tri.inlet = mh;
                                 counterInlets++;
                                 if (true) {
                                     //Neighbour Triangles also get a reference to this inlet
@@ -678,7 +693,7 @@ public class SurfaceIO {
                                                             .getName()).log(Level.SEVERE, null, ex);
                                                 }
                                             }
-                                            tri.inlet = inlets[j];
+//                                            tri.inlet = inlets[j];
 
                                         }
                                     }
@@ -1088,27 +1103,6 @@ public class SurfaceIO {
             }
         }
         return manhole2Triangle;
-    }
-
-    public static void referenceManholes(Collection<Pair<String, Integer>> references, Network network, Surface surface) {
-        for (Pair<String, Integer> ref : references) {
-            try {
-                Manhole mh = network.getManholeByName(ref.first);
-                if (mh == null) {
-                    System.err.println(SurfaceIO.class + "::could not find Manhole " + ref.first + " to connect to surface.");
-                    continue;
-                }
-                SurfaceTriangle tri = surface.requestSurfaceTriangle(ref.second);
-                if (tri == null) {
-                    System.err.println(SurfaceIO.class + "::could not find Triangle " + ref.second + " to connect to Manhole.");
-                    continue;
-                }
-                tri.manhole = mh;
-                mh.setSurfaceTriangle(tri);
-            } catch (NullPointerException nullPointerException) {
-                nullPointerException.printStackTrace();
-            }
-        }
     }
 
 //    public static void referenceInlets(Collection<Pair<String, Integer>> references, Network network, Surface surface) {

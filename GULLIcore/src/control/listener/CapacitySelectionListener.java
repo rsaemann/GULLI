@@ -21,27 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package model.underground.obstacle;
+package control.listener;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import model.topology.Position3D;
+import model.topology.Capacity;
 
 /**
- * Obstacles in 3D continuum, to bounce back particle movement
  *
  * @author saemann
  */
-public interface Obstacle3D {
+public interface CapacitySelectionListener {
 
-    /**
-     * Check if movement is blocked by this obstacle. Throws an Error with
-     * information of new end position if movement is blocked.
-     *
-     * @param start particle position last timestep
-     * @param target particle position after unblocked movement
-     * @throws model.underground.obstacle.Blocked3DMovement new position
-     * Information
-     */
-    public void checkMovement(Coordinate start, Coordinate target, double movementLength) throws Blocked3DMovement;
-
+    public void selectCapacity(Capacity c, Object caller);
 }

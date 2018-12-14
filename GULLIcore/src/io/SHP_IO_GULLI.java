@@ -664,7 +664,7 @@ public class SHP_IO_GULLI {
             return;
         }
         try {
-            String name = filePathName;
+//            String name = filePathName;
 //            if (name.contains(".")) {
 //                name = name.substring(0, name.indexOf("."));
 //                collectionDirectory = new File(collectionDirectory.getParent() + File.separator + name);
@@ -764,7 +764,7 @@ public class SHP_IO_GULLI {
 
     public static void writeWGS84_Filtered(Collection<Geometry> collection, Class geometryFilter, String filePathName, boolean switchCoordinates) {
         try {
-            String name = filePathName;
+//            String name = filePathName;
 //            if (name.contains(".")) {
 //                name = name.substring(0, name.indexOf("."));
 //                collectionDirectory = new File(collectionDirectory.getParent() + File.separator + name);
