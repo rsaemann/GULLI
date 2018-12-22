@@ -242,6 +242,9 @@ public class Particle {
 //        this.surrounding_past = surrounding;
 //    }
     public void setPosition3d(Position3D position2d) {
+        if (position2d == null) {
+            return;
+        }
         this.position3d = position2d.get3DCoordinate();
     }
 
@@ -375,19 +378,19 @@ public class Particle {
         this.moveLengthCummulative = 0;
     }
 
-    public Coordinate getPosition2d_actual() {
+    public Coordinate getPosition3D() {
         return position3d;
     }
 
 //    /**
-//     * @deprecated use setPosition_actual instead
+//     * @deprecated use setPosition3D instead
 //     * @param position2d
 //     */
 //    public void setPosition2d_actual(Position3D position2d) {
 ////        this.position2d_actual = position2d;
 //        this.position3d = position2d.get3DCoordinate();
 //    }
-    public void setPosition_actual(Coordinate c) {
+    public void setPosition3D(Coordinate c) {
         if (c == null) {
             this.position3d.x = 0;
             this.position3d.y = 0;
@@ -396,21 +399,27 @@ public class Particle {
         this.position3d = c;
     }
 
-    public void setPosition_actual(Position3D p) {
+    public void setPosition3D(Position3D p) {
         if (p == null) {
             this.position3d = null;
         } else {
-            this.setPosition(p.x, p.y, p.z);
+            this.setPosition3D(p.x, p.y, p.z);
         }
     }
 
-    public void setPosition(double x, double y, double z) {
+    public void setPosition3D(double x, double y, double z) {
         this.position3d.x = x;
         this.position3d.y = y;
         this.position3d.z = z;
     }
 
-    public void setPosition(double x, double y) {
+    /**
+     * Set x & y component of 3D position. [UTM Coordinates]
+     *
+     * @param x
+     * @param y
+     */
+    public void setPosition3D(double x, double y) {
         this.position3d.x = x;
         this.position3d.y = y;
     }

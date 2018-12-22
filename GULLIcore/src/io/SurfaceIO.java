@@ -350,7 +350,7 @@ public class SurfaceIO {
         int index = 0;
 
         //Here comes information about the coordinates
-        String seperator=" ";
+        String seperator = " ";
         while (br.ready()) {
             line = br.readLine();
             values = line.split(seperator);
@@ -366,7 +366,7 @@ public class SurfaceIO {
         fr.close();
 //        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
-        start=System.currentTimeMillis();
+        start = System.currentTimeMillis();
         String epsgCode = "EPSG:25832"; //Use this standard code for Hannover
         if (coordReferenceXML != null && coordReferenceXML.exists() && coordReferenceXML.canRead()) {
             epsgCode = loadSpatialReferenceCode(coordReferenceXML);
@@ -527,6 +527,9 @@ public class SurfaceIO {
     }
 
     /**
+     * Very slow version of mapping manholes and surface triangles. it is better
+     * to load the references instead of looping over every triangle.
+     *
      * @param nw
      * @param surface
      * @throws Exception
@@ -554,8 +557,7 @@ public class SurfaceIO {
         }
         index = 0;
 
-        surface.clearTriangleCapacities();
-
+//        surface.clearTriangleCapacities();
         //Manholes & inlets to array for faster access
         Manhole[] manholes = nw.getManholes().toArray(new Manhole[nw.getManholes().size()]);
 
@@ -577,24 +579,25 @@ public class SurfaceIO {
                             //Closer look
                             boolean contains = GeometryTools.triangleContainsPoint(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, m1.x, m1.y);
                             if (contains) {
-                                SurfaceTriangle tri = surface.triangleCapacitys[i];
-                                if (tri == null) {
-                                    tri = new SurfaceTriangle(i);
-                                    surface.triangleCapacitys[i] = tri;
-                                    Coordinate c = new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]);
-                                    try {
-                                        Coordinate cll = geotools.toGlobal(c);
-//                                    System.out.println("x:"+cll.x+" y:"+cll.y);
-                                        tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[i][2]));
-
-                                    } catch (TransformException ex) {
-                                        Logger.getLogger(Surface.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                }
+//                                SurfaceTriangle tri = surface.triangleCapacitys[i];
+//                                if (tri == null) {
+//                                    tri = new SurfaceTriangle(i);
+//                                    surface.triangleCapacitys[i] = tri;
+//                                    Coordinate c = new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]);
+//                                    try {
+//                                        Coordinate cll = geotools.toGlobal(c);
+////                                    System.out.println("x:"+cll.x+" y:"+cll.y);
+//                                        tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[i][2]));
+//
+//                                    } catch (TransformException ex) {
+//                                        Logger.getLogger(Surface.class
+//                                                .getName()).log(Level.SEVERE, null, ex);
+//                                    }
+//                                }
                                 Manhole mh = manholes[j];
-                                tri.manhole = mh;
-                                mh.setSurfaceTriangle(tri);
+                                mh.setSurfaceTriangle(i);
+//                                tri.manhole = mh;
+//                                mh.setSurfaceTriangle(tri);
                                 counterManholes++;
                                 break;
                             }
@@ -648,20 +651,20 @@ public class SurfaceIO {
 
                             boolean contains = GeometryTools.triangleContainsPoint(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, m1.x, m1.y);
                             if (contains) {
-                                SurfaceTriangle tri = surface.triangleCapacitys[i];
-                                if (tri == null) {
-                                    tri = new SurfaceTriangle(i);
-                                    surface.triangleCapacitys[i] = tri;
-                                    Coordinate c = new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]);
-                                    try {
-                                        Coordinate cll = surface.getGeotools().toGlobal(c);
-                                        tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[i][2]));
-
-                                    } catch (TransformException ex) {
-                                        Logger.getLogger(Surface.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                }
+//                                SurfaceTriangle tri = surface.triangleCapacitys[i];
+//                                if (tri == null) {
+////                                    tri = new SurfaceTriangle(i);
+////                                    surface.triangleCapacitys[i] = tri;
+//                                    Coordinate c = new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]);
+//                                    try {
+//                                        Coordinate cll = surface.getGeotools().toGlobal(c);
+//                                        tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[i][2]));
+//
+//                                    } catch (TransformException ex) {
+//                                        Logger.getLogger(Surface.class
+//                                                .getName()).log(Level.SEVERE, null, ex);
+//                                    }
+//                                }
 //                                Inlet mh = inlets[j];
 //                                tri.inlet = mh;
                                 counterInlets++;
@@ -673,20 +676,20 @@ public class SurfaceIO {
                                             if (nbi < 0) {
                                                 continue;
                                             }
-                                            tri = surface.triangleCapacitys[nbi];
-                                            if (tri == null) {
-                                                tri = new SurfaceTriangle(nbi);
-                                                surface.triangleCapacitys[nbi] = tri;
-                                                Coordinate c = new Coordinate(surface.getTriangleMids()[nbi][0], surface.getTriangleMids()[nbi][1]);
-                                                try {
-                                                    Coordinate cll = surface.getGeotools().toGlobal(c);
-                                                    tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[nbi][2]));
-
-                                                } catch (TransformException ex) {
-                                                    Logger.getLogger(Surface.class
-                                                            .getName()).log(Level.SEVERE, null, ex);
-                                                }
-                                            }
+//                                            tri = surface.triangleCapacitys[nbi];
+//                                            if (tri == null) {
+//                                                tri = new SurfaceTriangle(nbi);
+//                                                surface.triangleCapacitys[nbi] = tri;
+//                                                Coordinate c = new Coordinate(surface.getTriangleMids()[nbi][0], surface.getTriangleMids()[nbi][1]);
+//                                                try {
+//                                                    Coordinate cll = surface.getGeotools().toGlobal(c);
+//                                                    tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[nbi][2]));
+//
+//                                                } catch (TransformException ex) {
+//                                                    Logger.getLogger(Surface.class
+//                                                            .getName()).log(Level.SEVERE, null, ex);
+//                                                }
+//                                            }
 //                                            tri.inlet = inlets[j];
 
                                         }
@@ -712,8 +715,8 @@ public class SurfaceIO {
             }
             bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
             bw.newLine();
-            bw.write("Max Contaminated Triangles:" + surface.triangleCapacitys.length);
-            bw.newLine();
+//            bw.write("Max Contaminated Triangles:" + surface.triangleCapacitys.length);
+//            bw.newLine();
             int categories = surface.getNumberOfMaterials();
 
             bw.write("Contaminant categories:" + categories);

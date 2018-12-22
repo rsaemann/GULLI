@@ -140,7 +140,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
                 remaining_dt *= Math.abs(p.getPosition1d_actual() / ds);
                 SurfaceTriangle triangle = surface.requestSurfaceTriangle((int) path.getStartTriangleID());
                 p.setPosition1d_actual(0);
-                p.setPosition_actual(triangle.getPosition3D(0));
+                p.setPosition3D(triangle.getPosition3D(0));
                 p.setSurrounding_actual(triangle);
 
 //                status = 32;
@@ -214,7 +214,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 //                    status = 8;
                             //Create Shortcut
                             if (p.toSurface != null) {
-                                surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangle(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                                surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
                             }
 //                    Shortcut sc = new Shortcut(p.toSurface, triangle, inlet.getNetworkCapacity().getStatusTimeLine().container.getActualTime() - p.toSurfaceTimestamp);
 //                    p.usedShortcuts.add(sc);
@@ -239,7 +239,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
                     p.toPipenetwork = m;
 
                     if (p.toSurface != null) {
-                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangle(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
                     }
 //                    status = 10;
                     return;

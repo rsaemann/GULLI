@@ -137,14 +137,13 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     private void moveParticle2(Particle p) throws Exception {
         int triangleID = p.surfaceCellID;
-        Coordinate pos = p.getPosition2d_actual();
+        Coordinate pos = p.getPosition3D();
 
         if (pos != null && triangleID >= 0) {
-//        if (p.isOnSurface() && triangleID >= 0 && pos != null) {
-//            //Everything ok.
+            //Everything ok.
         } else {
             if (p.getSurrounding_actual() instanceof Surface) {
-//                p.setOnSurface();
+                p.setOnSurface();
                 if (p.surfaceCellID >= 0) {
                     double[] xy = surface.getTriangleMids()[p.surfaceCellID];
                     pos = new Coordinate(xy[0], xy[1], xy[2]);
@@ -170,7 +169,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 return;
             } else if (p.getSurrounding_actual() instanceof Manhole) {
                 Manhole mh = (Manhole) p.getSurrounding_actual();
-                triangleID = (int) mh.getSurfaceTriangle().getManualID();
+                triangleID = (int) mh.getSurfaceTriangleID();
                 if (pos == null) {
                     Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().latLonCoordinate(), false);
                     System.out.println("Converted manhole to " + utm);
@@ -179,46 +178,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             } else {
                 System.out.println("Particle " + p + " is in unknown Capacity " + p.getSurrounding_actual());
             }
-            p.setPosition_actual(pos);
-            p.setOnSurface();
+            p.setPosition3D(pos);
             p.setSurrounding_actual(surface);
             p.surfaceCellID = triangleID;
         }
         if (p.surfaceCellID < 0) {
             System.out.println("Problem with particle on surface (surfacecell:" + p.surfaceCellID + ", onsurface:" + p.isOnSurface());
         }
-
-//        //Not correctly initialized since transfer from pipe system.
-//        if (triangleID < 0) {
-//            System.out.println("Particles triangle<0: " + p + "  status:" + p.status + "  surfaceElement:" + p.surfaceCellID + "  capacity:" + p.getSurrounding_actual());
-//            if (p.toSurface != null) {
-//                if (p.toSurface instanceof Manhole) {
-//                    triangleID = (int) ((Manhole) p.toSurface).getManualID();
-//                } else if (p.toSurface instanceof SurfaceTriangle) {
-//                    triangleID = (int) ((SurfaceTriangle) p.toSurface).getManualID();
-//                }
-//            }
-//        }
-//
-//        if (triangleID < 0) {
-//            System.out.println("Particle is not OK: " + p + "  status:" + p.status + "  surfaceElement:" + p.surfaceCellID + "  capacity:" + p.getSurrounding_actual());
-//            return;
-//        }
-//        // Convert the position in UTM coordinates
-//        if (pos == null) {
-//            System.out.println("UTM Position für Particle " + p + " muss berechnet werden :" + p.getPosition2d_actual() + "    capacity:" + p.getSurrounding_actual());
-//            Coordinate utm = surface.getGeotools().toUTM(p.toSurface.getPosition3D(0).latLonCoordinate());
-//            pos = new Position3D(p.toSurface.getPosition3D(0).getLongitude(), p.toSurface.getPosition3D(0).getLatitude(), utm.x, utm.y, p.toSurface.getPosition3D(0).z);
-////            pos = new Position3D(p.toSurface.getPosition3D(0));
-////            p.setPosition2d_actual(pos);
-//        }
         // get the particle velocity
         double[] velo;// = new double[2];
 
-//        if (getTestSolutionForAnaComparison) {
-//            velo[0] = (float) 0.05;
-//            velo[1] = 0;
-//        } else {
         velo = surface.getParticleVelocity2D(p, triangleID);
         double u = Math.sqrt((velo[0] * velo[0]) + (velo[1] * velo[1]));
         if (u > 5 || u < -5) {
@@ -232,26 +201,19 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 velo[1] = 5 * (1. / veloverhaeltnis);
             }
         }
-//        }
 
         p.addMovingLength(u * dt);
         double h = surface.getActualWaterlevel(triangleID);
 
-        double posxalt = p.getPosition2d_actual().x;
-        double posyalt = p.getPosition2d_actual().y;
+        double posxalt = p.getPosition3D().x;
+        double posyalt = p.getPosition3D().y;
 
         if (!enableDiffusion) {
             pos.x += (float) velo[0] * dt;// only advection
             pos.y += (float) velo[1] * dt;// only advection
-//                D.setDiffusionType("Adv2D");
         } else {
-//            if (velo[0] != 0 || velo[1] != 0) {
-//            if (Math.abs(u) > 0.0001) {
             // calculate diffusion
 
-//                if (getTestSolutionForAnaComparison) {
-//                    h = 1;
-//                }
             double[] Diff = D.calculateDiffusion(velo[0], velo[1], h, surface.getkst());
             double sqrt2dtDx = Math.sqrt(2 * dt * Diff[0]);
             double sqrt2dtDy = Math.sqrt(2 * dt * Diff[1]);
@@ -263,60 +225,40 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
             pos.x += velo[0] * dt + (velo[0] / u) * z1 * sqrt2dtDx + ((velo[1] / u) * z2 * sqrt2dtDy);
             pos.y += velo[1] * dt + (velo[1] / u) * z1 * sqrt2dtDx + ((velo[0] / u) * z2 * sqrt2dtDy);
-//            }
         }
 
         // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
         // da eine Veränderung durch Modellränder vorkommen kann
         int id;
-//            System.out.println("la");
         try {
             id = surface.getTargetTriangleID(p, triangleID, posxalt, posyalt, pos.x, pos.y, 20);
         } catch (Surface.BoundHitException boundHitException) {
-
             pos.x = boundHitException.correctedPosition[0];
             pos.y = boundHitException.correctedPosition[1];
-//            if (pos.x < 0) {
-//                System.out.println("transform back to triangle " + boundHitException.id + "   pos: " + pos);
-//            }
             id = boundHitException.id;
         }
 
         p.surfaceCellID = id;
-//        p.setPosition2d_actual(pos);
 
         //Check if particle can go back to pipe system.
         Inlet inlet = surface.getInlet(id);
         if (inlet != null) {
-//                status = 7;
-//                Inlet inlet = triangle.getInlet();
             // Check if Inlet is flooded
             if (inlet.getNetworkCapacity() != null) {
                 double fillrate = inlet.getNetworkCapacity().getProfile().getFillRate(inlet.getNetworkCapacity().getWaterlevel());
-//                    System.out.println(inlet.getNetworkCapacity() + "  fillrate: " + fillrate + "\t timeindex:" + ((TimeIndexCalculator) inlet.getNetworkCapacity().getStatusTimeLine().getTimeContainer()).getActualTimeIndex_double());
                 if (fillrate < 0.9) {
-
-                    //Only go into the inlet for 30%
-                        /*if (random.nextFloat() < 0.3f)*/ {
-
-                        //Pipe is not flooded. Particles can enter pipenetwork here.
-                        p.setSurrounding_actual(inlet.getNetworkCapacity());
-//                p.setPosition1d_actual(triangle.getInlet().getPipeposition1d());
-                        p.setPosition1d_actual(inlet.getPipeposition1d());
-//                        p.setPosition2d_actual(null);
-                        p.setInPipenetwork();
-                        p.toPipenetwork = inlet.getNetworkCapacity();
-//                    status = 8;
-                        //Create Shortcut
-                        if (p.toSurface != null) {
-                            surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangle(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
-                        }
+                    //Pipe is not flooded. Particles can enter pipenetwork here.
+                    p.setSurrounding_actual(inlet.getNetworkCapacity());
+                    p.setPosition1d_actual(inlet.getPipeposition1d());
+                    p.setInPipenetwork();
+                    p.toPipenetwork = inlet.getNetworkCapacity();
+                    //Create Shortcut
+                    if (p.toSurface != null) {
+                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                    }
 //                    Shortcut sc = new Shortcut(p.toSurface, triangle, inlet.getNetworkCapacity().getStatusTimeLine().container.getActualTime() - p.toSurfaceTimestamp);
 //                    p.usedShortcuts.add(sc);
-
-//                System.out.println("Particle " + p.getId() + " back through Inlet to pipe " + p.getSurrounding_actual());
-                        return;
-                    }
+                    return;
                 }
             } else {
                 System.out.println("Inlet " + inlet.toString() + " has no pipe.");
@@ -337,7 +279,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 p.toPipenetwork = m;
 
                 if (p.toSurface != null) {
-                    surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangle(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                    surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
                 }
 //                    status = 10;
                 return;

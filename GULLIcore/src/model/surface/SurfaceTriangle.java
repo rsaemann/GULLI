@@ -3,7 +3,6 @@ package model.surface;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole_Pipe;
-import model.topology.Inlet;
 import model.topology.Manhole;
 import model.topology.Position3D;
 import model.topology.profile.RectangularProfile;

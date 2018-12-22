@@ -14,7 +14,6 @@ import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
-import model.timeline.TemporalTimelineMeasurement;
 import model.topology.measurement.ParticleMeasurement;
 
 /**
@@ -58,7 +57,6 @@ public class ParticleThread extends Thread {
      */
     protected int numberOfCompletedParticles = 0;
     public final LinkedList<Particle> waitingList = new LinkedList<>();
-//    LinkedList<Particle> tempList = new LinkedList<>();
 
     public final LinkedList<Particle> activeList = new LinkedList<>();
     public final LinkedList<Particle> completedList = new LinkedList<>();
@@ -66,7 +64,6 @@ public class ParticleThread extends Thread {
     public ParticlePipeComputing pc;
     private final ThreadBarrier<ParticleThread> barrier;
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(4);
-//    private final TemporalTimelineMeasurement temporalMeasurementsPipe = new TemporalTimelineMeasurement();
     boolean runendless = true;
 
     public int particleID = -1;
@@ -75,7 +72,6 @@ public class ParticleThread extends Thread {
     private ParticleSurfaceComputing surfcomp;
     public int status = -1;
 
-//    double dt; //seconds
     private long simulationTime;
     private boolean activeCalculation = false;
     public boolean allParticlesReachedOutlet = false;
@@ -89,13 +85,12 @@ public class ParticleThread extends Thread {
     }
 
     public void setDeltaTime(double seconds) {
-//        this.dt = seconds;
         this.pc.setDeltaTime(seconds);
     }
 
     public void setSurface(Surface surface) {
         this.surfcomp.setSurface(surface);
-        this.pc.setSpillOutToSurface(surface != null);
+        this.pc.setSurface(surface, surface != null);
     }
 
     public void setSurfaceComputing1D() {
@@ -146,12 +141,10 @@ public class ParticleThread extends Thread {
                     sort();
                     particles = waitingList.toArray(new Particle[waitingList.size()]);
                     numberOfWaitingParticles = particles.length;
-//                    System.out.println(getName()+"  resized particle array.");
                 }
             }
 
             simulationTime = barrier.getSimulationtime();
-//            boolean loopTestAllParticlesReachedOutlet = waitingindex == particles.length;
             status = 0;
             for (int i = waitingindex; i < particles.length; i++) {
                 p = particles[i];
@@ -170,7 +163,7 @@ public class ParticleThread extends Thread {
                         p.setOnSurface();
                         p.surfaceCellID = p.getInjectionCellID();
                         double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
-                        p.setPosition(pos[0], pos[1]);
+                        p.setPosition3D(pos[0], pos[1]);
                     } else {
                         p.setInPipenetwork();
                         p.setPosition1d_actual(p.injectionPosition1D);
@@ -189,9 +182,6 @@ public class ParticleThread extends Thread {
             //Start treating movement
             status = 3;
             particleID = -20;
-//            int oldactiveIndex = activeIndex;
-//            int inactivejumps = 0;
-
             for (int i = activeIndex; i < waitingindex; i++) {
                 p = particles[i];
 
@@ -199,27 +189,16 @@ public class ParticleThread extends Thread {
                     if (activeIndex == i) {
                         activeIndex++;
                     }
-//                    inactivejumps++;
                     continue;
                 }
 
-//                loopTestAllParticlesReachedOutlet = false;
                 particleID = p.getId();
                 particle = p;
-
-//                if (p.isInactive()) {
-//                    //Aus der aktiv-Liste entfernen, damit es nicht mehr detektiert wird.
-//                    status = 8;
-//                    completedList.add(p);
-//                    it.remove();
-//                    continue;
-//                }
+                
                 if (p.isInPipeNetwork()) {
                     status = 4;
-//                    this.setName("ParticleThread in pipes");
                     pc.moveParticle(p);
                 } else if (p.isOnSurface()) {
-//                    this.setName("ParticleThread on surface ");
                     status = 5;
                     surfcomp.moveParticle(p);
 
@@ -236,36 +215,10 @@ public class ParticleThread extends Thread {
                     numberOfActiveParticles--;
                     numberOfCompletedParticles++;
                 }
-//                if (p.isOnSurface()) {
-//                    surfcomp.getSurface().getMeasurementRaster().measureParticle(simulationTime, p);
-//                }
 
             }
-//            if (oldactiveIndex != activeIndex) {
-//                System.out.println(id + ":old:" + oldactiveIndex + "\t new:" + activeIndex + "   \tinactives:" + inactivejumps);
-//            }
-//            particleID = -3;
-//            status = 10;
-//            try {
-//                for (ParticleMeasurement pm : messung) {
-//                    status = 11;
-//                    pm.measureParticles(activeList);//pc.getParticles());
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            particleID = -4;
-//            status = 12;
-//            if (waitingList.isEmpty() && activeList.isEmpty()) {
-//                status = 13;
-//                this.allParticlesReachedOutlet = true;
-//            } else {
-//                status = 14;
-//                this.allParticlesReachedOutlet = false;
-//            }
             this.allParticlesReachedOutlet = activeIndex == particles.length;//loopTestAllParticlesReachedOutlet;
             particleID = -5;
-            //System.out.println("     "+toString()+" finished run()");
             activeCalculation = false;
             status = 20;
             //wait until barrier wakes up this Thread again.
@@ -312,7 +265,7 @@ public class ParticleThread extends Thread {
                             p.setOnSurface();
                             p.surfaceCellID = p.getInjectionCellID();
                             double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
-                            p.setPosition(pos[0], pos[1]);
+                            p.setPosition3D(pos[0], pos[1]);
                         } else {
                             p.setInPipenetwork();
                             p.setPosition1d_actual(p.injectionPosition1D);
@@ -450,8 +403,6 @@ public class ParticleThread extends Thread {
                 }
                 p.setInactive();
                 p.setPosition1d_actual(p.injectionPosition1D);
-//                p.setPosition3d(null);
-//                p.setPosition2d_actual(null);
                 p.surfaceCellID = p.getInjectionCellID();
                 if (p.getClass().equals(HistoryParticle.class)) {
                     ((HistoryParticle) p).clearHistory();
@@ -494,7 +445,7 @@ public class ParticleThread extends Thread {
     }
 
     public int getNumberOfActiveParticles() {
-        return numberOfActiveParticles;//activeList.size();
+        return numberOfActiveParticles;
     }
 
     public int getNumberOfTotalParticles() {
@@ -503,10 +454,6 @@ public class ParticleThread extends Thread {
         }
         return particles.length;//waitingList.size() + activeList.size() + completedList.size();
     }
-
-//    public TemporalTimelineMeasurement getTemporalMeasurementsPipe() {
-//        return temporalMeasurementsPipe;
-//    }
 
     void clearParticles() {
         particles = new Particle[0];

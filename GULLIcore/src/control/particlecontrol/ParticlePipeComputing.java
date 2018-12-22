@@ -33,13 +33,13 @@ import control.threads.ThreadController;
 import java.util.Random;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
+import model.surface.Surface;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole;
 import model.topology.Connection_Manhole_Pipe;
 import model.topology.Manhole;
 import model.topology.Pipe;
 import model.topology.StorageVolume;
-import model.topology.surface.Connection_Manhole_Surface;
 
 /**
  * A Controller, that threads the movement of a set of particles during a
@@ -126,6 +126,8 @@ public class ParticlePipeComputing {
 
     public boolean spillOutToSurface = false;
 
+    private Surface surface;
+
     /**
      * If true PArticles may deposite at low velocities and activate on high
      * velocities.
@@ -153,6 +155,11 @@ public class ParticlePipeComputing {
         this.seed = seed;
         velocityFunction = new VelocityDistribution(rand);
         resetRandomDistribution();
+    }
+
+    public void setSurface(Surface surf, boolean enableSpill) {
+        this.surface = surf;
+        this.spillOutToSurface = enableSpill;
     }
 
     /**
@@ -1207,17 +1214,9 @@ public class ParticlePipeComputing {
             /**
              * Start loop with particles, that start in a Manhole
              */
-//        System.out.println("  prepared in "+c+" pos1d="+position1d+" ds:"+ds);
-
             int loops = 0;
             if (c.getClass().equals(Manhole.class)) {
-//            if (c.getAutoID() == 638 && p.getAutoID() < 10) {
-//                System.out.println("particle " + p.getAutoID() + " in " + c + "\tv=" + p.getVelocity1d() + "\tds=" + ds);
-//            }
                 position1d = 0;
-//            if(p.getAutoID()==3){
-//                System.out.println("position= "+c+"\t pos="+p.getPosition1d_actual()+"\tp.ds="+p.ds);
-//            }
                 if (ds >= 0) {
                     for (int i = 0; i < 30; i++) {
                         passedPipes++;
@@ -1236,7 +1235,7 @@ public class ParticlePipeComputing {
                                 p.setSurrounding_actual(c);
                                 return;
                             }
-                            //Überlauf?
+                            //outflow enabled?
                             if (spillOutToSurface) {
                                 if (!mh.isPressure_save_cover()) {
                                     if (mh.getStatusTimeLine().getActualWaterZ() > mh.getTop_height() && mh.getStatusTimeLine().isWaterlevelIncreasing()) {
@@ -1251,10 +1250,11 @@ public class ParticlePipeComputing {
                                          *
                                          */
                                         //Spillout : transport particle to surface
-                                        if (mh.getSurfaceTriangle() != null) {
-                                            c = mh.getSurfaceTriangle();
-                                            p.setSurrounding_actual(mh.getSurfaceTriangle());
-                                            p.setPosition_actual(mh.getSurfaceTriangle().getPosition3D(0).get3DCoordinate());
+                                        if (mh.getSurfaceTriangleID() >= 0) {
+                                            p.surfaceCellID = mh.getSurfaceTriangleID();
+                                            p.setSurrounding_actual(surface);
+                                            double[] tripos = surface.getTriangleMids()[mh.getSurfaceTriangleID()];
+                                            p.setPosition3D(tripos[0], tripos[1]);
                                             p.setOnSurface();
                                             p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                                             p.toSurface = mh;
@@ -1262,11 +1262,11 @@ public class ParticlePipeComputing {
                                             if (p.getClass().equals(HistoryParticle.class)) {
                                                 ((HistoryParticle) p).addToHistory(c);
                                             }
-//                                        System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangle());
+//                                            System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangle());
                                             break;
                                         } else {
 
-                                            System.out.println("Could not Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangle());
+                                            System.out.println("Cannot spillout Particle " + p.getId() + " to triangle " + mh.getSurfaceTriangleID());
                                         }
                                     }
                                 }
@@ -1285,21 +1285,21 @@ public class ParticlePipeComputing {
                                 break;
                             }
 
-                            if (connection instanceof Connection_Manhole_Surface) {
-                                Connection_Manhole_Surface cs = (Connection_Manhole_Surface) connection;
-                                c = mh.getSurfaceTriangle();
-                                p.setSurrounding_actual(mh.getSurfaceTriangle());
-                                p.setOnSurface();
-                                p.setPosition_actual(mh.getSurfaceTriangle().getPosition3D(0).get3DCoordinate());
-                                p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
-                                p.toSurface = mh;
-                                p.posToSurface = (float) p.getTravelledPathLength();
-                                if (p.getClass().equals(HistoryParticle.class)) {
-                                    ((HistoryParticle) p).addToHistory(c);
-                                }
+//                            if (connection instanceof Connection_Manhole_Surface) {
+//                                Connection_Manhole_Surface cs = (Connection_Manhole_Surface) connection;
+//                                c = mh.getSurfaceTriangle();
+//                                p.setSurrounding_actual(mh.getSurfaceTriangle());
+//                                p.setOnSurface();
+//                                p.setPosition3D(mh.getSurfaceTriangle().getPosition3D(0).get3DCoordinate());
+//                                p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
+//                                p.toSurface = mh;
+//                                p.posToSurface = (float) p.getTravelledPathLength();
+//                                if (p.getClass().equals(HistoryParticle.class)) {
+//                                    ((HistoryParticle) p).addToHistory(c);
+//                                }
 //                                        System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangle());
-                                break;
-                            }
+//                                break;
+//                            }
                             Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) connection;
 
                             Pipe pipe = con.getPipe();
@@ -1506,7 +1506,7 @@ public class ParticlePipeComputing {
 //            if (thread != null) {
 //                thread.getTemporalMeasurementsPipe().addParticle((int) c.getAutoID(), p, c.getAutoID() != oldCapacityID);
 //            } else {
-                pipe.getMeasurementTimeLine().addParticle(p);
+            pipe.getMeasurementTimeLine().addParticle(p);
 //            }
             p.setVelocity1d(pipe.getVelocity());
         }

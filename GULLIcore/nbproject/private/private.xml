@@ -3,16 +3,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/L:/GULLI/GULLIcore/src/control/threads/SynchronizationThread.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/model/timeline/TemporalTimelineMeasurement.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/control/threads/ParticleThread.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/model/timeline/sparse/SparseTimeLinePipeContainer.java</file>
+            <file>file:/L:/GULLI/GULLIcore/src/model/surface/Surface.java</file>
+            <file>file:/L:/GULLI/GULLIcore/src/control/particlecontrol/ParticleSurfaceComputing2D.java</file>
             <file>file:/L:/GULLI/GULLIcore/src/control/particlecontrol/ParticlePipeComputing.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/model/topology/Pipe.java</file>
             <file>file:/L:/GULLI/GULLIcore/src/model/timeline/array/ArrayTimeLineMeasurement.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/control/threads/ThreadController.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/io/extran/HE_Database.java</file>
-            <file>file:/L:/GULLI/GULLIcore/src/model/timeline/sparse/SparseTimelinePipe.java</file>
         </group>
     </open-files>
 </project-private>

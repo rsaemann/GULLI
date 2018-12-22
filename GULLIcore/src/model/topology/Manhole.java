@@ -17,8 +17,8 @@ public class Manhole extends StorageVolume {
 
     protected boolean pressure_save_cover;
 
-    protected SurfaceTriangle surfaceTriangle;
-    
+    protected int surfaceTriangleID = -1;
+
     protected Connection_Manhole_Surface topConnection;
 
     public Manhole(Position position, String name, Profile profile) {
@@ -89,7 +89,7 @@ public class Manhole extends StorageVolume {
 
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "(aiID:" + this.getAutoID() + "/ mID:"+this.getManualID()+")['" + this.getName() + "']";
+        return this.getClass().getSimpleName() + "(aiID:" + this.getAutoID() + "/ mID:" + this.getManualID() + ")['" + this.getName() + "']";
     }
 
     @Override
@@ -97,12 +97,12 @@ public class Manhole extends StorageVolume {
         return new Position3D(this.position);
     }
 
-    public SurfaceTriangle getSurfaceTriangle() {
-        return surfaceTriangle;
+    public int getSurfaceTriangleID() {
+        return surfaceTriangleID;
     }
 
-    public void setSurfaceTriangle(SurfaceTriangle surfaceTriangle) {
-        this.surfaceTriangle = surfaceTriangle;
+    public void setSurfaceTriangle(int surfaceTriangleID) {
+        this.surfaceTriangleID = surfaceTriangleID;
     }
 
 }

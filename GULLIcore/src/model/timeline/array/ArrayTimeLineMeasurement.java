@@ -150,10 +150,10 @@ public class ArrayTimeLineMeasurement {
                 }
             }
         }
-        synchronized (this) {
+//        synchronized (this) {
             this.particleMassInTimestep += particleToCount.particleMass;
             this.numberOfParticlesInTimestep++;
-        }
+//        }
     }
 
     public void resetNumberOfParticles() {
@@ -170,6 +170,8 @@ public class ArrayTimeLineMeasurement {
     public boolean hasMeasurements(int timeIndex) {
         return container.counts[startIndex + timeIndex] > 0;
     }
+    
+  
 
 //    public static float[] getMassForTimeIndex(int timeIndex) {
 //        float[] r = new float[distance.length];

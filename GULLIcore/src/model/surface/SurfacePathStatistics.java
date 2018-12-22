@@ -17,31 +17,30 @@ public class SurfacePathStatistics {
     public double sum_mass = 0.;
 
     public long sum_traveltime = 0;
-    
-    public double sum_travelLength=0;
 
-    public double distance;
-    
-    public double minTravelTime=Double.POSITIVE_INFINITY;
-    public double maxTravelTime=0;
-    
-    public double minTravelLength=Double.POSITIVE_INFINITY;
-    public double maxTravelLength=0;
+    public double sum_travelLength = 0;
 
-    private SurfaceTriangle start;
+//    public double distance;
+    public double minTravelTime = Double.POSITIVE_INFINITY;
+    public double maxTravelTime = 0;
+
+    public double minTravelLength = Double.POSITIVE_INFINITY;
+    public double maxTravelLength = 0;
+
+    private int startTriangleID;
     private Inlet endInlet;
     private Manhole endManhole;
 
-    public SurfacePathStatistics(SurfaceTriangle start, Inlet endInlet) {
-        this.start = start;
+    public SurfacePathStatistics(int startTriangleID, Inlet endInlet) {
+        this.startTriangleID = startTriangleID;
         this.endInlet = endInlet;
-        this.distance = start.getPosition3D(0).distance(endInlet.getPosition());
+//        this.distance = start.getPosition3D(0).distance(endInlet.getPosition());
     }
 
-    public SurfacePathStatistics(SurfaceTriangle start, Manhole endManhole) {
-        this.start = start;
+    public SurfacePathStatistics(int startTriangleID, Manhole endManhole) {
+        this.startTriangleID = startTriangleID;
         this.endManhole = endManhole;
-        this.distance = start.getPosition3D(0).distance(endManhole.getPosition());
+//        this.distance = start.getPosition3D(0).distance(endManhole.getPosition());
     }
 
     public int getNumber_of_particles() {
@@ -56,12 +55,12 @@ public class SurfacePathStatistics {
         return sum_traveltime;
     }
 
-    public double getDistance() {
-        return distance;
-    }
-
-    public SurfaceTriangle getStart() {
-        return start;
+//    public double getDistance() {
+//        return distance;
+//    }
+//
+    public int getStart() {
+        return startTriangleID;
     }
 
     public Inlet getEndInlet() {
@@ -72,21 +71,21 @@ public class SurfacePathStatistics {
         return endManhole;
     }
 
-    public boolean pathEquals(SurfaceTriangle start, Inlet toInlet) {
+    public boolean pathEquals(int startTriangleID, Inlet toInlet) {
         if (endInlet == null || toInlet == null) {
             return false;
         }
-        if (this.start.getTriangleID() != start.getTriangleID()) {
+        if (this.startTriangleID != startTriangleID) {
             return false;
         }
         return (endInlet.equals(toInlet));
     }
 
-    public boolean pathEquals(SurfaceTriangle start, Manhole toManhole) {
+    public boolean pathEquals(int startTriangleID, Manhole toManhole) {
         if (endManhole == null || toManhole == null) {
             return false;
         }
-        if (this.start.getTriangleID() != start.getTriangleID()) {
+        if (this.startTriangleID != startTriangleID) {
             return false;
         }
         return (endManhole.equals(toManhole));
