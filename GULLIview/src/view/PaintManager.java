@@ -1814,7 +1814,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     double[] utm = surf.getTriangleMids()[p.getInjectionCellID()];
 //                        Coordinate latlon = surf.getGeotools().toGlobal(new Coordinate(utm[0], utm[1], utm[2]), false);
 //                        pos = new Position3D(latlon.y, latlon.x, utm[0], utm[1], utm[2]);
-                    p.setPosition(utm[0], utm[1], utm[2]);
+                    p.setPosition3D(utm[0], utm[1], utm[2]);
 //                    } catch (TransformException ex) {
 //                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
 //                    }
@@ -2221,22 +2221,31 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 StringBuilder str = new StringBuilder("Triangle id:").append(l);
                 Surface surf = control.getSurface();
                 if (surf != null && l >= 0) {
-                    SurfaceTriangle tc = surf.triangleCapacitys[(int) l];
-                    if (tc == null) {
-                        str.append(";No Capacity");
-                    } else {
-
-                        // Connections to the pipenetwork
-                       /* if (tc.inlet != null) {
-                         str.append(";Inlet to").append(tc.inlet.getNetworkCapacity().toString());
-                         if (tc.inlet.getNetworkCapacity() instanceof Pipe) {
-                         str.append("; fillrate ").append((int) (((Pipe) (tc.inlet.getNetworkCapacity())).getFillRate() * 100)).append(" %");
-                         }
-                         }*/
-                        if (tc.manhole != null) {
-                            str.append(";Manhole ").append(tc.manhole.toString());
-                            str.append("; fillrate ").append((int) (tc.manhole.getWaterlevel() / (tc.manhole.getTop_height() - tc.manhole.getSole_height()))).append(" %");
-                        }
+//                    SurfaceTriangle tc = surf.triangleCapacitys[(int) l];
+//                    if (tc == null) {
+//                        str.append(";No Capacity");
+//                    } else {
+//
+//                        // Connections to the pipenetwork
+//                       /* if (tc.inlet != null) {
+//                         str.append(";Inlet to").append(tc.inlet.getNetworkCapacity().toString());
+//                         if (tc.inlet.getNetworkCapacity() instanceof Pipe) {
+//                         str.append("; fillrate ").append((int) (((Pipe) (tc.inlet.getNetworkCapacity())).getFillRate() * 100)).append(" %");
+//                         }
+//                         }*/
+//                        if (tc.manhole != null) {
+//                            str.append(";Manhole ").append(tc.manhole.toString());
+//                            str.append("; fillrate ").append((int) (tc.manhole.getWaterlevel() / (tc.manhole.getTop_height() - tc.manhole.getSole_height()))).append(" %");
+//                        }
+//                    }
+                    Manhole mh = surf.getManhole((int) l);
+                    if (mh != null) {
+                        str.append(";Manhole ").append(mh.toString());
+                        str.append("(fill ").append((int) (mh.getWaterlevel() / (mh.getTop_height() - mh.getSole_height()))).append(" %)");
+                    }
+                    Inlet inlet = surf.getInlet((int) l);
+                    if (mh != null) {
+                        str.append(";Inlet ").append(inlet.toString());
                     }
                     float[] wls;
                     if (surf.getWaterlevels() != null && surf.getWaterlevels().length > 0) {
@@ -2402,7 +2411,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         String str = ""
                 + "From: " + s.getStart() + ";"
                 + "To  : " + (s.getEndInlet() != null ? s.getEndInlet().toString() : s.getEndManhole().toString()) + ";"
-                + "Dist: " + df3.format(s.getDistance()) + "m  direct;"
+                //                + "Dist: " + df3.format(s.getDistance()) + "m  direct;"
                 + "N   : " + s.number_of_particles + ";"
                 + "Trvl: " + df3.format(s.sum_travelLength / s.number_of_particles) + "m  \u00D8;"
                 + "Time: " + df.format(s.sum_traveltime / (s.number_of_particles * 1000.)) + "s ~ " + df.format(s.sum_traveltime / (s.number_of_particles * 60000.)) + "min;"
@@ -2809,20 +2818,25 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
      */
     public void drawShortcuts() {
         mapViewer.clearLayer(layerShortcut);
+        Surface surface = control.getSurface();
         if (control.getSurface() != null && control.getSurface().getStatistics() != null) {
             for (SurfacePathStatistics s : control.getSurface().getStatistics()) {
-                Position3D start = s.getStart().getPosition3D(0);
-                Coordinate c0 = start.latLonCoordinate();
-                Coordinate c1 = null;
-                if (s.getEndInlet() != null) {
-                    c1 = s.getEndInlet().getPosition().latLonCoordinate();
-                } else if (s.getEndManhole() != null) {
-                    c1 = s.getEndManhole().getPosition().latLonCoordinate();
-                } else {
-                    continue;
+
+                try {
+                    Coordinate c0 = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[s.getStart()][0], surface.getTriangleMids()[s.getStart()][1]), false);
+                    Coordinate c1 = null;
+                    if (s.getEndInlet() != null) {
+                        c1 = s.getEndInlet().getPosition().latLonCoordinate();
+                    } else if (s.getEndManhole() != null) {
+                        c1 = s.getEndManhole().getPosition().latLonCoordinate();
+                    } else {
+                        continue;
+                    }
+                    ArrowPainting ap = new ArrowPainting(s.id, new Coordinate[]{c0, c1}, chShortcut);
+                    mapViewer.addPaintInfoToLayer(layerShortcut, ap);
+                } catch (TransformException ex) {
+                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                ArrowPainting ap = new ArrowPainting(s.id, new Coordinate[]{c0, c1}, chShortcut);
-                mapViewer.addPaintInfoToLayer(layerShortcut, ap);
             }
         }
         mapViewer.repaint();
