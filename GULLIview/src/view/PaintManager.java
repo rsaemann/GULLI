@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -86,6 +85,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private final Controller control;
 
     private Network network;
+    private Surface surface;
 
     private boolean showParticles = true;
     public final String layerParticle = "Ptc";
@@ -136,6 +136,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private List<NodePainting> particlePaintings;
 
     public static int maximumNumberOfParticleShapes = Integer.MAX_VALUE;
+    public static int maximumNumberOfSurfaceShapes = Integer.MAX_VALUE;
 
     private final ColorHolder chPipes = new ColorHolder(Color.GRAY, "Pipe");
     private final ColorHolder chPipesOverlay = new ColorHolder(Color.GRAY, "Pipe Overlay");
@@ -179,7 +180,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public static final DecimalFormat df = new DecimalFormat("0.0");
     public static final DecimalFormat df3 = new DecimalFormat("0.000");
 
-    private boolean drawPipesAsArrows = true;
+    public boolean drawPipesAsArrows = true;
 
     private String selectedLayer = null;
     private long selectedID = -1;
@@ -224,10 +225,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public PaintManager(Controller con, SimpleMapViewerFrame frame) {
         this.mapViewer = frame.mapViewer;
         this.control = con;
-        control.addActioListener(this);
-        control.addSimulationListener(this);
-        control.addParticleListener(this);
-
+        if (control != null) {
+            control.addActioListener(this);
+            control.addSimulationListener(this);
+            control.addParticleListener(this);
+        }
         chParticles.setStroke(stroke2pRound);
         chTravelPath.setStroke(stroke2pRound);
         chSpillover.setStroke(chParticles.getStroke());
@@ -922,7 +924,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     }
 
     private void addSurfacePaint() {
-        final Surface surface = control.getSurface();
+
         if (surface == null) {
             this.surfaceShow = SURFACESHOW.NONE;
             return;
@@ -940,6 +942,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
                         id++;
                         mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+                        if (id > maximumNumberOfSurfaceShapes) {
+                            break;
+                        }
                     } catch (TransformException ex) {
                         Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -951,14 +956,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 //                    int[] nodes = surface.getTriangleNodes()[(int) tri.getTriangleID()];
                         Coordinate[] coords = new Coordinate[4];
                         for (int j = 0; j < 3; j++) {
-
                             coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-
                         }
                         coords[3] = coords[0];//Close ring
                         AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
                         mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
                         id++;
+                        if (id > maximumNumberOfSurfaceShapes) {
+                            break;
+                        }
                     }
                 } catch (TransformException ex) {
                     Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -2219,7 +2225,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             } else if (string.startsWith(layerTriangle)) {
 //                System.out.println("clicked on triangle");
                 StringBuilder str = new StringBuilder("Triangle id:").append(l);
-                Surface surf = control.getSurface();
+                Surface surf = surface;
                 if (surf != null && l >= 0) {
 //                    SurfaceTriangle tc = surf.triangleCapacitys[(int) l];
 //                    if (tc == null) {
@@ -2582,7 +2588,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         this.mapViewer.clearLayer(layerSurfaceGrid);
         this.mapViewer.clearLayer(layerLabelWaterlevel);
 
-        Surface surface = control.getSurface();
         if (surface == null) {
             this.surfaceShow = SURFACESHOW.NONE;
             return;
@@ -2630,10 +2635,17 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             posTopLeft = new Point2D.Double();
         }
         try {
-            Coordinate topleft = geoToolsNetwork.toUTM(new Coordinate(tl.y, tl.x));
-            Coordinate bottright = geoToolsNetwork.toUTM(new Coordinate(br.y, br.x));
-            posTopLeft.setLocation(topleft.x, topleft.y);
-            posBotRight.setLocation(bottright.x, bottright.y);
+            if (geoToolsNetwork != null) {
+                Coordinate topleft = geoToolsNetwork.toUTM(new Coordinate(tl.y, tl.x));
+                Coordinate bottright = geoToolsNetwork.toUTM(new Coordinate(br.y, br.x));
+                posTopLeft.setLocation(topleft.x, topleft.y);
+                posBotRight.setLocation(bottright.x, bottright.y);
+            } else if (geoToolsSurface != null) {
+                Coordinate topleft = geoToolsSurface.toUTM(new Coordinate(tl.y, tl.x));
+                Coordinate bottright = geoToolsSurface.toUTM(new Coordinate(br.y, br.x));
+                posTopLeft.setLocation(topleft.x, topleft.y);
+                posBotRight.setLocation(bottright.x, bottright.y);
+            }
 //            System.out.println(tl + " -> " + topleft);
 
         } catch (TransformException ex) {
@@ -2786,6 +2798,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     }
 
     public void setSurface(Surface surface) {
+        this.surface = surface;
         try {
             mapViewer.clearLayer(layerSurfaceBoundary);
             mapViewer.clearLayer(layerSurfaceContaminated);

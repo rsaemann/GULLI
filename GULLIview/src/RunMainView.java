@@ -9,7 +9,7 @@ import control.listener.SimulationActionAdapter;
 import control.scenario.injection.InjectionInformation;
 import io.GeoJSON_IO;
 import io.SHP_IO_GULLI;
-import io.SurfaceIO;
+import io.extran.HE_SurfaceIO;
 import io.web.SFTP_Client;
 import java.awt.Color;
 import java.io.File;
@@ -76,12 +76,16 @@ public class RunMainView {
         if (lc.getFilePipeResultIDBF() == null) {
             //Start file can be set in the GULLI.ini after first start in the main folder.
             File startFile = new File(StartParameters.getStartFilePath());
-           
 
+            if (!startFile.exists()) {
+                //Fallback, if nthing was set in the GULLi.ini
+                startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
+            }
+            startFile = new File("L:\\EVUS_Hannover_gesamt2DAB\\EVUS_Hannover_gesamt2DAB\\He2D_RegenRaster_22_06_2017_v2.result\\Ergebnis.idbr");
             if (startFile.exists()) {
                 //Try to crawl all dependent files from the information stored in the He result file.
                 lc.requestDependentFiles(startFile, true, true);
-                
+
                 //Otherwise set them manually
 //                lc.setPipeNetworkFile(NETWORKFILE);
 //                lc.setPipeResultsFile(NETWORKVELOCITIES);
@@ -220,7 +224,7 @@ public class RunMainView {
                 }.start();
             }
         });
-        
+
         //Start loading the set files. 
         lc.startLoadingRequestedFiles(true);
 
@@ -236,7 +240,7 @@ public class RunMainView {
 //                            particleCount += injection.getNumberOfParticles();
 //                        }
 //                        File surfaceOutCsv = new File(control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile(), "surfaceContamination" + particleCount + ".csv");
-//                        SurfaceIO.writeSurfaceContaminationCSV(surfaceOutCsv, control.getSurface());
+//                        HE_SurfaceIO.writeSurfaceContaminationCSV(surfaceOutCsv, control.getSurface());
 //                        System.out.println("Contamination on Surface written to " + surfaceOutCsv.getAbsolutePath());
 
                     }
@@ -325,7 +329,7 @@ public class RunMainView {
                                     }
                                     SHP_IO_GULLI.writeWGS84(shapes, shpfile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
                                     System.out.println("Shapefiles written to " + shpfile.getAbsolutePath());
-                                    SurfaceIO.writeSurfaceContaminationCSV(csvFile, control.getSurface());
+                                    HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, control.getSurface());
 //                    JSON_IO.writeWGS84_Filtered(shapes,jsonfile);
 
 //                    GeoTools gt = new GeoTools("EPSG:4326", "EPSG:3857");
