@@ -48,7 +48,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public File fileTriangles, fileWaterlevels;
     public boolean loadingTriangles, loadingWaterlevels;
 
-    public final float[][] vertices;  //UTM
+    public final double[][] vertices;  //UTM
     public final int[][] triangleNodes;
     private double[][] triangleMids;
 
@@ -212,7 +212,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @param mapIndizes
      * @param spatialReferenceSystem
      */
-    public Surface(float[][] vertices, int[][] triangleNodes, int[][] neighbours, HashMap<Integer, Integer> mapIndizes, String spatialReferenceSystem) {
+    public Surface(double[][] vertices, int[][] triangleNodes, int[][] neighbours, HashMap<Integer, Integer> mapIndizes, String spatialReferenceSystem) {
         super(new CircularProfile(1));
         this.vertices = vertices;
         this.triangleNodes = triangleNodes;
@@ -384,11 +384,15 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 if (neumannNeighbours[i][j] < 0) {
                     continue;
                 }
-                double x1 = triangleMids[neumannNeighbours[i][j]][0];
-                double y1 = triangleMids[neumannNeighbours[i][j]][1];
+                try {
+                    double x1 = triangleMids[neumannNeighbours[i][j]][0];
+                    double y1 = triangleMids[neumannNeighbours[i][j]][1];
 
-                float distance = (float) Math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
-                neighbourDistances[i][j] = distance;
+                    float distance = (float) Math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
+                    neighbourDistances[i][j] = distance;
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
 
         }
@@ -459,8 +463,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 }
                 if (v0 >= 0 && v1 >= 0) {
                     //Two common points found. calculate distance
-                    float[] pos0 = vertices[v0];
-                    float[] pos1 = vertices[v1];
+                    double[] pos0 = vertices[v0];
+                    double[] pos1 = vertices[v1];
                     double distance = Math.sqrt((pos0[0] - pos1[0]) * (pos0[0] - pos1[0]) + (pos0[1] - pos1[1]) * (pos0[1] - pos1[1]));
                     edgeLength[id][n] = (float) distance;
                 }
@@ -830,6 +834,11 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public float[] loadWaterlevels(int triangleID) {
         if (waterlevels == null) {
             waterlevels = new float[triangleNodes.length][];
+        }
+        if (waterlevelLoader == null) {
+            float[] wlsNB = new float[numberOfTimestamps];
+            this.waterlevels[triangleID] = wlsNB;
+            return wlsNB;
         }
         float[] wlsNB = waterlevelLoader.loadWaterlevlvalues(triangleID);
         if (wlsNB == null) {
@@ -1409,7 +1418,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      *
      * @return [vertex][x,y,z]
      */
-    public float[][] getVerticesPosition() {
+    public double[][] getVerticesPosition() {
         return vertices;
     }
 
@@ -1864,10 +1873,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return smallest triangle area [m²]
      */
     public float calcSmallestTriangleArea() {
-        float minA = Float.POSITIVE_INFINITY;
+        double minA = Double.POSITIVE_INFINITY;
 
         for (int i = 0; i < triangleNodes.length; i++) {
-            float a = 0.5f
+            double a = 0.5f
                     * (vertices[triangleNodes[i][0]][0] * (vertices[triangleNodes[i][1]][1] - vertices[triangleNodes[i][2]][1])
                     + vertices[triangleNodes[i][1]][0] * (vertices[triangleNodes[i][2]][1] - vertices[triangleNodes[i][0]][1])
                     + vertices[triangleNodes[i][2]][0] * (vertices[triangleNodes[i][0]][1] - vertices[triangleNodes[i][1]][1]));
@@ -1876,7 +1885,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
             minA = Math.min(Math.abs(a), minA);
         }
-        return minA;
+        return (float) minA;
     }
 
     /**
@@ -1888,7 +1897,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         float maxA = Float.NEGATIVE_INFINITY;
 
         for (int[] triangleNode : triangleNodes) {
-            float a = 0.5f * (vertices[triangleNode[0]][0] * (vertices[triangleNode[1]][1] - vertices[triangleNode[2]][1]) + vertices[triangleNode[1]][0] * (vertices[triangleNode[2]][1] - vertices[triangleNode[0]][1]) + vertices[triangleNode[2]][0] * (vertices[triangleNode[0]][1] - vertices[triangleNode[1]][1]));
+            float a = (float) (0.5f * (vertices[triangleNode[0]][0] * (vertices[triangleNode[1]][1] - vertices[triangleNode[2]][1]) + vertices[triangleNode[1]][0] * (vertices[triangleNode[2]][1] - vertices[triangleNode[0]][1]) + vertices[triangleNode[2]][0] * (vertices[triangleNode[0]][1] - vertices[triangleNode[1]][1])));
             maxA = Math.max(Math.abs(a), maxA);
         }
         return maxA;
@@ -2017,7 +2026,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         double third = 1. / 3.;
         for (int i = 0; i < mids.length; i++) {
             for (int j = 0; j < 3; j++) {
-                float[] vertex = vertices[triangleNodes[i][j]];
+                double[] vertex = vertices[triangleNodes[i][j]];
                 for (int k = 0; k < 3; k++) {
                     mids[i][k] += vertex[k] * third;
                 }
@@ -2121,9 +2130,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
             //is coordinate in triangle?
             int[] nodeIDs = triangleNodes[i];
-            float[] p0 = vertices[nodeIDs[0]];
-            float[] p1 = vertices[nodeIDs[1]];
-            float[] p2 = vertices[nodeIDs[2]];
+            double[] p0 = vertices[nodeIDs[0]];
+            double[] p1 = vertices[nodeIDs[1]];
+            double[] p2 = vertices[nodeIDs[2]];
             if (GeometryTools.triangleContainsPoint(p0[0], p1[0], p2[0], p0[1], p1[1], p2[1], x, y)) {
                 return i;
             }
@@ -2212,12 +2221,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         int t2 = triangleNodes[triangleID][2];
 
         // get utm coordinates of the actual triangle
-        float x1 = vertices[t0][0];
-        float x2 = vertices[t1][0];
-        float x3 = vertices[t2][0];
-        float y1 = vertices[t0][1];
-        float y2 = vertices[t1][1];
-        float y3 = vertices[t2][1];
+        float x1 = (float) vertices[t0][0];
+        float x2 = (float) vertices[t1][0];
+        float x3 = (float) vertices[t2][0];
+        float y1 = (float) vertices[t0][1];
+        float y2 = (float) vertices[t1][1];
+        float y3 = (float) vertices[t2][1];
 
         /**
          * if (velocityNodes[(int) timeIndex][triangleNodes[id][0]][0] == 0) {
@@ -2298,7 +2307,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         int node0 = triangleNodes[id][0];
         int node1 = triangleNodes[id][1];
         int node2 = triangleNodes[id][2];
-        float[][] t = new float[3][];
+        double[][] t = new double[3][];
         t[0] = vertices[node0];
         t[1] = vertices[node1];
         t[2] = vertices[node2];
@@ -2500,7 +2509,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //            System.out.println("need to search for Triangle " + (searchcounter));
 //        }
         // is particle still in start triangle? use barycentric weighing to check.
-        float[][] t = new float[3][];
+        double[][] t = new double[3][];
         t[0] = vertices[triangleNodes[id][0]];
         t[1] = vertices[triangleNodes[id][1]];
         t[2] = vertices[triangleNodes[id][2]];
@@ -3060,7 +3069,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //            return s;
 //        }
 //    }
-    private double[] getParticleBoundaryIntersection(float[] a, double bx, double by, float[] c, double dx, double dy) {
+    private double[] getParticleBoundaryIntersection(double[] a, double bx, double by, double[] c, double dx, double dy) {
         double t = ((dx - bx) * (by - a[1]) + (dy - by) * (bx - a[0])) / ((c[1] - a[1]) * (dx - bx) - (c[0] - a[0]) * (dy - by));
 //        double t = ((dx - bx) * (by - a[1]) + (dy - by) * (a[0] - bx)) / ((c[1] - a[1]) * (dx - bx) - (c[0] - a[0]) * (dy - by));
         double[] s = new double[2];
@@ -3114,8 +3123,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //                int[] min = {0, 1, 2}; // variation der dreiecksknoten um die drei seiten zu testen
 //                int[] max = {1, 2, 0};
                 for (int t = 0; t < 3; t++) {           // every triangle side is tested
-                    float[] a = vertices[triangleNodes[triangleID][t % 3]];  //vertices[triangleNodes[triangleID][min[t]]];
-                    float[] c = vertices[triangleNodes[triangleID][(t + 1) % 3]];
+                    double[] a = vertices[triangleNodes[triangleID][t % 3]];  //vertices[triangleNodes[triangleID][min[t]]];
+                    double[] c = vertices[triangleNodes[triangleID][(t + 1) % 3]];
 
                     // check if lines are paralell, if not get intersection point if existing
                     if (Math.abs((y - yold) / (x - xold) - (c[1] - a[1]) / (c[0] - a[0])) > 0.0000001) {
@@ -3173,6 +3182,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public Inlet[] getInlets() {
+        if (inlets == null) {
+            return null;
+        }
         return inlets.values().toArray(new Inlet[inlets.size()]);
     }
 

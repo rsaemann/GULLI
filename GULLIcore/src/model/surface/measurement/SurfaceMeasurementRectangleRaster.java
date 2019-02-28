@@ -67,7 +67,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         double minX = Double.POSITIVE_INFINITY, maxX = Double.NEGATIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
 
-        for (float[] vertex : surf.getVerticesPosition()) {
+        for (double[] vertex : surf.getVerticesPosition()) {
             minX = Math.min(minX, vertex[0]);
             maxX = Math.max(maxX, vertex[0]);
             minY = Math.min(minY, vertex[1]);

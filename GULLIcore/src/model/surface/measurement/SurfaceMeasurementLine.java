@@ -70,8 +70,8 @@ public class SurfaceMeasurementLine {
                 }
                 //test for triangle's sides
                 for (int j = 0; j < 3; j++) {
-                    float[] startVertex = surf.getVerticesPosition()[surf.getTriangleNodes()[i][j]];
-                    float[] endVertex = surf.getVerticesPosition()[surf.getTriangleNodes()[i][(j + 1) % 3]];
+                    double[] startVertex = surf.getVerticesPosition()[surf.getTriangleNodes()[i][j]];
+                    double[] endVertex = surf.getVerticesPosition()[surf.getTriangleNodes()[i][(j + 1) % 3]];
                     //Search for intersection between triangle side and measurement line
                     double[] st = GeometryTools.lineIntersectionST(startVertex[0], startVertex[1], endVertex[0], endVertex[1], utmXStart, utmYStart, utmXEnd, utmYEnd);
                     if (st[0] >= 0 && st[0] <= 1 && st[1] >= 0 && st[1] <= 1) {

@@ -41,7 +41,7 @@ public class MSH_IO {
         BufferedReader br = new BufferedReader(new FileReader(mshFile));
         //Go until find $NODES entry point
         String line;
-        float[][] vertices;
+        double[][] vertices;
         while (br.ready()) {
             line = br.readLine();
             if (line.contains("$NODES")) {
@@ -51,7 +51,7 @@ public class MSH_IO {
         //Read number of Vertices
         line = br.readLine();
         line = line.replaceAll(" ", "");
-        vertices = new float[Integer.parseInt(line)][3];
+        vertices = new double[Integer.parseInt(line)][3];
         //Start collecting vertices' coordinate
         String[] split;
         while (br.ready()) {
@@ -65,7 +65,7 @@ public class MSH_IO {
             split = line.split(" ");
             int id = Integer.parseInt(split[0]);
             for (int i = 0; i < 3; i++) {
-                vertices[id][i] = Float.parseFloat(split[i + 1]);
+                vertices[id][i] = Double.parseDouble(split[i + 1]);
             }
         }
         // Start creation of Elements

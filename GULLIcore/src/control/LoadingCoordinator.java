@@ -35,7 +35,7 @@ import io.extran.HE_Database;
 import io.SHP_IO_GULLI;
 import io.SparseTimeLineDataProvider;
 import io.swmm.SWMM_IO;
-import io.SurfaceIO;
+import io.extran.HE_SurfaceIO;
 import io.extran.HE_GDB_IO;
 import io.extran.HE_InletReference;
 import java.io.File;
@@ -687,31 +687,31 @@ public class LoadingCoordinator implements LoadingActionListener {
         fireLoadingActionUpdate();
         try {
             long start = System.currentTimeMillis();
-            Surface surf = SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
+            Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
 //            System.out.println("Load pure triangles took " + (System.currentTimeMillis() - start) + "ms");
             start = System.currentTimeMillis();
             //load neighbour definitions
             {
                 if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
-                    surf.setNodeNeighbours(SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
+                    surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
                 } else {
                     //Need to create this reference file
                     action.description = "Create Node-Triangle reference File NODE2TRIANGLE.dat";
                     fireLoadingActionUpdate();
                     File outNodeTriangles = new File(fileSurfaceCoordsDAT.getParent(), "NODE2TRIANGLE.dat");
                     if (!outNodeTriangles.exists()) {
-                        ArrayList<Integer>[] n2t = SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
-                        SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
+                        ArrayList<Integer>[] n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
+                        HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
 //                        System.out.println("Created new Nodes->Triangle File " + outNodeTriangles);
                         fileSufaceNode2Triangle = outNodeTriangles;
-                        surf.setNodeNeighbours(SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
+                        surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
                     }
                 }
             }
 //            System.out.println("Applying nodes'triangles took " + (System.currentTimeMillis() - start) + "ms.");
             start = System.currentTimeMillis();
             if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
-                surf.mooreNeighbours = SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
+                surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
             } else {
                 //Create neumann neighbours
 //                                Surface surf=control.getSurface();
@@ -720,9 +720,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                 fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
                 if (!fileTriangleMooreNeighbours.exists()) {
                     System.out.println("Create new Moore Neighbours File @" + fileTriangleMooreNeighbours);
-                    SurfaceIO.writeMooreTriangleNeighbours(surf.getTriangleNodes(), surf.getVerticesPosition().length, fileTriangleMooreNeighbours);
+                    HE_SurfaceIO.writeMooreTriangleNeighbours(surf.getTriangleNodes(), surf.getVerticesPosition().length, fileTriangleMooreNeighbours);
                     System.out.println("Created new Moore Neighbours File " + fileTriangleMooreNeighbours);
-                    surf.mooreNeighbours = SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
+                    surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
                 }
             }
 //            System.out.println("Moor Neighbours took " + (System.currentTimeMillis() - start) + "ms.");
@@ -903,7 +903,7 @@ public class LoadingCoordinator implements LoadingActionListener {
             try {
                 action.description = "Load Manhole locations";
                 fireLoadingActionUpdate();
-                manhRefs = SurfaceIO.loadManholeToTriangleReferences(fileSurfaceManholes);
+                manhRefs = HE_SurfaceIO.loadManholeToTriangleReferences(fileSurfaceManholes);
                 if (verbose) {
                     System.out.println("loaded " + manhRefs.size() + " manhole references");
                 }
@@ -931,7 +931,7 @@ public class LoadingCoordinator implements LoadingActionListener {
             action.description = "Load Inlet locations";
             fireLoadingActionUpdate();
             try {
-                inletRefs = SurfaceIO.loadStreetInletsReferences(fileSurfaceInlets);
+                inletRefs = HE_SurfaceIO.loadStreetInletsReferences(fileSurfaceInlets);
 //                inletsLoaded = true;
             } catch (IOException ex) {
                 Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
@@ -1256,7 +1256,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                 if (control.getSurface() != null) {
                     int oldnumber = control.getSurface().size();
                     File trimod2File = new File(bestFileSurfacdirectory.getAbsolutePath() + File.separator + "trimod2.dat");
-                    int newnumber = SurfaceIO.readNumberOfTriangles(trimod2File);
+                    int newnumber = HE_SurfaceIO.readNumberOfTriangles(trimod2File);
                     if (oldnumber == newnumber) {
                         //Seems to be identical to the already loaded surface.
                         oldFilecorrespondsSurfaceTopology = true;

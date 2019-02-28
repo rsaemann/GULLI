@@ -13,10 +13,14 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.GeoTools;
@@ -232,7 +236,6 @@ public class Domain3DIO {
 //        System.out.println((System.currentTimeMillis() - starttime) / 1000 + "  s für alles.");
 //
 //    }
-
     public static Domain3D read3DFlowFieldVTU(File fileCSV, String fileCRS, String targetMetricCRS) throws FactoryException, FileNotFoundException, IOException, TransformException {
         GeoTools gt = new GeoTools(fileCRS, targetMetricCRS, StartParameters.JTS_WGS84_LONGITUDE_FIRST);
         //Count number of lines
@@ -419,6 +422,117 @@ public class Domain3DIO {
         fr.close();
 
         return domain;
+    }
+
+    /**
+     * Read FLUENT velocity field
+     *
+     * @param fileDX
+     * @param fileCRS
+     * @param targetMetricCRS
+     * @return
+     * @throws FactoryException
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws TransformException
+     */
+    public static Domain3D read3DFlowFieldDX(File fileDX, String fileCRS, String targetMetricCRS) throws FactoryException, FileNotFoundException, IOException, TransformException {
+        GeoTools gt = new GeoTools(fileCRS, targetMetricCRS, StartParameters.JTS_WGS84_LONGITUDE_FIRST);
+        //Count number of lines
+//        FileReader fr = new FileReader(fileDX);
+//        for (Map.Entry<String, Charset> c : Charset.availableCharsets().entrySet()) {
+//            System.out.println(""+c.getKey());
+//        }
+
+        FileInputStream fis = new FileInputStream(fileDX);
+        InputStreamReader isr = new InputStreamReader(fis, "UTF-16");
+        BufferedReader br = new BufferedReader(isr);
+        String line = "";
+        int numberofpoints = -1;
+        int numberofcells = -1;
+        long starttime = System.currentTimeMillis();
+        while (br.ready()) {
+            line = br.readLine();
+            //#####################################################################
+            // EINLESEN DER ANZAHL DER PUNKTE
+            //#####################################################################            
+            if (line.contains("Positions")) {
+                line = br.readLine();
+                String npstr = line.substring(line.indexOf("items ") + 6);
+                npstr = npstr.substring(0, npstr.indexOf("data") - 1);
+                numberofpoints = Integer.parseInt(npstr);
+                break;
+            }
+        }
+        // Lesen Vertices
+        Coordinate[] coordinates = new Coordinate[numberofpoints];
+        int index = 0;
+        while (br.ready()) {
+            line = br.readLine().trim();
+            if (line.length() < 15) {
+                break;
+            }
+            line = line.replaceAll("  ", " ");
+            String[] parts = line.split(" ");
+            coordinates[index] = new Coordinate(Double.parseDouble(parts[0]), -Double.parseDouble(parts[2]), Double.parseDouble(parts[1]));
+            index++;
+        }
+
+        //#####################################################################
+        // EINLESEN DER Geschwindigkeiten
+        //#####################################################################      
+        while (br.ready()) {
+            line = br.readLine();
+
+            if (line.contains("Velocities")) {
+                line = br.readLine();
+                String npstr = line.substring(line.indexOf("items ") + 6);
+                npstr = npstr.substring(0, npstr.indexOf("data") - 1);
+                numberofpoints = Integer.parseInt(npstr);
+                break;
+            }
+        }
+        float[][][] velocities = new float[1][numberofpoints][3];
+        index = 0;
+        while (br.ready()) {
+            line = br.readLine().trim();
+            if (line.length() < 15) {
+                break;
+            }
+            if (line.contains("attribute")) {
+                break;
+            }
+            line = line.replaceAll("  ", " ");
+            String[] parts = line.split(" ");
+            velocities[0][index][0] = Float.parseFloat(parts[0]);
+            velocities[0][index][1] = -Float.parseFloat(parts[2]);
+            velocities[0][index][2] = Float.parseFloat(parts[1]);
+            index++;
+        }
+
+        gt = new GeoTools("EPSG:4326", targetMetricCRS, StartParameters.JTS_WGS84_LONGITUDE_FIRST);
+        Domain3D domain = new Domain3D(coordinates, velocities, null, gt);
+        domain.NoP = numberofpoints;
+        domain.NoC = 0;
+
+        br.close();
+        isr.close();
+        fis.close();
+
+        return domain;
+    }
+
+    public static void main(String[] args) {
+        File file = new File("X:\\Abschlussarbeiten\\Li_Xinrui\\Masterarbeit_FLUENT_velocity.vtu");
+        try {
+            Domain3D domain = read3DFlowFieldDX(file, "EPSG:4647", "EPSG:4647");
+        } catch (FactoryException ex) {
+            Logger.getLogger(Domain3DIO.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Domain3DIO.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (TransformException ex) {
+            Logger.getLogger(Domain3DIO.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static Domain3D read3DFlowFieldCSV(File fileCSV, String fileCRS, String targetMetricCRS) throws Exception {

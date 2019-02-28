@@ -240,6 +240,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 //Create temporary file
                 Path temporalPath = Files.createTempFile(databaseFile.getName().replaceAll(".idbf", ""), ".idbf");//new File(dbfile.getName()).toPath();
                 if (temporalPath != null) {
+
                     Files.copy(databaseFile.toPath(), temporalPath, new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
                     if (verbose) {
                         System.out.println("Create temporary file in " + temporalPath + "\torigin: " + databaseFile.getAbsolutePath());
@@ -1296,7 +1297,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         Connection extran = getConnection();
         Statement st = extran.createStatement();
         ResultSet rs = st.executeQuery("SELECT RESULTNAME FROM EXTRAN2DPARAMETERSATZ");//This will only return 1 result row, because EXTRAN2DPARAMETERSATZ only contains one row after a single simulation.
-        if (rs.isBeforeFirst()) {
+        if (!rs.isBeforeFirst()) {
             //Resultset is empty
             rs.close();
             st.close();
@@ -1715,6 +1716,62 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load wasserstand for manhole id:" + manholeMaualID + ". It is not found in the database.");
+                    return values;
+                }
+                int index = 0;
+                while (rs.next()) {
+                    values[index] = rs.getFloat(1);
+                    index++;
+                }
+                return values;
+
+            }
+        } catch (SQLException | IOException ex) {
+            Logger.getLogger(HE_Database.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+    
+     public float[] loadTimeLineOutflowManhole(long manholeDatabaseID, int numberOfTimes) {
+        float[] values = new float[numberOfTimes];
+        try {
+            synchronized (synchronizationObject) {
+                Connection c = getConnection();
+                Statement st = c.createStatement();
+                //in HE Database only use Manhole ID.
+                ResultSet rs = st.executeQuery("SELECT DURCHFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeDatabaseID + " ORDER BY ZEITPUNKT ");
+                if (!rs.isBeforeFirst()) {
+                    //No Data
+                    System.err.println(getClass() + " could not load outflow for manhole id:" + manholeDatabaseID + ". It was not found in the database.");
+                    return values;
+                }
+                int index = 0;
+                while (rs.next()) {
+                    values[index] = rs.getFloat(1);
+                    index++;
+                }
+                return values;
+
+            }
+        } catch (SQLException | IOException ex) {
+            Logger.getLogger(HE_Database.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+     
+      public float[] loadTimeLineOutflowManhole(String manholeName, int numberOfTimes) {
+        float[] values = new float[numberOfTimes];
+        try {
+            synchronized (synchronizationObject) {
+                Connection c = getConnection();
+                Statement st = c.createStatement();
+                //in HE Database only use Manhole ID.
+                ResultSet rs = st.executeQuery("SELECT DURCHFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE KNOTEN=" + manholeName + " ORDER BY ZEITPUNKT ");
+                if (!rs.isBeforeFirst()) {
+                    //No Data
+                    System.err.println(getClass() + " could not load outflow for manhole name:" + manholeName + ". It was not found in the database.");
                     return values;
                 }
                 int index = 0;

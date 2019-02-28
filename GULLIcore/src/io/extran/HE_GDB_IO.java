@@ -26,7 +26,6 @@ package io.extran;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
-import io.SurfaceIO;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -58,6 +57,8 @@ import model.surface.SurfaceWaterlevelLoader;
  * @author saemann
  */
 public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader {
+
+    public static boolean verbose = false;
 
     private File directory;
 
@@ -113,11 +114,11 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
      */
     public int maxTryFindCount = 200;
 
-    
     /**
      * A single Handle is used for parallel access on a gdb table file
      */
     public class GDBHandle {
+
         boolean busy = false;
         int requestedID = -1;
         GeoTable table;
@@ -125,8 +126,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
         public GDBHandle(GeoTable table) {
             this.table = table;
-        }       
-        
+        }
+
     }
 
     public HE_GDB_IO(File directory) {
@@ -140,10 +141,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
     @Override
     public String toString() {
-        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps+",@ "+directory.getAbsolutePath()+"}";
+        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps + ",@ " + directory.getAbsolutePath() + "}";
     }
-    
-    
 
     /**
      * Find content of waterlevel and velocity if existent and sets needed
@@ -416,6 +415,66 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 //            wlmax[id] = f.getValue(indexWLmax).doubleValue();
             double znew = f.getValue(indexWLZ).doubleValue();
             h[id] = f.getValue(indexWLmax).doubleValue() + znew;
+        }
+
+        return h;
+    }
+
+    /**
+     * Read the maximum waterlevel (from sole) of all triangles ordered by their
+     * triangle ID (not database reference id). Returned array therefore might
+     * contain 0 also if no triangle with that id exists.
+     *
+     * @return
+     */
+    public double[] readWaterLevelMaximum() {
+        if (layerWaterHeight == null) {
+            throw new UnsupportedOperationException("GDB '" + directory.getAbsolutePath() + "' does not contain Waterlevel information.");
+        }
+        if (maxTriangleID >= Integer.MAX_VALUE) {
+            throw new UnsupportedOperationException("Max triangle ID " + maxTriangleID + " is greater than Inetger.maxvalue. -> Cannot create array for all triangles.");
+        }
+
+        //Normal Surface with all triangles.
+        //initialize waterlevel history storage
+        double[] h = new double[(int) (maxTriangleID + 1)];
+        GeoLayer layer = db.layer(layerWaterHeight);
+        for (GeoFeature f : layer) {
+            int id = f.getValue(indexWLid).intValue();
+            if (id >= h.length) {
+                throw new UnsatisfiedLinkError("Id of read id (" + id + ") is higher than max surface.id(" + (h.length - 1) + ")");
+            }
+            h[id] = f.getValue(indexWLmax).doubleValue();
+        }
+
+        return h;
+    }
+
+    /**
+     * Read the maximum velocity of all triangles ordered by their triangle ID
+     * (not database reference id). Returned array therefore might contain 0
+     * also if no triangle with that id exists.
+     *
+     * @return
+     */
+    public double[] readVelocityMaximum() {
+        if (layerVelocity == null) {
+            throw new UnsupportedOperationException("GDB '" + directory.getAbsolutePath() + "' does not contain Velocity information.");
+        }
+        if (maxTriangleID >= Integer.MAX_VALUE) {
+            throw new UnsupportedOperationException("Max triangle ID " + maxTriangleID + " is greater than Inetger.maxvalue. -> Cannot create array for all triangles.");
+        }
+
+        //Normal Surface with all triangles.
+        //initialize waterlevel history storage
+        double[] h = new double[(int) (maxTriangleID + 1)];
+        GeoLayer layer = db.layer(layerVelocity);
+        for (GeoFeature f : layer) {
+            int id = f.getValue(indexVid).intValue();
+            if (id >= h.length) {
+                throw new UnsatisfiedLinkError("Id of read id (" + id + ") is higher than max surface.id(" + (h.length - 1) + ")");
+            }
+            h[id] = f.getValue(indexVMax).doubleValue();
         }
 
         return h;
@@ -711,7 +770,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
             System.exit(0);
         }
 
-        Surface surf = SurfaceIO.loadSurface(new File(".\\2D_Model\\2DModell_10cm_3m2_ohne_BK.model"));
+        Surface surf = HE_SurfaceIO.loadSurface(new File(".\\2D_Model\\2DModell_10cm_3m2_ohne_BK.model"));
 //        System.out.println(" max=" + db.maxTriangleID + "   size:" + db.numberOftriangles);
 //        GeoLayer layer = db.getDb().layer(db.layerVelocity);
 //        System.out.println("entry: " + layer.getFeature(4000));
@@ -729,7 +788,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         //Vergleiche CSV Import und GDB Import
         if (false) {
             try {
-                Surface surfCSV = SurfaceIO.loadSurface(surf.fileTriangles);
+                Surface surfCSV = HE_SurfaceIO.loadSurface(surf.fileTriangles);
                 File fileCSV = new File(file.getAbsolutePath().replace("2D.gdb", "2D.csv"));
                 start = System.currentTimeMillis();
                 CSV_IO.readTriangleWaterlevels(surfCSV, fileCSV);
@@ -922,7 +981,9 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 //                handle.table = tableVelocity;
                 velocityHandles.add(handle);
 
-                System.out.println("New Handle for VelocityGDB " + velocityHandles.size());
+                if (verbose) {
+                    System.out.println("New Handle for VelocityGDB " + velocityHandles.size());
+                }
             }
         }
 
@@ -1000,6 +1061,10 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
             System.err.println("unknown Geometry type " + gv.getClass() + " in GDB");
         }
         return null;
+    }
+
+    public File getDirectory() {
+        return directory;
     }
 
 }

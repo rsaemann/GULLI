@@ -1,4 +1,4 @@
-package io;
+package io.extran;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -7,7 +7,6 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import control.StartParameters;
 import control.maths.GeometryTools;
-import io.extran.HE_InletReference;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -28,13 +27,11 @@ import java.util.logging.Logger;
 import model.GeoTools;
 import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
-import model.surface.SurfaceTriangle;
 import model.surface.measurement.SurfaceMeasurementRaster;
 import model.surface.measurement.TriangleMeasurement;
 import model.topology.Inlet;
 import model.topology.Manhole;
 import model.topology.Network;
-import model.topology.Position3D;
 import model.topology.graph.Pair;
 import org.geotools.referencing.CRS;
 import org.opengis.referencing.FactoryException;
@@ -48,7 +45,7 @@ import org.opengis.referencing.operation.TransformException;
  *
  * @author saemann
  */
-public class SurfaceIO {
+public class HE_SurfaceIO {
 
     private static MultiPolygon testfilter = null;//initPolygon();
 
@@ -68,7 +65,11 @@ public class SurfaceIO {
 
     public static Surface loadSurface(File directory) throws FileNotFoundException, IOException {
         if (!directory.isDirectory()) {
-            throw new FileNotFoundException("Is not a directory to find Surface information: " + directory.getAbsolutePath());
+            if (directory.isFile()) {
+                directory = directory.getParentFile();
+            } else {
+                throw new FileNotFoundException("Is not a directory to find Surface information: " + directory.getAbsolutePath());
+            }
         }
         File fileCoordinates = new File(directory.getAbsolutePath() + File.separator + "X.dat");
         if (!fileCoordinates.exists()) {
@@ -133,7 +134,7 @@ public class SurfaceIO {
         String line = br.readLine();
         String[] values;
         int numberofVertices = Integer.parseInt(line.split(" ")[0]);
-        LinkedList<float[]> verticesL = new LinkedList<>();
+        LinkedList<double[]> verticesL = new LinkedList<>();
 
         HashMap<Integer, Integer> verticesIndex = new HashMap<>();
 //        float[][] vertices = new float[numberofVertices][3];
@@ -144,12 +145,12 @@ public class SurfaceIO {
         while (br.ready()) {
             line = br.readLine();
             values = line.split(" ");
-            float x = (Float.parseFloat(values[0]));
-            float y = Float.parseFloat(values[1]);
-            float ele = Float.parseFloat((values[values.length - 1]));
+            double x = Double.parseDouble(values[0]);
+            double y = Double.parseDouble(values[1]);
+            double ele = Double.parseDouble(values[values.length - 1]);
             p = gf.createPoint(new Coordinate(x, y));
             if (filter.contains(p)) {
-                verticesL.add(new float[]{x, y, ele});
+                verticesL.add(new double[]{x, y, ele});
                 verticesIndex.put(index, counter);
                 counter++;
             }
@@ -173,9 +174,9 @@ public class SurfaceIO {
             }
         }
         System.out.println(verticesL.size() + " Vertices to Linkedlist");
-        float[][] vertices = new float[verticesL.size()][3];
+        double[][] vertices = new double[verticesL.size()][3];
         counter = 0;
-        for (float[] c : verticesL) {
+        for (double[] c : verticesL) {
             vertices[counter] = c;
             counter++;
         }
@@ -346,7 +347,7 @@ public class SurfaceIO {
         String[] values;
         //Number of vertices is the first entry in the first line.
         int numberofVertices = Integer.parseInt(line.split(" ")[0]);
-        float[][] vertices = new float[numberofVertices][3];
+        double[][] vertices = new double[numberofVertices][3];
         int index = 0;
 
         //Here comes information about the coordinates
@@ -354,9 +355,9 @@ public class SurfaceIO {
         while (br.ready()) {
             line = br.readLine();
             values = line.split(seperator);
-            float x = Float.parseFloat(values[0]);
-            float y = Float.parseFloat(values[1]);
-            float ele = Float.parseFloat((values[values.length - 1]));
+            double x = Double.parseDouble(values[0]);
+            double y = Double.parseDouble(values[1]);
+            double ele = Double.parseDouble((values[values.length - 1]));
             vertices[index][0] = x;
             vertices[index][1] = y;
             vertices[index][2] = ele;
@@ -418,18 +419,22 @@ public class SurfaceIO {
         br = new BufferedReader(fr);
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
-        while (br.ready()) {
-            line = br.readLine();
-            values = line.split(seperator);
-            int first = Integer.parseInt(values[0]);
-            int second = Integer.parseInt(values[1]);
-            int third = Integer.parseInt(values[2]);
+        try {
+            while (br.ready()) {
+                line = br.readLine();
+                values = line.split(seperator);
+                int first = Integer.parseInt(values[0]);
+                int second = Integer.parseInt(values[1]);
+                int third = Integer.parseInt(values[2]);
 
-            neighbours[index][0] = first;
-            neighbours[index][1] = second;
-            neighbours[index][2] = third;
+                neighbours[index][0] = first;
+                neighbours[index][1] = second;
+                neighbours[index][2] = third;
 
-            index++;
+                index++;
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
         br.close();
         fr.close();
@@ -466,14 +471,14 @@ public class SurfaceIO {
                 }
             }
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
                 br.close();
             } catch (IOException ex) {
-                Logger.getLogger(SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         return code;
@@ -502,14 +507,14 @@ public class SurfaceIO {
                 }
             }
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
                 br.close();
             } catch (IOException ex) {
-                Logger.getLogger(SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         return code;
@@ -1107,12 +1112,12 @@ public class SurfaceIO {
 //        for (Pair<String, Integer> ref : references) {
 //            Pipe p = network.getPipeByName(ref.first);
 //            if (p == null) {
-//                System.err.println(SurfaceIO.class + "::could not find Pipe " + ref.first + " to connect to surfaceinlet.");
+//                System.err.println(HE_SurfaceIO.class + "::could not find Pipe " + ref.first + " to connect to surfaceinlet.");
 //                continue;
 //            }
 //            SurfaceTriangle tri = surface.requestSurfaceTriangle(ref.second);
 //            if (tri == null) {
-//                System.err.println(SurfaceIO.class + "::could not find Triangle " + ref.second + " to connect inlet to Pipe.");
+//                System.err.println(HE_SurfaceIO.class + "::could not find Triangle " + ref.second + " to connect inlet to Pipe.");
 //                continue;
 //            }
 //            Inlet inlet = new Inlet(tri.getPosition3D(0), p, 0.5f * p.getLength());
@@ -1198,7 +1203,7 @@ public class SurfaceIO {
             for (int i = 0; i < s.triangleNodes.length; i++) {
                 bw.write(i + ";");
                 for (int j = 0; j < 3; j++) {
-                    float[] v0 = s.vertices[s.triangleNodes[i][j]];
+                    double[] v0 = s.vertices[s.triangleNodes[i][j]];
                     Coordinate c = new Coordinate(v0[0], v0[1]);
                     Coordinate latlon = s.getGeotools().toGlobal(c, false);
                     bw.write(dfLong.format(latlon.x) + "," + dfLong.format(latlon.y) + "," + dfShort.format(v0[2]) + ";");
@@ -1308,4 +1313,202 @@ public class SurfaceIO {
             }
         }
     }
+
+    /**
+     * Creates X.dat, TRIMOD1.dat, TRIMOD2.dat in the given directory.
+     *
+     * @param surf
+     * @param directory
+     * @return
+     */
+    public static void writeSurfaceFiles(Surface surface, File directory) throws IOException {
+        File fileVertices = new File(directory, "X.dat");
+        if (fileVertices.exists()) {
+            throw new IOException("File " + fileVertices + " already exists. Delete it before creating a new one.");
+        }
+        File fileTriangles = new File(directory, "TRIMOD2.dat");
+        if (fileTriangles.exists()) {
+            throw new IOException("File " + fileTriangles + " already exists. Delete it before creating a new one.");
+        }
+        File fileNeumannNeighbours = new File(directory, "TRIMOD1.dat");
+        if (fileNeumannNeighbours.exists()) {
+            throw new IOException("File " + fileNeumannNeighbours + " already exists. Delete it before creating a new one.");
+        }
+
+        DecimalFormat df5 = new DecimalFormat("#.00000", DecimalFormatSymbols.getInstance(Locale.US));
+
+        //Write Vertices
+        FileWriter fw = new FileWriter(fileVertices);
+        BufferedWriter bw = new BufferedWriter(fw);
+        bw.write(surface.vertices.length + " " + surface.vertices.length + " " + surface.vertices.length);
+        bw.newLine();
+        for (int i = 0; i < surface.vertices.length; i++) {
+            bw.write(df5.format(surface.vertices[i][0]) + " " + df5.format(surface.vertices[i][1]) + "       " + df5.format(surface.vertices[i][2]));
+            bw.newLine();
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
+        System.out.println("Vertices written to " + fileVertices.getAbsolutePath());
+
+        //Write Triangles to File TRIMOD2.dat
+        fw = new FileWriter(fileTriangles);
+        bw = new BufferedWriter(fw);
+        //Header number of triangles
+        bw.write(surface.triangleNodes.length + " " + surface.triangleNodes.length + " " + surface.triangleNodes.length);
+        bw.newLine();
+        for (int i = 0; i < surface.triangleNodes.length; i++) {
+            bw.write(surface.triangleNodes[i][0] + " " + surface.triangleNodes[i][1] + " " + surface.triangleNodes[i][2]);
+            bw.newLine();
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
+        System.out.println("Triangles written to " + fileTriangles.getAbsolutePath());
+
+        //Write Neighbours (vonNeumann) to TRIMOD1.dat
+        fw = new FileWriter(fileNeumannNeighbours);
+        bw = new BufferedWriter(fw);
+
+        for (int i = 0; i < surface.neumannNeighbours.length; i++) {
+            bw.write(surface.neumannNeighbours[i][0] + " " + surface.neumannNeighbours[i][1] + " " + surface.neumannNeighbours[i][2]);
+            bw.write("   " + (surface.neumannNeighbours[i][0] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][1] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][2] < 0 ? "-1" : "0"));
+            bw.write("    " + (surface.neumannNeighbours[i][0] < 0 ? "1" : "-1") + " " + (surface.neumannNeighbours[i][1] < 0 ? "1" : "-1") + " " + (surface.neumannNeighbours[i][2] < 0 ? "1" : "-1"));
+            bw.write("    ");
+            bw.newLine();
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
+        System.out.println("Neumannneighbours written to " + fileNeumannNeighbours.getAbsolutePath());
+    }
+
+    /**
+     * Writes the z coorztriang.dat content to the given file.
+     *
+     * @param triangleMids
+     * @param outputFile
+     * @throws IOException
+     */
+    public static void writeTriangleZ(double[][] triangleMids, File outputFile) throws IOException {
+        if (outputFile.exists()) {
+            throw new IOException("File '" + outputFile + " already exists.");
+        }
+        FileWriter fw = new FileWriter(outputFile);
+        BufferedWriter bw = new BufferedWriter(fw);
+        DecimalFormat df3 = new DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.US));
+        for (int i = 0; i < triangleMids.length; i++) {
+            double[] triangleMid = triangleMids[i];
+            bw.write(" " + df3.format(triangleMid[2]) + " 101   -1   -1   -1   0    0");
+            bw.newLine();
+            bw.flush();
+        }
+        bw.close();
+        fw.close();
+        System.out.println("Triangle heights written to " + outputFile);
+    }
+
+    public static void writeMeshPly(Surface surf, File output) throws IOException {
+        if (output.exists()) {
+            throw new IOException("File " + output + " already exists. Will not overwrite. terminate here.");
+        }
+        FileWriter fw = new FileWriter(output);
+        BufferedWriter bw = new BufferedWriter(fw);
+        //write header
+        bw.write("ply\n"
+                + "format ascii 1.0\n"
+                + "element vertex " + surf.vertices.length + "\n"
+                + "property float32 x\n"
+                + "property float32 y\n"
+                + "property float32 z\n"
+                + "property uint8 red\n"
+                + "property uint8 green\n"
+                + "property uint8 blue\n"
+                + "element face " + surf.triangleNodes.length + "\n"
+                + "property uint8 intensity\n"
+                + "property list uint8 int32 vertex_indices\n"
+                + "end_header");
+        bw.newLine();
+        DecimalFormat df4 = new DecimalFormat("#.0000", DecimalFormatSymbols.getInstance(Locale.US));
+        for (int i = 0; i < surf.vertices.length; i++) {
+            double[] vertex = surf.vertices[i];
+            bw.write(df4.format(vertex[0]) + " " + df4.format(vertex[1]) + "  " + df4.format(vertex[2]) + " 0 0 0 \n");
+            bw.flush();
+        }
+        for (int i = 0; i < surf.triangleNodes.length; i++) {
+            int[] nodes = surf.triangleNodes[i];
+            bw.write("128 3 " + nodes[0] + " " + nodes[1] + " " + nodes[2] + " \n");
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
+        System.out.println("Mesh written to " + output.getAbsolutePath());
+    }
+
+    /**
+     * No idea, what this file is for, but it says "-1 0" for every triangle.
+     *
+     * @param numberOfTriangles
+     * @param output
+     * @throws IOException
+     */
+    public static void writeDecimDat(int numberOfTriangles, File output) throws IOException {
+        if (output.exists()) {
+            throw new IOException("File " + output + " already exists. Will not overwrite. terminate here.");
+        }
+        FileWriter fw = new FileWriter(output);
+        BufferedWriter bw = new BufferedWriter(fw);
+        for (int i = 0; i < numberOfTriangles; i++) {
+            bw.write("-1 0\n");
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
+        System.out.println("Decim written to " + output.getAbsolutePath());
+    }
+
+    public static void writeTRIBOUNDARYdat(int numberOfTriangles, File output) throws IOException {
+        if (output.exists()) {
+            throw new IOException("File " + output + " already exists. Will not overwrite. terminate here.");
+        }
+        FileWriter fw = new FileWriter(output);
+        BufferedWriter bw = new BufferedWriter(fw);
+        for (int i = 0; i < numberOfTriangles; i++) {
+            bw.write("0\n");
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
+        System.out.println("TRIBOUNDARY written to " + output.getAbsolutePath());
+    }
+
+    public static Polygon loadBoundary(File fileBoundaryXY) throws FileNotFoundException, IOException {
+        LinkedList<Coordinate> list = new LinkedList<>();
+        FileReader fr = new FileReader(fileBoundaryXY);
+        BufferedReader br = new BufferedReader(fr);
+        while (br.ready()) {
+            String[] values = br.readLine().trim().split(" ");
+            if (values.length != 2) {
+                continue;
+            }
+            double x = Double.parseDouble(values[0]);
+            double y = Double.parseDouble(values[1]);
+            Coordinate c = new Coordinate(x, y);
+            list.add(c);
+        }
+        br.close();
+        fr.close();
+        if (!list.getFirst().equals2D(list.getLast())) {
+            list.addLast(list.getFirst());
+        }
+        GeometryFactory gf = new GeometryFactory();
+        return gf.createPolygon(list.toArray(new Coordinate[list.size()]));
+    }
+
 }
