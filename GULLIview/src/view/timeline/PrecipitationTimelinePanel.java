@@ -2,21 +2,23 @@ package view.timeline;
 
 import control.Controller;
 import io.extran.Raingauge_Firebird;
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Shape;
+import java.awt.geom.Line2D;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import javax.swing.JScrollPane;
-//import metamodel.PMM_Entry;
-//import metamodel.metric.PMM_Quality;
 import model.timeline.RainGauge;
+import org.jfree.chart.LegendItem;
+import org.jfree.chart.LegendItemCollection;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
@@ -26,11 +28,7 @@ import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.Second;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
-import org.jfree.data.xy.AbstractIntervalXYDataset;
-import org.jfree.data.xy.DefaultIntervalXYDataset;
-import org.jfree.data.xy.IntervalXYDataset;
-import org.jfree.data.xy.XYIntervalDataItem;
-import org.jfree.data.xy.XYIntervalSeries;
+import view.timeline.customCell.ShapeEditor;
 
 /**
  *
@@ -51,6 +49,8 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
     public boolean autoUpdateGUI = true;
 
     private final JScrollPane scrollchecks;
+
+    private Shape lineShapeForLegend = new Line2D.Float(-7, 3, 7, 3);
 
     //Init Timeseries
     //Status
@@ -231,12 +231,9 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
     }
 
     private <E> TimeSeries createRegenreihe(String name, final int index, long[] times, long timesShift, double[] precipitations, String file, E q) {
-        SeriesKey<E> key = new SeriesKey<E>(name, name, "mm", Color.blue, axisKey, index, file) {
-            @Override
-            public String toString() {
-                return name + " (" + index + ")";
-            }
-        };
+        SeriesKey<E> key = new SeriesKey<E>(name, name, "mm", Color.blue, axisKey, index, file);
+        key.label = name + " (" + index + ")";
+
         key.element = q;
         int offset = new GregorianCalendar().getTimeZone().getRawOffset();
         key.isVisible = false;
@@ -287,6 +284,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
         XYItemRenderer renderer = plot.getRenderer();
         int indexDataset = 0;
         int indexSeries = 0;
+        LegendItemCollection legendItems = new LegendItemCollection();
 
         for (int i = 0; i < collection.getSeriesCount(); i++) {
             TimeSeries series = collection.getSeries(i);
@@ -364,10 +362,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
 //                        series.getDataItem(0).getPeriod().getFirstMillisecond();
                         barr.setBarPainter(new StandardXYBarPainter());
 
-//                        barr.setMargin(10);
-//                        barr.
                         renderer = barr;
-//                        System.out.println("Set renderer " + indexDataset + "," + indexSeries + " to " + renderer);
                         panelChart.getChart().getXYPlot().setRenderer(indexDataset, renderer);
                     } else {
                         renderer = new XYLineAndShapeRenderer(true, false);
@@ -385,7 +380,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
             }
 
             if (renderer instanceof XYLineAndShapeRenderer) {
-                ((XYLineAndShapeRenderer) renderer).setDrawSeriesLineAsPath(true);;
+                ((XYLineAndShapeRenderer) renderer).setDrawSeriesLineAsPath(true);
             }
             if (key.lineColor != null) {
                 renderer.setSeriesPaint(indexSeries, key.lineColor);
@@ -393,30 +388,62 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
             if (key.stroke != null) {
                 renderer.setSeriesStroke(indexSeries, key.stroke);
                 renderer.setSeriesVisible(indexSeries, true);
-//                    renderer.setSeriesLinesVisible(indexSeries, true);
             } else {
-//                    renderer.setSeriesLinesVisible(indexSeries, false);
                 renderer.setSeriesVisible(indexSeries, false);
             }
+
             if (key.shape != null && key.shape.getShape() != null) {
                 renderer.setSeriesShape(indexSeries, key.shape.getShape());
                 if (renderer instanceof XYLineAndShapeRenderer) {
                     XYLineAndShapeRenderer r = (XYLineAndShapeRenderer) renderer;
                     r.setSeriesShapesFilled(indexSeries, key.shapeFilled);
+                    r.setSeriesShapesVisible(i, true);
                 }
 
                 renderer.setSeriesVisible(indexSeries, true);
-//                    renderer.setSeriesShapesVisible(indexSeries, true);
             } else {
                 renderer.setSeriesShape(indexSeries, null);
-//                renderer.setSeriesVisible(indexSeries, false);
-//                    renderer.setSeriesShapesVisible(indexSeries, false);
             }
             indexDataset++;
+            LegendItem legendItem = new LegendItem(key.label, key.lineColor) {
+
+                @Override
+                public boolean isShapeFilled() {
+                    return false;
+                }
+
+                @Override
+                public boolean isShapeOutlineVisible() {
+                    return true;
+                }
+
+            };
+            legendItem.setLineStroke(key.stroke);
+            legendItem.setLine(lineShapeForLegend);
+            legendItem.setLinePaint(key.lineColor);
+            legendItem.setLineVisible(true);
+            if (key.shape != null && key.shape != ShapeEditor.SHAPES.EMPTY) {
+
+                legendItem.setShape(key.getShape());
+                legendItem.setShapeVisible(true);
+                legendItem.setOutlineStroke(new BasicStroke(1f));
+                legendItem.setOutlinePaint(key.lineColor);
+            } else {
+                legendItem.setShapeVisible(false);
+            }
+
+//            System.out.println("filled?" + legendItem.isShapeFilled() + " outline? " + legendItem.isShapeOutlineVisible());
+            legendItems.add(legendItem);
+//            System.out.println("set description of legend " + i + " to " + key.label);
+        }
+        plot.setFixedLegendItems(legendItems);
+        if (matlabStyle) {
+
+            MatlabLayout.layoutToMatlab(this.panelChart.getChart());
+            this.panelChart.getChart().setBackgroundPaint(Color.white);
+        } else {
+
         }
 
-        if (matlabStyle) {
-            MatlabLayout.layoutToMatlab(this.panelChart.getChart());
-        }
     }
 }

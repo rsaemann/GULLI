@@ -1,4 +1,3 @@
-
 package view.timeline.customCell;
 
 import java.awt.Component;
@@ -20,7 +19,7 @@ import javax.swing.table.TableCellEditor;
  */
 public class ShapeEditor extends AbstractCellEditor
         implements TableCellEditor,
-         ItemListener {
+        ItemListener {
 
 //    TimeSeriesCollection collection;
     Shape currentShape;
@@ -45,11 +44,16 @@ public class ShapeEditor extends AbstractCellEditor
         //Set up the dialog that the button brings up.
 
         combobox = new JComboBox<>(available_SHAPES);
-        combobox.setRenderer(new ShapeListRenderer(currentShape));
+        if (currentShape != null) {
+            combobox.setRenderer(new ShapeListRenderer(currentShape));
+        } else if (availableShapes.length > 0) {
+            combobox.setRenderer(new ShapeListRenderer(availableShapes[0]));
+        } else {
+            combobox.setRenderer(new ShapeListRenderer(null));
+        }
         combobox.addItemListener(this);
 
     }
-
 
     @Override
     public void itemStateChanged(ItemEvent ie) {
@@ -65,9 +69,9 @@ public class ShapeEditor extends AbstractCellEditor
             }
             fireEditingStopped();
         } else {
-            if (combobox.getSelectedItem() == null||combobox.getSelectedItem()==SHAPES.EMPTY) {
+            if (combobox.getSelectedItem() == null || combobox.getSelectedItem() == SHAPES.EMPTY) {
                 currentShape = null;
-                currentSHAPES=SHAPES.EMPTY;
+                currentSHAPES = SHAPES.EMPTY;
                 fireEditingStopped();
             }
         }
@@ -207,12 +211,12 @@ public class ShapeEditor extends AbstractCellEditor
                         return null;
                     }
                 },
-        DOT{
-             @Override
+        DOT {
+                    @Override
                     public Shape getShape() {
                         return new Ellipse2D.Double(-1, -1, 3, 3);
                     }
-        },
+                },
         ELLIPSE_S {
                     @Override
                     public Shape getShape() {

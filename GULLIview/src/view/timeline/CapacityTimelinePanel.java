@@ -725,7 +725,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
         int indexDataset = 0;
         int indexSeries = 0;
-
+//        System.out.println("checkboxes: "+checkboxes.length);
         for (int i = 0; i < checkboxes.length; i++) {
             if (checkboxes[i].isSelected()) {
                 if (this.collection.getSeries(i) == null) {
@@ -812,9 +812,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     renderer.setSeriesShape(indexSeries, key.shape.getShape());
                     renderer.setSeriesShapesFilled(indexSeries, key.shapeFilled);
                     renderer.setSeriesShapesVisible(indexSeries, true);
+//                    System.out.println("Series "+key.label+" shape: "+key.shape);
                 } else {
                     renderer.setSeriesShape(indexSeries, null);
                     renderer.setSeriesShapesVisible(indexSeries, false);
+//                    System.out.println("Series "+key.label+" without shape");
                 }
                 indexDataset++;
             }

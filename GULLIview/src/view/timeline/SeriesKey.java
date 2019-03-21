@@ -2,6 +2,7 @@ package view.timeline;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Shape;
 import model.timeline.list.Value;
 import org.jfree.data.general.Series;
 import view.timeline.customCell.ShapeEditor;
@@ -9,6 +10,7 @@ import view.timeline.customCell.ShapeEditor;
 /**
  *
  * @author saemann
+ * @param <E>
  */
 public class SeriesKey<E> implements Comparable<SeriesKey> {
 
@@ -26,6 +28,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
     public boolean isVisible = true;
     public String label;
     public String file;
+    public final String eventID;
     public boolean renderAsBar = false;
     public BasicStroke stroke = defaultstroke;
     public ShapeEditor.SHAPES shape = null;
@@ -70,11 +73,19 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
         this.axis = yaxis;
         this.containerIndex = containerIndex;
         this.file = file;
+        this.eventID = extractEventID(name);
 
         this.label = symbol + " [" + unit + "]";
         if (containerIndex > 0) {
             label = symbol + " [" + unit + "](" + containerIndex + ")";
         }
+    }
+
+    public Shape getShape() {
+        if (this.shape == null) {
+            return null;
+        }
+        return this.shape.getShape();
     }
 
     @Override
@@ -103,10 +114,21 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
         return name.compareTo(t.name);
     }
 
+    public String extractEventID(String name) {
+        if (name.contains("_p")) {
+            return name.substring(name.indexOf("_p") + 2);
+        }
+        return name;
+    }
+
+    /**
+     *
+     * @return
+     */
     @Override
     public String toString() {
 
-        return label;
+        return name;
     }
 
 }
