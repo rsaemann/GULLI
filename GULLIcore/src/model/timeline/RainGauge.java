@@ -261,12 +261,46 @@ public class RainGauge {
         return beginn;
     }
 
-    
-    
     public long getEnd() {
         return end;
     }
-    
-    
+
+    /**
+     * Returns true if the other gauge is completely a part of this gauge.
+     * epsilon=0.0001 mm
+     *
+     * @param otherPrecipitation
+     * @return
+     */
+    public boolean containsPrecipitation(double[] otherPrecipitation) {
+        if (otherPrecipitation == null || this.precipitation == null) {
+            return false;
+        }
+        int maxOffset = this.precipitation.length - otherPrecipitation.length;
+        if (maxOffset < 0) {
+            //Other one is longer than this. Other one cannot be included in this one
+            return false;
+        }
+        //Test for every possible offset
+        boolean differencefound;
+        for (int offset = 0; offset < maxOffset; offset++) {
+            differencefound = false;
+            for (int i = 0; i < otherPrecipitation.length; i++) {
+                if (Math.abs(this.precipitation[i + offset] - otherPrecipitation[i]) > 0.0001) {
+                    differencefound = true;
+                    break;
+                }
+            }
+            if (!differencefound) {
+                //Complete inclusion found
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean containsPrecipitation(RainGauge otherGauge) {
+        return containsPrecipitation(otherGauge.precipitation);
+    }
 
 }

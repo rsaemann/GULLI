@@ -276,6 +276,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
             }
 
+        } else {
+            throw new IOException("Can not identify '" + databaseFile.getName() + "' as HYSTEM EXTRAN database file");
         }
     }
 
@@ -310,6 +312,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 //Firebird
 
                 try {
+                    if (this.localFile == null) {
+                        System.err.println("local File is null: ");
+                    }
                     String url = "jdbc:firebirdsql:embedded:" + this.localFile.getAbsolutePath().replaceAll("\\\\", "/").toLowerCase();
                     con = DriverManager.getConnection(url, connectionProperties);
                     con.setReadOnly(this.readOnly);
@@ -1126,6 +1131,36 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return db.readRegenreihe(nameRR);
     }
 
+    public int readOutletID(String outletName) throws SQLException, IOException {
+        Connection c = getConnection();
+        Statement st = c.createStatement();
+        ResultSet rs = st.executeQuery("SELECT ID FROM AUSLASS WHERE NAME='" + outletName + "'");
+        int id = -1;
+        if (rs.isBeforeFirst()) {
+            rs.next();
+            id = rs.getInt(1);
+        }
+        rs.close();
+        st.close();
+        c.close();
+        return id;
+    }
+
+    public double readOutletVolume(String outletName) throws IOException, SQLException {
+        Connection c = getConnection();
+        Statement st = c.createStatement();
+        ResultSet rs = st.executeQuery("SELECT SUMMEABFLUSS,KNOTEN FROM LAU_MAX_S WHERE LAU_MAX_S.KNOTEN='" + outletName + "'");
+        double q = -1;
+        if (rs.isBeforeFirst()) {
+            rs.next();
+            q = rs.getDouble(1);
+        }
+        rs.close();
+        st.close();
+        c.close();
+        return q;
+    }
+
     public Raingauge_Firebird readRegenreihe(String nameRR) throws Exception {
         con = getConnection();
         Raingauge_Firebird rrf;
@@ -1192,6 +1227,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     + "* FROM REGENREIHE,"
                     + "REGENSCHREIBERZUORDNUNG WHERE REGENREIHE.ID=REGENSCHREIBERZUORDNUNG.REGENREIHEREF") //This will only return 1 result row, because Regenschreiberzuordnung only contains one row after a single simulation.
                     ) {
+                if (!rs.isBeforeFirst()) {
+                    System.err.println("has no Regenreihe: " + getDatabaseFile());
+                    con.close();
+                    return null;
+                }
                 rs.next();
                 rrf = new Raingauge_Firebird(
                         rs.getInt("ID"),
@@ -1202,10 +1242,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         rs.getShort("MODELLREGEN") == 1,
                         rs.getString("NAME"),
                         rs.getString("KOMMENTAR"));
+                //This will only return 1 result row, because Regenschreiberzuordnung only contains one row after a single simulation.
 
-//            String nameRR = rs.getString(1);
-            } //This will only return 1 result row, because Regenschreiberzuordnung only contains one row after a single simulation.
+            } finally {
+
+            }
         }
+        con.close();
         return rrf;
     }
 
@@ -1732,8 +1775,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         return null;
     }
-    
-     public float[] loadTimeLineOutflowManhole(long manholeDatabaseID, int numberOfTimes) {
+
+    public float[] loadTimeLineOutflowManhole(long manholeDatabaseID, int numberOfTimes) {
         float[] values = new float[numberOfTimes];
         try {
             synchronized (synchronizationObject) {
@@ -1760,15 +1803,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         return null;
     }
-     
-      public float[] loadTimeLineOutflowManhole(String manholeName, int numberOfTimes) {
+
+    public float[] loadTimeLineOutflowManhole(String manholeName, int numberOfTimes) {
         float[] values = new float[numberOfTimes];
         try {
             synchronized (synchronizationObject) {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
                 //in HE Database only use Manhole ID.
-                ResultSet rs = st.executeQuery("SELECT DURCHFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE KNOTEN=" + manholeName + " ORDER BY ZEITPUNKT ");
+                ResultSet rs = st.executeQuery("SELECT DURCHFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE KNOTEN='" + manholeName + "' ORDER BY ZEITPUNKT ");
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load outflow for manhole name:" + manholeName + ". It was not found in the database.");
@@ -2240,6 +2283,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         con.close();
         return names.toArray(new String[names.size()]);
+    }
+
+    public boolean isIsSQLite() {
+        return isSQLite;
     }
 
 }
