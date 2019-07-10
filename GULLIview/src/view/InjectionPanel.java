@@ -72,23 +72,12 @@ public class InjectionPanel extends JPanel {
         dateEditorInjection = new JSpinner.DateEditor(spinnerInjection, "HH'h', mm'm', ss's'");
         dateEditorInjection.getTextField().setHorizontalAlignment(JTextField.RIGHT);
         spinnerInjection.setEditor(dateEditorInjection);
-//        JPanel panelDateInjection = new JPanel(new BorderLayout());
-//        panelDateInjection.add(new JLabel("Inject"), BorderLayout.WEST);
-//        panelDateInjection.add(spinnerInjection, BorderLayout.CENTER);
-//        panelSouthDate.add(panelDateInjection);
         this.add(new JLabel("Inject @"));
         this.add(spinnerInjection);
-//        panelSouthDate.add(new JLabel());
 
         modelDuration = new SpinnerNumberModel(0., 0., Double.POSITIVE_INFINITY, 5);
         spinnerDuration = new JSpinner(modelDuration);
-//        JPanel panelDateDuration = new JPanel(new BorderLayout());
-//        panelDateDuration.add(new JLabel("Duration [min]"), BorderLayout.WEST);
         spinnerDuration.setPreferredSize(new Dimension(60, 12));
-//        panelDateDuration.add(spinnerDuration, BorderLayout.CENTER);
-//        panelSouthDate.add(panelDateDuration);
-//        panelSouthDate.add(new JLabel());
-//        this.add(panelSouthDate, BorderLayout.SOUTH);
         this.add(new JLabel("Duration [min]"));
         this.add(spinnerDuration);
 
@@ -103,10 +92,6 @@ public class InjectionPanel extends JPanel {
         buttonSetPosition = new JButton("Set Position");
         this.add(checkSurface);
         this.add(buttonSetPosition);
-//        JPanel panelSurface = new JPanel(new BorderLayout());
-//        panelSurface.add(checkSurface, BorderLayout.WEST);
-//        panelSurface.add(buttonSetPosition, BorderLayout.CENTER);
-//        this.add(panelSurface, BorderLayout.NORTH);
         if (info != null) {
             checkSurface.setSelected(info.spillOnSurface());
             if (info.getPosition() != null) {
@@ -118,8 +103,7 @@ public class InjectionPanel extends JPanel {
         this.spinnerInjection.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
-//                return ;
-                System.out.println("model injection time: " + localToGMT(modelInjection.getDate().getTime()));
+//                System.out.println("model injection time: " + localToGMT(modelInjection.getDate().getTime()));
                 info.setStart(localToGMT(modelInjection.getDate().getTime()) / 1000.);
                 if (info.isChanged()) {
                     setBorder(new TitledBorder("changed"));
@@ -205,17 +189,6 @@ public class InjectionPanel extends JPanel {
         });
         this.setPreferredSize(new Dimension(160, 95));
         this.setMinimumSize(new Dimension(160, 90));
-//        this.setMaximumSize(new Dimension(140, 90));
-//        if (info != null) {
-//            modelInjection.setValue(new Date(gmtToLocal((long) (info.getStarttimeSimulationsAfterSimulationStart() * 1000L))));
-//            modelDuration.setValue(info.getDurationSeconds() / 60.);
-//            if (info.isChanged()) {
-//                this.setBorder(new TitledBorder("changed"));
-//                this.setPreferredSize(new Dimension(480, 90));
-//                this.setMinimumSize(new Dimension(60, 80));
-//            }
-//        }
-
     }
 
     public InjectionPanel(MapViewer map) {
@@ -228,7 +201,6 @@ public class InjectionPanel extends JPanel {
     }
 
     public long gmtToLocal(long gmt) {
-//        System.out.println("Offset: "+localCalendar.get(GregorianCalendar.ZONE_OFFSET)+"\t   "+localCalendar.get(GregorianCalendar.ZONE_OFFSET)*3600000L);
         return gmt - localCalendar.get(GregorianCalendar.ZONE_OFFSET);
     }
 }

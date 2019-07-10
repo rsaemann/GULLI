@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,6 +43,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
@@ -88,30 +90,22 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JToggleButton buttonRun, buttonStep, buttonReset, buttonPause;
     private JTabbedPane tabs;
     private JPanel panelTabLoading, panelTabSimulation;
-//    private JButton buttonVideoFile;
-    private JCheckBox checkVideo;
-    private JTextField textTimeStep;//, textDensity;
+    private JTextField textTimeStep;
     private JLabel labelCalculationTime, labelSimulationTime, labelCalculationPerStep, labelCalculationSteps;
-//    private JComboBox<ArrayTimeLinePipeContainer.CALCULATION> comboTimelineCalculation;
     private JPanel panelButtons, panelVideo;//
     private JPanel panelLoading;
     private JPanel panelLoadingStatus, panelLoadingStatusStart, panelLoadingStatusStop;
-    private JTextField textFPS, textFPL;
     private JPanel panelTimeSlide;
     private JLabel labelStarttime, labelEndtime, labelactualTime;
     private JLabel labelParticleActive, labelParticlesTotal;
     private JProgressBar sliderTimeManual;
     private JProgressBar progressLoading;
     private boolean longerThan1Day = false;
-//    private boolean automaticslideradjustment = false;
     private JCheckBox checkVelocityFunction;
     private JTextField textDispersion;
-//    private JCheckBox checkDynamicDispersion;
-//    private JLabel labelFile;
+    private JFormattedTextField textSeed;
     private JButton buttonFileNetwork, buttonFilePipeResult;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
-//    private JPanel panelSurface;
-//    private JLabel labelFileSurface, labelFileWaterdepths;
     private JButton buttonFileSurface, buttonFileWaterdepths;
 
     private boolean wasrunning = false;
@@ -119,7 +113,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
-    private JPopupMenu popupFiles;
+//    private JPopupMenu popupFiles;
 
     private JButton buttonShowRaingauge;
     private JButton buttonLoadAllPipeTimelines;
@@ -128,7 +122,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private ImageIcon iconError, iconLoading, iconPending;
 
-    private boolean compactFileLoadingPanel = false;
+//    private boolean compactFileLoadingPanel = false;
     private JButton buttonFileStreetinlets;
     private JLabel labelCurrentAction;
 
@@ -235,7 +229,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelInjections = new JPanel(new BorderLayout());
 
         JScrollPane scrollinjections = new JScrollPane(panelInjections);
-        scrollinjections.setBorder(new TitledBorder("Injections"));
+        panelInjections.setBorder(new TitledBorder("Injections"));
 //        scrollinjections.setMaximumSize(new Dimension(100, 200));
         panelTabLoading.add(scrollinjections);
 
@@ -262,13 +256,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelDispersion.add(textDispersion, BorderLayout.CENTER);
         panelDispersion.add(new JLabel("m²/s"), BorderLayout.EAST);
         panelParameter.add(panelDispersion);
-//        // particle/kg
-//        JPanel panelDensity = new JPanel(new BorderLayout());
-//        panelDensity.add(new JLabel("Mass/Particle :"), BorderLayout.WEST);
-//        textDensity = new JTextField(Particle.massPerParticle * 1000 + "");
-//        panelDensity.add(textDensity, BorderLayout.CENTER);
-//        panelDensity.add(new JLabel(" g     "), BorderLayout.EAST);
-//        panelParameter.add(panelDensity);
+        //Seed
+        JPanel panelSeed = new JPanel(new BorderLayout());
+        panelSeed.add(new JLabel("Seed :"), BorderLayout.WEST);
+        textSeed = new JFormattedTextField(DecimalFormat.getIntegerInstance());
+        textSeed.setValue(controller.seed);
+        panelSeed.add(textSeed, BorderLayout.CENTER);
+        panelParameter.add(panelSeed);
 
         //Panel Timeline calculation
 //        comboTimelineCalculation = new JComboBox<>(ArrayTimeLinePipeContainer.CALCULATION.values());
@@ -755,6 +749,28 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 textDispersion.setForeground(Color.BLACK);
             }
         });
+        textSeed.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent fe) {
+                controller.setSeed(Long.parseLong(textSeed.getText()));
+            }
+        });
+        textSeed.addKeyListener(new KeyAdapter() {
+
+            @Override
+            public void keyReleased(KeyEvent ke) {
+                if (ke.getKeyCode() == 10) {
+                    //ENTER/RETURN
+                    try {
+                        long newSeed = Long.parseLong(textSeed.getText());
+                        controller.setSeed(newSeed);
+                    } catch (Exception exception) {
+                        textSeed.setText(controller.seed + "");
+                    }
+                }
+            }
+
+        });
 
         //////////////////////////////////////////////////////////////////////
         ///// Panel VIEW
@@ -854,13 +870,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     return;
                 }
                 if (activePipeThemeLayer != null) {
-                    //Clear old layer.
-//                    System.out.println("Clear old Theme " + activePipeThemeLayer);
                     activePipeThemeLayer.removeTheme(mapViewer);
                 }
                 activePipeThemeLayer = PipeThemeLayer.LAYERS.values()[comboPipeThemes.getSelectedIndex()].getTheme();
                 activePipeThemeLayer.initializeTheme(mapViewer, control);
-//                System.out.println("Init new Theme " + activePipeThemeLayer);
                 mapViewer.recalculateShapes();
                 mapViewer.repaint();
             }
@@ -905,7 +918,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 if (ArrayTimeLineMeasurementContainer.instance != null) {
                     ArrayTimeLineMeasurementContainer.instance.setActualTime(time);
                 }
-//                control.paintManager.showOverspillingManholes(time);
                 double seconds = ((time - controller.getSimulationStartTime()) / 1000L);
                 double minutes = seconds / 60.;
                 double hours = minutes / 60.;
@@ -922,12 +934,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 labelSliderTime.setText(timeelapsed);
                 mapViewer.needMapUpdate();
                 mapViewer.repaint();
-//                if (seconds > 1) {
-//                    control.getTimelinePanel().showMarkerLabelTime = true;
-//                    control.getTimelinePanel().markTime(time);
-//                }
-//                control.getTimelinePanel().showMarkerLabelTime = false;
-
             }
         });
         checkPipeArrows.addActionListener(new ActionListener() {
@@ -944,38 +950,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             }
         });
 
-        ////////////////////////////////////////////////////////////////////////
-        //PanelVideo
-//        checkVideo.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent ae) {
-////                controler.video = checkVideo.isSelected();
-//            }
-//        });
-//        textFPS.addFocusListener(new FocusAdapter() {
-//            @Override
-//            public void focusLost(FocusEvent fe) {
-//                try {
-//                    float fps = Float.parseFloat(textFPS.getText().replaceAll(",", "."));
-////                    controller.framerateGIF = fps;
-//                } catch (NumberFormatException numberFormatException) {
-//                    numberFormatException.printStackTrace();
-//                }
-////                textFPS.setText(controller.framerateGIF + "");
-//            }
-//        });
-//        textFPL.addFocusListener(new FocusAdapter() {
-//            @Override
-//            public void focusLost(FocusEvent fe) {
-//                try {
-//                    int fpl = Integer.parseInt(textFPL.getText());
-//                    controller.videoFrameInterval = fpl;
-//                } catch (NumberFormatException numberFormatException) {
-//                    numberFormatException.printStackTrace();
-//                }
-//                textFPL.setText(controller.videoFrameInterval + "");
-//            }
-//        });
         // Zusammenbauen
         this.add(panelVideo);
 
@@ -1208,7 +1182,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //        this.initTransferHandlerFile(panelFile);
 
         //Surface Panel
-        JPanel panelSurface = new JPanel(new GridLayout(4, 1));
+        JPanel panelSurface = new JPanel(new GridLayout(3, 1));
         panelSurface.setBorder(new TitledBorder("Surface"));
         JPanel panelStreetInlets = new JPanel(new BorderLayout());
         this.buttonFileStreetinlets = new JButton("StreetInlets Position");
@@ -1277,8 +1251,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         JPanel panelRadiobuttons = new JPanel(new BorderLayout());
         panelRadiobuttons.add(radioVelocityWL, BorderLayout.WEST);
         panelRadiobuttons.add(radioVelocityGDB, BorderLayout.EAST);
-        panelSurface.add(panelRadiobuttons);
-//        panelLoading.add(panelRadiobuttons);
+//        panelSurface.add(panelRadiobuttons);
         radioVelocityGDB.addActionListener(new ActionListener() {
 
             @Override
@@ -1502,13 +1475,18 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         }
 
                         if (control.getLoadingCoordinator() != null && control.getLoadingCoordinator().getInjections() != null) {
+
                             if (control.getLoadingCoordinator().getInjections().size() != panelInjections.getComponentCount() - 1) {
+
+                                if (panelInjections.getBorder() != null && panelInjections.getBorder() instanceof TitledBorder) {
+                                    ((TitledBorder) panelInjections.getBorder()).setTitle(control.getLoadingCoordinator().getInjections().size() + " Injections");
+                                }
 //                                System.out.println("new size: injections: " + (control.getLoadingCoordinator().getInjections().size()) + "  componennts: " + panelInjections.getComponentCount());
                                 panelInjections.removeAll();
                                 ArrayList<InjectionInformation> injections = control.getLoadingCoordinator().getInjections();
                                 if (injections.isEmpty()) {
                                     panelInjections.setLayout(new BorderLayout());
-                                    panelInjections.add(new JLabel("No Injections"));
+                                    panelInjections.add(new JLabel("No Injections"), BorderLayout.NORTH);
                                 } else {
                                     BoxLayout layout = new BoxLayout(panelInjections, BoxLayout.Y_AXIS);
                                     panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
@@ -1532,19 +1510,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                         ip.setComponentPopupMenu(popup);
                                     }
 
-                                    //Add Injection via button
-                                    JButton newInjectionButton = new JButton("New Injection");
-                                    panelInjections.add(newInjectionButton);
-                                    newInjectionButton.addActionListener(new ActionListener() {
-
-                                        @Override
-                                        public void actionPerformed(ActionEvent ae) {
-                                            InjectionInformation ininfo = new InjectionInformation(0, 1, 1000, new Material("neu", 1000, true), 0, 1);
-                                            control.getLoadingCoordinator().addInjectionInformation(ininfo);
-                                            control.recalculateInjections();
-                                            SingleControllPanel.this.updateGUI();
-                                        }
-                                    });
                                 }
                             }
                         } else {
@@ -1552,6 +1517,20 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             panelInjections.add(new JLabel("Injections = null"));
 
                         }
+                        //Add Injection via button
+                        JButton newInjectionButton = new JButton("New Injection");
+                        panelInjections.add(newInjectionButton);
+                        newInjectionButton.addActionListener(new ActionListener() {
+
+                            @Override
+                            public void actionPerformed(ActionEvent ae) {
+                                InjectionInformation ininfo = new InjectionInformation(0, 1, 1000, new Material("neu", 1000, true), 0, 1);
+                                control.getLoadingCoordinator().addInjectionInformation(ininfo);
+                                control.recalculateInjections();
+                                SingleControllPanel.this.updateGUI();
+                            }
+                        });
+
                         panelInjections.revalidate();
 
 //                            System.out.println("stop is showing? " + panelLoadingStatusStop.isShowing() + "  visible? " + panelLoadingStatusStop.isVisible() + "  is valid? " + panelLoadingStatusStop.isValid());
@@ -1560,11 +1539,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             panelLoadingStatus.add(panelLoadingStatusStop);
                         }
 
-                        if (currentAction != null && (currentAction.progress < 1 || control.getLoadingCoordinator().isLoading())) {
-                            labelCurrentAction.setText(currentAction.toString());
-                            progressLoading.setIndeterminate(!currentAction.hasProgress);
-                            if (currentAction.hasProgress) {
-                                progressLoading.setValue((int) (currentAction.progress * 100));
+                        if (control.getLoadingCoordinator().isLoading()) {
+                            if (currentAction != null) {
+                                labelCurrentAction.setText(currentAction.toString());
+                                progressLoading.setIndeterminate(!currentAction.hasProgress);
+                                if (currentAction.hasProgress) {
+                                    progressLoading.setValue((int) (currentAction.progress * 100));
+                                }
+                            } else {
+                                labelCurrentAction.setText("No Action. Still Loading.");
+                                progressLoading.setIndeterminate(true);
                             }
                             panelLoadingStatus.revalidate();
                             revalidate();
@@ -1588,6 +1572,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //                                System.out.println("update thread revoken");
                             }
                         }
+                        panelLoadingStatusStart.revalidate();
+                        panelLoadingStatusStop.revalidate();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

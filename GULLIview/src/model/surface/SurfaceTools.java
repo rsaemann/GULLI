@@ -53,8 +53,8 @@ import model.topology.graph.Pair;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.FeatureIterator;
-import org.geotools.feature.simple.SimpleFeatureImpl;
 import org.geotools.referencing.CRS;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.operation.MathTransform;
@@ -218,7 +218,7 @@ public class SurfaceTools implements LocationIDListener {
         int iX, iY;
 
 //        dreiecke = new LinkedList<LocalMinimumTriangle>();
-        SimpleFeatureImpl f;
+        SimpleFeature f;
         MultiPolygon the_geom;
         Coordinate coord;
         while (iterator.hasNext()) {
@@ -229,7 +229,7 @@ public class SurfaceTools implements LocationIDListener {
             if (/*verbose &&*/count % zehntelschritte == 0) {
                 System.out.println(" " + ((int) (count * 100. / fc.size())) + "%\t" + (int) ((System.currentTimeMillis() - starttime) / 1000) + " s.");
             }
-            f = (SimpleFeatureImpl) iterator.next();
+            f = (SimpleFeature) iterator.next();
             the_geom = (MultiPolygon) f.getAttribute(indexgeom);
             coord = the_geom.getCentroid().getCoordinate();
             x = coord.x;
