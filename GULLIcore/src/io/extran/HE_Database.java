@@ -76,7 +76,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public static boolean keepSaemSizeFile = true;
 
-    public static final boolean registered = register();
+    public static boolean registeredFirebird = false;
+
+    public static boolean registeredSQLite = false;
 
     public static boolean markCopiedFilesToDeleteAtProgramEnd = true;
 
@@ -120,23 +122,40 @@ public class HE_Database implements SparseTimeLineDataProvider {
     protected DateFormat sqliteDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public static boolean register() {
+
+        return true;
+    }
+
+    public static void registerFirebirdDriver() {
         try {
-            Class.forName("org.sqlite.JDBC");
             Class.forName("org.firebirdsql.jdbc.FBDriver").newInstance();
+            registeredFirebird = true;
         } catch (ClassNotFoundException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
-            System.out.println("Firebird driver could not been registered.");
-            return false;
+            System.out.println("Firebird driver could not be registered. Maybe jar file is not given.");
+
         } catch (InstantiationException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         }
-        return true;
+    }
+
+    public static void registerSQLDriver() {
+        try {
+            Class.forName("org.sqlite.JDBC");
+            registeredSQLite = true;
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public File getDatabaseFile() {
         return databaseFile;
+    }
+
+    public HE_Database(File databaseFile) throws IOException {
+        this(databaseFile, true);
     }
 
     public HE_Database(File databaseFile, boolean readonly) throws IOException {
@@ -146,10 +165,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
             //Open Firebird Database
 
             //Load JDBC Drivers
-            if (!registered) {
-                if (!register()) {
+            if (!registeredFirebird) {
+                registerFirebirdDriver();
+                if (!registeredFirebird) {
                     try {
-                        throw new ClassNotFoundException("Firebird Database driver not accessable. Please make sure a file like 'jaybird-full-2.2.9.jar' is in the lib folder.");
+                        throw new ClassNotFoundException("Firebird Database driver not accessable. Please make sure a file like 'jaybird-full-3.0.5.jar' is in the lib folder.");
                     } catch (ClassNotFoundException ex) {
                         Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -202,6 +222,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         f = new File(workingdirectory, databaseFile.getName());
                     } else {
                         f = new File(workingdirectory, localCopyName);
+                        if (f.exists() && !f.canWrite()) {
+                            f = new File(workingdirectory, localCopyName + "_01.idbf");
+                        }
                     }
                     if (markCopiedFilesToDeleteAtProgramEnd) {
                         f.deleteOnExit();
@@ -217,6 +240,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                     if (needToCopy) {
                         //Copy remote to local file.
+//                        System.out.println(f.getAbsolutePath()+" readable?"+f.canRead()+"  write?"+f.canWrite());
                         Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
                         if (verbose) {
                             System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
@@ -265,7 +289,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
             isSQLite = true;
             try {
                 //SQlite
-
+                if (!registeredSQLite) {
+                    registerSQLDriver();
+                    if (!registeredSQLite) {
+                        try {
+                            throw new ClassNotFoundException("SQLite Database driver not accessable. Please make sure a file like 'sqlite-jdbc-3.16.1.jar' is in the lib folder.");
+                        } catch (ClassNotFoundException ex) {
+                            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
                 SQLiteConfig config = new SQLiteConfig();
                 config.setEncoding(SQLiteConfig.Encoding.UTF8);
                 con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
@@ -302,7 +335,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //                    Class.forName("org.sqlite.JDBC");
                 SQLiteConfig config = new SQLiteConfig();
                 config.setEncoding(SQLiteConfig.Encoding.UTF8);
-                config.setReadOnly(true);
+                config.setReadOnly(this.readOnly);
                 con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
                 return con;
 //                } catch (ClassNotFoundException ex) {
@@ -375,7 +408,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             crsDB = CRS.decode(crscode);
         } catch (Exception exception) {
-            exception.printStackTrace();
+            if (verbose) {
+                exception.printStackTrace();
+            }
         }
         if (crsDB == null) {
             System.out.println("Could not decode Database's coordinate reference system. use EPSG:25832");
@@ -430,8 +465,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 ResultSet res = null;// = st.executeQuery("SELECT MSysObjects.Name, MSysObjects.Type FROM MSysObjects WHERE MSysObjects.Name Not Like \"MsyS*\" AND MSysObjects.Type=1 ORDER BY MSysObjects.Name;") ;
 //                int c = 0;//Columncount
                 if (isSQLite) {
+                    try {
+                        res = st.executeQuery("SELECT name,geometry,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID,KANALART from schacht ORDER BY ID;");
+                    } catch (SQLException sqlex) {
+                        res = st.executeQuery("SELECT name,geometry,Oberflaeche,gelaendehoehe,deckelhoehe,sohlhoehe,ID,KANALART from schacht ORDER BY ID;");
 
-                    res = st.executeQuery("SELECT name,geometry,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID,KANALART from schacht ORDER BY ID;");
+                    }
                     while (res.next()) {
                         String name = res.getString(1);
                         byte[] buffer = res.getBytes(2);
@@ -471,11 +510,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     }
 
                 } else {
+                    boolean hasDiameter = true;
                     try {
                         res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID from schacht ORDER BY ID;");
                     } catch (SQLException sQLException) {
                         System.err.println("File '" + databaseFile.getAbsolutePath() + "' doesnot contain topological information");
                         res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,OBERFLAECHE,gelaendehoehe,deckelhoehe,sohlhoehe,ID from schacht ORDER BY ID;");
+                        hasDiameter = false;
+                        System.err.println("Networkmodel has no information about manhole diameter.");
                     }
 //                    c = res.getMetaData().getColumnCount();
 
@@ -491,11 +533,22 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             Coordinate coordWGS = SHP_IO_GULLI.transform(coordDB, transformDB_WGS); //gt.toGlobal(coord);
 
                             Position position = new Position(coordWGS.x, coordWGS.y, coordUTM.x, coordUTM.y);
-                            int durchmesser = res.getInt(4);
-                            Profile p = schachtprofile.get(durchmesser);
-                            if (p == null) {
-                                p = new CircularProfile(durchmesser / 1000.);
-                                schachtprofile.put(durchmesser, p);
+
+                            Profile p;
+                            if (hasDiameter) {
+                                int durchmesser = res.getInt(4);
+                               p = schachtprofile.get(durchmesser);
+                                if (p == null) {
+                                    p = new CircularProfile(durchmesser / 1000.);
+                                    schachtprofile.put(durchmesser, p);
+                                }
+                            } else {
+                                //standarddiameter 1m
+                                 p = schachtprofile.get(1);
+                                if (p == null) {
+                                    p = new CircularProfile(1);
+                                    schachtprofile.put(1, p);
+                                }
                             }
                             Manhole m = new Manhole(position, name, p);
                             m.setSurface_height(res.getFloat(5));
@@ -708,21 +761,49 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return ret;
     }
 
+    /**
+     * Reads the coordinate of a SQLite Geometry Point
+     *
+     * @param byteblob
+     * @return
+     */
     public static Coordinate decodeCoordinate(byte[] byteblob) {
         ByteBuffer bb = ByteBuffer.wrap(byteblob);
         bb.order(ByteOrder.LITTLE_ENDIAN);
 
 //        System.out.println("Buffersize:" + byteblob.length + ", capacity:" + bb.capacity());// + " : " + bb.asFloatBuffer().get(0) + " , " + bb.asDoubleBuffer().get(1));
-//        for (int i = 0; i < bb.capacity(); i++) {
-//            bb.position(i);
-//            System.out.println(i + ": " + bb.getDouble());
-//        }
+        for (int i = 0; i < bb.capacity(); i++) {
+            bb.position(i);
+//            System.out.println(i + ": " + bb.getDouble() + "\t" + bb.getInt(i) + "\t" + bb.getFloat(i) + "\t" + bb.getLong(i) + "\t" + bb.getShort(i));
+        }
         bb.position(6);
         double x = bb.getDouble();
         bb.position(14);
         double y = bb.getDouble();
 
         return new Coordinate(x, y);
+    }
+
+    /**
+     * Encodes the coordinate into a SQLite byte blob representing the SQLite
+     * Geometry Point
+     *
+     * @param x
+     * @param y
+     * @return
+     */
+    public static byte[] encodeCoordinate(double x, double y) {
+        ByteBuffer bb = ByteBuffer.allocate(60);//I don't know why we have to allocate 60 bytes und write x and y coordinate 3 times.
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+
+        bb.putDouble(6, x);
+        bb.putDouble(14, y);
+        bb.putDouble(22, x);
+        bb.putDouble(30, y);
+        bb.putDouble(43, x);
+        bb.putDouble(51, y);
+
+        return bb.array();
     }
 
     public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net) throws FileNotFoundException, IOException, SQLException {
@@ -1377,6 +1458,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return db.readExportTimeStep();
     }
 
+    /**
+     *
+     * @return export timestep in minutes.
+     * @throws SQLException
+     * @throws IOException
+     */
     public double readExportTimeStep() throws SQLException, IOException {
         double dt = -1;
         try (Connection extran = getConnection()) {

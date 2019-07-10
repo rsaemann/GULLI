@@ -194,7 +194,7 @@ public class ParticleThread extends Thread {
 
                 particleID = p.getId();
                 particle = p;
-                
+
                 if (p.isInPipeNetwork()) {
                     status = 4;
                     pc.moveParticle(p);
@@ -227,6 +227,11 @@ public class ParticleThread extends Thread {
 
             particleID = -6;
         }
+    }
+
+    public void setSeed(long seed) {
+        surfcomp.setSeed(seed);
+        pc.setSeed(seed);
     }
 
     /**

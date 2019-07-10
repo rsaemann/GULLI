@@ -23,6 +23,8 @@
  */
 package control.particlecontrol;
 
+import model.surface.Surface;
+
 /**
  *
  * @author riss
@@ -32,7 +34,7 @@ public class DiffusionCalculator2D {
     // choose between "Fisher", "Lin" and "D1" for diffusion calculation:
     public enum DIFFTYPE {
 
-        FISCHER, LIN, D,tenH, H,Htenth,NO
+        FISCHER, LIN, D, tenH, H, Htenth, NO
     };
     public DIFFTYPE diffType = DIFFTYPE.D;
 
@@ -45,11 +47,57 @@ public class DiffusionCalculator2D {
     private double at;       //transversal dispersitivy (Fischer: 0.15, Lin: 1.2)
     private double C;        //Chezy roughness
     private final double wg = Math.sqrt(9.81);
-    
-    public double[] directD=new double[]{0.01,0.01,0};
+
+    public double[] directD = new double[]{0.01, 0.01, 0};
 
     public DiffusionCalculator2D() {
         D = new double[3];
+    }
+
+    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID) {
+        double h = 0;
+        switch (diffType) {
+             case FISCHER:
+                al = 5.91;
+                at = 0.15;
+                break;
+            case LIN:
+                al = 13;
+                at = 1.2;
+                break;
+            case D:
+                return directD;
+            case tenH:
+                h = surface.getActualWaterlevel(triangleID);
+                return new double[]{h * 10., h * 10.};
+            case H:
+                h = surface.getActualWaterlevel(triangleID);
+                return new double[]{h, h};
+            case Htenth:
+                h = surface.getActualWaterlevel(triangleID);
+                return new double[]{h * 0.1, h * 0.1};
+           
+            default:
+                D[0] = 0;
+                D[1] = 0;
+        }
+        h = surface.getActualWaterlevel(triangleID);
+        C = surface.getkst() * Math.pow(h, 1. / 6.); //
+        Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+        Dyy = ((al * (vy * vy) + at * (vx * vx)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+//        System.out.println("Dxx: "+Dxx+"   Dyy="+Dyy);
+        //Dxx = 1;
+        //Dyy = 1;
+
+        //altenative: D after Bear(1972) for groundwater:
+        //double vabs = Math.sqrt(vx*vx+vy*vy);
+        //Dxx = al*vabs + dm;
+        //Dyy = at*vabs + dm;
+        D[0] = Dxx;
+        D[1] = Dyy;
+        D[2] = Dxy;
+
+        return D;
     }
 
 // Diffusionsberechnung nach Lin (1997) : tidal flow and transport modeling using ultimate quickest scheme.
@@ -58,12 +106,12 @@ public class DiffusionCalculator2D {
 //            throw new NoDiffusionStringException();
 //        } else {
         switch (diffType) {
-             case tenH:
-                return new double[]{h*10.,h*10.};
+            case tenH:
+                return new double[]{h * 10., h * 10.};
             case H:
-                return new double[]{h,h};
+                return new double[]{h, h};
             case Htenth:
-                return new double[]{h*0.1,h*0.1};
+                return new double[]{h * 0.1, h * 0.1};
             case FISCHER:
                 al = 5.91;
                 at = 0.15;

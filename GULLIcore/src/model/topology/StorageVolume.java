@@ -5,7 +5,6 @@
  */
 package model.topology;
 
-import model.timeline.array.ArrayTimeLineManhole;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.TimeLineManhole;
 import model.topology.profile.Profile;
@@ -39,6 +38,8 @@ public class StorageVolume extends Capacity {
     protected int numberOutgoings, numberIncomings;
     
     protected TimeLineManhole timelineStatus;
+    
+    protected String name;
 
     public StorageVolume(Profile profile) {
         super(profile);
@@ -159,6 +160,12 @@ public class StorageVolume extends Capacity {
 //        super.setWaterZ(waterlevel);
 //        this.water_height = (float) (waterlevel + sole_height);
 //    }
+
+    public String getName() {
+        return name;
+    }
+    
+    
 
 
     @Override

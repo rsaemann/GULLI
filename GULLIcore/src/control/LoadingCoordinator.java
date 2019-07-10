@@ -265,9 +265,14 @@ public class LoadingCoordinator implements LoadingActionListener {
                         break;
                     }
                     // Start loading Waterlevels and calculate surface triangle velocities 
-                    if (loadingSurfaceVelocity == LOADINGSTATUS.REQUESTED && surface != null) {
-                        action.progress = 0f;
-                        loadSurfaceVelocity(surface);
+                    if (loadingSurfaceVelocity == LOADINGSTATUS.REQUESTED) {
+                        if (surface != null) {
+                            action.progress = 0f;
+                            loadSurfaceVelocity(surface);
+                        }else{
+                            loadingSurfaceVelocity=LOADINGSTATUS.ERROR;
+                            
+                        }
                     }
 
                     //Send information to UserInterface if GUI exists
@@ -337,7 +342,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         fireLoadingActionUpdate();
         try {
             Network nw;
-            if (fileNetwork.getName().endsWith(".idbf") || fileNetwork.getName().endsWith(".idbm")) {
+            if (fileNetwork.getName().endsWith(".idbf") || fileNetwork.getName().endsWith(".idbm") || fileNetwork.getName().endsWith(".idbr")) {
                 if (modelDatabase == null) {
                     if (tempFBDB != null && tempFBDB.getDatabaseFile().equals(fileNetwork)) {
                         modelDatabase = tempFBDB;
@@ -1296,13 +1301,11 @@ public class LoadingCoordinator implements LoadingActionListener {
 
         if (requestSurface) {
             File sf = findCorrespondingSurfaceDirectory(pipeResult);
-            if (sf != null) {
-                setSurfaceTopologyDirectory(sf);
-            }
+            setSurfaceTopologyDirectory(sf);
+
             File wlf = findCorrespondingWaterlevelFile(pipeResult);
-            if (wlf != null) {
-                setSurfaceWaterlevelFile(wlf);
-            }
+            setSurfaceWaterlevelFile(wlf);
+
         }
     }
 
@@ -1404,7 +1407,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                 if (trimod2File.exists()) {
                     return directorySurfaceFiles;
                 }
-
+            } else {
+                System.err.println("No surface model found at " + directorySurfaceFiles.getAbsolutePath());
             }
         } else {
             //No surface model set. seems to be a non-HE2D simulation.
@@ -1439,11 +1443,14 @@ public class LoadingCoordinator implements LoadingActionListener {
 
     public static File findCorrespondingWaterlevelFile(File idbfFile) throws FileNotFoundException {
         File resultGDB = new File(idbfFile.getParent() + File.separator + "Result2D.gdb");
-        if (resultGDB.exists() && HE_GDB_IO.isReadyInstalled()) {
-            return resultGDB;
+        if (resultGDB.exists()) {
+            if (HE_GDB_IO.isReadyInstalled()) {
+                return resultGDB;
+            }
+        } else {
+            System.err.println("Can not find Surface dynamics at " + resultGDB.getAbsolutePath());
         }
         return null;
-
     }
 
     /**

@@ -32,7 +32,6 @@ import model.surface.SurfaceTriangle;
 import model.surface.SurfaceTrianglePath;
 import model.topology.Inlet;
 import model.topology.Manhole;
-import model.topology.Position3D;
 
 /**
  * Dealing with the transport of particles on a surface. Particles move in 2d
@@ -73,6 +72,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     protected DiffusionCalculator2D D = new DiffusionCalculator2D();
     public boolean enableDiffusion = true;
     public boolean getTestSolutionForAnaComparison = false;
+
+    /**
+     * When active particles can go to the pipe system through inlets and
+     * manholes.
+     */
+    public static boolean allowWashToPipesystem = false;
 
     public ParticleSurfaceComputing2D(Surface surface) {
         this(surface, 0);
@@ -137,7 +142,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     private void moveParticle2(Particle p) throws Exception {
         int triangleID = p.surfaceCellID;
-        Coordinate pos = p.getPosition3D();
+        Coordinate pos = p.getPosition3d();
 
         if (pos != null && triangleID >= 0) {
             //Everything ok.
@@ -203,10 +208,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         }
 
         p.addMovingLength(u * dt);
-        double h = surface.getActualWaterlevel(triangleID);
 
-        double posxalt = p.getPosition3D().x;
-        double posyalt = p.getPosition3D().y;
+        double posxalt = p.getPosition3d().x;
+        double posyalt = p.getPosition3d().y;
 
         if (!enableDiffusion) {
             pos.x += (float) velo[0] * dt;// only advection
@@ -214,7 +218,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         } else {
             // calculate diffusion
 
-            double[] Diff = D.calculateDiffusion(velo[0], velo[1], h, surface.getkst());
+            double[] Diff = D.calculateDiffusion(velo[0], velo[1], surface, triangleID);
             double sqrt2dtDx = Math.sqrt(2 * dt * Diff[0]);
             double sqrt2dtDy = Math.sqrt(2 * dt * Diff[1]);
 
@@ -240,49 +244,43 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         p.surfaceCellID = id;
 
-        //Check if particle can go back to pipe system.
-        Inlet inlet = surface.getInlet(id);
-        if (inlet != null) {
-            // Check if Inlet is flooded
-            if (inlet.getNetworkCapacity() != null) {
-                double fillrate = inlet.getNetworkCapacity().getProfile().getFillRate(inlet.getNetworkCapacity().getWaterlevel());
-                if (fillrate < 0.9) {
-                    //Pipe is not flooded. Particles can enter pipenetwork here.
-                    p.setSurrounding_actual(inlet.getNetworkCapacity());
-                    p.setPosition1d_actual(inlet.getPipeposition1d());
-                    p.setInPipenetwork();
-                    p.toPipenetwork = inlet.getNetworkCapacity();
-                    //Create Shortcut
-                    if (p.toSurface != null) {
-                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+        if (allowWashToPipesystem) {
+            //Check if particle can go back to pipe system.
+            Inlet inlet = surface.getInlet(id);
+            if (inlet != null) {
+                // Check if Inlet is flooded
+                if (inlet.getNetworkCapacity() != null) {
+                    double fillrate = inlet.getNetworkCapacity().getProfile().getFillRate(inlet.getNetworkCapacity().getWaterlevel());
+                    if (fillrate < 0.9) {
+                        //Pipe is not flooded. Particles can enter pipenetwork here.
+                        p.setSurrounding_actual(inlet.getNetworkCapacity());
+                        p.setPosition1d_actual(inlet.getPipeposition1d());
+                        p.setInPipenetwork();
+                        p.toPipenetwork = inlet.getNetworkCapacity();
+                        //Create Shortcut
+                        if (p.toSurface != null) {
+                            surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                        }
+                        return;
                     }
-//                    Shortcut sc = new Shortcut(p.toSurface, triangle, inlet.getNetworkCapacity().getStatusTimeLine().container.getActualTime() - p.toSurfaceTimestamp);
-//                    p.usedShortcuts.add(sc);
+                } else {
+                    System.out.println("Inlet " + inlet.toString() + " has no pipe.");
+                }
+            }
+            Manhole m = surface.getManhole(id);
+            if (m != null) {
+                if (m.getStatusTimeLine().getActualFlowToSurface() <= 0) {
+                    //Water can flow back into pipe network
+                    p.setSurrounding_actual(m);
+                    p.setPosition1d_actual(0);
+                    p.setInPipenetwork();
+                    p.toPipenetwork = m;
+
+                    if (p.toSurface != null) {
+                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                    }
                     return;
                 }
-            } else {
-                System.out.println("Inlet " + inlet.toString() + " has no pipe.");
-            }
-        }
-        Manhole m = surface.getManhole(id);
-        if (m != null) {
-//                Manhole m = triangle.getManhole();
-            //Check if manhole is spillout
-//                status = 9;
-            if (m.getStatusTimeLine().getActualFlowToSurface() <= 0) {
-                //Water can flow back into pipe network
-                p.setSurrounding_actual(m);
-                p.setPosition1d_actual(0);
-//                p.setPosition2d_actual(null);
-//                p.setPosition3d(m.getPosition3D(0).get3DCoordinate());
-                p.setInPipenetwork();
-                p.toPipenetwork = m;
-
-                if (p.toSurface != null) {
-                    surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
-                }
-//                    status = 10;
-                return;
             }
         }
         if (p.isOnSurface()) {

@@ -378,18 +378,7 @@ public class Particle {
         this.moveLengthCummulative = 0;
     }
 
-    public Coordinate getPosition3D() {
-        return position3d;
-    }
 
-//    /**
-//     * @deprecated use setPosition3D instead
-//     * @param position2d
-//     */
-//    public void setPosition2d_actual(Position3D position2d) {
-////        this.position2d_actual = position2d;
-//        this.position3d = position2d.get3DCoordinate();
-//    }
     public void setPosition3D(Coordinate c) {
         if (c == null) {
             this.position3d.x = 0;

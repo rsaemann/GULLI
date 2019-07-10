@@ -75,7 +75,7 @@ public class ParticlePipeComputing {
     private final RANDOM_DISTRIBUTION distributionForm;
     private UniformDistribution uniformDistribution;
     private final VelocityDistribution velocityFunction;
-    private final long seed;
+    private long seed;
 
     public COMPUTING computing = COMPUTING.RANDOMWALK;
 
@@ -174,9 +174,14 @@ public class ParticlePipeComputing {
 
     }
 
+    public void setSeed(long seed) {
+        this.seed = seed;
+    }
+
     public void resetRandomDistribution() {
         passedPipesCounter = new int[5];
         this.rand = new Random(seed);
+//        System.out.println("resetParticlePipeComputing with seed "+seed);
         this.velocityFunction.setRandomGenerator(rand);
         if (distributionForm == RANDOM_DISTRIBUTION.NORMAL_GAUSS) {
             this.randDist = new GaussDistribution(rand);
@@ -1253,6 +1258,7 @@ public class ParticlePipeComputing {
                                         if (mh.getSurfaceTriangleID() >= 0) {
                                             p.surfaceCellID = mh.getSurfaceTriangleID();
                                             p.setSurrounding_actual(surface);
+                                            c=surface;
                                             double[] tripos = surface.getTriangleMids()[mh.getSurfaceTriangleID()];
                                             p.setPosition3D(tripos[0], tripos[1]);
                                             p.setOnSurface();

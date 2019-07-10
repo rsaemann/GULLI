@@ -1,6 +1,5 @@
 package model.topology;
 
-import model.surface.SurfaceTriangle;
 import model.topology.profile.Profile;
 
 /**
@@ -11,7 +10,7 @@ public class Manhole extends StorageVolume {
 
     protected Position position;
 
-    protected String name;
+//    protected String name;
 
     protected float surface_height;
 
@@ -37,10 +36,6 @@ public class Manhole extends StorageVolume {
 
     public Position getPosition() {
         return position;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public float getSurface_height() {

@@ -33,9 +33,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import model.particle.Particle;
 import model.surface.measurement.TriangleMeasurement;
 import model.surface.Surface;
 

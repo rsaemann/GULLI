@@ -2210,8 +2210,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //            System.out.println("getParticleVelocity2D null for surface cell "+p.surfaceCellID+"  surrounding: "+p.getSurrounding_actual());
 //        }
 
-        double paltx = p.getPosition3D().x;
-        double palty = p.getPosition3D().y;
+        double paltx = p.getPosition3d().x;
+        double palty = p.getPosition3d().y;
 
         double[] velocityParticle = new double[2];
 //        int timeindex = timeIndexInt;
@@ -2461,8 +2461,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by);
                     s = st1[0];
                     if (s < 0 || s > 1) {
-                        System.out.println("line1: " + xold + " | " + yold + "  to " + x + " | " + y + "  \t crosses " + ax + " | " + ay + " to " + bx + " | " + by);
-                        System.out.println("BAD: s=" + st1[0] + "|" + st1[1] + "\t edges: " + (secondBest >= 0 ? "2" : "1") + "   left:" + leftIterations + "\tweights: " + bw[0] + ", " + bw[1] + ", " + bw[2] + "  " + (boundaryFound ? "Boundary hit!" : ""));
+//                        System.out.println("line1: " + xold + " | " + yold + "  to " + x + " | " + y + "  \t crosses " + ax + " | " + ay + " to " + bx + " | " + by);
+//                        System.out.println("BAD: s=" + st1[0] + "|" + st1[1] + "\t edges: " + (secondBest >= 0 ? "2" : "1") + "   left:" + leftIterations + "\tweights: " + bw[0] + ", " + bw[1] + ", " + bw[2] + "  " + (boundaryFound ? "Boundary hit!" : ""));
                         throw new BoundHitException(id, new double[]{triangleMids[id][0], triangleMids[id][1]});
                     }
                 } else {

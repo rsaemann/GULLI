@@ -23,8 +23,6 @@
  */
 package control.threads;
 
-import java.util.concurrent.CyclicBarrier;
-
 /**
  * An object, that is notified when a thread has finished its job.
  *

@@ -81,7 +81,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
     @Override
     public void measureParticle(long time, Particle particle) {
-        if (particle.getPosition3D() == null) {
+        if (particle.getPosition3d() == null) {
             return;
         }
         if (particle.getTravelledPathLength() < TriangleMeasurement.minTravelLengthToMeasure) {
@@ -91,8 +91,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             throw new NullPointerException("TimeContainer in " + getClass() + " not set.");
         }
         int timeIndex = this.times.getTimeIndex(time);
-        int xindex = (int) ((particle.getPosition3D().x - xmin) / xIntervalWidth);
-        int yindex = (int) ((particle.getPosition3D().y - ymin) / YIntervalHeight);
+        int xindex = (int) ((particle.getPosition3d().x - xmin) / xIntervalWidth);
+        int yindex = (int) ((particle.getPosition3d().y - ymin) / YIntervalHeight);
 
         if (xindex < 0 || yindex < 0 || xindex >= mass.length) {
             return;

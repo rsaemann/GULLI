@@ -157,8 +157,8 @@ public class SHP_IO_GULLI {
             final SimpleFeatureType PIPE = DataUtilities.createType("Pipe",
                     "the_geom:LineString:srid=4326," + // <- the geometry attribute: Point type
                     "name:String," + //+  <- a String attribute
-                    "he_id:int,"
-                    + //+  <- a String attribute
+                    "he_id:int,"+
+                    "gefaellle%:double,"+
                     "zSohle_st:double,"
                     + "zSohle_end:double,"
                     + "diameter:double"
@@ -181,6 +181,7 @@ public class SHP_IO_GULLI {
                 sfb.add(ls);
                 sfb.add(n);
                 sfb.add((int) pipe.getManualID());
+                sfb.add((double)(pipe.getDecline()*100));
                 sfb.add(pipe.getStartConnection().getHeight());
                 sfb.add(pipe.getEndConnection().getHeight());
                 if (pipe.getProfile() instanceof CircularProfile) {

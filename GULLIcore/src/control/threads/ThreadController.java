@@ -122,6 +122,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
     private Thread statusThread = initStatusThread();
 
+    public long seed = 100;
+
     public ThreadController(int threads, final Controller control) {
         this.control = control;
         this.control.addParticleListener(this);
@@ -130,7 +132,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         //Start n threads 
         barrier_particle = new MultiThreadBarrier("ParticleBarrier", this);
         for (int i = 0; i < numberParallelParticleThreads; i++) {
-            ParticleThread pt = new ParticleThread("ParticleThread[" + i + "]", 60 + i, barrier_particle);
+            ParticleThread pt = new ParticleThread("ParticleThread[" + i + "]", seed + i, barrier_particle);
             pt.setDeltaTime(deltaTime);
             barrier_particle.addThread(pt);
         }
@@ -163,38 +165,17 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     public void start() {
         run = true;
         calculationFinished = false;
-//        videoGIFencoder = new AnimatedGIFencoder();
-//        videoGIFencoder.setRepeat(0);
-
-//        videoGIFencoder.setFrameRate(framerateGIF);
         calculationStartTime = System.currentTimeMillis();
-//        if (video) {
-//            File videoFile = new File("./video.gif");
-//            videoGIFencoder.start(videoFile.getAbsolutePath());
-//            System.out.println("Video File @ " + videoFile.getAbsolutePath());
-//        }
 
         initialize();
         calculationFinished = false;
-//        System.out.println(getClass() + "::Start");
-        //spread particles on syncthreads
-//        ArrayList<ParticleThread>[] ts = new ArrayList[numberParallelSyncThreads];
-//        for (int i = 0; i < barrier_particle.getThreads().size(); i++) {
-//            ParticleThread pt = barrier_particle.getThreads().get(i);
-//            int index = i % numberParallelSyncThreads;
-//            if (ts[index] == null) {
-//                ts[index] = new ArrayList<>(2);
-//            } else {
-//                ts[index].add(pt);
-//            }
-//        }
+
         Pipe[] fullarray = control.getNetwork().getPipes().toArray(new Pipe[control.getNetwork().getPipes().size()]);
         int fromIndex = 0;
         int numberofPipes = fullarray.length / barrier_sync.getThreads().size();
         for (int i = 0; i < barrier_sync.getThreads().size(); i++) {
             SynchronizationThread st = barrier_sync.getThreads().get(i);
             st.allFinished = false;
-//            st.setParticleThreads(ts[i].toArray(new ParticleThread[ts[i].size()]));
             st.setPipes(Arrays.copyOfRange(fullarray, fromIndex, Math.min(fullarray.length, fromIndex + numberofPipes)));
             fromIndex += numberofPipes + 1;
         }
@@ -214,73 +195,37 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     }
 
     public void stop() {
-//        if (videoGIFencoder != null) {
-//            videoGIFencoder.finish();
-//        }
-//        calculationFinished = true;
         run = false;
-//        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time. ");
     }
 
-//    public void drawVideoFrame() {
-//        mapViewer.recalculateShapes();
-//        try {
-//            BufferedImage bi = new BufferedImage(mapViewer.getWidth(), mapViewer.getHeight(), BufferedImage.TYPE_INT_RGB);
-//            Graphics2D g2 = bi.createGraphics();
-//            Font ft = g2.getFont();
-//            mapViewer.paintMapView(g2);
-//            g2.setFont(ft);
-//            //Add time label upper right corner.
-//            PaintManager.paintTimes(simulationTimeMS, simulationTimeMS - simulationTimeStart, g2, mapViewer.getWidth(), mapViewer.getHeight());
-//
-//            if (bi.getData().getPixel(2, 2, new int[3])[2] != 0) {
-//                //only write frame if the image is not black
-//                try {
-//                    videoGIFencoder.addFrame(bi);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        } catch (Exception ex) {
-//            Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//    }
+    /**
+     * seed for each ParticleThread is shifted by +1
+     *
+     * @param seed
+     */
+    public void setSeed(long seed) {
+//        System.out.println(getClass()+": setSeed("+seed+")");
+        this.seed = seed;
+        for (int i = 0; i < numberParallelParticleThreads; i++) {
+            barrier_particle.getThreads().get(i).setSeed(seed + i);
+        }
+    }
+
     public static long getSimulationTimeMS() {
         return simulationTimeMS;
     }
 
-//    public void drawMapViewerFrame() {
-//
-//        if (mapViewer != null) {
-//
-//            mapViewer.recalculateShapes();
-//            mapViewer.repaint();
-//        }
-//    }
     public void finishedLoop(ThreadBarrier barrier) {
         synchronized (this) {
-//            System.out.println("Finished Loop: " + barrier);
             if (!run) {
                 return;
             }
 //            int state = 0;
             if (true) {
-                /*if (barrier == barrier_hydrodynamics) {
-                 controlThread.setBarrier(BARRIERS.HYDRODYNAMICS);
-                 return;
-                 } else */
                 if (barrier == barrier_particle) {
 //                    state = 2;
                     controlThread.setBarrier(BARRIERS.PARTICLE);
                     return;
-//                    controlThread.finishedLoop(BARRIERS.PARTICLE);
-//                    try {
-//                        synchronized (barrier_particle) {
-//                            barrier_particle.wait();
-//                        }
-//                    } catch (InterruptedException ex) {
-//                        Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
                 } else if (barrier == barrier_sync) {
                     controlThread.setBarrier(BARRIERS.SYNC);
                     return;
@@ -301,10 +246,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         barrier_positionUpdate.startover();
     }
 
-//    public void updateHydrodynamics(long time) {
-//        barrier_hydrodynamics.setSimulationtime(time);
-//        barrier_hydrodynamics.startover();
-//    }
     public void initializingFinished(ThreadBarrier barrier) {
         synchronized (this) {
             if (verbose_threadstatus) {
@@ -336,14 +277,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
     }
 
-//    public void setMapViewer(MapViewer mapViewer) {
-//        this.mapViewer = mapViewer;
-//    }
-//    public void setNetwork(Network network) {
-//        for (HydrodynamicsThread th : barrier_hydrodynamics.getThreads()) {
-//            th.setNetwork(network);
-//        }
-//    }
     public void setDeltaTime(double deltaTimeSeconds) {
         if (run) {
             throw new SecurityException("Can not change the delta time interval while Threads are running, inconsistency warning!");
@@ -366,9 +299,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         //Divide the List of Particles in equal pices and fill them into the Threads.
         int threadCount = barrier_particle.getThreads().size();
 
-//        int packageSize = particles.size() / threadCount;
         ArrayList<Particle>[] threadlists = new ArrayList[threadCount];
-//        System.out.println("add to threads");
         long start = System.currentTimeMillis();
         for (int i = 0; i < threadlists.length; i++) {
             threadlists[i] = new ArrayList<>(particles.size() / threadCount + 1);
@@ -377,9 +308,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         for (Particle particle : particles) {
             threadlists[counter % threadCount].add(particle);
             counter++;
-//           if(counter%100000==0){
-//               System.out.println("adding particle "+counter+" to particle thread.");
-//           }
         }
 
         for (int i = 0; i < threadlists.length; i++) {
@@ -387,19 +315,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             barrier_particle.getThreads().get(i).addParticles(threadlists[i]);
         }
         barrier_positionUpdate.getThread().setParticles(particles.toArray(new Particle[particles.size()]));
-//        System.out.println("adding to threads completed " + ((System.currentTimeMillis() - start)) + "ms");
-
-//        Iterator<ParticleThread> it = barrier_particle.getThreads().iterator();
-//        if (packageSize > 0) {
-//            for (int i = 0; i < threadCount - 1; i++) {
-//                int from = i * packageSize;
-//                int to = (i + 1) * packageSize;
-//                it.next().setParticles(particles.subList(from, to));
-//            }
-//        } else {
-//            threadCount = 1;
-//        }
-//        it.next().setParticles(particles.subList((threadCount - 1) * packageSize, particles.size()));
     }
 
     public double getAverageCalculationTime() {
@@ -440,27 +355,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         barrier_sync.startover();
     }
 
-//    public int stepparticle() {
-//        for (ParticleThread thread : barrier_particle.getThreads()) {
-//            return thread.pc.steps;
-//        }
-//        return -1;
-//    }
-//    public void setSurface(Surface surface) {
-//        //Distribute Surface to all particleThreads
-//        for (ParticleThread particleThread : this.getParticleThreads()) {
-//            particleThread.setSurface(surface);
-//        }
-//    }
     public void reset() {
         run = false;
         simulationTimeMS = simulationTimeStart;
         initialize();
         barrier_particle.setSimulationtime(simulationTimeMS);
-//        ArrayTimeLinePipeContainer.instance.setActualTime(simulationTimeMS);
-//        ArrayTimeLineMeasurementContainer.instance.setActualTime(simulationTimeMS);
-//        ArrayTimeLineManholeContainer.instance.setActualTime(simulationTimeMS);
-
         if (control.getScenario() != null) {
             //Reset Timelines in scenarios:
             control.getScenario().setActualTime(simulationTimeMS);
@@ -485,35 +384,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             }
         }
         for (ParticleThread thread : barrier_particle.getThreads()) {
-//            thread.pc.steps = 0;
-//            thread.setSimulationTime(simulationTimeMS);
             thread.reset();
         }
         if (control.getSurface() != null) {
             control.getSurface().reset();
         }
-//        if (control.getPaintManager() != null) {
-//            control.getPaintManager().resetSurfaceShapes();
-//        }
-//        barrier_hydrodynamics.setSimulationtime(simulationTimeMS);
-//        for (HydrodynamicsThread thread : barrier_hydrodynamics.getThreads()) {
-//            thread.setTimelineValues(simulationTimeMS);
-//            thread.setAffectedPipes(null);
-//        }
-
-//        if (timelinePanel != null) {
-//            timelinePanel.removeMarker();
-//        }
-        // Lösche die Aufzeichnungen der Timelines der vergangenen Messungen
-//        Particles pvalue = new Particles(0);
-//        for (Pipe pipe : control.getNetwork().getPipes()) {
-//            pipe.getStatusTimeLine().removeAdditionalValues(pvalue);
-//        }
         // Reset calculation of particlepositions.
         barrier_positionUpdate.getThread().updateParticlePositions();
-//        for (LocationThread thread : barrier_positionUpdate.getThreads()) {
-//            thread.updateParticlePositions();
-//        }
         calculationTimeElapsed = 0;
         steps = 0;
 
@@ -527,7 +404,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public void breakBarrierLocks() {
         //break locks of threadbarriers
-
         barrier_positionUpdate.startover();
         barrier_particle.startover();
         barrier_sync.startover();
@@ -539,7 +415,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             barrier_particle.initialize();
             barrier_positionUpdate.initialize();
             barrier_sync.initialize();
-//            barrier_hydrodynamics.initialize();
             return;
         }
     }
@@ -575,12 +450,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         return calculationTimeElapsed;
     }
 
-//    public void addTimelinePanel(CapacityTimelinePanel timelinePanel) {
-//        this.timelinePanel = timelinePanel;
-//    }
-//    public void addTimelinePanel(SpacelinePanel slPanel) {
-////        this.spacelinePanel = slPanel;
-//    }
     public ParticleThread[] getParticleThreads() {
         ParticleThread[] a = new ParticleThread[numberParallelParticleThreads];
         int i = 0;
@@ -599,7 +468,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         BARRIERS barrier;
         private final String monitor = "LA";
-//        private boolean shallsleep = false;
 
         @Override
         public void run() {
@@ -607,21 +475,17 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                 finishedLoop(barrier);
                 synchronized (monitor) {
-//                    if (shallsleep) {
                     try {
                         monitor.wait();
                     } catch (InterruptedException ex) {
                         Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
                     }
-//                    }
-//                    shallsleep = true;
                 }
             }
         }
 
         public void setBarrier(BARRIERS barrier) {
             this.barrier = barrier;
-//            shallsleep = false;
             synchronized (monitor) {
                 monitor.notifyAll();
             }
@@ -634,7 +498,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             switch (finishedBarrier) {
                 case PARTICLE:
                     /*@todo move particle thread after synchr.-thread. */
-//                    nextToRun = BARRIERS.SYNC;
                     barrier_sync.setSimulationtime(simulationTimeMS);
                     calledObject = barrier_sync;
                     barrier_sync.startover();
@@ -652,9 +515,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     if (simulationTimeMS > simulationTimeEnd) {
                         System.out.println("Simulation time end reached!");
                         calculationFinished = true;
-//                        control.action("SimulationEndTime_reached", this);
                         System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time.\telapsed calculation time=" + calculationTimeElapsed + "ms");
-//                        control.action("Simulation_END", this);
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(true, particlesReachedOutlet);
                         }
@@ -680,12 +541,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
                         }
-//                        if (videoGIFencoder != null) {
-//                            try {
-//                                videoGIFencoder.finish();
-//                            } catch (Exception e) {
-//                            }
-//                        }
                     }
                     if (steps % paintingInterval == 0) {
                         barrier_positionUpdate.setSimulationtime(simulationTimeMS);
@@ -693,66 +548,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         barrier_positionUpdate.startover();
                         return;
                     }
-//                    if (paintOnMap || video) {
-//                        if (calculationFinished || steps % paintingInterval == 0 || steps % videoFrameInterval == 0) {
-//                            //Prepare position for drawing
-//                            barrier_positionUpdate.setSimulationtime(simulationTimeMS);
-//                            calledObject = barrier_positionUpdate;
-//                            barrier_positionUpdate.startover();
-//                            return;
-//                        }
-//                    }
                 case POSITION:
-
-                    //Position calculated. Draw now
-//                    if (video) {
-//                        if (steps % videoFrameInterval == 0) {
-//                            //Update Surface information?
-//                            try {
-//                                //Always update surface if it should be displayed
-//                                control.getPaintManager().updateSurfaceShow();
-//                                control.getPaintManager().orderParticlesPainting();
-//                            } catch (Exception e) {
-//                                e.printStackTrace();
-//                            }
-//                            synchronized (mapViewer) {
-//                                drawVideoFrame();
-//                            }
-//                        }
-//                    }
-                    //Update Mapviewer
-//                    if (steps % paintingInterval == 0 || calculationFinished) {
-//                        if (control.getPaintManager() != null) {
-//                            control.getPaintManager().setTimeToShow(simulationTimeMS);
-//                            if (paintOnMap) {
-//                                //Update Surface information?
-//                                try {
-//                                    //Always update surface if it should be displayed
-//                                    control.getPaintManager().orderParticlesPainting();
-//                                    control.getPaintManager().updateSurfaceShow();
-//                                } catch (Exception e) {
-//                                    e.printStackTrace();
-//                                }
-//                                synchronized (mapViewer) {
-//                                    drawMapViewerFrame();
-//                                }
-//                            }
-//                        }
-//                        if (timelinePanel != null) {
-//                            timelinePanel.markTime(simulationTimeMS);
-//                        }
-//
-//                    }
-//                    if (calculationFinished) {
-//                        run = false;
-//                        if (videoGIFencoder != null) {
-//                            try {
-//                                videoGIFencoder.finish();
-//                            } catch (Exception e) {
-//                            }
-//                        }
-//                        return;
-//                    }
                     for (SimulationActionListener l : listener) {
                         l.simulationSTEPFINISH(steps, this);
                     }
@@ -762,7 +558,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
                         }
-
                         return;
                     }
 
@@ -818,11 +613,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         return this.listener.remove(listen);
     }
 
-    public void setSeed(long seed) {
-        for (ParticleThread t : barrier_particle.getThreads()) {
-            t.pc.randDist.setRandomGenerator(new Random(seed));
-        }
-    }
+//    public void setSeed(long seed) {
+//        for (ParticleThread t : barrier_particle.getThreads()) {
+//            t.pc.randDist.setRandomGenerator(new Random(seed+));
+//        }
+//    }
 
     public Thread initStatusThread() {
         final ThreadController tc = this;
@@ -836,18 +631,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     try {
                         if (tc.barrier_particle != null) {
                             int running = 0, waiting = 0;
-//                            for (ParticleThread pt : tc.getParticleThreads()) {
-//                                if (pt != null) {
-//                                    if (pt.getState() == State.RUNNABLE) {
-//                                        running++;
-//                                    } else if (pt.getState() == State.WAITING) {
-//                                        waiting++;
-//                                    }
-////                                    System.out.println(pt.getName() + ": " + pt.getState() + "  " + pt.isAlive() + "  " + pt.particleID);
-//                                }
-//                            }
                             if (run && steps == laststep) {
-// something is incredibly slow. prepare output to console
+                                // something is incredibly slow. prepare output to console
                                 StringBuilder str = new StringBuilder("--" + getClass() + "--detected hanging at loop " + steps + "  barrier: " + (calledObject) + "   :");
                                 for (ParticleThread pt : tc.getParticleThreads()) {
                                     if (pt != null) {
@@ -866,7 +651,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                                 System.out.println(str.toString());
                                 breakBarrierLocks();
-//                                }
                             }
                             laststep = steps;
                         }

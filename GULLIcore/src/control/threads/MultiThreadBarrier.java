@@ -28,33 +28,37 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
         status = 0;
         synchronized (this) {
             status = 1;
-//            for (T value : threads) {
-//                if (value != finishedThread && value.getState() != Thread.State.WAITING) {
-//                    try {
-//                        //Not ready yet, This Thread now should fall asleep
-//                        this.wait();
-//                    } catch (InterruptedException ex) {
-//                        Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//
-//                    return;
-//                }
-//            }
-            finished++;
-            if (finished < threads.size()) {
-                 try {
-                       //Not ready yet, This Thread now should fall asleep
-                     //The calling Thread will fall asleep at this moment.
-                    this.wait();
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+            for (T value : threads) {
+                if (value != finishedThread && value.getState() != Thread.State.WAITING) {
+                    status = 5;
+                    try {
+                        //Not ready yet, This Thread now should fall asleep
+                        this.wait();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                    status = 6;
+                    return;
                 }
-                return;
             }
+//            finished++;
+//            if (finished < threads.size()) {
+//                status = 5;
+//                try {
+//                       //Not ready yet, This Thread now should fall asleep
+//                    //The calling Thread will fall asleep at this moment.
+//                    this.wait();
+//                } catch (InterruptedException ex) {
+//                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+//                }
+//                status = 6;
+//                return;
+//            }
 
             status = 2; //all threads finished their loop
-            notifyWhenReady.finishedLoop(this);
             finished = 0;
+            notifyWhenReady.finishedLoop(this);
+
             try {
                 status = 3;//Wait until revoken.
                 this.wait();
@@ -85,7 +89,7 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
             try {
                 thread.start();
             } catch (Exception e) {
-                System.err.println("State (" + this.name + "){finished "+finished+"/"+threads.size()+"}=" + thread.getState());
+                System.err.println("State (" + this.name + "){finished " + finished + "/" + threads.size() + "}=" + thread.getState());
             }
         }
     }
@@ -120,7 +124,7 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "{" + name + "," + threads.size() + " Threads, Status=" + status + ",finished "+finished+"/"+threads.size()+"}";
+        return getClass().getSimpleName() + "{" + name + "," + threads.size() + " Threads, Status=" + status + ",finished " + finished + "/" + threads.size() + "}";
     }
 
 }

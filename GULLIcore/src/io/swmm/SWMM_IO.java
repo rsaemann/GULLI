@@ -66,86 +66,114 @@ public class SWMM_IO {
         LPS, CMS
     };
 
-    private FLOW_UNITS flowunits = FLOW_UNITS.CMS;
-    private HashMap<String, Subcatchment> subcatchments;
-    private HashMap<String, Junction> junctions;
-    private HashMap<String, Outfall> outfalls;
-    private HashMap<String, Divider> dividers;
-    private HashMap<String, Storage> storages;
-    private HashMap<String, Conduit> conduits;
-    private HashMap<String, Orifice> orifices;
-    private HashMap<String, Weir> weirs;
-    private HashMap<String, Outlet> outlets;
-    private HashMap<String, Coordinate> coordinates;
-    private HashMap<String, List<Coordinate>> polygons;
-    private HashMap<String, Profile> profiles;
-    private HashMap<String, String> tags;
+    public FLOW_UNITS flowunits = FLOW_UNITS.CMS;
+    public HashMap<String, Raingage> raingages;
+    public HashMap<String, Subcatchment> subcatchments;
+    public HashMap<String, SubArea> subareas;
+    public HashMap<String, Junction> junctions;
+    public HashMap<String, Outfall> outfalls;
+    public HashMap<String, Divider> dividers;
+    public HashMap<String, Storage> storages;
+    public HashMap<String, Conduit> conduits;
+    public HashMap<String, Orifice> orifices;
+    public HashMap<String, Weir> weirs;
+    public HashMap<String, Outlet> outlets;
+    public HashMap<String, DryWeatherFlow> dryWeatherFlows;
+    public HashMap<String, Coordinate> coordinates;
+    public HashMap<String, List<Coordinate>> polygons;
+    public HashMap<String, Profile> profiles;
+    public HashMap<String, XSection> xSections;
+    public HashMap<String, String> tags;
+    public HashMap<String, Infiltration> infiltrations;
 
-    public static Network readNetwork(File file) throws FileNotFoundException, IOException, FactoryException {
-        FileReader fr = new FileReader(file);
-        BufferedReader br = new BufferedReader(fr);
+    public static SWMMNetwork readNetwork(File file) throws FileNotFoundException, IOException, FactoryException {
         SWMM_IO swmm = new SWMM_IO();
-        String line = "";
-        int linecount = -1;
-        try {
-            while (br.ready()) {
-                line = br.readLine();
-                linecount++;
-                if (line.toUpperCase().equals("[OPTIONS]")) {
-                    swmm.readOptions(br);
-                } else if (line.toUpperCase().equals("[SUBCATCHMENTS]")) {
-                    swmm.readSubcatchments(br);
-                    System.out.println(swmm.subcatchments.size() + " subcatchments read");
-                } else if (line.toUpperCase().equals("[JUNCTIONS]")) {
-                    swmm.readJunctions(br);
-                    System.out.println(swmm.junctions.size() + " junctions read");
-                } else if (line.toUpperCase().equals("[OUTFALLS]")) {
-                    swmm.readOutfalls(br);
-                    System.out.println(swmm.outfalls.size() + " outfalls read");
-                } else if (line.toUpperCase().equals("[DIVIDERS]")) {
-                    swmm.readDividers(br);
-                    System.out.println(swmm.dividers.size() + " dividers read");
-                } else if (line.toUpperCase().equals("[STORAGE]")) {
-                    swmm.readStorages(br);
-                    System.out.println(swmm.storages.size() + " storages read");
-                } else if (line.toUpperCase().equals("[CONDUITS]")) {
-                    swmm.readConduits(br);
-                    System.out.println(swmm.conduits.size() + " conduits read");
-                } else if (line.toUpperCase().equals("[ORIFICES]")) {
-                    swmm.readOrifices(br);
-                    System.out.println(swmm.orifices.size() + " orifices read");
-                } else if (line.toUpperCase().equals("[WEIRS]")) {
-                    swmm.readWeirs(br);
-                    System.out.println(swmm.weirs.size() + " weirs read");
-                } else if (line.toUpperCase().equals("[OUTLETS]")) {
-                    swmm.readOutlets(br);
-                    System.out.println(swmm.outlets.size() + " outlets read");
-                } else if (line.toUpperCase().equals("[XSECTIONS]")) {
-                    swmm.readProfiles(br);
-                    System.out.println(swmm.profiles.size() + " profiles read");
-
-                } else if (line.toUpperCase().equals("[TAGS]")) {
-                    swmm.readTags(br);
-                    System.out.println(swmm.tags.size() + " Tags read");
-                } else if (line.toUpperCase().equals("[COORDINATES]")) {
-                    swmm.readCoordinates(br);
-                    System.out.println(swmm.coordinates.size() + " coordinates read");
-                } else if (line.toUpperCase().equals("[POLYGONS]")) {
-                    swmm.readPolygons(br);
-                    System.out.println(swmm.polygons.size() + " Polygons read");
-                }
-            }
-        } catch (Exception exception) {
-            System.err.println("Exception in line " + linecount);
-            throw exception;
-        }
-        br.close();
-        fr.close();
-
+        swmm.readFile(file);
         return swmm.finishNetwork();
     }
 
-    private Network finishNetwork() throws FactoryException {
+    public void readFile(File file) throws FileNotFoundException, IOException, FactoryException {
+        readFile(file, Charset.defaultCharset());
+    }
+
+    public void readFile(File file, Charset encoding) throws FileNotFoundException, IOException, FactoryException {
+        try (//        FileReader fr = new FileReader(file);
+                FileInputStream fis = new FileInputStream(file); InputStreamReader isr = new InputStreamReader(fis, encoding); BufferedReader br = new BufferedReader(isr)) {
+            String line;
+            int linecount = -1;
+            try {
+                while (br.ready()) {
+                    line = br.readLine();
+                    linecount++;
+                    if (line.toUpperCase().equals("[OPTIONS]")) {
+                        readOptions(br);
+                    } else if (line.toUpperCase().equals("[RAINGAGES]")) {
+                        readRaingages(br);
+                        System.out.println(raingages.size() + " raingages read:");
+                        for (Raingage value : raingages.values()) {
+                            System.out.println("   "+value.name);
+                        }
+                    } else if (line.toUpperCase().equals("[SUBCATCHMENTS]")) {
+                        readSubcatchments(br);
+                        System.out.println(subcatchments.size() + " subcatchments read");
+                    } else if (line.toUpperCase().equals("[JUNCTIONS]")) {
+                        readJunctions(br);
+                        System.out.println(junctions.size() + " junctions read");
+                    } else if (line.toUpperCase().equals("[OUTFALLS]")) {
+                        readOutfalls(br);
+                        System.out.println(outfalls.size() + " outfalls read");
+                    } else if (line.toUpperCase().equals("[DIVIDERS]")) {
+                        readDividers(br);
+                        System.out.println(dividers.size() + " dividers read");
+                    } else if (line.toUpperCase().equals("[STORAGE]")) {
+                        readStorages(br);
+                        System.out.println(storages.size() + " storages read");
+                    } else if (line.toUpperCase().equals("[CONDUITS]")) {
+                        readConduits(br);
+                        System.out.println(conduits.size() + " conduits read");
+                    } else if (line.toUpperCase().equals("[ORIFICES]")) {
+                        readOrifices(br);
+                        System.out.println(orifices.size() + " orifices read");
+                    } else if (line.toUpperCase().equals("[WEIRS]")) {
+                        readWeirs(br);
+                        System.out.println(weirs.size() + " weirs read");
+                    } else if (line.toUpperCase().equals("[OUTLETS]")) {
+                        readOutlets(br);
+                        System.out.println(outlets.size() + " outlets read");
+                    } else if (line.toUpperCase().equals("[XSECTIONS]")) {
+                        br.mark(Integer.MAX_VALUE);
+                        readXSections(br);
+                        br.reset();
+                        readProfiles(br);
+                        System.out.println(profiles.size() + " profiles + " + xSections.size() + " xsections read");
+                    } else if (line.toUpperCase().equals("[TAGS]")) {
+                        readTags(br);
+                        System.out.println(tags.size() + " Tags read");
+                    } else if (line.toUpperCase().equals("[COORDINATES]")) {
+                        readCoordinates(br);
+                        System.out.println(coordinates.size() + " coordinates read");
+                    } else if (line.toUpperCase().equals("[POLYGONS]")) {
+                        readPolygons(br);
+                        System.out.println(polygons.size() + " Polygons read");
+                    } else if (line.toUpperCase().equals("[INFILTRATION]")) {
+                        readInfiltrations(br);
+                        System.out.println(infiltrations.size() + " infiltrations read");
+                    } else if (line.toUpperCase().equals("[SUBAREAS]")) {
+                        readSubAreas(br);
+                        System.out.println(subareas.size() + " subareas read");
+                    } else if (line.toUpperCase().equals("[DWF]")) {
+                        readDryWeaterFlow(br);
+                        System.out.println(dryWeatherFlows.size() + " dry-weather-flows read");
+                    }
+                }
+            } catch (Exception exception) {
+                System.err.println("Exception in line " + linecount);
+                throw exception;
+            }
+        }
+    }
+
+    private SWMMNetwork finishNetwork() throws FactoryException {
         if (junctions == null) {
             junctions = new HashMap<>(0);
         }
@@ -579,10 +607,57 @@ public class SWMM_IO {
         }
     }
 
+    private void readRaingages(BufferedReader br) throws IOException {
+        String line = "";
+        String[] parts;
+        String name, format, interval, scf, source, sourcename;
+        raingages = new HashMap<>();
+        while (br.ready()) {
+            br.mark(4000);
+            line = br.readLine();
+            if (line.startsWith("[")) {
+                br.reset();
+                return;
+            }
+            if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.isEmpty()) {
+                continue;
+            }
+            try {
+                String newline = line.replaceAll(" +", " ").trim();
+                parts = newline.split(" ");
+                if (parts.length < 5) {
+                    continue;
+                }
+                name = parts[0];
+                format = parts[1];
+                interval = parts[2];
+                scf = parts[3];
+                source = parts[4];
+                if (parts.length > 5) {
+                    sourcename = parts[5];
+                } else {
+                    sourcename = "";
+                }
+
+                int intervallMinutes = 0;
+                String[] ip = interval.split(":");
+                intervallMinutes = Integer.parseInt(ip[1]);//Minutes
+                intervallMinutes += Integer.parseInt(ip[0]) * 60;//hours
+                Raingage r = new Raingage(name, format, intervallMinutes, Double.parseDouble(scf), source, sourcename);
+                raingages.put(name, r);
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+    }
+
     private void readSubcatchments(BufferedReader br) throws IOException {
         String line = "";
         String[] parts;
-        String name, outlet, area, impervPercent, width, slopePercent, pondedarea;
+        String name, gage, outlet, area, impervPercent, width, slopePercent, pondedarea;
         subcatchments = new HashMap<>();
         while (br.ready()) {
             br.mark(4000);
@@ -603,13 +678,87 @@ public class SWMM_IO {
                 continue;
             }
             name = parts[0];
+            gage = parts[1];
             outlet = parts[2];
             area = parts[3];
             impervPercent = parts[4];
             width = parts[5];
             slopePercent = parts[6];
-            Subcatchment s = new Subcatchment(name, outlet, Double.parseDouble(area), Double.parseDouble(impervPercent) * 0.01, Double.parseDouble(width), Double.parseDouble(slopePercent) * 0.01);
+            Subcatchment s = new Subcatchment(name, gage, outlet, Double.parseDouble(area), Double.parseDouble(impervPercent) * 0.01, Double.parseDouble(width), Double.parseDouble(slopePercent) * 0.01);
             subcatchments.put(name, s);
+        }
+    }
+
+    private void readSubAreas(BufferedReader br) throws IOException {
+        String line = "";
+        String[] parts;
+        String name, nImperv, nPerv, sImperv, sPerv, PctZero, RouteTo, PctRouted;
+        subareas = new HashMap<>();
+        while (br.ready()) {
+            br.mark(4000);
+            line = br.readLine();
+            if (line.startsWith("[")) {
+                br.reset();
+                return;
+            }
+            if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.isEmpty()) {
+                continue;
+            }
+            String newline = line.replaceAll(" +", " ").trim();
+            parts = newline.split(" ");
+            if (parts.length < 8) {
+                continue;
+            }
+            name = parts[0];
+            nImperv = parts[1];
+            nPerv = parts[2];
+            sImperv = parts[3];
+            sPerv = parts[4];
+            PctZero = parts[5];
+            RouteTo = parts[6];
+            PctRouted = parts[7];
+
+            SubArea sa = new SubArea(name, RouteTo, Double.parseDouble(nImperv), Double.parseDouble(nPerv), Double.parseDouble(sImperv), Double.parseDouble(sPerv), Double.parseDouble(PctZero), Double.parseDouble(PctRouted));
+
+            subareas.put(name, sa);
+        }
+    }
+
+    private void readInfiltrations(BufferedReader br) throws IOException {
+        String line = "";
+        String[] parts;
+        String name = "", curvenum, hydcon, drytime;
+        LinkedList<Coordinate> polygon = new LinkedList<>();
+        infiltrations = new HashMap<>();
+        while (br.ready()) {
+            br.mark(4000);
+            line = br.readLine();
+            if (line.startsWith("[")) {
+                br.reset();
+                return;
+            }
+            if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.isEmpty()) {
+                continue;
+            }
+            String newline = line.replaceAll(" +", " ").trim();
+            parts = newline.split(" ");
+            if (parts.length < 4) {
+                continue;
+            }
+
+            name = parts[0];
+            curvenum = parts[1];
+            hydcon = parts[2];
+            drytime = parts[3];
+
+            Infiltration infil = new Infiltration(name, Integer.parseInt(curvenum), Float.parseFloat(hydcon), Integer.parseInt(drytime));
+            infiltrations.put(name, infil);
         }
     }
 
@@ -685,19 +834,28 @@ public class SWMM_IO {
                 if (line.isEmpty()) {
                     continue;
                 }
+
+                line = line.replaceAll(" +", " ").trim();
                 parts = line.split(" ");
-                name = parts[0].trim();//line.substring(0, partends[0]).trim();
-                invert = parts[1].trim();// line.substring(partends[0] + 1, partends[1]).trim();
-                type = parts[2].trim();//line.substring(partends[1] + 1, partends[2]).trim();
-                data = parts[3].trim();//line.substring(partends[2] + 1, partends[3]);
-                gated = parts[4].trim();//line.substring(partends[3] + 1, Math.min(line.length(), partends[4])).trim();
                 boolean gate = false;
-                if (gated.toLowerCase().equals("yes")) {
-                    gate = true;
-                }
+                try {
+                    name = parts[0].trim();//line.substring(0, partends[0]).trim();
+                    invert = parts[1].trim();// line.substring(partends[0] + 1, partends[1]).trim();
+                    type = parts[2].trim();//line.substring(partends[1] + 1, partends[2]).trim();
+                    data = parts[3].trim();//line.substring(partends[2] + 1, partends[3]);
+                    if (parts.length > 4) {
+                        gated = parts[4].trim();//line.substring(partends[3] + 1, Math.min(line.length(), partends[4])).trim();
+                        if (gated.toLowerCase().equals("yes")) {
+                            gate = true;
+                        }
+                    }
+
 //            System.out.println("'"+name+"' '"+invert+"' '"+type+"' '"+data+"' '"+gated+"'");
-                Outfall j = new Outfall(name, Double.parseDouble(invert), type, data, gate);
-                outfalls.put(name, j);
+                    Outfall j = new Outfall(name, Double.parseDouble(invert), type, data, gate);
+                    outfalls.put(name, j);
+                } catch (Exception exception) {
+                    System.err.println("Problem with line '" + line + "' <-" + parts.length + " parts of '" + line + "'");
+                }
             }
         } catch (Exception exception) {
             System.err.println("Problem with line '" + line + "'");
@@ -938,6 +1096,40 @@ public class SWMM_IO {
         }
     }
 
+    private void readDryWeaterFlow(BufferedReader br) throws IOException {
+        String line = "";
+        String[] parts;
+        String node, parameter, baseDWF, patterns = null;
+        dryWeatherFlows = new HashMap<>();
+        while (br.ready()) {
+            br.mark(4000);
+            line = br.readLine();
+            if (line.startsWith("[")) {
+                br.reset();
+                return;
+            }
+            if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.isEmpty()) {
+                continue;
+            }
+            String newline = line.replaceAll(" +", " ").trim();
+            parts = newline.split(" ");
+            if (parts.length < 3) {
+                continue;
+            }
+            node = parts[0];
+            parameter = parts[1];
+            baseDWF = parts[2];
+            if (parts.length > 3) {
+                patterns = parts[3];
+            }
+            DryWeatherFlow dwf = new DryWeatherFlow(node, parameter, Float.parseFloat(baseDWF));
+            dryWeatherFlows.put(node, dwf);
+        }
+    }
+
     private void readProfiles(BufferedReader br) throws IOException {
         String line = "";
         String[] parts;
@@ -972,6 +1164,61 @@ public class SWMM_IO {
                 storage.put(key, profile);
             }
             profiles.put(link, profile);
+        }
+    }
+
+    private void readXSections(BufferedReader br) throws IOException {
+        String line = "";
+        String[] parts;
+        String link, shape, geom1 = null, geom2 = null, geom3 = null, geom4 = null, barrels = null;
+        xSections = new HashMap<>();
+        HashMap<String, Profile> storage = new HashMap<>(30);
+        Profile profile = null;
+        while (br.ready()) {
+            br.mark(4000);
+            line = br.readLine();
+            if (line.startsWith("[")) {
+                br.reset();
+                return;
+            }
+            if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.isEmpty()) {
+                continue;
+            }
+            String newline = line.replaceAll(" +", " ").trim();
+            parts = newline.split(" ");
+            if (parts.length < 3) {
+                continue;
+            }
+            link = parts[0];
+            shape = parts[1];
+            geom1 = parts[2];
+            if (parts.length > 3) {
+                geom2 = parts[3];
+                if (parts.length > 4) {
+                    geom3 = parts[4];
+                    if (parts.length > 5) {
+                        geom4 = parts[5];
+                        if (parts.length > 6) {
+                            barrels = parts[6];
+                        }
+                    }
+                }
+            }
+            double g1 = 0, g2 = 0, g3 = 0, g4 = 0;
+            int b = 0;
+            try {
+                g1 = Double.parseDouble(geom1);
+                g2 = Double.parseDouble(geom2);
+                g3 = Double.parseDouble(geom3);
+                g4 = Double.parseDouble(geom4);
+                b = Integer.parseInt(barrels);
+            } catch (NumberFormatException numberFormatException) {
+            }
+            XSection xs = new XSection(link, shape, g1, g2, g3, g4, b);
+            xSections.put(link, xs);
         }
     }
 
@@ -1087,7 +1334,7 @@ public class SWMM_IO {
         }
     }
 
-    private class Node {
+    public class Node {
 
         public String name;
 
@@ -1097,13 +1344,31 @@ public class SWMM_IO {
 
     }
 
-    private class Subcatchment extends Node {
+    public class Raingage {
 
-        public String outletNode;
+        public String name, format, source, sourceName;
+        public int intervallMinutes;
+        public double scf;
+
+        public Raingage(String name, String format, int intervallMinutes, double scf, String source, String sourceName) {
+            this.name = name;
+            this.format = format;
+            this.source = source;
+            this.sourceName = sourceName;
+            this.intervallMinutes = intervallMinutes;
+            this.scf = scf;
+        }
+
+    }
+
+    public class Subcatchment extends Node {
+
+        public String outletNode, gage;
         public double totalarea, imperviousRatio, width, slopetotal;
 
-        public Subcatchment(String name, String outletNode, double totalarea, double imperviousRatio, double width, double slopetotal) {
+        public Subcatchment(String name, String gage, String outletNode, double totalarea, double imperviousRatio, double width, double slopetotal) {
             super(name);
+            this.gage = gage;
             this.outletNode = outletNode;
             this.totalarea = totalarea;
             this.imperviousRatio = imperviousRatio;
@@ -1113,7 +1378,25 @@ public class SWMM_IO {
 
     }
 
-    private class Junction extends Node {
+    public class SubArea {
+
+        public String subcatchment, routeTo;
+        public double nImpervious, nPervious, sImpervious, sPervious, percentZero, percentRouted;
+
+        public SubArea(String subcatchment, String routeTo, double nImpervious, double nPervious, double sImpervious, double sPervious, double percentZero, double percentRouted) {
+            this.subcatchment = subcatchment;
+            this.routeTo = routeTo;
+            this.nImpervious = nImpervious;
+            this.nPervious = nPervious;
+            this.sImpervious = sImpervious;
+            this.sPervious = sPervious;
+            this.percentZero = percentZero;
+            this.percentRouted = percentRouted;
+        }
+
+    }
+
+    public class Junction extends Node {
 
         public double elevation, maxdepth, initdepth, surchargedepth, pondedarea;
 
@@ -1127,7 +1410,7 @@ public class SWMM_IO {
         }
     }
 
-    private class Outfall extends Node {
+    public class Outfall extends Node {
 
         public double invert;
         public String type, stageData;
@@ -1143,7 +1426,7 @@ public class SWMM_IO {
 
     }
 
-    private class Divider extends Node {
+    public class Divider extends Node {
 
         public double invert;
         public String link, type;
@@ -1164,7 +1447,7 @@ public class SWMM_IO {
 
     }
 
-    private class Storage extends Node {
+    public class Storage extends Node {
 
         public double elevation, maxdepth, initdepth, param1, param2, param3, param4, pondedarea, evaporFract;
 
@@ -1182,10 +1465,10 @@ public class SWMM_IO {
         }
     }
 
-    private class Edge {
+    public class Edge {
 
-        String name;
-        String fromNode, toNode;
+        public String name;
+        public String fromNode, toNode;
 
         public Edge(String name, String fromNode, String toNode) {
             this.name = name;
@@ -1195,11 +1478,11 @@ public class SWMM_IO {
 
     }
 
-    private class Conduit extends Edge {
+    public class Conduit extends Edge {
 
-        double length, roughness;
-        double offsetheightIn, offsetheightOut;
-        String tag;
+        public double length, roughness;
+        public double offsetheightIn, offsetheightOut;
+        public String tag;
 
 //        public Conduit(String name, String fromNode, String toNode, double length, double roughness) {
 //            super(name, fromNode, toNode);
@@ -1219,7 +1502,7 @@ public class SWMM_IO {
 
     }
 
-    private class Orifice extends Edge {
+    public class Orifice extends Edge {
 
         String type;
         double height;
@@ -1231,7 +1514,7 @@ public class SWMM_IO {
         }
     }
 
-    private class Weir extends Edge {
+    public class Weir extends Edge {
 
         String type;
         double height;
@@ -1244,15 +1527,62 @@ public class SWMM_IO {
 
     }
 
-    private class Outlet extends Edge {
+    public class Outlet extends Edge {
 
-        String type;
-        double height;
+        public String type;
+        public double height;
 
         public Outlet(String name, String fromNode, String toNode, String type, double height) {
             super(name, fromNode, toNode);
             this.type = type;
             this.height = height;
+        }
+
+    }
+
+    public class Infiltration {
+
+        String subCatchment;
+        int curveNumber;
+        float hydraulicConductivity;
+        int dryTime;
+
+        public Infiltration(String subCatchment, int curveNumber, float hydraulicConductivity, int dryTime) {
+            this.subCatchment = subCatchment;
+            this.curveNumber = curveNumber;
+            this.hydraulicConductivity = hydraulicConductivity;
+            this.dryTime = dryTime;
+        }
+
+    }
+
+    public class DryWeatherFlow {
+
+        String node, parameter;
+        float baseFlow;
+
+        public DryWeatherFlow(String node, String parameter, float baseFlow) {
+            this.node = node;
+            this.parameter = parameter;
+            this.baseFlow = baseFlow;
+        }
+
+    }
+
+    public class XSection {
+
+        public String link, shape;
+        public double geom1, geom2, geom3, geom4;
+        public int barrels;
+
+        public XSection(String link, String shape, double geom1, double geom2, double geom3, double geom4, int barrels) {
+            this.link = link;
+            this.shape = shape;
+            this.geom1 = geom1;
+            this.geom2 = geom2;
+            this.geom3 = geom3;
+            this.geom4 = geom4;
+            this.barrels = barrels;
         }
 
     }
@@ -1438,5 +1768,4 @@ public class SWMM_IO {
         return new Pair<>(pipeContainer, manholecontaineR);
     }
 
-  
 }
