@@ -157,9 +157,9 @@ public class SHP_IO_GULLI {
             final SimpleFeatureType PIPE = DataUtilities.createType("Pipe",
                     "the_geom:LineString:srid=4326," + // <- the geometry attribute: Point type
                     "name:String," + //+  <- a String attribute
-                    "he_id:int,"+
-                    "gefaellle%:double,"+
-                    "zSohle_st:double,"
+                    "he_id:int,"
+                    + "gefaellle%:double,"
+                    + "zSohle_st:double,"
                     + "zSohle_end:double,"
                     + "diameter:double"
             );
@@ -181,7 +181,7 @@ public class SHP_IO_GULLI {
                 sfb.add(ls);
                 sfb.add(n);
                 sfb.add((int) pipe.getManualID());
-                sfb.add((double)(pipe.getDecline()*100));
+                sfb.add((double) (pipe.getDecline() * 100));
                 sfb.add(pipe.getStartConnection().getHeight());
                 sfb.add(pipe.getEndConnection().getHeight());
                 if (pipe.getProfile() instanceof CircularProfile) {
@@ -462,7 +462,7 @@ public class SHP_IO_GULLI {
             Network.crsUTM = shpCRS;
             transformSHP_UTM = CRS.findMathTransform(shpCRS, Network.crsUTM, true);
         }
-       
+
         LinkedList<Inlet> inlets = new LinkedList<>();
 
         //Find attribute indizes
@@ -688,7 +688,7 @@ public class SHP_IO_GULLI {
 //            GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();// new GeometryFactory();
             // Manholes
 
-            Map<String, Serializable> params = new HashMap<String, Serializable>();
+            Map<String, Serializable> params = new HashMap<>();
             params.put("url", outfile.toURI().toURL());
             params.put("create spatial index", Boolean.TRUE);
             ShapefileDataStore datastore = (ShapefileDataStore) factory.createNewDataStore(params);
@@ -730,14 +730,13 @@ public class SHP_IO_GULLI {
             }
             String typeName = datastore.getTypeNames()[0];
 //            System.out.println("Typename: " + typeName);
-            SimpleFeatureSource featureSource = datastore.getFeatureSource(typeName);
+            ContentFeatureSource featureSource = datastore.getFeatureSource(typeName);
 
-            if (featureSource instanceof SimpleFeatureStore) {
-                SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-
-                featureStore.setTransaction(createtransaction);
+            try {
+                SimpleFeatureStore sfs = (SimpleFeatureStore) featureSource;
+                sfs.setTransaction(createtransaction);
                 try {
-                    featureStore.addFeatures(dfcollection);
+                    sfs.addFeatures(dfcollection);
                     createtransaction.commit();
 
                 } catch (Exception problem) {
@@ -747,12 +746,29 @@ public class SHP_IO_GULLI {
                 } finally {
                     createtransaction.close();
                 }
-//                System.exit(0); // success!
-            } else {
-                System.out.println(typeName + " does not support read/write access");
-//                System.exit(1);
-            }
+                sfs.getDataStore().dispose();
+            } catch (Exception ex) {
+                System.err.println("Exception with Shapefile Feature Store of type " + featureSource.getClass() + "  \n" + ex.getLocalizedMessage());
+                if (featureSource instanceof SimpleFeatureStore) {
+                    SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
 
+                    featureStore.setTransaction(createtransaction);
+                    try {
+                        featureStore.addFeatures(dfcollection);
+                        createtransaction.commit();
+
+                    } catch (Exception problem) {
+                        problem.printStackTrace();
+                        createtransaction.rollback();
+
+                    } finally {
+                        createtransaction.close();
+                  
+                    }
+                } else {
+                    System.out.println(typeName + " does not support read/write access: " + featureSource);
+                }
+            }
         } catch (MalformedURLException ex) {
             Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SchemaException ex) {

@@ -54,12 +54,19 @@ public interface TimeLinePipe {
     public float getFlux(int temporalIndex);
 
     /**
-     * Reference mass [kg] in pipe volume if given.
+     * Reference mass [kg] of solute in pipe volume if given.
      *
      * @param temporalIndex
      * @return
      */
     public float getMass_reference(int temporalIndex);
+ /**
+     * Reference Concentration [kg/m³] of pollution in pipe volume if given.
+     *
+     * @param temporalIndex
+     * @return
+     */
+    public float getConcentration_reference(int temporalIndex);
 
     /**
      * Does timeline contain information about mass reference;

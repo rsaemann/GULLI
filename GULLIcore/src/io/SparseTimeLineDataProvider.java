@@ -50,40 +50,53 @@ public interface SparseTimeLineDataProvider {
 
     public float[] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes);
 
+    public float[] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes);
+
+    /**
+     * Returns true if the result data contains information about mass
+     * concentration.
+     *
+     * @return
+     */
+    public boolean hasTimeLineMass();
+
     public void loadTimelineManholes(Collection<StorageVolume> manholes, SparseTimeLineManholeContainer container);
 
     public SparseTimelinePipe loadTimelinePipe(long pipeManualID, String pipeName, SparseTimeLinePipeContainer container);
 
     /**
      * Used for filling existing empty timelines on demand.
+     *
      * @param pipeManualID
      * @param pipeName
      * @param timeline
-     * @return 
+     * @return
      */
     public boolean fillTimelinePipe(long pipeManualID, String pipeName, SparseTimelinePipe timeline);
 
     /**
      * Used when initially loading timelines for preselected pipes.
+     *
      * @param pipesToLoad
-     * @param container 
+     * @param container
      */
     public void loadTimelinePipes(Collection<Pipe> pipesToLoad, SparseTimeLinePipeContainer container);
 
     /**
      * Fill timeline arrays of an existing timeline on demand
+     *
      * @param manholeManualID
      * @param manholeName
      * @param container
-     * @return 
+     * @return
      */
     public SparseTimelineManhole loadTimelineManhole(long manholeManualID, String manholeName, SparseTimeLineManholeContainer container);
 
     /**
      * Return the timesteps of the output timeseries of a scenario.
-     * @return 
+     *
+     * @return
      */
     public long[] loadTimeStepsNetwork();
 
-    
 }

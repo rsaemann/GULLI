@@ -45,9 +45,14 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
      */
     private SparseTimeLineDataProvider dataprovider;
 
+    private boolean hasReferencePollution = false;
+
     public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider) {
         super(dataprovider.loadTimeStepsNetwork());
         this.dataprovider = dataprovider;
+        if (dataprovider != null) {
+            hasReferencePollution = dataprovider.hasTimeLineMass();
+        }
     }
 
     public SparseTimeLinePipeContainer(long[] times) {
@@ -60,6 +65,9 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     public void setDataprovider(SparseTimeLineDataProvider dataprovider) {
         this.dataprovider = dataprovider;
+        if (dataprovider != null) {
+            hasReferencePollution = dataprovider.hasTimeLineMass();
+        }
     }
 
     public void loadTimelineVelocity(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
@@ -74,6 +82,7 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
         if (verboseRequests) {
             System.out.println(getClass() + ": request loading Waterlevel timeline for pipe " + pipeName + " / " + pipeManualId);
         }
+        System.out.println("Load SParseTimeline: Waterleveltimeline");
         dataprovider.fillTimelinePipe(pipeManualId, pipeName, tl);
 //        tl.setWaterlevel(dataprovider.loadTimeLineWaterlevel(pipeManualId, pipeName, getNumberOfTimes()));
     }
@@ -91,8 +100,18 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
         if (verboseRequests) {
             System.out.println(getClass() + ": request loading Mass timeline for pipe " + pipeName + " / " + pipeManualId);
         }
-
         tl.setMass_reference(dataprovider.loadTimeLineMass(pipeManualId, pipeName, getNumberOfTimes()));
+    }
+    
+    public void loadTimelineConcentration(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
+        if (verboseRequests) {
+            System.out.println(getClass() + ": request loading Concentration timeline for pipe " + pipeName + " / " + pipeManualId);
+        }
+        tl.setConcentration_reference(dataprovider.loadTimeLineConcentration(pipeManualId, pipeName, getNumberOfTimes()));
+    }
+
+    public boolean hasReferencePollution() {
+        return hasReferencePollution;
     }
 
 }

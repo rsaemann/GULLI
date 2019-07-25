@@ -1,7 +1,5 @@
 package model.timeline.array;
 
-import java.util.Date;
-
 /**
  * Holder of performant storing Arrays for ArrayTimeLines.
  *

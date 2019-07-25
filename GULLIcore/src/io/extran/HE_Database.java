@@ -432,19 +432,21 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
             try (Connection con = getConnection()) {
                 if (Network.crsUTM == null) {
+//                    System.out.println("Axis: "+crsDB.getCoordinateSystem().getAxis(0).toString());
                     try {
-                        if (crsDB != null && crsDB.getCoordinateSystem().getAxis(0).getUnit().toString().equals("m")) {
+                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.")||crsDB.getCoordinateSystem().toString().contains("UTM")) {
                             if (verbose) {
                                 System.out.println(this.getClass() + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
                             }
                             Network.crsUTM = crsDB;
                         } else {
+                            System.out.println("tested Sring:'"+crsDB.getCoordinateSystem().toString()+"'");
                             System.out.println(this.getClass() + "::loadNetwork: Coordinatensystem der Datenbank ist nicht cartesisch: " + crsDB);
                             Network.crsUTM = CRS.decode("EPSG:25832");
                         }
                     } catch (Exception exception) {
                         System.out.println("axis:" + crsDB.getCoordinateSystem().getAxis(0));
-                        System.out.println("unit:" + crsDB.getCoordinateSystem().getAxis(0).getUnit());
+                        System.out.println("unit:" + crsDB.getCoordinateSystem());
                         exception.printStackTrace();
                     }
                 } else {
@@ -537,14 +539,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             Profile p;
                             if (hasDiameter) {
                                 int durchmesser = res.getInt(4);
-                               p = schachtprofile.get(durchmesser);
+                                p = schachtprofile.get(durchmesser);
                                 if (p == null) {
                                     p = new CircularProfile(durchmesser / 1000.);
                                     schachtprofile.put(durchmesser, p);
                                 }
                             } else {
                                 //standarddiameter 1m
-                                 p = schachtprofile.get(1);
+                                p = schachtprofile.get(1);
                                 if (p == null) {
                                     p = new CircularProfile(1);
                                     schachtprofile.put(1, p);
@@ -1453,22 +1455,42 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return name;
     }
 
-    public static double readExportTimeStep(File extranResultDBF) throws SQLException, IOException {
+    public static double read2DExportTimeStep(File extranResultDBF) throws SQLException, IOException {
         HE_Database db = new HE_Database(extranResultDBF, true);
-        return db.readExportTimeStep();
+        return db.read2DExportTimeStep();
     }
 
     /**
      *
-     * @return export timestep in minutes.
+     * @return export timestep for surface values (waterlevel&velocity) in GDB
+     * in minutes.
      * @throws SQLException
      * @throws IOException
      */
-    public double readExportTimeStep() throws SQLException, IOException {
+    public double read2DExportTimeStep() throws SQLException, IOException {
         double dt = -1;
         try (Connection extran = getConnection()) {
             Statement st = extran.createStatement();
             ResultSet rs = st.executeQuery("SELECT AUSGABEZEITSCHRITT FROM EXTRAN2DPARAMETERSATZ");//This will only return 1 result row, because EXTRAN2DPARAMETERSATZ only contains one row after a single simulation.
+            rs.next();
+            dt = rs.getDouble(1);
+            rs.close();
+            st.close();
+        }
+        return dt;
+    }
+
+    /**
+     *
+     * @return export timestep for pipes and manholes in minutes.
+     * @throws SQLException
+     * @throws IOException
+     */
+    public double readEXTRANExportTimeStep() throws SQLException, IOException {
+        double dt = -1;
+        try (Connection extran = getConnection()) {
+            Statement st = extran.createStatement();
+            ResultSet rs = st.executeQuery("SELECT BERICHTZEITSCHRITT FROM EXTRANPARAMETERSATZ");//This will only return 1 result row, because EXTRAN2DPARAMETERSATZ only contains one row after a single simulation.
             rs.next();
             dt = rs.getDouble(1);
             rs.close();
@@ -1795,8 +1817,32 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     @Override
     public float[] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes) {
-        System.err.println(getClass() + ": loadTimeLineMass Not supported yet.");
-        return new float[numberOfTimes];
+        //TODO: calculate the mass from the concentration.
+        float[] values = new float[numberOfTimes];
+        try {
+            synchronized (synchronizationObject) {
+                Connection c = getConnection();
+                Statement st = c.createStatement();
+                //in HE Database only use Pipe ID.
+                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeMaualID + " ORDER BY ZEITPUNKT ASC");
+                if (!rs.isBeforeFirst()) {
+                    //No Data
+                    System.err.println(getClass() + " could not load KANTESTOFFLAUFEND values for pipe id:" + pipeMaualID + ". It is not found in the database.");
+                    return values;
+                }
+                int index = 0;
+                while (rs.next()) {
+                    values[index] = rs.getFloat(1);
+                    index++;
+                }
+                return values;
+
+            }
+        } catch (SQLException | IOException ex) {
+            Logger.getLogger(HE_Database.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
     }
 
     @Override
@@ -2376,4 +2422,54 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return isSQLite;
     }
 
+    @Override
+    public boolean hasTimeLineMass() {
+        try {
+            con = getConnection();
+            int count = 0;
+            try (Statement st = con.createStatement(); ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM KANTESTOFFLAUFEND")) {
+                while (rs.next()) {
+                    count = rs.getInt(1);
+                }
+            }
+            con.close();
+            return count > 0;
+        } catch (SQLException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
+    @Override
+    public float[] loadTimeLineConcentration(long pipeManualID, String pipeName, int numberOfTimes) {
+        float[] concentration = new float[numberOfTimes];
+        synchronized (synchronizationObject) {
+            try {
+                Connection c = getConnection();
+                try ( //in HE Database only use Pipe ID.
+                        Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ASC")) {
+
+                    if (!rs.isBeforeFirst()) {
+                        //Result set is empty, there are no concentrations set
+                        return concentration;
+                    }
+
+                    int index = 0;
+                    while (rs.next()) {
+                        concentration[index] = rs.getFloat(1);
+                        index++;
+                    }
+                }
+            } catch (SQLException ex) {
+                Logger.getLogger(HE_Database.class
+                        .getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(HE_Database.class
+                        .getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        return concentration;
+    }
 }

@@ -258,4 +258,10 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         return container.mass_reference != null;
     }
 
+    @Override
+    public float getConcentration_reference(int temporalIndex) {
+        return container.mass_reference[startIndex+temporalIndex];
+//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
 }

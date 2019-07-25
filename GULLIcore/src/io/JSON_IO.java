@@ -13,8 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.simple.JSONAware;
-import org.json.simple.JSONObject;
 
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Geometry;
@@ -104,7 +102,7 @@ public class JSON_IO {
      */
     public void write(Geometry geometry, Writer writer) throws IOException {
         Map<String, Object> map = create(geometry, isEncodeCRS);
-        JSONObject.writeJSONString(map, writer);
+        JSONAware.writeJSONString(map, writer);
         writer.flush();
     }
 
@@ -320,6 +318,16 @@ public class JSON_IO {
         bw.close();
         fw.close();
 
+    }
+
+    private static class JSONAware {
+
+        private static void writeJSONString(Map<String, Object> map, Writer writer) {
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
+
+        public JSONAware() {
+        }
     }
 
 }
