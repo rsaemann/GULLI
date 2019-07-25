@@ -1675,6 +1675,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         final int idt = i;
                         //Triangle Arrow
                         //on triangle
+                        if (surface.getTriangleVelocity()[t] == null) {
+                            continue;
+                        }
                         float[] v = surface.getTriangleVelocity()[t][i];
                         if (Math.abs(v[0]) < 0.01 && Math.abs(v[1]) < 0.01) {
                             continue;
@@ -2922,6 +2925,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public void simulationSTART(Object caller) {
     }
 
+    /**
+     *
+     * @param loop
+     * @param caller
+     */
     @Override
     public void simulationSTEPFINISH(long loop, Object caller) {
         if (loop % repaintPerLoops == 0) {

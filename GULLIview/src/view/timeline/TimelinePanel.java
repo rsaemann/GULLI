@@ -100,11 +100,6 @@ public class TimelinePanel extends JPanel {
     public TimelinePanel(String title, boolean showCheckBoxes) {
         super(new BorderLayout());
         this.title = title;
-
-//        this.container = new ArrayTimeLinePipeContainer[input.length];
-//        for (int i = 0; i < container.length; i++) {
-//            this.container[i]=input[i].getPipeTimeline();            
-//        }
         this.collection = new TimeSeriesCollection();
         if (showCheckBoxes) {
             initCheckboxpanel();
@@ -126,66 +121,6 @@ public class TimelinePanel extends JPanel {
         }
     }
 
-//    public void setStorage(final Capacity c, final String title) {
-//        if (c == null) {
-//            return;
-//        }
-//        this.actualShown = c;
-////        if (container == null || (container.length == 1 && container[0] == null)) {
-////            this.container = new ArrayTimeLinePipeContainer[]{ArrayTimeLinePipeContainer.instance};
-////        }
-//
-//        container = controller.getMultiInputData();
-//        if (t != null && t.isAlive()) {
-//            System.out.println(this.getClass() + ":: interrupt TimelineThread " + t.toString());
-//            try {
-//                t.interrupt();
-//            } catch (Exception e) {
-//            }
-//        }
-//        this.t = new Thread() {
-//            @Override
-//            public void run() {
-//
-//                try {
-//                    if (TimelinePanel.this.collection != null) {
-//                        TimelinePanel.this.collection.removeAllSeries();
-//                    }
-//                    TimelinePanel.this.title = title;
-//                    if (c == null) {
-//
-//                    } else {
-//                        TimelinePanel.this.updateChart("Preparing... " + c);
-//                        if (c instanceof Pipe) {
-//                            TimelinePanel.this.buildPipeTimeline(((Pipe) c).getStatusTimeLine(), c.getMeasurementTimeLine(), ((Pipe) c).getLength());
-//                        } else if (c instanceof StorageVolume) {
-//                            TimelinePanel.this.buildManholeTimeline((StorageVolume) c);
-//                        } else {
-//                            System.out.println(this.getClass() + "::setStorage() : Type " + c.getClass() + "is not known to handle for building Timelines.");
-//                        }
-//                    }
-//
-//                    TimelinePanel.this.updateCheckboxPanel();
-//
-//                    TimelinePanel.this.updateChart(title);
-//
-//                    TimelinePanel.this.updateShownTimeSeries();
-//
-//                    for (CollectionChangedListener ci : collectionListener) {
-//                        ci.collectionChanged();
-//                    }
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//        };
-//        if (prepareTimelinesInThread) {
-//            t.start();
-//        } else {
-//            t.run();
-//        }
-//    }
     /**
      * Returns the time from starttime as 1.1.1970 00:00:00
      *
@@ -688,69 +623,6 @@ public class TimelinePanel extends JPanel {
         return average;
     }
 
-//    /**
-//     * Because in step mode every timereries contains every value twice, it is
-//     * necessary to skip every second value
-//     *
-//     * @param ts
-//     * @param maxinvolvedPeriods
-//     * @param name
-//     * @param c
-//     * @return
-//     */
-//    public static TimeSeries createMovingaverageCentral_Steps(TimeSeries ts, int maxinvolvedPeriods, String name, Color c) {
-//
-//        SeriesKey oldKey = (SeriesKey) ts.getKey();
-//        Color colorNew = c;
-//        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axis);
-//        System.out.println("build mean steps " + oldKey.name);
-//        newKey.shape = ShapeEditor.SHAPES.DOT;
-//        TimeSeries average = new TimeSeries(newKey);
-//        int minIndex = maxinvolvedPeriods + 1;
-//        int maxIndex = ts.getItemCount() - maxinvolvedPeriods;
-//        int radius = maxinvolvedPeriods;
-//        double nenner = (radius + 1.);
-////        boolean verbose = name.startsWith("c_mat");
-//        for (int i = minIndex; i < maxIndex; i = i + 2) {
-//            double sum = 0;
-//            RegularTimePeriod p = ts.getTimePeriod(i);
-//            for (int j = i - radius; j < i + radius; j = j + 2) {
-//                sum += ts.getDataItem(j).getValue().doubleValue();
-//            }
-//            double wert = sum / nenner;
-//            average.add(p, wert);
-//        }
-//        return average;
-//    }
-//    public static TimeSeries createConcentrationMovingaverageCentral(TimeLineMeasurement mtm, int maxinvolvedPeriods) {
-//
-//        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of Concentration", maxinvolvedPeriods + " mean c", "kg/m³", Color.GREEN, AxisKey.CONCENTRATION());
-//        TimeSeries average = new TimeSeries(newKey);
-//        int minIndex = maxinvolvedPeriods / 2 + 1;
-//        int maxIndex = mtm.getContainer().getNumberOfTimes() - maxinvolvedPeriods / 2;
-//        int radius = maxinvolvedPeriods / 2;
-//        double nenner = (2. * radius + 1.);
-//        for (int i = minIndex; i < maxIndex; i++) {
-//            double sum = 0;
-//            Date d;
-//
-//            d = new Date(mtm.getContainer().getTimeMillisecondsAtIndex(i));
-//
-//            RegularTimePeriod p = new Millisecond(d);
-//            double counter = 0;
-//            for (int j = i - radius; j < i + radius; j++) {
-//                if (mtm.hasValues(j)) {
-//                    sum += mtm.getConcentration(j);
-//                }
-//
-//                counter++;
-//            }
-//            double wert = sum / counter;
-//            average.add(p, wert);
-//        }
-//
-//        return average;
-//    }
     public TimeSeriesCollection getCollection() {
         return collection;
     }
