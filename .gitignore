@@ -8,3 +8,7 @@ tiles
 /GULLItest/GULLItest/build
 /GULLItest/GULLItest/nbproject
 /GULLItest
+/GULLIcore/dist/
+/GULLIview/dist/
+/GULLIview/nbproject/private
+/GULLIcore/nbproject/private
