@@ -9,7 +9,6 @@ import control.scenario.injection.InjectionInformation;
 import io.GeoJSON_IO;
 import io.SHP_IO_GULLI;
 import io.extran.HE_SurfaceIO;
-import io.web.SFTP_Client;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -26,12 +25,15 @@ import model.topology.Manhole;
 import org.jfree.ui.action.ActionMenuItem;
 import org.openstreetmap.gui.jmapviewer.source.MyOSMTileSource;
 import view.MapViewer;
-import view.PaintManager;
 import view.SimpleMapViewerFrame;
 import view.ViewController;
 
 /**
+ * The Run Class to start the GUI with a Simulation. After the run, shapefiles
+ * with the contaminated area are created inside the input folder.
  * Generic_unsteady_lagrangian_locatIng
+ *
+ *
  *
  * @author saemann
  */
@@ -52,49 +54,51 @@ public class RunMainView {
      */
     public static void main(String[] args) throws Exception {
         //Der Controller koordiniert alle einzelnen Module und startet die Benutzeroberfläche.
-
+        //Control links all model and io components and stores the mesh and all simulation-related information
         final Controller control = new Controller();
+        //ViewController links the Controller to the GUI
         ViewController vcontroller = new ViewController(control);
+        //The Main Frame containing the Map.
         final SimpleMapViewerFrame frame = vcontroller.getMapFrame();
-        final PaintManager paintManager = vcontroller.getPaintManager();
 
         //Zeitschrittweite für Partikalbewegung setzen (Sekunden)
+        //Set Deltatime for the particlesimulation (in seconds)
         control.getThreadController().setDeltaTime(1);
 
         //Benutzeroberfläche Hintergrundkarte anpassen.
+        //Set the Background map for the main frame.
         MapViewer.verboseExceptions = true;
         vcontroller.getMapViewer().setBaseLayer(MyOSMTileSource.BaseLayer.CARTO_LIGHT.getSource());
         vcontroller.getMapViewer().recomputeCopyright();
 
+        //////////
+        // Loading Simulation input files.
+        //   they are coordinated by the LoadingCooordinator, that can search for related and consistent files.
         final LoadingCoordinator lc = control.getLoadingCoordinator();
 
         //Automatisches Suchen und einlesen der Inputfiles, die mit dem HE-Result verknüpft sind.
-        if (lc.getFilePipeResultIDBF() == null) {
-            //Start file can be set in the GULLI.ini after first start in the main folder.
-            File startFile = new File(StartParameters.getStartFilePath());
+        //Start file can be set in the GULLI.ini after first start in the main folder.
+        // Give the path to the HYSTEM EXTRAN RESULT FILE under the Key "StartFile=".
+        File startFile = new File(StartParameters.getStartFilePath());
 
-            //COooment this out, if you want to use the ini-file input loaded before.
-//            startFile = new File("L:\\HE2D_20190620_RobertDach.result\\Ergebnis.idbr");
-            startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
+        if (startFile == null || !startFile.exists()) {
+            //Fallback, if nothing was set in the GULLi.ini
+//            startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
+        }
 
-            if (startFile == null || !startFile.exists()) {
-                //Fallback, if nthing was set in the GULLi.ini
-                startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
-            }
+        if (startFile.exists()) {
+            //Try to crawl all dependent files from the information stored in the He result file.
+            lc.requestDependentFiles(startFile, true, true);
 
-            if (startFile.exists()) {
-                //Try to crawl all dependent files from the information stored in the He result file.
-                lc.requestDependentFiles(startFile, true, true);
+        } else {
+            System.out.println("startfile does not exist");
+        }
 
-                //Otherwise set them manually
+         //Otherwise set all the input files manually
 //                lc.setPipeNetworkFile(NETWORKFILE);
 //                lc.setPipeResultsFile(NETWORKVELOCITIES);
 //                lc.setSurfaceTopologyDirectory(SURFACE DIRECTORY);
 //                lc.setSurfaceWaterlevelFile(SURFACEWATERLEVELANDVELOCITY);
-            } else {
-                System.out.println("startfile does not exist");
-            }
-        }
         //Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
         lc.loadingFinishedListener.add(new Runnable() {
             @Override
@@ -107,7 +111,7 @@ public class RunMainView {
                 //Automatic start after loading loop has finished.   
                 if (true) {
                     //Sensitivity Paper 
-                    if (true) {
+                    if (false) {
                         //Paper scenario 
                         int anzahl = 3000;
                         Manhole mh = control.getNetwork().getManholeByName("MU04S503");
@@ -116,6 +120,22 @@ public class RunMainView {
                             lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
                             lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+10", 1000, true, 1), 9 * 60, 7 * 60));
                             lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+20", 1000, true, 2), 19 * 60, 7 * 60));
+
+                        } catch (NullPointerException nullPointerException) {
+                            System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                        }
+                    }
+
+                    //Buchkapitel
+                    if (true) {
+                        //Paper scenario 
+                        int anzahl = 100000 / 3;
+                        Manhole mh = control.getNetwork().getManholeByName("RI09S515");
+                        System.out.println("add 3 Injection at " + mh);
+                        try {
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 7 * 60));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 7 * 60));
 
                         } catch (NullPointerException nullPointerException) {
                             System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
@@ -161,49 +181,13 @@ public class RunMainView {
         lc.startLoadingRequestedFiles(true);
 
         //Write results after finishing
+        //This function is called after a simulation has finished.
+        //  here the result shapefiles (shp & geojson) are created.
         control.getThreadController().addSimulationListener(new SimulationActionAdapter() {
             @Override
             public void simulationFINISH(boolean timeOut, boolean particlesOut
             ) {
                 try {
-//                    if (control.getSurface() != null) {
-//                        int particleCount = 0;
-////                        for (InjectionInformation injection : control.getScenario().getInjections()) {
-////                            particleCount += injection.getNumberOfParticles();
-////                        }
-////                        File surfaceOutCsv = new File(control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile(), "surfaceContamination" + particleCount + ".csv");
-////                        HE_SurfaceIO.writeSurfaceContaminationCSV(surfaceOutCsv, control.getSurface());
-////                        System.out.println("Contamination on Surface written to " + surfaceOutCsv.getAbsolutePath());
-//
-//                    }
-                    //Draw shortcuts
-//                    if (control.getMapFrame() != null && control.getPaintManager() != null) {
-//                        control.getPaintManager().drawShortcuts();
-//                    }
-
-//                    if (false) {
-//                        //paper ausschnitt
-//                        paintManager.setSurfaceShow(PaintManager.SURFACESHOW.CONTAMINATIONCLUSTER);
-//
-//                        frame.getMapViewer().setZoom(17);
-//                        frame.getMapViewer().setDisplayPositionByLatLon(52.3475, 9.7222, 17);
-//                        frame.setBounds(300, 100, 500, 450);
-//                        frame.getMapViewer().showLegend = false;
-//                        frame.getMapViewer().setShowLegendInExportFile(false);
-//
-//                        for (Layer layer : frame.getMapViewer().getLayers()) {
-////                            System.out.println(layer + " ");
-//                            if (layer.getKey().contains("MH")) {
-//                                layer.setVisibleInMap(false);
-//                            } else if (layer.getKey().contains("Pip")) {
-//                                layer.setVisibleInMap(false);
-//                            } else if (layer.getKey().contains("INL")) {
-//                                layer.setVisibleInMap(false);
-//                            } else if (layer.getKey().toLowerCase().contains("ptc")) {
-//                                layer.setVisibleInMap(false);
-//                            }
-//                        }
-//                    }
                     //Create shapefiles
                     new Thread() {
 
@@ -213,12 +197,6 @@ public class RunMainView {
                                 if (control.getSurface() == null) {
                                     return;
                                 }
-                                SFTP_Client sftp = null;
-//                                try {
-//                                    sftp = SFTP_Client.FromFile(StartParameters.getProgramDirectory() + "\\SFTP.ini");
-//                                } catch (Exception iOException) {
-//                                    iOException.printStackTrace();
-//                                } 
                                 for (int m = -1; m < control.getSurface().getNumberOfMaterials(); m++) {
 
                                     int materialindex = m; //<0 = all
@@ -274,7 +252,7 @@ public class RunMainView {
                                         mercator[i] = geom;
 
                                         GeoJSON_IO.JSONProperty[] props = new GeoJSON_IO.JSONProperty[3];
-                                        props[0] = new GeoJSON_IO.JSONProperty("stoff", "Benzin");
+                                        props[0] = new GeoJSON_IO.JSONProperty("stoff", materialName);
                                         props[1] = new GeoJSON_IO.JSONProperty("eventid", 0);
                                         props[2] = new GeoJSON_IO.JSONProperty("part", i);
                                         mercator[i].setUserData(props);
@@ -282,41 +260,6 @@ public class RunMainView {
                                     geojson.write(jsonfile, mercator);
                                     System.out.println("Shapefiles written to " + jsonfile.getAbsolutePath());
 
-                                    //Upload to official Server
-                                    try {
-                                        if (sftp != null) {
-                                            sftp.upload(jsonfile, "isu2");
-                                        }
-                                    } catch (Exception exception) {
-                                        exception.printStackTrace();
-                                    }
-//                                    //Upload to FTP Test server
-//                                    try {
-//                                        FTP_Client ftp = new FTP_Client();
-//                                        FTPClient client = ftp.getClient();
-//                                        if (client.isConnected()) {
-//                                            client.upload(jsonfile, 0);
-//                                            System.out.println("Uploaded "+jsonfile.getName()+" to "+client.getHost());
-//                                        } else {
-//                                            System.err.println("Client not connected. Can not upload geojson files to webserver.");
-//
-//                                        }
-//                                    } catch (java.net.SocketTimeoutException ex) {
-//                                        ex.printStackTrace();
-////                        System.err.println("No connection to server established.");
-//                                    } catch (FileNotFoundException ex) {
-//                                        Logger.getLogger(Controller.class
-//                                                .getName()).log(Level.SEVERE, null, ex);
-//                                    } catch (FTPDataTransferException ex) {
-//                                        Logger.getLogger(Controller.class
-//                                                .getName()).log(Level.SEVERE, null, ex);
-//                                    } catch (FTPAbortedException ex) {
-//                                        Logger.getLogger(Controller.class
-//                                                .getName()).log(Level.SEVERE, null, ex);
-//                                    } catch (NoClassDefFoundError err) {
-//                                        Logger.getLogger(Controller.class
-//                                                .getName()).log(Level.SEVERE, null, err);
-//                                    }
                                 }
                             } catch (IOException ex) {
                                 Logger.getLogger(Controller.class
