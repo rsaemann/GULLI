@@ -2344,7 +2344,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
 
         int nextID = -1;
-        boolean boundaryFound = false;
+//        boolean boundaryFound = false;
         //find triangle with same edge 
         boolean foundoneEdgenode = false;
         int testNode0, testNode1;
@@ -2419,15 +2419,14 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
         }
 
-        if (!found) {
-            boundaryFound = true;
-//            System.out.println("nothing found -> boundary");
-        } else {
-//            System.out.println("found " + nextID);
-        }
+//        if (!found) {
+//            boundaryFound = true;
+////            System.out.println("nothing found -> boundary");
+//        } else {
+////            System.out.println("found " + nextID);
+//        }
 
-        if (nextID >= 0 && leftIterations
-                > 0) {
+        if (nextID >= 0 && leftIterations > 0) {
             leftIterations--;
             return getTargetTriangleID(p, nextID, xold, yold, x, y, leftIterations);
         }

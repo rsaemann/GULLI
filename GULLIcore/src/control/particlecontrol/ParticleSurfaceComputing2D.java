@@ -85,6 +85,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     public ParticleSurfaceComputing2D(Surface surface, long seed) {
         this.surface = surface;
+        this.seed = seed;
         this.random = new Random(seed);
     }
 

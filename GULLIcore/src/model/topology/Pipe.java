@@ -1,17 +1,13 @@
 package model.topology;
 
 import control.GlobalParameter;
-import java.awt.Color;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFrame;
 import model.particle.Particle;
 import model.particle.ParticleQueue;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.TimeLinePipe;
-import model.topology.profile.CircularProfile;
 import model.topology.profile.Medium;
 import model.topology.profile.Profile;
 

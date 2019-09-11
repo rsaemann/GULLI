@@ -233,7 +233,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     boolean needToCopy = true;
                     if (f.exists()) {
                         if (keepSaemSizeFile && f.length() == databaseFile.length() && f.lastModified() >= databaseFile.lastModified()) {
-
                             needToCopy = false;
                         }
                     }
@@ -241,9 +240,32 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     if (needToCopy) {
                         //Copy remote to local file.
 //                        System.out.println(f.getAbsolutePath()+" readable?"+f.canRead()+"  write?"+f.canWrite());
-                        Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
-                        if (verbose) {
-                            System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
+                        boolean successCopy = false;
+//                        if (f.canWrite() && databaseFile.canRead()) {
+                            try {
+                                Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
+                                if (verbose) {
+                                    System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
+                                }
+                                successCopy = true;
+                            } catch (Exception exception) {
+                                exception.printStackTrace();
+                                successCopy = false;
+                            }
+//                        }
+                        if (!successCopy) {
+                            f = new File(f.getParentFile(), f.getName() + "_1." + f.getName().substring(f.getName().length() - 4));
+                            System.err.println("Need to create new temporary file: " + f);
+                            try {
+                                Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
+                                if (verbose) {
+                                    System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
+                                }
+                                successCopy = true;
+                            } catch (Exception exception) {
+                                exception.printStackTrace();
+                                successCopy = false;
+                            }
                         }
                     } else {
                         if (verbose) {
@@ -434,13 +456,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (Network.crsUTM == null) {
 //                    System.out.println("Axis: "+crsDB.getCoordinateSystem().getAxis(0).toString());
                     try {
-                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.")||crsDB.getCoordinateSystem().toString().contains("UTM")) {
+                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.") || crsDB.getCoordinateSystem().toString().contains("UTM")) {
                             if (verbose) {
                                 System.out.println(this.getClass() + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
                             }
                             Network.crsUTM = crsDB;
                         } else {
-                            System.out.println("tested Sring:'"+crsDB.getCoordinateSystem().toString()+"'");
+                            System.out.println("tested Sring:'" + crsDB.getCoordinateSystem().toString() + "'");
                             System.out.println(this.getClass() + "::loadNetwork: Coordinatensystem der Datenbank ist nicht cartesisch: " + crsDB);
                             Network.crsUTM = CRS.decode("EPSG:25832");
                         }

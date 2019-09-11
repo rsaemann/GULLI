@@ -35,7 +35,6 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.particle.Particle;
@@ -152,12 +151,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         barrier_sync.initialize();
 
-//        barrier_hydrodynamics = new MultiThreadBarrier<>("HydrodynamicsBarrier", this);
-//        HydrodynamicsThread hydrodynamicsThread = new HydrodynamicsThread("HydrodynamicsThread", 0, barrier_hydrodynamics, null);
-//        hydrodynamicsThread.useTimelines = useTimelineInput;
-//
-//        barrier_hydrodynamics.addThread(hydrodynamicsThread);
-//        barrier_hydrodynamics.initialize();
         controlThread = new ControlThread();
         controlThread.start();
     }
@@ -515,10 +508,9 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     if (simulationTimeMS > simulationTimeEnd) {
                         System.out.println("Simulation time end reached!");
                         calculationFinished = true;
-                        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time.\telapsed calculation time=" + calculationTimeElapsed + "ms");
-                        for (SimulationActionListener l : listener) {
-                            l.simulationFINISH(true, particlesReachedOutlet);
-                        }
+//                        for (SimulationActionListener l : listener) {
+//                            l.simulationFINISH(true, particlesReachedOutlet);
+//                        }
                     }
 
                     //Send new Timeinformation to all timelines pipe/manhole/surface/soil
@@ -535,12 +527,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         }
                     }
                     if (particlesReachedOutlet) {
-//                        System.out.println("SYNC :: All particles reached outlet");
+                        System.out.println("SYNC :: All particles reached outlet");
                         calculationFinished = true;
-                        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time. \telapsed calculation time=" + calculationTimeElapsed + "ms");
-                        for (SimulationActionListener l : listener) {
-                            l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
-                        }
+//                        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time. \telapsed calculation time=" + calculationTimeElapsed + "ms");
+//                        for (SimulationActionListener l : listener) {
+//                            l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
+//                        }
                     }
                     if (steps % paintingInterval == 0) {
                         barrier_positionUpdate.setSimulationtime(simulationTimeMS);
@@ -555,6 +547,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                     if (calculationFinished) {
                         run = false;
+                        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time.\telapsed calculation time=" + calculationTimeElapsed + "ms");
+
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
                         }
@@ -618,7 +612,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //            t.pc.randDist.setRandomGenerator(new Random(seed+));
 //        }
 //    }
-
     public Thread initStatusThread() {
         final ThreadController tc = this;
 

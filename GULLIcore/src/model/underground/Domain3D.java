@@ -125,7 +125,7 @@ public class Domain3D {
             double dx = (p.x - c.x);
             double dy = (p.y - c.y);
             double dz = (p.z - c.z);
-            double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            double distance = dx * dx + dy * dy + dz * dz;//No need for sqrt as it only slows the process
             if (distance < bestdistance) {
                 bestdistance = distance;
                 bestindex = i;

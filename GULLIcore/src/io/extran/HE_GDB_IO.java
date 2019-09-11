@@ -234,8 +234,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 GeoFeature maxfeature = layerWaterlevels.getFeature(layerWaterlevels.getFeatureCount());
                 if (maxfeature == null) {
                     System.out.println(getClass() + ":: can not get maxfeature " + layerWaterlevels.getFeatureCount());
-                    maxfeature = layerWaterlevels.getFeature(layerWaterlevels.getFeatureCount() - 1);
-                    System.out.println("use " + (layerWaterlevels.getFeatureCount() - 1) + " : " + maxfeature);
+                    maxfeature = layerWaterlevels.getFeature(layerWaterlevels.getFeatureCount());
+                    System.out.println("use " + (layerWaterlevels.getFeatureCount()) + " : " + maxfeature);
                 }
                 GeoFieldValue mavalue = maxfeature.getValue(indexWLid);
                 maxTriangleID = mavalue.intValue();
@@ -250,7 +250,9 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
             int i = 0;
             for (GeoField field : layer.getFields()) {
                 String name = field.getName();
-                if(name==null)continue;
+                if (name == null) {
+                    continue;
+                }
                 //Find indices for fast access
                 if (name.equals("V_Max")) {
                     indexVMax = i;
@@ -286,6 +288,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 this.numberOftriangles = numberOfFeatures;
             }
         }
+        
     }
 
     /**
@@ -343,6 +346,13 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         return layerVelocity;
     }
 
+    /**
+     * Reads the waterlevels for all triangles for the given timeindex (starting
+     * with 0).
+     *
+     * @param timeindex
+     * @return
+     */
     public double[] readWaterlevels(int timeindex) {
         if (layerWaterHeight == null) {
             throw new UnsupportedOperationException("GDB '" + directory.getAbsolutePath() + "' does not contain Waterlevel information.");
@@ -355,8 +365,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         }
         //Normal Surface with all triangles.
         //initialize waterlevel history storage
-        double[] wl = new double[(int) (maxTriangleID - 1)];
-//        double[] wlmax = new double[wl.length];
+        double[] wl = new double[(int) (maxTriangleID +1)];
         GeoLayer layer = db.layer(layerWaterHeight);
         for (GeoFeature f : layer) {
             int id = f.getValue(indexWLid).intValue();
@@ -1148,7 +1157,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         }
 
         try {
-           
+
             GeoFeature feature = getFeature(handle.table, indexVid, triangleID);
             handle.busy = false;
             float[][] v = new float[velocityTimeSteps][2];

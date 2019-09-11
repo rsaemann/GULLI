@@ -408,7 +408,12 @@ public class ShapeTools {
                     triangles.add((Polygon) gf.createPolygon(coords).buffer(0.0001, 1));
                 }
 
-                Geometry union = CascadedPolygonUnion.union(triangles);
+                Geometry union = null;
+                try {
+                    union = CascadedPolygonUnion.union(triangles);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 if (union == null) {
 //                    System.err.println("ShapeTools::createShapesWGS84: union of " + triangles.size() + " triangles is null.");
                 } else {
