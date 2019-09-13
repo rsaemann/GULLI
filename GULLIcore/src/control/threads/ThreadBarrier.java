@@ -73,6 +73,11 @@ public abstract class ThreadBarrier<T extends Thread> implements ThreadListener<
     public ThreadController getThreadController() {
         return notifyWhenReady;
     }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
     
     
 

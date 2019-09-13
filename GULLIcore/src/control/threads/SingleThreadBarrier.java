@@ -74,4 +74,11 @@ public class SingleThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return getName()+":Thread:"+thread.getName()+":"+thread.getState();
+    }
+    
+    
 }

@@ -51,15 +51,15 @@ public interface TimeLinePipe {
      * @param temporalIndex
      * @return
      */
-    public float getFlux(int temporalIndex);
+    public float getDischarge(int temporalIndex);
 
     /**
-     * Reference mass [kg] of solute in pipe volume if given.
+     * Reference massflux [kg/s] of solute in pipe volume if given.
      *
      * @param temporalIndex
      * @return
      */
-    public float getMass_reference(int temporalIndex);
+    public float getMassflux_reference(int temporalIndex);
  /**
      * Reference Concentration [kg/m³] of pollution in pipe volume if given.
      *
@@ -73,7 +73,7 @@ public interface TimeLinePipe {
      *
      * @return
      */
-    public boolean hasMass_reference();
+    public boolean hasMassflux_reference();
 
     /**
      * Number of timestamps where values are known.
@@ -94,7 +94,7 @@ public interface TimeLinePipe {
      *
      * @return
      */
-    public double getFlux();
+    public double getDischarge();
 
     /**
      * Waterlevel in pipe at actual timestep.

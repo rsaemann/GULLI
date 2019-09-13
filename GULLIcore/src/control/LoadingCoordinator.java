@@ -106,6 +106,12 @@ public class LoadingCoordinator implements LoadingActionListener {
      */
     public static boolean verbose = false;
 
+    /**
+     * Add Injections from the scenario (e.g. HE Schmutzfrachteinleitung) as
+     * Injectionspills of this scenario.
+     */
+    public boolean loadInputInjections = true;
+
     private boolean isLoading = false;
 
     public final Action action = new Action("LoadingCoordinator", null, false);
@@ -269,9 +275,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                         if (surface != null) {
                             action.progress = 0f;
                             loadSurfaceVelocity(surface);
-                        }else{
-                            loadingSurfaceVelocity=LOADINGSTATUS.ERROR;
-                            
+                        } else {
+                            loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
+
                         }
                     }
 
@@ -424,7 +430,11 @@ public class LoadingCoordinator implements LoadingActionListener {
                         }
                         resultName = resultDatabase.readResultname();
                         action.description = "Load spill events";
-                        injection = resultDatabase.readInjectionInformation();
+                        if (this.loadInputInjections) {
+                            injection = resultDatabase.readInjectionInformation();
+                        } else {
+                            injection = new ArrayList<>(0);
+                        }
                         if (sparsePipeLoading) {
                             long starttime = System.currentTimeMillis();
                             //Find injection manholes

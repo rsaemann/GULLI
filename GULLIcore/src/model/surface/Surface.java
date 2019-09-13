@@ -118,6 +118,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     private float[][][] velocityNodes;
 
+    private float[] zeroVelocity = new float[2];
+
     public int status = -1, vstatus = -1;
 
     /**
@@ -1244,6 +1246,11 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         return new float[]{(float) (lower[0] + (upper[0] - lower[0]) * frac), (float) (lower[1] + (upper[1] - lower[1]) * frac)};
     }
 
+    public float[] getTriangleVelocity(int triangleID, int indexInteger) {
+        return getTriangleVelocity(triangleID)[indexInteger];
+
+    }
+
     // get velocities at the triangle nodes via neighbouring weights 
     public void loadSparseNodeVelocity2D(int nodeID) {
 //        long start = System.currentTimeMillis();
@@ -2234,7 +2241,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
          */
         // barycentric koordinate weighing for velocity calculation
         double[] w = getBarycentricWeighing(x1, x2, x3, y1, y2, y3, paltx, palty);
-        if (calculateWeighted && velocityNodes != null && weight != null) {
+        if (calculateWeighted && velocityNodes != null) {
 
             if (velocityNodes[t0] == null) {
                 loadSparseNodeVelocity2D(t0);
@@ -2259,17 +2266,61 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         } else {
             //If no weights are calculated, just use mean velocity from neighbouring triangle nodes.
             if (timeInterpolatedValues) {
+
                 float[] vt = getTriangleVelocity(triangleID, timeIndex);
-                float[] v0 = getTriangleVelocity(t0, timeIndex);
-                float[] v1 = getTriangleVelocity(t1, timeIndex);
-                float[] v2 = getTriangleVelocity(t2, timeIndex);
+                //neighbours:
+                int nb0 = neumannNeighbours[triangleID][0];
+                int nb1 = neumannNeighbours[triangleID][1];
+                int nb2 = neumannNeighbours[triangleID][2];
+
+                float[] v0;
+                if (nb0 < 0) {
+                    v0 = zeroVelocity;
+                } else {
+                    v0 = getTriangleVelocity(nb0, timeIndex);
+                }
+                float[] v1;
+                if (nb1 < 0) {
+                    v1 = zeroVelocity;
+                } else {
+                    v1 = getTriangleVelocity(nb1, timeIndex);
+                }
+                float[] v2;
+                if (nb2 < 0) {
+                    v2 = zeroVelocity;
+                } else {
+                    v2 = getTriangleVelocity(nb2, timeIndex);
+                }
                 velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
                 velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
             } else {
                 float[] vt = getTriangleVelocity(triangleID)[timeIndexInt];
-                float[] v0 = getTriangleVelocity(t0)[timeIndexInt];
-                float[] v1 = getTriangleVelocity(t1)[timeIndexInt];
-                float[] v2 = getTriangleVelocity(t2)[timeIndexInt];
+//                float[] v0 = getTriangleVelocity(t0)[timeIndexInt];
+//                float[] v1 = getTriangleVelocity(t1)[timeIndexInt];
+//                float[] v2 = getTriangleVelocity(t2)[timeIndexInt];
+                //neighbours:
+                int nb0 = neumannNeighbours[triangleID][0];
+                int nb1 = neumannNeighbours[triangleID][1];
+                int nb2 = neumannNeighbours[triangleID][2];
+
+                float[] v0;
+                if (nb0 < 0) {
+                    v0 = new float[]{0, 0};
+                } else {
+                    v0 = getTriangleVelocity(nb0, timeIndexInt);
+                }
+                float[] v1;
+                if (nb1 < 0) {
+                    v1 = new float[]{0, 0};
+                } else {
+                    v1 = getTriangleVelocity(nb1, timeIndexInt);
+                }
+                float[] v2;
+                if (nb2 < 0) {
+                    v2 = new float[]{0, 0};
+                } else {
+                    v2 = getTriangleVelocity(nb2, timeIndexInt);
+                }
                 velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
                 velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
             }
@@ -2344,7 +2395,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
 
         int nextID = -1;
-//        boolean boundaryFound = false;
+        boolean boundaryFound = false;
         //find triangle with same edge 
         boolean foundoneEdgenode = false;
         int testNode0, testNode1;
@@ -2419,12 +2470,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
         }
 
-//        if (!found) {
-//            boundaryFound = true;
-////            System.out.println("nothing found -> boundary");
-//        } else {
-////            System.out.println("found " + nextID);
-//        }
+        if (!found) {
+            boundaryFound = true;
+//            System.out.println("nothing found -> boundary");
+        } else {
+//            System.out.println("found " + nextID);
+        }
 
         if (nextID >= 0 && leftIterations > 0) {
             leftIterations--;

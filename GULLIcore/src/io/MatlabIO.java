@@ -206,16 +206,16 @@ public class MatlabIO {
 
             try {
                 ArrayTimeLinePipe tl = new ArrayTimeLinePipe(pipeTLcontainer, i - 1);
-//                tl.setFlux(vs.get(1, i), 0);
+//                tl.setDischarge(vs.get(1, i), 0);
                 tl.setVelocity(vs.get(1, i), 0);
                 tl.setWaterlevel(hs.get(1, i), 0);
-                tl.setMass_reference(phis.get(1, i) * hs.get(1, i), 0);
+                tl.setMassflux_reference(phis.get(1, i) * hs.get(1, i), 0);
                 for (int t = 1; t < t2.getSize(); t++) {
-//                    tl.setFlux(vs.get(t, i), t);
+//                    tl.setDischarge(vs.get(t, i), t);
                     tl.setVelocity(vs.get(t, i), t);
                     tl.setWaterlevel(hs.get(t, i), t);
-                    tl.setFlux(vs.get(t, i), t);
-                    tl.setMass_reference(phis.get(t, i) * hs.get(t, i), t);
+                    tl.setDischarge(vs.get(t, i), t);
+                    tl.setMassflux_reference(phis.get(t, i) * hs.get(t, i), t);
                 }
 //                float volumen = (float) ( p.getProfile().getFlowArea(hs.get(2, i)) * p.getLength());
                 double particlemass = phis.get(1, i) * hs.get(1, i) * dx;

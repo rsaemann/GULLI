@@ -29,6 +29,8 @@ import control.Action.Action;
 import control.listener.LoadingActionListener;
 import control.listener.ParticleListener;
 import control.multievents.PipeResultData;
+import control.particlecontrol.DiffusionCalculator2D;
+import control.particlecontrol.ParticleSurfaceComputing2D;
 import control.scenario.injection.InjectionInformation;
 import control.scenario.Scenario;
 import control.threads.ParticleThread;
@@ -186,8 +188,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
         this.network = newNetwork;
 
-        
-
         //Reference Injections, if Capacity was only referenced ba its name.
         for (InjectionInformation injection : loadingCoordinator.getInjections()) {
             if (injection.spillInManhole() && injection.getCapacity() == null) {
@@ -211,6 +211,23 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     public void setDispersionCoefficientPipe(double K) {
         ParticlePipeComputing.setDispersionCoefficient(K);
+    }
+
+    /**
+     * Sets the diffusion coefficient to all particlesurfce computing objects in
+     * their directD calculation array.
+     *
+     * @param K
+     */
+    public void setDispersionCoefficientSurface(double K) {
+        try {
+            for (ParticleThread particleThread : threadController.getParticleThreads()) {
+                DiffusionCalculator2D d = ((ParticleSurfaceComputing2D) particleThread.getSurfaceComputing()).getDiffusionCalculator();
+                d.directD = new double[]{K, K, K};
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void loadScenario(Scenario sce) {
@@ -455,7 +472,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //        c = geoTools.toGlobal(c);
 //        return new Position(c.y, c.x, x, y);
 //    }
-
     public Network getNetwork() {
         return network;
     }
@@ -713,7 +729,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 for (InjectionInformation in : scenario.getInjections()) {
 
                     if (in.spillOnSurface()) {
-//                         if (in.spillOnSurface()) {
                         if (in.getTriangleID() < 0) {
 
                             if (in.getPosition() != null) //search for correct triangle
@@ -732,7 +747,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                                 }
                             }
                         }
-//                            }
 
                         ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
                         for (Particle p1 : p) {

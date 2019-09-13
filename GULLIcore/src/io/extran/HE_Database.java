@@ -242,16 +242,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //                        System.out.println(f.getAbsolutePath()+" readable?"+f.canRead()+"  write?"+f.canWrite());
                         boolean successCopy = false;
 //                        if (f.canWrite() && databaseFile.canRead()) {
-                            try {
-                                Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
-                                if (verbose) {
-                                    System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
-                                }
-                                successCopy = true;
-                            } catch (Exception exception) {
-                                exception.printStackTrace();
-                                successCopy = false;
+                        try {
+                            Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
+                            if (verbose) {
+                                System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
                             }
+                            successCopy = true;
+                        } catch (Exception exception) {
+                            exception.printStackTrace();
+                            successCopy = false;
+                        }
 //                        }
                         if (!successCopy) {
                             f = new File(f.getParentFile(), f.getName() + "_1." + f.getName().substring(f.getName().length() - 4));
@@ -963,7 +963,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     ArrayTimeLinePipe tl = (ArrayTimeLinePipe) pipe.getStatusTimeLine();
                     tl.setVelocity(v, timeIndex);
                     tl.setWaterlevel(h, timeIndex);
-                    tl.setFlux(q, timeIndex);
+                    tl.setDischarge(q, timeIndex);
                 }
                 timeIndex++;
             }
@@ -995,6 +995,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
             // Konzentration mg/l = g/m^3
             // Frachtrate  kg/s
             id = Integer.MIN_VALUE;
+
+            System.out.println("Lses schmutzfracht ein");
             while (res.next()) {
                 int heID = res.getInt(1);
                 String heName = res.getString(2);
@@ -1009,12 +1011,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     time = res.getTimestamp(3).getTime();
                 }
                 double frachtrate = res.getDouble(4);
+                double concentration = res.getDouble(5);
                 if (id != heID) {
                     pipe = net.getPipeByName(heName);
                     id = heID;
                 }
                 timeIndex = ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).container.getTimeIndex(time);
-                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setMass_reference((float) frachtrate, timeIndex);
+                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setMassflux_reference((float) frachtrate, timeIndex);
+                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setConcentration_Reference((float) concentration, timeIndex);
             }
         }
         return new Pair<>(container, manholeContainer);
@@ -1168,10 +1172,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
         rs = st.executeQuery(qstring);
         Material m = new Material("Stofff", 1000, true);
         while (rs.next()) {
-            double wert = rs.getDouble("EINZELWERT_von24") / 24 * rs.getDouble("STOFFWERT_von24") / 24;
+            double tfactor = rs.getDouble("EINZELWERT_von24") * rs.getDouble("STOFFWERT_von24");
+            double lps = rs.getDouble("ZUFLUSSDIREKT_LperS");
+            double c = rs.getDouble("KONZENTRATION_MGperL");
+
             int rf = rs.getInt("Startzeit");
             long starttime = daystart.getTime() + (long) ((rf) * 60 * 60 * 1000);
             long endtime = daystart.getTime() + (long) ((rf + 1) * 60 * 60 * 1000);
+            double injectionTime = (endtime - starttime) / 1000;
+            double wert = tfactor * c * lps * injectionTime / 1000000.;
+
+            System.out.println("Scenario injection: c=" + c + "mg/l,  q=" + lps + "L/s, timevariation:" + tfactor + ", duration:" + injectionTime + "s = total: " + wert + "kg");
+
             try {
                 HEInjectionInformation info = new HEInjectionInformation(rs.getString("ROHR"), starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
                 particles.add(info);
@@ -1846,7 +1858,19 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Connection c = getConnection();
                 Statement st = c.createStatement();
                 //in HE Database only use Pipe ID.
-                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeMaualID + " ORDER BY ZEITPUNKT ASC");
+                // res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION, AUSLASTUNG"
+                //    + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
+                //    + " ORDER BY KANTESTOFFLAUFEND.KANTE,ZEITPUNKT");
+//                ResultSet rs = st.executeQuery("SELECT (KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeMaualID + " ORDER BY ZEITPUNKT ASC");
+//                ResultSet rs = st.executeQuery("SELECT (KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS, KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT"
+//                        + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
+//                        + " ORDER BY KANTESTOFFLAUFEND.KANTE,KANTESTOFFLAUFEND.ZEITPUNKT");
+                ResultSet rs = st.executeQuery("SELECT (KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.ZEITPUNKT \n"
+                        + "FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL \n"
+                        + "ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE \n"
+                        + "AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT \n"
+                        + "AND KANTESTOFFLAUFEND.ID=" + pipeMaualID + " ORDER BY KANTESTOFFLAUFEND.KANTE,KANTESTOFFLAUFEND.ZEITPUNKT");
+//           
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load KANTESTOFFLAUFEND values for pipe id:" + pipeMaualID + ". It is not found in the database.");
@@ -2472,7 +2496,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Connection c = getConnection();
                 try ( //in HE Database only use Pipe ID.
                         Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ASC")) {
-
+//comes in [mg/l]
                     if (!rs.isBeforeFirst()) {
                         //Result set is empty, there are no concentrations set
                         return concentration;
@@ -2480,7 +2504,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                     int index = 0;
                     while (rs.next()) {
-                        concentration[index] = rs.getFloat(1);
+                        concentration[index] = rs.getFloat(1)*0.001f;
                         index++;
                     }
                 }

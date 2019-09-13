@@ -908,7 +908,7 @@ public class Pipe extends Capacity {
      */
     public double getFlowActual() {
         if(this.timelineStatus==null)return 0;
-        return this.timelineStatus.getFlux();
+        return this.timelineStatus.getDischarge();
     }
 
     public ArrayList<Position3D> getGeometry() {

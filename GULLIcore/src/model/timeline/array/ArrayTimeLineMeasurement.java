@@ -37,6 +37,7 @@ public class ArrayTimeLineMeasurement {
      */
     private double particleMassInTimestep = 0;
 
+
     public ArrayTimeLineMeasurement(ArrayTimeLineMeasurementContainer container, int spatialIndex) {
         this.container = container;
         this.startIndex = container.getNumberOfTimes() * spatialIndex;
@@ -58,7 +59,7 @@ public class ArrayTimeLineMeasurement {
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] * container.counts[index] / (container.volumes[index] * container.messungenProZeitschritt));
+        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] /** container.counts[index]*/ /(float) (container.volumes[index] * container.messungenProZeitschritt));
 
     }
 
@@ -102,6 +103,7 @@ public class ArrayTimeLineMeasurement {
             if (tempmass > maxMass) {
                 maxMass = tempmass;
             }
+//            System.out.println("store mass at time "+timeindex +" counts: "+container.counts[index]);
             double temp_c = (tempmass * container.counts[index] / (container.volumes[index]));
             if (!Double.isInfinite(temp_c) && !Double.isNaN(temp_c)) {
                 if (temp_c > maxConcentration) {

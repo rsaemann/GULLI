@@ -13,7 +13,8 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     protected float v_max = 0, v_mean = 0;
     protected float q_max = 0, q_mean = 0;
     protected float h_max = 0, h_mean = 0;
-    protected float m_max = 0, m_mean = 0;
+    protected float mf_max = 0, mf_mean = 0; //massflux [kg/s]
+    protected float c_max = 0, c_mean = 0; //concentration [kg/m³]
     private long lastcallTime;
     private float vLastCall;
 
@@ -59,12 +60,16 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         return (float) getValue_DoubleIndex(container.waterlevel, temporalIndex);
     }
 
-    public float getFlux_DoubleIndex(double temporalIndex) {
-        return (float) getValue_DoubleIndex(container.flux, temporalIndex);
+    public float getDischarge_DoubleIndex(double temporalIndex) {
+        return (float) getValue_DoubleIndex(container.discharge, temporalIndex);
     }
 
-    public float getMass_reference_DoubleIndex(double temporalIndex) {
-        return (float) getValue_DoubleIndex(container.mass_reference, temporalIndex);
+    public float getMassFlux_reference_DoubleIndex(double temporalIndex) {
+        return (float) getValue_DoubleIndex(container.massflux_reference, temporalIndex);
+    }
+
+    public float getConcentration_reference_DoubleIndex(double temporalIndex) {
+        return (float) getValue_DoubleIndex(container.concentration_reference, temporalIndex);
     }
 
     @Override
@@ -87,29 +92,46 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
      * @return flow [qm/s]
      */
     @Override
-    public float getFlux(int temporalIndex) {
-        return container.flux[getIndex(temporalIndex)];
+    public float getDischarge(int temporalIndex) {
+        return container.discharge[getIndex(temporalIndex)];
     }
 
-    public void setFlux(float value, int temporalIndex) {
-        container.flux[getIndex(temporalIndex)] = value;
+    public void setDischarge(float value, int temporalIndex) {
+        container.discharge[getIndex(temporalIndex)] = value;
     }
 
     @Override
-    public float getMass_reference(int temporalIndex) {
-        return container.mass_reference[getIndex(temporalIndex)];
+    public float getMassflux_reference(int temporalIndex) {
+        return container.massflux_reference[getIndex(temporalIndex)];
     }
 
-    public void setMass_reference(float value, int temporalIndex) {
+    public void setMassflux_reference(float value, int temporalIndex) {
 
-        if (container.mass_reference == null) {
+        if (container.massflux_reference == null) {
             synchronized (container) {
-                if (container.mass_reference == null) {
+                if (container.massflux_reference == null) {
                     container.initMass_Reference();
                 }
             }
         }
-        container.mass_reference[getIndex(temporalIndex)] = value;
+        container.massflux_reference[getIndex(temporalIndex)] = value;
+    }
+
+    @Override
+    public float getConcentration_reference(int temporalIndex) {
+        return container.concentration_reference[getIndex(temporalIndex)];
+    }
+
+    public void setConcentration_Reference(float value, int temporalIndex) {
+
+        if (container.concentration_reference == null) {
+            synchronized (container) {
+                if (container.concentration_reference == null) {
+                    container.initConcentration_Reference();
+                }
+            }
+        }
+        container.concentration_reference[getIndex(temporalIndex)] = value;
     }
 
     public void calculateMaxMeanValues() {
@@ -119,9 +141,9 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         double h_sum = 0;
         h_max = 0;
         double m_sum = 0;
-        m_max = 0;
+        mf_max = 0;
 
-        boolean seemass = container.mass_reference != null;
+        boolean seemass = container.massflux_reference != null;
         for (int i = 0; i < container.getNumberOfTimes(); i++) {
             try {
                 float velocity = container.velocity[i + startIndex];
@@ -132,9 +154,9 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
                 h_sum += lvl;
                 h_max = Math.max(h_max, lvl);
                 if (seemass) {
-                    float mass = container.mass_reference[i + startIndex];
+                    float mass = container.massflux_reference[i + startIndex];
                     m_sum += mass;
-                    m_max = Math.max(m_max, mass);
+                    mf_max = Math.max(mf_max, mass);
                 }
             } catch (Exception e) {
                 System.out.println(" start: " + startIndex + "  + i: " + i + "\t=" + (i + startIndex) + "\t length:" + container.velocity.length);
@@ -143,7 +165,7 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 
         v_mean = (float) (v_sum / (double) container.getNumberOfTimes());
         h_mean = (float) (h_sum / (double) container.getNumberOfTimes());
-        m_mean = (float) (m_sum / (double) container.getNumberOfTimes());
+        mf_mean = (float) (m_sum / (double) container.getNumberOfTimes());
 
         if (Math.abs(v_min) > Math.abs(v_max)) {
             v_max = (float) v_min;
@@ -177,11 +199,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
      * @return
      */
     @Override
-    public double getFlux() {
+    public double getDischarge() {
         if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.STEPS) {
-            return this.getFlux(container.getActualTimeIndex());
+            return this.getDischarge(container.getActualTimeIndex());
         } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.LINEAR_INTERPOLATE) {
-            return this.getFlux_DoubleIndex(container.getActualTimeIndex_double());
+            return this.getDischarge_DoubleIndex(container.getActualTimeIndex_double());
         } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.MAXIMUM) {
             return q_max;
         } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.MEAN) {
@@ -241,11 +263,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     }
 
     public float getM_max() {
-        return m_max;
+        return mf_max;
     }
 
     public float getM_mean() {
-        return m_mean;
+        return mf_mean;
     }
 
     @Override
@@ -254,14 +276,17 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     }
 
     @Override
-    public boolean hasMass_reference() {
-        return container.mass_reference != null;
+    public boolean hasMassflux_reference() {
+        return container.massflux_reference != null;
     }
 
-    @Override
-    public float getConcentration_reference(int temporalIndex) {
-        return container.mass_reference[startIndex+temporalIndex];
-//        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public boolean hasConcentration_reference() {
+        return container.concentration_reference != null;
     }
 
+//    @Override
+//    public float getConcentration_reference(int temporalIndex) {
+//        return container.massflux_reference[startIndex + temporalIndex];
+////        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//    }
 }

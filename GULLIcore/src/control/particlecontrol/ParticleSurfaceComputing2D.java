@@ -77,7 +77,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * When active particles can go to the pipe system through inlets and
      * manholes.
      */
-    public static boolean allowWashToPipesystem = false;
+    public static boolean allowWashToPipesystem = true;
 
     public ParticleSurfaceComputing2D(Surface surface) {
         this(surface, 0);
@@ -193,7 +193,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         }
         // get the particle velocity
         double[] velo;// = new double[2];
-
+       
         velo = surface.getParticleVelocity2D(p, triangleID);
         double u = Math.sqrt((velo[0] * velo[0]) + (velo[1] * velo[1]));
         if (u > 5 || u < -5) {

@@ -102,7 +102,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getFlux(int temporalIndex) {
+    public float getDischarge(int temporalIndex) {
         if (flux == null) {
             container.loadTimelineFlux(this, pipeManualID, pipeName);
         }
@@ -110,7 +110,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getMass_reference(int temporalIndex) {
+    public float getMassflux_reference(int temporalIndex) {
         if (mass_reference == null) {
             this.container.loadTimelineMass(this, pipeManualID, pipeName);
         }
@@ -149,7 +149,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public double getFlux() {
+    public double getDischarge() {
         if (flux == null) {
             container.loadTimelineFlux(this, pipeManualID, pipeName);
         }
@@ -208,7 +208,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public boolean hasMass_reference() {
+    public boolean hasMassflux_reference() {
         return container.hasReferencePollution();
 //        return mass_reference != null;
         //Also return false if the mass timeline is NOT YET loaded from datasource.
