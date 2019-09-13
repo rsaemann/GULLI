@@ -393,14 +393,14 @@ public class MultiplePipesTimelinesPanel extends CapacityTimelinePanel implement
             Date d = new Date(p.getStatusTimeLine().getTimeContainer().getTimeMilliseconds(i));
             RegularTimePeriod time = new Minute(d);
             v.addOrUpdate(time, tl.getVelocity(i));
-//            q.addOrUpdate(time, tl.getFlux(i));
+//            q.addOrUpdate(time, tl.getDischarge(i));
 //            hup.addOrUpdate(time, tl.getValues().getHup());
 //            hdown.addOrUpdate(time, tl.getHdown());
 //            reynolds.addOrUpdate(time, tl.getReynolds());
             hpipe.addOrUpdate(time, tl.getWaterlevel(i));
 //            dispersion.addOrUpdate(time, s.getValues().getDispersion());
 //            concentration.set(time, s.getValues().getSchmutz());
-            particles.addOrUpdate(time, tl.getMass_reference(i));
+            particles.addOrUpdate(time, tl.getMassflux_reference(i));
 //            Collection<Value> add = s.getValues().getAdditionalValuesCollection();
 //            if (add != null && !add.isEmpty()) {
 //                for (Value value : add) {

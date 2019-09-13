@@ -21,8 +21,10 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.event.MouseWheelEvent;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
@@ -162,7 +164,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public final String layerSurfaceGrid = layerTriangle + "RID";
     private final ColorHolder chTriangleMeasurement = new ColorHolder(Color.orange, "Triangle probe");
     private final DoubleColorHolder chTrianglesContaminated = new DoubleColorHolder(Color.orange, Color.yellow, "Surface contaminated");
-    private final DoubleColorHolder chTrianglesGrid = new DoubleColorHolder(Color.orange, new Color(1, 1, 1, 0), "Surface Ttriangles");
+    private final DoubleColorHolder chTrianglesGrid = new DoubleColorHolder(Color.orange, new Color(1, 1, 1, 0), "Surface Triangles");
     private final DoubleColorHolder chTrianglesWaterlevel = new DoubleColorHolder(Color.white, Color.blue, "Surface Waterlevel");
 //    ColorHolder chTriangleMids = new ColorHolder(Color.orange, "Triangle Mids");
     ColorHolder chSurfaceVelocity = new ColorHolder(Color.blue, "Surface Velocity");
@@ -185,7 +187,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     private final HashSet<Manhole> affectedManholes = new HashSet<>();
 
-    private Point2D.Double posTopLeft, posBotRight;
+    private Point2D.Double posTopLeftPipeCS, posBotRightPipeCS;
+    private Coordinate posTopLeftSurfaceCS, posBotRightSurfaceCS;
+    private int[] shownSurfaceTriangles = new int[0];
+    private boolean[] showSurfaceTriangle = null;
     private GeoTools geoToolsNetwork, geoToolsSurface;
 
     public int repaintPerLoops = 300;
@@ -226,6 +231,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             control.addActioListener(this);
             control.addSimulationListener(this);
             control.addParticleListener(this);
+            control.getThreadController().paintingInterval = repaintPerLoops;
         }
         chParticles.setStroke(stroke2pRound);
         chTravelPath.setStroke(stroke2pRound);
@@ -255,13 +261,35 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
         initMenuCheckboxes(frame);
         try {
-//            geoTools = new GeoTools("EPSG:4326", "EPSG:25832", StartParameters.JTS_WGS84_LONGITUDE_FIRST);
-            mapViewer.addMouseMotionListener(new MouseMotionAdapter() {
+
+            MouseAdapter ma = new MouseAdapter() {
+                boolean mousedragged = false;
+
                 @Override
                 public void mouseDragged(MouseEvent me) {
-                    updateUTMReference();
+                    mousedragged = true;
+//                    updateUTMReference();
                 }
-            });
+
+                @Override
+                public void mouseReleased(MouseEvent me) {
+                    if (mousedragged) {
+                        updateUTMReference();
+                        addSurfacePaint();
+                    }
+                    mousedragged = false;
+                }
+
+                @Override
+                public void mouseWheelMoved(MouseWheelEvent mwe) {
+                    updateUTMReference();
+                    addSurfacePaint();
+                }
+            };
+            mapViewer.addMouseListener(ma);
+            mapViewer.addMouseMotionListener(ma);
+            mapViewer.addMouseWheelListener(ma);
+
         } catch (Exception ex) {
             Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -346,7 +374,13 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
      * @param timeToShow
      */
     public void setTimeToShow(long timeToShow) {
-        this.timeToShow = timeToShow;
+        if (PaintManager.timeToShow == timeToShow) {
+            return;
+        }
+        PaintManager.timeToShow = timeToShow;
+        if(this.surfaceShow==SURFACESHOW.VELOCITY){
+            addSurfacePaint();
+        }
     }
 
     public void addTriangleMeasurement(TriangleMeasurement tm, GeoPosition2D position) {
@@ -882,34 +916,72 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         }
 
         if (this.surfaceShow == SURFACESHOW.GRID) {
+            mapViewer.clearLayer(layerSurfaceGrid);
             if (drawTrianglesAsNodes) {
                 int id = 0;
-                for (double[] triangleMid : surface.getTriangleMids()) {
-                    try {
-                        NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
-                        id++;
-                        mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
-                        if (id > maximumNumberOfSurfaceShapes) {
-                            break;
+                if (false) {
+                    for (int i = 0; i < shownSurfaceTriangles.length; i++) {
+                        id = shownSurfaceTriangles[i];
+                        try {
+                            NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chTrianglesGrid);
+                            id++;
+                            mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+                            if (id > maximumNumberOfSurfaceShapes) {
+                                break;
+                            }
+                        } catch (TransformException ex) {
+                            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                         }
-                    } catch (TransformException ex) {
-                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                if (true) {
+                    for (double[] triangleMid : surface.getTriangleMids()) {
+                        try {
+                            NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
+                            id++;
+                            mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+                            if (id > maximumNumberOfSurfaceShapes) {
+                                break;
+                            }
+                        } catch (TransformException ex) {
+                            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 }
             } else {
                 try {
-                    int id = 0;
-                    for (int[] nodes : surface.getTriangleNodes()) {
-                        Coordinate[] coords = new Coordinate[4];
-                        for (int j = 0; j < 3; j++) {
-                            coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+                    if (false) {
+                        int id = 0;
+                        for (int i = 0; i < shownSurfaceTriangles.length; i++) {
+                            id = shownSurfaceTriangles[i];
+                            Coordinate[] coords = new Coordinate[4];
+                            int[] nodes = surface.getTriangleNodes()[id];
+                            for (int j = 0; j < 3; j++) {
+                                coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+                            }
+                            coords[3] = coords[0];//Close ring
+                            AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
+                            mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
+                            id++;
+                            if (id > maximumNumberOfSurfaceShapes) {
+                                break;
+                            }
                         }
-                        coords[3] = coords[0];//Close ring
-                        AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
-                        mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
-                        id++;
-                        if (id > maximumNumberOfSurfaceShapes) {
-                            break;
+                    }
+                    if (true) {
+                        int id = 0;
+                        for (int[] nodes : surface.getTriangleNodes()) {
+                            Coordinate[] coords = new Coordinate[4];
+                            for (int j = 0; j < 3; j++) {
+                                coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+                            }
+                            coords[3] = coords[0];//Close ring
+                            AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
+                            mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
+                            id++;
+                            if (id > maximumNumberOfSurfaceShapes) {
+                                break;
+                            }
                         }
                     }
                 } catch (TransformException ex) {
@@ -1666,67 +1738,91 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 this.surfaceShow = SURFACESHOW.NONE;
                 return;
             }
-            float velocityFactor = 1f;
+            float velocityFactor = 10f;
             try {
-                int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-
+                mapViewer.clearLayer(layerArrow);
+                mapViewer.clearLayer(layerLabelWaterlevel);
+                double t = surface.getTimes().getTimeIndexDouble(timeToShow);//ex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
+                int ti=(int)t;
+                float frac=(float) (t%1);
+                if(ti>=surface.getNumberOfTimes()-1){
+                    ti=surface.getNumberOfTimes()-2;
+                    frac=1;
+                }
+//                System.out.println("show velocity timeindex " + t);
+//                int counter = 0;
                 if (surface.getTriangleVelocity() != null) {
                     for (int i = 0; i < surface.triangleNodes.length; i++) {
-                        final int idt = i;
+                        if (showSurfaceTriangle != null && showSurfaceTriangle[i] == false) {
+                            continue;
+                        }
                         //Triangle Arrow
                         //on triangle
-                        if (surface.getTriangleVelocity()[t] == null) {
+                        if (surface.getTriangleVelocity()[i] == null) {
                             continue;
                         }
-                        float[] v = surface.getTriangleVelocity()[t][i];
-                        if (Math.abs(v[0]) < 0.01 && Math.abs(v[1]) < 0.01) {
+                        float[] v = surface.getTriangleVelocity()[i][ti];
+                        if (Math.abs(v[0]) < 0.0001 && Math.abs(v[1]) < 0.0001) {
                             continue;
                         }
+                        float[] v2 = surface.getTriangleVelocity()[i][ti+1];
+                        float vx=v[0]+(v2[0]-v[0])*frac;
+                        float vy=v[1]+(v2[1]-v[1])*frac;
+                        
                         double[] mid = surface.getTriangleMids()[i];
                         Coordinate midPoint = surface.getGeotools().toGlobal(new Coordinate(mid[0], mid[1]));
-                        Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(mid[0] + velocityFactor * v[0], mid[1] + velocityFactor * v[1]));
+                        Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(mid[0] + velocityFactor * vx, mid[1] + velocityFactor * vy));
                         ArrowPainting av = new ArrowPainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
                         mapViewer.addPaintInfoToLayer(layerArrow, av);
+                        
+//                        LabelPainting lp=new LabelPainting(i, chSpillover, new GeoPosition(midPoint), 15, 0, 0, i+"");
+//                        mapViewer.addPaintInfoToLayer(layerLabelWaterlevel, lp);
+//                        counter++;
                     }
+                } else {
+                    System.out.println("trianglevelocity is null");
                 }
-                if (surface.isNeighbourVelocityLoaded()) {
-                    for (int i = 0; i < surface.triangleNodes.length; i++) {
-                        for (int n = 0; n < 3; n++) {
+//                System.out.println("added " + counter + " velocity arrows.");
+                if (false) {
+                    if (surface.isNeighbourVelocityLoaded()) {
+                        for (int i = 0; i < surface.triangleNodes.length; i++) {
+                            for (int n = 0; n < 3; n++) {
 
-                            final int idt = i;
-                            final int nb = surface.getNeighbours()[i][n];
-                            if (nb < 0) {
-                                continue;
-                            }
-                            //Triangle Arrow
-                            //on triangle
-                            float v = 0;
-                            try {
-                                v = surface.getVelocityToNeighbour(t, i, n);
-                            } catch (Exception e) {
-                                System.err.println("Could not Load velocity for traingle " + i + " to neighbour " + n);
-                                continue;
-                            }
-                            if (Math.abs(v) < 0.1) {
-                                continue;
-                            }
-                            double[] midT = surface.getTriangleMids()[i];
-                            double[] midN = surface.getTriangleMids()[nb];
-                            //Build arrwos 
-                            float[] dTN = new float[]{(float) (midN[0] - midT[0]), (float) (midN[1] - midT[1])};
-                            //scale to length1
-                            // WL arrow on mid of link
-                            float length = (float) Math.sqrt(dTN[0] * dTN[0] + dTN[1] * dTN[1]);
-                            dTN[0] /= length;
-                            dTN[1] /= length;
+                                final int idt = i;
+                                final int nb = surface.getNeighbours()[i][n];
+                                if (nb < 0) {
+                                    continue;
+                                }
+                                //Triangle Arrow
+                                //on triangle
+                                float v = 0;
+                                try {
+                                    v = surface.getVelocityToNeighbour(ti, i, n);
+                                } catch (Exception e) {
+                                    System.err.println("Could not Load velocity for traingle " + i + " to neighbour " + n);
+                                    continue;
+                                }
+                                if (Math.abs(v) < 0.1) {
+                                    continue;
+                                }
+                                double[] midT = surface.getTriangleMids()[i];
+                                double[] midN = surface.getTriangleMids()[nb];
+                                //Build arrwos 
+                                float[] dTN = new float[]{(float) (midN[0] - midT[0]), (float) (midN[1] - midT[1])};
+                                //scale to length1
+                                // WL arrow on mid of link
+                                float length = (float) Math.sqrt(dTN[0] * dTN[0] + dTN[1] * dTN[1]);
+                                dTN[0] /= length;
+                                dTN[1] /= length;
 
-                            double startX = midT[0] * 0.5 + midN[0] * 0.5;
-                            double startY = midT[1] * 0.5 + midN[1] * 0.5;
+                                double startX = midT[0] * 0.5 + midN[0] * 0.5;
+                                double startY = midT[1] * 0.5 + midN[1] * 0.5;
 
-                            Coordinate wlStart = surface.getGeotools().toGlobal(new Coordinate(startX, startY));
-                            Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(startX + velocityFactor * v * dTN[0], startY + velocityFactor * v * dTN[1]));
-                            ArrowPainting av = new ArrowPainting(i, new Coordinate[]{wlStart, vTtarget}, chDirectionPRO);
-                            mapViewer.addPaintInfoToLayer(layerHistory, av);
+                                Coordinate wlStart = surface.getGeotools().toGlobal(new Coordinate(startX, startY));
+                                Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(startX + velocityFactor * v * dTN[0], startY + velocityFactor * v * dTN[1]));
+                                ArrowPainting av = new ArrowPainting(i, new Coordinate[]{wlStart, vTtarget}, chDirectionPRO);
+                                mapViewer.addPaintInfoToLayer(layerHistory, av);
+                            }
                         }
                     }
                 }
@@ -2581,23 +2677,48 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public void updateUTMReference() {
         Point2D.Double tl = mapViewer.getPosition(0, 0);
         Point2D.Double br = mapViewer.getPosition(mapViewer.getWidth(), mapViewer.getHeight());
-        if (posTopLeft == null) {
-            posBotRight = new Point2D.Double();
-            posTopLeft = new Point2D.Double();
+        if (posTopLeftPipeCS == null) {
+            posBotRightPipeCS = new Point2D.Double();
+            posTopLeftPipeCS = new Point2D.Double();
+        }
+        if (posTopLeftSurfaceCS == null) {
+            posBotRightSurfaceCS = new Coordinate();
+            posTopLeftSurfaceCS = new Coordinate();
         }
         try {
             if (geoToolsNetwork != null) {
                 Coordinate topleft = geoToolsNetwork.toUTM(new Coordinate(tl.y, tl.x));
                 Coordinate bottright = geoToolsNetwork.toUTM(new Coordinate(br.y, br.x));
-                posTopLeft.setLocation(topleft.x, topleft.y);
-                posBotRight.setLocation(bottright.x, bottright.y);
-            } else if (geoToolsSurface != null) {
-                Coordinate topleft = geoToolsSurface.toUTM(new Coordinate(tl.y, tl.x));
-                Coordinate bottright = geoToolsSurface.toUTM(new Coordinate(br.y, br.x));
-                posTopLeft.setLocation(topleft.x, topleft.y);
-                posBotRight.setLocation(bottright.x, bottright.y);
+                posTopLeftPipeCS.setLocation(topleft.x, topleft.y);
+                posBotRightPipeCS.setLocation(bottright.x, bottright.y);
             }
-//            System.out.println(tl + " -> " + topleft);
+            if (geoToolsSurface != null) {
+                posTopLeftSurfaceCS = geoToolsSurface.toUTM(new Coordinate(tl.y, tl.x));
+                posBotRightSurfaceCS = geoToolsSurface.toUTM(new Coordinate(br.y, br.x));
+
+                if (surface != null) {
+                    //make a list of all triangles, that are currently shown on the map.
+                    ArrayList<Integer> shownTriangleIDs = new ArrayList<>(surface.getMaxTriangleID() + 1);
+                    this.showSurfaceTriangle = new boolean[surface.getTriangleMids().length];
+                    for (int i = 0; i < surface.getTriangleMids().length; i++) {
+                        double[] triangleMid = surface.getTriangleMids()[i];
+                        if (triangleMid[0] > posBotRightSurfaceCS.x || triangleMid[1] < posBotRightSurfaceCS.y || triangleMid[0] < posTopLeftSurfaceCS.x || triangleMid[1] > posTopLeftSurfaceCS.y) {
+                            continue;
+                        } else {
+                            shownTriangleIDs.add(i);
+                            showSurfaceTriangle[i] = true;
+                        }
+                    }
+                    int[] tris = new int[shownTriangleIDs.size()];
+                    int index = 0;
+                    for (Integer shownTriangleID : shownTriangleIDs) {
+                        tris[index] = shownTriangleID;
+                        index++;
+                    }
+                    this.shownSurfaceTriangles = tris;
+//                    System.out.println("currently " + tris.length + " triangles in visible rectangle.");
+                }
+            }
 
         } catch (TransformException ex) {
             Logger.getLogger(PaintManager.class
@@ -2974,6 +3095,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     @Override
     public void setParticles(Collection<Particle> particles, Object source) {
+        this.particlePaintings.clear();
+        this.particles.clear();
         this.addParticles(particles);
     }
 

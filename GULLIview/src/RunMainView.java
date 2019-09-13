@@ -76,16 +76,18 @@ public class RunMainView {
         //   they are coordinated by the LoadingCooordinator, that can search for related and consistent files.
         final LoadingCoordinator lc = control.getLoadingCoordinator();
 
+        //If set to yes, injection spills from the input scenario (e.g. HYSTEM EXTRAN Schmtzfracht eInzeleinleiter) is listed as contamination source.
+        lc.loadInputInjections = false;
         //Automatisches Suchen und einlesen der Inputfiles, die mit dem HE-Result verknüpft sind.
         //Start file can be set in the GULLI.ini after first start in the main folder.
         // Give the path to the HYSTEM EXTRAN RESULT FILE under the Key "StartFile=".
         File startFile = new File(StartParameters.getStartFilePath());
 
-        if (startFile == null || !startFile.exists()) {
-            //Fallback, if nothing was set in the GULLi.ini
+//        if (startFile == null || !startFile.exists()) {
+        //Fallback, if nothing was set in the GULLi.ini
 //            startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
-        }
-
+//        startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Model-Ex_E2DiT50_Schadstoff_EXT.idbr");
+//        }
         if (startFile.exists()) {
             //Try to crawl all dependent files from the information stored in the He result file.
             lc.requestDependentFiles(startFile, true, true);
@@ -94,7 +96,7 @@ public class RunMainView {
             System.out.println("startfile does not exist");
         }
 
-         //Otherwise set all the input files manually
+        //Otherwise set all the input files manually
 //                lc.setPipeNetworkFile(NETWORKFILE);
 //                lc.setPipeResultsFile(NETWORKVELOCITIES);
 //                lc.setSurfaceTopologyDirectory(SURFACE DIRECTORY);
@@ -110,6 +112,22 @@ public class RunMainView {
                 }
                 //Automatic start after loading loop has finished.   
                 if (true) {
+                    //Test
+                    if (true) {
+                        //Paper scenario 
+                        int anzahl = 100000 / 3;
+                        Manhole mh = control.getNetwork().getManholeByName("RI09S515");
+                        System.out.println("add 3 Injection at " + mh);
+                        try {
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
+
+                        } catch (NullPointerException nullPointerException) {
+                            System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                        }
+                    }
+
                     //Sensitivity Paper 
                     if (false) {
                         //Paper scenario 
@@ -127,15 +145,15 @@ public class RunMainView {
                     }
 
                     //Buchkapitel
-                    if (true) {
+                    if (false) {
                         //Paper scenario 
                         int anzahl = 100000 / 3;
                         Manhole mh = control.getNetwork().getManholeByName("RI09S515");
                         System.out.println("add 3 Injection at " + mh);
                         try {
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 7 * 60));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 7 * 60));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0 * 60, 1));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 1));
+                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 1));
 
                         } catch (NullPointerException nullPointerException) {
                             System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());

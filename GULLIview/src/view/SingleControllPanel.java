@@ -5,6 +5,8 @@ import control.Controller;
 import control.LoadingCoordinator;
 import control.listener.LoadingActionListener;
 import control.particlecontrol.ParticlePipeComputing;
+import control.particlecontrol.ParticleSurfaceComputing;
+import control.particlecontrol.ParticleSurfaceComputing2D;
 import control.scenario.injection.InjectionInformation;
 import control.threads.ThreadController;
 import io.extran.HE_Database;
@@ -102,7 +104,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JProgressBar progressLoading;
     private boolean longerThan1Day = false;
     private JCheckBox checkVelocityFunction;
-    private JTextField textDispersion;
+    private JTextField textDispersionPipe, textDispersionSurface;
     private JFormattedTextField textSeed;
     private JButton buttonFileNetwork, buttonFilePipeResult;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
@@ -234,7 +236,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelTabLoading.add(scrollinjections);
 
         // SImulation Parameter
-        JPanel panelParameter = new JPanel(new GridLayout(3, 1));
+        JPanel panelParameter = new JPanel(new GridLayout(4, 1));
         panelParameter.setBorder(new TitledBorder("Parameter"));
         panelTabSimulation.add(panelParameter);
         //timestep
@@ -249,13 +251,27 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkVelocityFunction = new JCheckBox("Velocity function", ParticlePipeComputing.useStreamlineVelocity);
         checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
 //        panelParameter.add(checkVelocityFunction);
-        //Dispersion
+        //Dispersion Pipe
         JPanel panelDispersion = new JPanel(new BorderLayout());
-        panelDispersion.add(new JLabel("Dispersion D : "), BorderLayout.WEST);
-        textDispersion = new JTextField(ParticlePipeComputing.getDispersionCoefficient() + "");
-        panelDispersion.add(textDispersion, BorderLayout.CENTER);
+        panelDispersion.add(new JLabel("Pipe Disprs. D : "), BorderLayout.WEST);
+        textDispersionPipe = new JTextField(ParticlePipeComputing.getDispersionCoefficient() + "");
+        panelDispersion.add(textDispersionPipe, BorderLayout.CENTER);
         panelDispersion.add(new JLabel("m²/s"), BorderLayout.EAST);
         panelParameter.add(panelDispersion);
+        //Dispersion Surface
+        JPanel panelDispersionSurface = new JPanel(new BorderLayout());
+        double d = -1;
+        panelDispersionSurface.add(new JLabel("Surface Disp. D : "), BorderLayout.WEST);
+        try {
+            ParticleSurfaceComputing sc = controller.getParticleThreads()[0].getSurfaceComputing();
+            ParticleSurfaceComputing2D sc2d = (ParticleSurfaceComputing2D) sc;
+            d = sc2d.getDiffusionCalculator().directD[0];
+        } catch (Exception e) {
+        }
+        textDispersionSurface = new JTextField(d + "");
+        panelDispersionSurface.add(textDispersionSurface, BorderLayout.CENTER);
+        panelDispersionSurface.add(new JLabel("m²/s"), BorderLayout.EAST);
+        panelParameter.add(panelDispersionSurface);
         //Seed
         JPanel panelSeed = new JPanel(new BorderLayout());
         panelSeed.add(new JLabel("Seed :"), BorderLayout.WEST);
@@ -662,7 +678,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 buttonRun.setSelected(true);
                                 buttonPause.setSelected(false);
                                 textTimeStep.setEditable(!controler.isSimulating());
-                                textDispersion.setEditable(!controler.isSimulating());
+                                textDispersionPipe.setEditable(!controler.isSimulating());
+                                textDispersionSurface.setEditable(!controler.isSimulating());
                             }
                             frame.setTitle("> " + (int) (((controller.getSimulationTime() - controller.getSimulationStartTime()) * 100 + 0.5) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))) + "% Run Control");
                         } else {
@@ -674,7 +691,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //                                control.timelinePanel.removeMarker();
                                 wasrunning = false;
                                 textTimeStep.setEditable(!controler.isSimulating());
-                                textDispersion.setEditable(!controler.isSimulating());
+                                textDispersionPipe.setEditable(!controler.isSimulating());
+                                textDispersionSurface.setEditable(!controler.isSimulating());
                             }
 
                         }
@@ -713,42 +731,74 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             @Override
             public void actionPerformed(ActionEvent ae) {
                 ParticlePipeComputing.useStreamlineVelocity = checkVelocityFunction.isSelected();
-                textDispersion.setEnabled(!checkVelocityFunction.isSelected());
+                textDispersionPipe.setEnabled(!checkVelocityFunction.isSelected());
             }
         });
 
-        textDispersion.addKeyListener(new KeyAdapter() {
+        textDispersionPipe.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent ke) {
                 try {
-                    int pos = textDispersion.getCaretPosition();
-                    double v = Double.parseDouble(textDispersion.getText());
+                    int pos = textDispersionPipe.getCaretPosition();
+                    double v = Double.parseDouble(textDispersionPipe.getText());
                     ParticlePipeComputing.setDispersionCoefficient(v);
 //                    textDispersion.setText(ParticlePipeComputing.dispersionCoefficient+"");
-                    textDispersion.setForeground(Color.GREEN.darker());
-                    textDispersion.setCaretPosition(pos);
+                    textDispersionPipe.setForeground(Color.GREEN.darker());
+                    textDispersionPipe.setCaretPosition(pos);
                     if (ke.getKeyCode() == 10) {
                         //Confirm by RETURN                        
                         control.setDispersionCoefficientPipe(v);
-                        textDispersion.setForeground(Color.BLACK);
+                        textDispersionPipe.setForeground(Color.BLACK);
                     }
                 } catch (NumberFormatException numberFormatException) {
-                    textDispersion.setForeground(Color.red);
+                    textDispersionPipe.setForeground(Color.red);
                 }
             }
         });
-        textDispersion.addFocusListener(new FocusAdapter() {
+        textDispersionPipe.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent fe) {
                 try {
-                    double v = Double.parseDouble(textDispersion.getText());
+                    double v = Double.parseDouble(textDispersionPipe.getText());
                     control.setDispersionCoefficientPipe(v);
                 } catch (NumberFormatException numberFormatException) {
-                    textDispersion.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
+                    textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
                 }
-                textDispersion.setForeground(Color.BLACK);
+                textDispersionPipe.setForeground(Color.BLACK);
             }
         });
+        {
+            textDispersionSurface.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyReleased(KeyEvent ke) {
+                    try {
+                        int pos = textDispersionSurface.getCaretPosition();
+                        double v = Double.parseDouble(textDispersionSurface.getText());
+                        textDispersionSurface.setForeground(Color.GREEN.darker());
+                        textDispersionSurface.setCaretPosition(pos);
+                        if (ke.getKeyCode() == 10) {
+                            //Confirm by RETURN                        
+                            control.setDispersionCoefficientSurface(v);
+                            textDispersionSurface.setForeground(Color.BLACK);
+                        }
+                    } catch (NumberFormatException numberFormatException) {
+                        textDispersionSurface.setForeground(Color.red);
+                    }
+                }
+            });
+            textDispersionSurface.addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusLost(FocusEvent fe) {
+                    try {
+                        double v = Double.parseDouble(textDispersionSurface.getText());
+                        control.setDispersionCoefficientSurface(v);
+                    } catch (NumberFormatException numberFormatException) {
+                        textDispersionSurface.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
+                    }
+                    textDispersionSurface.setForeground(Color.BLACK);
+                }
+            });
+        }
         textSeed.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent fe) {
@@ -795,6 +845,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     try {
                         int loops = Integer.parseInt(textUpdateLoops.getText());
                         controller.paintingInterval = loops;
+                        paintManager.repaintPerLoops = loops;
                     } catch (Exception exception) {
                         textUpdateLoops.setText(controller.paintingInterval + "");
                     }
@@ -807,6 +858,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 try {
                     int loops = Integer.parseInt(textUpdateLoops.getText());
                     controller.paintingInterval = loops;
+                    paintManager.repaintPerLoops = loops;
                 } catch (Exception exception) {
                     textUpdateLoops.setText(controller.paintingInterval + "");
                 }
@@ -1454,7 +1506,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         buttonRun.setEnabled(control.getNetwork() != null && !control.getLoadingCoordinator().isLoading());
 
                         textTimeStep.setEditable(!controler.isSimulating());
-                        textDispersion.setEditable(!controler.isSimulating());
+                        textDispersionPipe.setEditable(!controler.isSimulating());
 
                         //Information about shapes
                         if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
