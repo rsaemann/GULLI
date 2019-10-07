@@ -193,7 +193,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         }
         // get the particle velocity
         double[] velo;// = new double[2];
-       
+
         velo = surface.getParticleVelocity2D(p, triangleID);
         double u = Math.sqrt((velo[0] * velo[0]) + (velo[1] * velo[1]));
         if (u > 5 || u < -5) {
@@ -218,18 +218,19 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             pos.y += (float) velo[1] * dt;// only advection
         } else {
             // calculate diffusion
+            if (u > 0.00001f) {
+                double[] Diff = D.calculateDiffusion(velo[0], velo[1], surface, triangleID);
+                double sqrt2dtDx = Math.sqrt(2 * dt * Diff[0]);
+                double sqrt2dtDy = Math.sqrt(2 * dt * Diff[1]);
 
-            double[] Diff = D.calculateDiffusion(velo[0], velo[1], surface, triangleID);
-            double sqrt2dtDx = Math.sqrt(2 * dt * Diff[0]);
-            double sqrt2dtDy = Math.sqrt(2 * dt * Diff[1]);
-
-            // random walk simulation
-            double z2 = random.nextGaussian();           // random number to simulate random walk (lagrangean transport)
-            double z1 = random.nextGaussian();
+                // random walk simulation
+                double z2 = random.nextGaussian();           // random number to simulate random walk (lagrangean transport)
+                double z1 = random.nextGaussian();
 
             // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
-            pos.x += velo[0] * dt + (velo[0] / u) * z1 * sqrt2dtDx + ((velo[1] / u) * z2 * sqrt2dtDy);
-            pos.y += velo[1] * dt + (velo[1] / u) * z1 * sqrt2dtDx + ((velo[0] / u) * z2 * sqrt2dtDy);
+                pos.x += velo[0] * dt + (velo[0] / u) * z1 * sqrt2dtDx + ((velo[1] / u) * z2 * sqrt2dtDy);
+                pos.y += velo[1] * dt + (velo[1] / u) * z1 * sqrt2dtDx + ((velo[0] / u) * z2 * sqrt2dtDy);
+            }
         }
 
         // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu

@@ -87,16 +87,15 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      */
     public int intervallHistoryParticles = 0;
 
-    public static void main(String[] args) {
-        try {
-//            System.out.println("init new controller");
-            Controller c = new Controller();
-//            System.out.println("controller initialized");
-        } catch (Exception ex) {
-            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
+//    public static void main(String[] args) {
+//        try {
+////            System.out.println("init new controller");
+//            Controller c = new Controller();
+////            System.out.println("controller initialized");
+//        } catch (Exception ex) {
+//            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//    }
 //    public final ArrayList<InjectionInformation> injections = new ArrayList<>(1);
     public Controller() throws Exception {
 //        geoTools = new GeoTools("EPSG:4326", "EPSG:31467", StartParameters.JTS_WGS84_LONGITUDE_FIRST);
@@ -108,42 +107,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     }
 
-//    private void importSurface(Surface surface) {
-//        
-//        System.out.println("++++++Controllr.importSurface");
-//        this.surface = surface;
-//
-//        //Apply timecontainer for surface
-//        if (surface != null) {
-//            if (surface.getNumberOfTimestamps() > 1) {
-//
-//                long[] times = new long[surface.getNumberOfTimestamps()];
-//                if (scenario != null) {
-//                    currentAction.description = "Setup Times for Surface";
-//                    currentAction.hasProgress = false;
-//                    currentAction.progress = 0;
-//                    fireAction(currentAction);
-//                    long dt = (scenario.getEndTime() - scenario.getStartTime()) / (surface.getNumberOfTimestamps() - 1);
-//                    for (int i = 0; i < times.length; i++) {
-//                        times[i] = scenario.getStartTime() + i * dt;
-//                    }
-//
-//                    TimeIndexContainer tc = new TimeIndexContainer(times);
-//                    surface.setTimeContainer(tc);
-//                    currentAction.progress = 1;
-//                } else {
-//                }
-//            } else {
-//                System.err.println("Surface hat nur " + surface.getNumberOfTimestamps() + " Timestamps");
-//            }
-//            currentAction.description = "Threadcontroller load Surface";
-//            currentAction.hasProgress = false;
-//            currentAction.progress = 0;
-//            fireAction(currentAction);
-//            threadController.loadSurface(surface, this);
-//            currentAction.progress = 1;
-//        }
-//    }
     public boolean addActioListener(LoadingActionListener listener) {
         if (!actionListener.contains(listener)) {
             return actionListener.add(listener);
@@ -197,12 +160,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
         currentAction.progress = 1;
         fireAction(currentAction);
-//        if (paintManager != null) {
-//            paintManager.setNetwork(network);
-//        }
-//        if (controllFrame != null) {
-//            controllFrame.getSingleControl().updateGUI();
-//        }
     }
 
     public LoadingCoordinator getLoadingCoordinator() {
@@ -246,7 +203,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
         threadController.setSimulationStartTime(sce.getStartTime());
         threadController.setSimulationTimeEnd(sce.getEndTime());
-//        System.out.println("Simulation DateTime: " + new Date(threadController.getSimulationStartTime()) + " (" + sce.getStartTime() + ")" + " till " + new Date(threadController.getSimulationTimeEnd()) + " (" + threadController.getSimulationTimeEnd() + ") with " + threadController.getNumberOfTotalParticles() + " particles.");
 
         if (sce.getTimesPipe() != null) {
             currentAction.description = "load scenario: init measurement timelines";
@@ -257,9 +213,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         currentAction.progress = 1;
     }
 
-//    public PaintManager getPaintManager() {
-//        return paintManager;
-//    }
     /**
      * @param numberOfParticles
      * @param startCapacity
@@ -373,10 +326,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 } else {
                     p = new Particle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
                 }
-                p.setSurrounding_actual(startCapacity);
-                p.setPosition1d_actual(0);
-                p.setPosition3d(p.getSurrounding_actual().getPosition3D(0));
+//                p.setPosition1d_actual(0);
+//                p.setPosition3d(p.getSurrounding_actual().getPosition3D(0));
                 p.setMaterial(material);
+                p.setInactive();
                 list.add(p);
                 t += dt;
             }
@@ -400,51 +353,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
     }
 
-//    /**
-//     * @deprecated @param numberOfParticles
-//     * @param massPerParticle
-//     * @param startCapacity
-//     * @param position1d
-//     * @param material
-//     * @param starttime
-//     * @param endtime
-//     * @param calculateAnalyticalSolution
-//     * @return
-//     */
-//    private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, Capacity startCapacity, double position1d, Material material, long starttime, long endtime, boolean calculateAnalyticalSolution) {
-//        if (startCapacity == null) {
-//            throw new IllegalArgumentException("Initial Capacity is null!");
-//        }
-//        System.out.println("Threadcontroller has " + threadController.getNumberOfTotalParticles() + ".\t Adding " + numberOfParticles + " particles.");
-//        ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
-//        {
-//            float dt = (float) (endtime - starttime) / (float) (Math.max(1, numberOfParticles - 1));
-//            float t = 0;
-//
-//            for (int i = 0; i < numberOfParticles; i++) {
-//                Particle p;
-//                if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-//                    p = new HistoryParticle(startCapacity, position1d, starttime + (int) t, (float) massPerParticle);
-//                } else {
-//                    p = new Particle(startCapacity, position1d, starttime + (int) t, (float) massPerParticle);
-//                }
-//                p.setSurrounding_actual(startCapacity);
-//                p.setPosition1d_actual(position1d);
-//                p.setPosition3d(p.getSurrounding_actual().getPosition3D(position1d));
-//                p.setMaterial(material);
-//                list.add(p);
-//                t += dt;
-//            }
-//        }
-////        threadController.setParticles(list);
-////        paintManager.setParticles(list);
-////
-////        if (calculateAnalyticalSolution) {
-////            computeAnalyticalSolution(numberOfParticles, ParticlePipeComputing.getDispersionCoefficient(), startCapacity, position1d, material, starttime, endtime);
-////        }
-//
-//        return list;
-//    }
     public void addParticleSegmentMeasurement(Pipe p, double positionAbsolute) {
         ParticleMeasurementSegment pms = new ParticleMeasurementSegment(p, positionAbsolute);
         for (ParticleThread pt : threadController.barrier_particle.getThreads()) {
@@ -461,17 +369,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         threadController.barrier_sync.getThreads().get(0).addParticlemeasurement(pms);
     }
 
-//    public Position getPositionFromLatLon(double longitude, double latitude) throws TransformException {
-//        Coordinate c = new Coordinate(latitude, longitude);
-//        c = geoTools.toUTM(c);
-//        return new Position(longitude, latitude, c.x, c.y);
-//    }
-//
-//    public Position getPositionFromGK(double x, double y) throws TransformException {
-//        Coordinate c = new Coordinate(x, y);
-//        c = geoTools.toGlobal(c);
-//        return new Position(c.y, c.x, x, y);
-//    }
     public Network getNetwork() {
         return network;
     }
@@ -481,14 +378,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     }
 
     public void resetScenario() {
-//        System.out.println("resetScenario");
         currentAction.description = "Reset scenario";
         currentAction.hasProgress = false;
         currentAction.progress = 0;
         fireAction(currentAction);
-//        if (this.controllFrame != null) {
-//            this.controllFrame.getSingleControl().updateGUI();
-//        }
         if (scenario != null) {
             scenario.reset();
         } else {
@@ -751,7 +644,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
                         for (Particle p1 : p) {
                             p1.setInjectionCellID(in.getTriangleID());
-                            p1.setOnSurface();
+                            p1.setSurrounding_actual(null);
+//                            p1.setOnSurface();
+//                            System.out.println("cellid: " + p1.surfaceCellID + "  injection " + p1.getInjectionCellID());
                         }
                         particles.addAll(p);
                     } else {

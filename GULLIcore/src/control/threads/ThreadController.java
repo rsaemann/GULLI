@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -428,7 +427,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     continue;
                 }
                 p.setInactive();
-                p.setSurrounding_actual(p.injectionSurrounding);
+                p.setSurrounding_actual(null);
                 p.setPosition1d_actual(p.injectionPosition1D);
                 p.surfaceCellID = p.getInjectionCellID();
                 if (p.getClass().equals(HistoryParticle.class)) {
@@ -442,9 +441,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 p.resetMovementLengths();
                 p.setInactive();
 
-                if (p.getSurrounding_actual() == null) {
-                    System.out.println("particle " + p.getId() + " has no capacity");
-                }
             }
         }
 

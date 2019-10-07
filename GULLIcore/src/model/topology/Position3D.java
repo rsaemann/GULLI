@@ -19,9 +19,18 @@ public class Position3D extends Position {
     public Position3D(Position3D position) {
         this(position.longitude, position.latitude, position.x, position.y, position.z);
     }
+    
+    public Position3D(Position position) {
+        this(position.longitude, position.latitude, position.x, position.y,0);
+    }
 
     public Position3D(GeoPosition2D position) {
         this(position, 0);
+    }
+    
+    public Position3D(Position position, double z) {
+        super(position);
+        this.z = z;
     }
 
     public Position3D(GeoPosition2D position, double z) {

@@ -13,12 +13,6 @@ public class Connection_Manhole_Pipe implements Connection_Manhole {
     protected Position3D position;
 
     /**
-     * sole-height above sealevel.
-     *
-     * Sohlhöhe über Meeresspiegel.
-     */
-//    protected float height;
-    /**
      * Capacitys which are connected by this object. If the flow_m2p direction
      * is known the connection should be organized to let the flow_m2p go from
      * the incoming to outgoing volume.
@@ -33,35 +27,18 @@ public class Connection_Manhole_Pipe implements Connection_Manhole {
 
     protected boolean isStartOfPipe = false;
 
-    /**
-     * velocity_m2p [m/s] from manhole to outgoing capacity
-     */
-//    public double velocity_m2p = 0;
-    /**
-     * FLUIDFLOW [m^3/s] from manhole to outgoing capacity
-     */
-//    public double flow_m2p = 0;
-    public String name = "";
 
-//    /**
-//     * [m] from sole.
-//     */
-//    public double water_level_in_connection = 0;
     public Connection_Manhole_Pipe(Position position, float height) {
         this.position = new Position3D(position, height);
-//        this.height = height;
     }
 
-//    public Connection_Manhole_Pipe(Position position, float height) {
-//        this.position = position;
-//        this.height = height;
-//    }
     public Connection_Manhole_Pipe(Manhole manhole, float height) {
         this(manhole.getPosition(), height);
         this.manhole = manhole;
         manhole.addConnection(this);
     }
 
+    @Override
     public float getHeight() {
 //        return height;
         return (float) position.getZ();
@@ -140,19 +117,6 @@ public class Connection_Manhole_Pipe implements Connection_Manhole {
         return false;
     }
 
-//    public Capacity getFlowOutletCapacity() {
-//        if (isFlowInletToPipe()) {
-//            return pipe;
-//        }
-//        return manhole;
-//    }
-//
-//    public Capacity getFlowInletCapacity() {
-//        if (isFlowInletToPipe()) {
-//            return manhole;
-//        }
-//        return pipe;
-//    }
     @Override
     public Capacity getConnectedCapacity() {
         return pipe;

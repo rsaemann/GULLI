@@ -257,22 +257,21 @@ public class ParticleThread extends Thread {
                                 break;
 //                                continue;
                             } else {
-                                if (p.getSurrounding_actual() != null) {
-                                    if (p.getSurrounding_actual() == p.injectionSurrounding) {
-                                        if (p.injectionSurrounding instanceof SurfaceTriangle) {
-                                            p.setOnSurface();
-                                            p.surfaceCellID = p.getInjectionCellID();
-                                            p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
-                                        } else if (p.injectionSurrounding instanceof Surface) {
-                                            p.setOnSurface();
-                                            p.surfaceCellID = p.getInjectionCellID();
-                                            double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
-                                            p.setPosition3D(pos[0], pos[1]);
-                                        } else {
-                                            p.setInPipenetwork();
-                                            p.setPosition1d_actual(p.injectionPosition1D);
-                                        }
+                                if (p.getSurrounding_actual() == null || p.getSurrounding_actual() == p.injectionSurrounding) {
+                                    if (p.injectionSurrounding instanceof SurfaceTriangle) {
+                                        p.setOnSurface();
+                                        p.surfaceCellID = p.getInjectionCellID();
+                                        p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
+                                    } else if (p.injectionSurrounding instanceof Surface) {
+                                        p.setOnSurface();
+                                        p.surfaceCellID = p.getInjectionCellID();
+                                        double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
+                                        p.setPosition3D(pos[0], pos[1]);
+                                    } else {
+                                        p.setInPipenetwork();
+                                        p.setPosition1d_actual(p.injectionPosition1D);
                                     }
+                                    p.setSurrounding_actual(p.injectionSurrounding);
                                 }
                             }
                         }
@@ -538,5 +537,5 @@ public class ParticleThread extends Thread {
         activeList.clear();
         completedList.clear();
     }
-    
+
 }

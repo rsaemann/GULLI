@@ -359,6 +359,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                     modelDatabase = new HE_Database(fileNetwork, true);
                 }
                 String crsCode = null;
+
                 try {
                     crsCode = modelDatabase.loadCoordinateReferenceSystem();
                     if (verbose) {
@@ -371,7 +372,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                 }
                 if (crsCode == null) {
                     crsCode = "EPSG:25832";
-                    System.err.println("Use " + crsCode + " as CRS for Network geometry.");
+                    System.err.println("No CRS information found. Use " + crsCode + " as CRS for Network geometry.");
                 }
                 nw = modelDatabase.loadNetwork(CRS.decode(crsCode));//HE_Database.loadNetwork(fileNetwork);
             } else if (fileNetwork.getName().endsWith(".inp")) {
@@ -435,35 +436,36 @@ public class LoadingCoordinator implements LoadingActionListener {
                         } else {
                             injection = new ArrayList<>(0);
                         }
+
+                        long starttime = System.currentTimeMillis();
+                        //Find injection manholes
+                        ArrayList<Capacity> injManholes = new ArrayList<>(injection.size());
+                        if (verbose) {
+                            System.out.println("Injections: " + injections.size());
+                        }
+                        for (InjectionInformation inj : injections) {
+                            if (inj.getCapacity() == null && inj.spillInManhole() && inj.getCapacityName() != null && nw != null) {
+                                //Search for injection reference
+                                Capacity c = network.getCapacityByName(inj.getCapacityName());
+                                inj.setCapacity(c);
+                            }
+                            if (inj.getCapacity() != null) {
+                                Capacity c = inj.getCapacity();
+                                if (c != null && !injManholes.contains(c)) {
+                                    injManholes.add(c);
+                                }
+                            }
+                            if (inj.getCapacity() == null && inj.spillInManhole() && inj.getPosition() != null) {
+                                if (verbose) {
+                                    System.out.println("Search for Manhole near position " + inj.getPosition());
+                                }
+                                inj.setCapacity(network.getManholeNearPositionLatLon(inj.getPosition()));
+                                if (verbose) {
+                                    System.out.println("found " + inj.getCapacity());
+                                }
+                            }
+                        }
                         if (sparsePipeLoading) {
-                            long starttime = System.currentTimeMillis();
-                            //Find injection manholes
-                            ArrayList<Capacity> injManholes = new ArrayList<>(injection.size());
-                            if (verbose) {
-                                System.out.println("Injections: " + injections.size());
-                            }
-                            for (InjectionInformation inj : injections) {
-                                if (inj.getCapacity() == null && inj.spillInManhole() && inj.getCapacityName() != null && nw != null) {
-                                    //Search for injection reference
-                                    Capacity c = network.getCapacityByName(inj.getCapacityName());
-                                    inj.setCapacity(c);
-                                }
-                                if (inj.getCapacity() != null) {
-                                    Capacity c = inj.getCapacity();
-                                    if (c != null && !injManholes.contains(c)) {
-                                        injManholes.add(c);
-                                    }
-                                }
-                                if (inj.getCapacity() == null && inj.spillInManhole() && inj.getPosition() != null) {
-                                    if (verbose) {
-                                        System.out.println("Search for Manhole near position " + inj.getPosition());
-                                    }
-                                    inj.setCapacity(network.getManholeNearPositionLatLon(inj.getPosition()));
-                                    if (verbose) {
-                                        System.out.println("found " + inj.getCapacity());
-                                    }
-                                }
-                            }
                             //load minmax velocity
                             action.description = "Load Maximum velocity";
 //                                            HE_Database fbdb = new HE_Database(fileMainPipeResult, true);
@@ -557,7 +559,7 @@ public class LoadingCoordinator implements LoadingActionListener {
 //                                    ArrayTimeLinePipeContainer.instance = p.first;
 //                                    ArrayTimeLineManholeContainer.instance = p.second;
                     if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-
+                        //Load spill events from database
                         if (injection != null && !injection.isEmpty()) {
                             action.description = "Apply spill events";
                             int materialnumber = 0;

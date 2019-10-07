@@ -143,7 +143,6 @@ public class CSV_IO {
 //                    topInlet.flow_m2p = 77;
 //                    topInlet.velocity_m2p = 1;
                     topInlet.setManhole(m);
-                    topInlet.name = "Deckel";
                     m.addConnection(topInlet);
                     if (m.getName().equals("WE07N146")) {
                         System.out.println("Connection hinzugefügt. jetzt:" + m.getConnections().length);

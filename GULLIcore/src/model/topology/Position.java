@@ -19,9 +19,26 @@ public class Position extends Point2D.Double implements GeoPosition2D {
 
     final double longitude, latitude;
 
+    public Position(Position position) {
+        this.x = position.x;
+        this.y = position.y;
+        this.longitude = (float) position.getLongitude();
+        this.latitude = (float) position.getLatitude();
+
+    }
+
+    public Position(Position3D position) {
+        this.x = position.x;
+        this.y = position.y;
+        this.longitude = (float) position.getLongitude();
+        this.latitude = (float) position.getLatitude();
+
+    }
+
     public Position(GeoPosition2D position) {
         this.longitude = (float) position.getLongitude();
         this.latitude = (float) position.getLatitude();
+
     }
 
     public Position(double longitude, double latitude) {

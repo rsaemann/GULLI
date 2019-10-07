@@ -409,6 +409,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
     }
 
     public String loadCoordinateReferenceSystem() throws SQLException, IOException {
+        if (!isSQLite) {
+            //Firebird database does not provide CRS information.
+            return null;
+        }
         int crs;
         try (Statement st = getConnection().createStatement(); ResultSet rs = st.executeQuery("SELECT INHALT FROM ITWH$VARIABLEN WHERE NAME='Koordinatenbezugssystem'")) {
             if (!rs.isBeforeFirst()) {
@@ -493,8 +497,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         res = st.executeQuery("SELECT name,geometry,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID,KANALART from schacht ORDER BY ID;");
                     } catch (SQLException sqlex) {
                         res = st.executeQuery("SELECT name,geometry,Oberflaeche,gelaendehoehe,deckelhoehe,sohlhoehe,ID,KANALART from schacht ORDER BY ID;");
-
                     }
+                    if (!res.isBeforeFirst()) {
+                        System.err.println("Database has no Manhole elements.");
+                    }
+
                     while (res.next()) {
                         String name = res.getString(1);
                         byte[] buffer = res.getBytes(2);
@@ -2504,7 +2511,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                     int index = 0;
                     while (rs.next()) {
-                        concentration[index] = rs.getFloat(1)*0.001f;
+                        concentration[index] = rs.getFloat(1) * 0.001f;
                         index++;
                     }
                 }
