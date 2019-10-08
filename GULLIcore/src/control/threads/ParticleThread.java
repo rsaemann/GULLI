@@ -88,6 +88,9 @@ public class ParticleThread extends Thread {
 
     public void setDeltaTime(double seconds) {
         this.pc.setDeltaTime(seconds);
+        if (surfcomp != null) {
+            surfcomp.setDeltaTimestep(seconds);
+        }
     }
 
     public void setSurface(Surface surface) {
@@ -101,6 +104,9 @@ public class ParticleThread extends Thread {
         } else if (!(surfcomp instanceof ParticleSurfaceComputing1D)) {
             surfcomp = new ParticleSurfaceComputing1D(surfcomp.getSurface(), surfcomp.getSeed());
         }
+        if (surfcomp != null) {
+            surfcomp.setDeltaTimestep(pc.getDeltaTime());
+        }
     }
 
     public void setSurfaceComputing2D() {
@@ -109,10 +115,16 @@ public class ParticleThread extends Thread {
         } else if (!(surfcomp instanceof ParticleSurfaceComputing2D)) {
             surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface(), surfcomp.getSeed());
         }
+        if (surfcomp != null) {
+            surfcomp.setDeltaTimestep(pc.getDeltaTime());
+        }
     }
 
     public void setSurfaceComputing(ParticleSurfaceComputing sc) {
         this.surfcomp = sc;
+        if (surfcomp != null) {
+            surfcomp.setDeltaTimestep(pc.getDeltaTime());
+        }
     }
 
     /**
