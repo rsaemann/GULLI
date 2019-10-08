@@ -23,7 +23,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.Point2D;
 import java.io.File;
@@ -378,7 +377,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             return;
         }
         PaintManager.timeToShow = timeToShow;
-        if(this.surfaceShow==SURFACESHOW.VELOCITY){
+        if (this.surfaceShow == SURFACESHOW.VELOCITY) {
             addSurfacePaint();
         }
     }
@@ -1743,11 +1742,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 mapViewer.clearLayer(layerArrow);
                 mapViewer.clearLayer(layerLabelWaterlevel);
                 double t = surface.getTimes().getTimeIndexDouble(timeToShow);//ex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-                int ti=(int)t;
-                float frac=(float) (t%1);
-                if(ti>=surface.getNumberOfTimes()-1){
-                    ti=surface.getNumberOfTimes()-2;
-                    frac=1;
+                int ti = (int) t;
+                float frac = (float) (t % 1);
+                if (ti >= surface.getNumberOfTimes() - 1) {
+                    ti = surface.getNumberOfTimes() - 2;
+                    frac = 1;
                 }
 //                System.out.println("show velocity timeindex " + t);
 //                int counter = 0;
@@ -1765,16 +1764,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         if (Math.abs(v[0]) < 0.0001 && Math.abs(v[1]) < 0.0001) {
                             continue;
                         }
-                        float[] v2 = surface.getTriangleVelocity()[i][ti+1];
-                        float vx=v[0]+(v2[0]-v[0])*frac;
-                        float vy=v[1]+(v2[1]-v[1])*frac;
-                        
+                        float[] v2 = surface.getTriangleVelocity()[i][ti + 1];
+                        float vx = v[0] + (v2[0] - v[0]) * frac;
+                        float vy = v[1] + (v2[1] - v[1]) * frac;
+
                         double[] mid = surface.getTriangleMids()[i];
                         Coordinate midPoint = surface.getGeotools().toGlobal(new Coordinate(mid[0], mid[1]));
                         Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(mid[0] + velocityFactor * vx, mid[1] + velocityFactor * vy));
                         ArrowPainting av = new ArrowPainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
                         mapViewer.addPaintInfoToLayer(layerArrow, av);
-                        
+
 //                        LabelPainting lp=new LabelPainting(i, chSpillover, new GeoPosition(midPoint), 15, 0, 0, i+"");
 //                        mapViewer.addPaintInfoToLayer(layerLabelWaterlevel, lp);
 //                        counter++;
@@ -1853,6 +1852,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     private void addParticle(final Particle p) throws TransformException {
         if (particlePaintings.size() > maximumNumberOfParticleShapes) {
+            return;
+        }
+
+        if (p.isInactive()) {
             return;
         }
         if (p.getPosition3d() == null || (Math.abs(p.getPosition3d().x) < 0.01 && Math.abs(p.getPosition3d().y) < 0.01)) {
@@ -1982,41 +1985,45 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
      * individual colors and legend entries.
      */
     public void orderParticlesPainting() {
-        Layer surface = mapViewer.getLayer(layerParticleSurface);
-        Layer networks = mapViewer.getLayer(layerParticleNetwork);
-        if (surface == null) {
-            surface = new Layer(layerParticleSurface, chParticlesSurface);
-            mapViewer.getLayers().add(surface);
-            mapViewer.recomputeLegend();
-            Layer allparticles = mapViewer.getLayer(layerParticle);
+        Layer surfaceLayer = mapViewer.getLayer(layerParticleSurface);
+        Layer networkLayer = mapViewer.getLayer(layerParticleNetwork);
+        Layer allparticles = mapViewer.getLayer(layerParticle);
+        if (allparticles != null) {
             allparticles.setVisibleInLegende(false);
             allparticles.setVisibleInMap(false);
-            surface.setVisibleInLegende(true);
-            surface.setVisibleInMap(true);
+        }
+        if (surfaceLayer == null) {
+            surfaceLayer = new Layer(layerParticleSurface, chParticlesSurface);
+            mapViewer.getLayers().add(surfaceLayer);
+            mapViewer.recomputeLegend();
+            surfaceLayer.setVisibleInLegende(true);
+            surfaceLayer.setVisibleInMap(true);
         }
 
-        if (networks == null) {
-            networks = new Layer(layerParticleNetwork, chParticlesNetwork);
-            mapViewer.getLayers().add(networks);
+        if (networkLayer == null) {
+            networkLayer = new Layer(layerParticleNetwork, chParticlesNetwork);
+            mapViewer.getLayers().add(networkLayer);
             mapViewer.recomputeLegend();
-            networks.setVisibleInLegende(true);
-            networks.setVisibleInMap(true);
+            networkLayer.setVisibleInLegende(true);
+            networkLayer.setVisibleInMap(true);
         }
-        surface.clear();
-        networks.clear();
+        surfaceLayer.clear();
+        networkLayer.clear();
 //        Iterator<NodePainting> it = particlePaintings.iterator();
         for (Particle p : particles) {
+
 //            NodePainting np = it.next();
             // TODO: only update the shapes position instead of creaing alwas a new version.
             if (p.isActive()) {
+//                System.out.println("First surface particle " + p.isActive() + "   where?" + p.getSurrounding_actual() + "  surface?" + p.isOnSurface() + "  id:" + p.surfaceCellID+"  position:"+ p.getPosition3d());
+
                 if (p.getPosition3d() == null || Double.isNaN(p.getPosition3d().x)) {
                     continue;
                 }
                 if (p.isOnSurface()) {
                     try {
                         NodePainting np1 = new NodePainting(p.getId(), geoToolsSurface.toGlobal(p.getPosition3d()), chParticlesSurface);
-
-                        surface.add(np1);
+                        surfaceLayer.add(np1);
                     } catch (TransformException ex) {
                         System.err.println("surface Pos utm: " + p.getPosition3d());
                         Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -2026,7 +2033,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 //                    networks.add(particlePainting);
 //                    try {
                     NodePainting np1 = new NodePainting(p.getId(), p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()).latLonCoordinate(), chParticlesNetwork);
-                    networks.add(np1);
+                    networkLayer.add(np1);
 //                    } catch (TransformException ex) {
 //                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
 //                    }
