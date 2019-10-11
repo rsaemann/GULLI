@@ -43,6 +43,7 @@ public class SynchronizationThread extends Thread {
 
     public int lastMeasurementImeIndex = -1;
     protected Controller control;
+    public int status = -1;
 
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(1);
 
@@ -65,6 +66,7 @@ public class SynchronizationThread extends Thread {
         while (runendless) {
             if (true) {
                 try {
+                    status = 0;
                     actualSimulationTime = barrier.getSimulationtime();
 //                    if (!tempList.isEmpty()) {
                         /*Add waiting Particles into the list before iterating the list to
@@ -131,12 +133,15 @@ public class SynchronizationThread extends Thread {
                     // Schreibe die Gesammelten Werte in die Mess-Zeitreihe der Rohre
                     ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
 //                    System.out.println(getClass()+":: getMeasurementContainerPipe:"+mcp);
+                    status = 1;
                     int timeindex = mcp.getIndexForTime(actualSimulationTime);
                     if (timeindex >= mcp.getNumberOfTimes()) {
                         timeindex = mcp.getNumberOfTimes() - 1;
                     }
+                    status = 2;
                     if (!mcp.isTimespotmeasurement() || timeindex != lastMeasurementImeIndex && pipes != null) {
 //                        for (Pipe pipe : barrier.getThreadController().control.getNetwork().getPipes()) {
+                        status = 3;
                         for (Pipe pipe : pipes) {
                             if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
                                 pipe.getMeasurementTimeLine().addMeasurement(timeindex,/* pipe.getMeasurementTimeLine().getNumberOfParticles(),pipe.getMeasurementTimeLine().getParticleMassInTimestep(),*/ (float) pipe.getFluidVolume());
@@ -145,7 +150,7 @@ public class SynchronizationThread extends Thread {
                         }
                     }
                     lastMeasurementImeIndex = timeindex;
-
+                    status = 4;
                     for (ParticleMeasurement pm : messung) {
                         try {
                             pm.writeCounter(actualSimulationTime);
@@ -153,7 +158,7 @@ public class SynchronizationThread extends Thread {
                             e.printStackTrace();
                         }
                     }
-
+                    status = 5;
                     if (mcp.isTimespotmeasurement()) {
 //                        for (Pipe pipe : barrier.getThreadController().control.getNetwork().getPipes()) {
                         for (Pipe pipe : pipes) {
@@ -164,13 +169,13 @@ public class SynchronizationThread extends Thread {
                     e.printStackTrace();
                 }
             }
-
+            status = 6;
             /**
              * Synchronization finished, give control back to the
              * Threadcontroller via the barrier
              */
             barrier.loopfinished(this);
-
+            status = 7;
         }
     }
 

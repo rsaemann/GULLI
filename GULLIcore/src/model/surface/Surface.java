@@ -2293,6 +2293,29 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 }
                 velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
                 velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
+//                System.out.println("benutze kleinste gewichtete richtung zeitlich interpoliert");
+                  //Use only the samllest weight to interpolate velocity
+//                float[] v1t;
+//                double w1t = 0;
+//                if (w[0] < w[1]) {
+//                    if (w[0] < w[2]) {
+//                        w1t = w[0];
+//                        v1t = v0;
+//                    } else {
+//                        w1t = w[2];
+//                        v1t = v2;
+//                    }
+//                } else {
+//                    if (w[1] < w[2]) {
+//                        w1t = w[1];
+//                        v1t = v1;
+//                    } else {
+//                        w1t = w[2];
+//                        v1t = v2;
+//                    }
+//                }
+//                velocityParticle[0]=vt[0]-(0.33-w1t)*(v1t[0]-vt[0])*0.5;
+//                velocityParticle[1]=vt[1]-(0.33-w1t)*(v1t[1]-vt[1])*0.5;
             } else {
                 float[] vt = getTriangleVelocity(triangleID)[timeIndexInt];
 //                float[] v0 = getTriangleVelocity(t0)[timeIndexInt];
@@ -2321,8 +2344,36 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 } else {
                     v2 = getTriangleVelocity(nb2, timeIndexInt);
                 }
+//                velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
+//                velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
+
+                
                 velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
                 velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
+
+//                //Use only the samllest weight to interpolate velocity
+//                float[] v1t;
+//                double w1t = 0;
+//                if (w[0] < w[1]) {
+//                    if (w[0] < w[2]) {
+//                        w1t = w[0];
+//                        v1t = v0;
+//                    } else {
+//                        w1t = w[2];
+//                        v1t = v2;
+//                    }
+//                } else {
+//                    if (w[1] < w[2]) {
+//                        w1t = w[1];
+//                        v1t = v1;
+//                    } else {
+//                        w1t = w[2];
+//                        v1t = v2;
+//                    }
+//                }
+//                velocityParticle[0]=vt[0]-(1-w1t)*(v1t[0]-vt[0])*0.5;
+//                velocityParticle[1]=vt[1]-(1-w1t)*(v1t[1]-vt[1])*0.5;
+//                System.out.println("benutze kleinste gewichtete richtung");
             }
         }
         return velocityParticle;

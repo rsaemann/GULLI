@@ -125,12 +125,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
     public long seed = 100;
 
-    /**
-     * If particles are treated in threads, the particles are passed to the
-     * threads. Otherwise all particles are stored here in the threadcontroller
-     * and are read from the particlethreads.
-     */
-    public static boolean particlesInThreads = false;
+//    /**
+//     * If particles are treated in threads, the particles are passed to the
+//     * threads. Otherwise all particles are stored here in the threadcontroller
+//     * and are read from the particlethreads.
+//     */
+//    public static boolean particlesInThreads = false;
     ////
     //everything to do if the particles are stored here centralised
     public Particle[] particles;
@@ -200,8 +200,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
 
         calculationLoopStarttime = System.currentTimeMillis();
-        calledObject = barrier_sync;
-        barrier_sync.startover();
+        calledObject = barrier_particle;
+        barrier_particle.startover();
     }
 
     public void stop() {
@@ -252,7 +252,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         if (!barrier_positionUpdate.isinitialized) {
             return;
         }
-        calledObject = barrier_sync;
+        calledObject = barrier_positionUpdate;
         barrier_positionUpdate.startover();
     }
 
@@ -308,46 +308,45 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     private void setParticles(Collection<Particle> particles) {
 
-        if (particlesInThreads) {
-            //Divide the List of Particles in equal pices and fill them into the Threads.
-            int threadCount = barrier_particle.getThreads().size();
-
-            ArrayList<Particle>[] threadlists = new ArrayList[threadCount];
-            for (int i = 0; i < threadlists.length; i++) {
-                threadlists[i] = new ArrayList<>(particles.size() / threadCount + 1);
-            }
-            int counter = 0;
-            for (Particle particle : particles) {
-                threadlists[counter % threadCount].add(particle);
-                counter++;
-            }
-
-            for (int i = 0; i < threadlists.length; i++) {
-                barrier_particle.getThreads().get(i).clearParticles();
-                barrier_particle.getThreads().get(i).addParticles(threadlists[i]);
-            }
-            barrier_positionUpdate.getThread().setParticles(particles.toArray(new Particle[particles.size()]));
-        } else {
-
-            Comparator<Particle> comp = new Comparator<Particle>() {
-                @Override
-                public int compare(Particle t, Particle t1) {
-                    if (t.getInsertionTime() == t1.getInsertionTime()) {
-                        return 0;
-                    }
-                    if (t.getInsertionTime() < t1.getInsertionTime()) {
-                        return -1;
-                    }
-                    return 1;
+//        if (particlesInThreads) {
+//            //Divide the List of Particles in equal pices and fill them into the Threads.
+//            int threadCount = barrier_particle.getThreads().size();
+//
+//            ArrayList<Particle>[] threadlists = new ArrayList[threadCount];
+//            for (int i = 0; i < threadlists.length; i++) {
+//                threadlists[i] = new ArrayList<>(particles.size() / threadCount + 1);
+//            }
+//            int counter = 0;
+//            for (Particle particle : particles) {
+//                threadlists[counter % threadCount].add(particle);
+//                counter++;
+//            }
+//
+//            for (int i = 0; i < threadlists.length; i++) {
+//                barrier_particle.getThreads().get(i).clearParticles();
+//                barrier_particle.getThreads().get(i).addParticles(threadlists[i]);
+//            }
+//            barrier_positionUpdate.getThread().setParticles(particles.toArray(new Particle[particles.size()]));
+//        } else {
+        Comparator<Particle> comp = new Comparator<Particle>() {
+            @Override
+            public int compare(Particle t, Particle t1) {
+                if (t.getInsertionTime() == t1.getInsertionTime()) {
+                    return 0;
                 }
-            };
+                if (t.getInsertionTime() < t1.getInsertionTime()) {
+                    return -1;
+                }
+                return 1;
+            }
+        };
 
-            this.particles = particles.toArray(new Particle[particles.size()]);
-            Arrays.sort(this.particles, comp);
-            this.waitingParticleIndex = 0;
-            this.nextBlockStartIndex = 0;
+        this.particles = particles.toArray(new Particle[particles.size()]);
+        Arrays.sort(this.particles, comp);
+        this.waitingParticleIndex = 0;
+        this.nextBlockStartIndex = 0;
 
-        }
+//        }
     }
 
     public double getAverageCalculationTime() {
@@ -426,7 +425,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 if (p == null) {
                     continue;
                 }
-                p.setInactive();
                 p.setSurrounding_actual(null);
                 p.setPosition1d_actual(p.injectionPosition1D);
                 p.surfaceCellID = p.getInjectionCellID();
@@ -439,8 +437,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 p.toSurface = null;
                 p.posToSurface = 0;
                 p.resetMovementLengths();
-                p.setInactive();
-
+                p.setWaiting();
             }
         }
 
@@ -462,9 +459,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public void breakBarrierLocks() {
         //break locks of threadbarriers
-        barrier_positionUpdate.startover();
-        barrier_particle.startover();
-        barrier_sync.startover();
+        if (calledObject == barrier_positionUpdate) {
+            barrier_positionUpdate.startover();
+        } else if (calledObject == barrier_particle) {
+            barrier_particle.startover();
+        } else {
+            barrier_sync.startover();
+        }
 
     }
 
@@ -586,7 +587,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                 break;
                             }
                         }
-                       
+
                     }
 
                     //Send new Timeinformation to all timelines pipe/manhole/surface/soil
@@ -649,10 +650,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      * Cleans all Threads from Particles of an old simulation network/scenario
      */
     public void cleanFromParticles() {
-        for (ParticleThread thread : barrier_particle.getThreads()) {
-            thread.clearParticles();
-            thread.reset();
-        }
+//        for (ParticleThread thread : barrier_particle.getThreads()) {
+////            thread.clearParticles();
+////            thread.reset();
+//        }
         this.particles = null;
     }
 
@@ -661,39 +662,57 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     }
 
     public int getNumberOfActiveParticles() {
-        if (particlesInThreads) {
-            int sum = 0;
-            for (ParticleThread thread : barrier_particle.getThreads()) {
-                sum += thread.getNumberOfActiveParticles();
-            }
-            return sum;
-        } else {
-            if (this.particles == null) {
-                return 0;
-            }
-            int active = 0;
-            for (Particle particle : particles) {
-                if (particle.isActive()) {
-                    active++;
-                }
-            }
-            return active;
+//        if (particlesInThreads) {
+//            int sum = 0;
+//            for (ParticleThread thread : barrier_particle.getThreads()) {
+//                sum += thread.getNumberOfActiveParticles();
+//            }
+//            return sum;
+//        } else {
+        if (this.particles == null) {
+            return 0;
         }
+        int active = 0;
+        for (Particle particle : particles) {
+            if (particle.isActive()) {
+                active++;
+            }
+        }
+        return active;
+//        }
+    }
+
+    public int getNumberOfWaitingParticles() {
+//        if (particlesInThreads) {
+//
+//            return -1;
+//        } else {
+        if (this.particles == null) {
+            return 0;
+        }
+        int waiting = 0;
+        for (Particle particle : particles) {
+            if (particle.isWaiting()) {
+                waiting++;
+            }
+        }
+        return waiting;
+//        }
     }
 
     public int getNumberOfTotalParticles() {
-        if (particlesInThreads) {
-            int sumT = 0;
-            for (ParticleThread thread : barrier_particle.getThreads()) {
-                sumT += thread.getNumberOfTotalParticles();
-            }
-            return sumT;
-        } else {
-            if (this.particles == null) {
-                return 0;
-            }
-            return particles.length;
+//        if (particlesInThreads) {
+//            int sumT = 0;
+//            for (ParticleThread thread : barrier_particle.getThreads()) {
+//                sumT += thread.getNumberOfTotalParticles();
+//            }
+//            return sumT;
+//        } else {
+        if (this.particles == null) {
+            return -1;
         }
+        return particles.length;
+//        }
     }
 
     public void addSimulationListener(SimulationActionListener listen) {
@@ -724,19 +743,39 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                             if (run && steps == laststep) {
                                 // something is incredibly slow. prepare output to console
                                 StringBuilder str = new StringBuilder("--" + getClass() + "--detected hanging at loop " + steps + "  barrier: " + (calledObject) + "   :");
-                                for (ParticleThread pt : tc.getParticleThreads()) {
-                                    if (pt != null) {
-                                        str.append("\n ");
-                                        str.append(pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
-                                        if (pt.particle != null) {
-                                            str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
+                                if (calledObject instanceof MultiThreadBarrier) {
+                                    MultiThreadBarrier mtb = (MultiThreadBarrier) calledObject;
+                                    for (Object thread : mtb.getThreads()) {
+                                        if (thread instanceof ParticleThread) {
+                                            ParticleThread pt = (ParticleThread) thread;
+                                            str.append("\n ");
+                                            str.append(pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
+                                            if (pt.particle != null) {
+                                                str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
+                                            }
+                                            if (pt.getSurfaceComputing() != null) {
+                                                str.append("    surfComputing: status=" + pt.getSurfaceComputing().reportCalculationStatus());
+                                            }
+                                        } else if (thread instanceof SynchronizationThread) {
+                                            SynchronizationThread st = (SynchronizationThread) thread;
+                                            str.append("\n ");
+                                            str.append(st.getClass().getSimpleName() + " " + st.getState() + ", status=" + st.status);
                                         }
-                                        if (pt.getSurfaceComputing() != null) {
-                                            str.append("    surfComputing: status=" + pt.getSurfaceComputing().reportCalculationStatus());
-                                        }
-//                                        System.out.println(pt.getName() + ": " + pt.getState() + "  " + pt.particle + " p.st:" + pt.particle.status + "\t pipeC: particleID" + pt.particleID + " surfC: " + pt.surfcomp.status + "\t Surface: " + control.getSurface().status + " v2nb:" + control.getSurface().vstatus);
                                     }
                                 }
+//                                for (ParticleThread pt : tc.getParticleThreads()) {
+//                                    if (pt != null) {
+//                                        str.append("\n ");
+//                                        str.append(pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
+//                                        if (pt.particle != null) {
+//                                            str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
+//                                        }
+//                                        if (pt.getSurfaceComputing() != null) {
+//                                            str.append("    surfComputing: status=" + pt.getSurfaceComputing().reportCalculationStatus());
+//                                        }
+////                                        System.out.println(pt.getName() + ": " + pt.getState() + "  " + pt.particle + " p.st:" + pt.particle.status + "\t pipeC: particleID" + pt.particleID + " surfC: " + pt.surfcomp.status + "\t Surface: " + control.getSurface().status + " v2nb:" + control.getSurface().vstatus);
+//                                    }
+//                                }
                                 System.out.println(str.toString());
                                 breakBarrierLocks();
                             }

@@ -329,7 +329,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //                p.setPosition1d_actual(0);
 //                p.setPosition3d(p.getSurrounding_actual().getPosition3D(0));
                 p.setMaterial(material);
-                p.setInactive();
+                p.setWaiting();
                 list.add(p);
                 t += dt;
             }

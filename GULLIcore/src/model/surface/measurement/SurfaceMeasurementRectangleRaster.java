@@ -79,6 +79,44 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         return new SurfaceMeasurementRectangleRaster(minX, minY, numberXInterval, numberYInterval, xwidth, ywidth, surf.getNumberOfMaterials(), surf.getTimes());
     }
 
+    public static SurfaceMeasurementRaster SurfaceMeasurementRectangleRaster(Surface surface, int numberXIntervals, int numberYIntervals, int numberMaterials) {
+
+        SurfaceMeasurementRectangleRaster smr = SurfaceMeasurementRectangleRaster(surface, numberXIntervals, numberYIntervals);
+        smr.setNumberOfMaterials(numberMaterials);
+        return smr;
+    }
+
+    /**
+     *
+     * @param x
+     * @param y
+     * @param toCellCenter if true the center of the given point will always be
+     * in the center of a cell. otherwise it will in the edge point of 4 cells.
+     * @param dx
+     * @param dy
+     * @param numberXIntervals
+     * @param numberYIntervals
+     * @param numberMaterials
+     * @param timec
+     * @return
+     */
+    public static SurfaceMeasurementRaster RasterFocusOnPoint(double x, double y, boolean toCellCenter, double dx, double dy, int numberXIntervals, int numberYIntervals, int numberMaterials, TimeIndexContainer timec) {
+
+        double xmin, ymin;
+        if (toCellCenter) {
+            //place focus point in the center of a raster cell
+            xmin = x - dx * 0.5 - dx * (int) (numberXIntervals / 2);
+            ymin = y - dy * 0.5 - dy * (int) (numberYIntervals / 2);
+        } else {
+            xmin = x - dx * (int) (numberXIntervals / 2);
+            ymin = y - dy * (int) (numberYIntervals / 2);
+        }
+
+        SurfaceMeasurementRectangleRaster smr = new SurfaceMeasurementRectangleRaster(xmin, ymin, numberXIntervals, numberYIntervals, dx, dy, numberMaterials, timec);
+
+        return smr;
+    }
+
     @Override
     public void measureParticle(long time, Particle particle) {
         if (particle.getPosition3d() == null) {

@@ -31,6 +31,7 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
             for (T value : threads) {
                 if (value != finishedThread && value.getState() != Thread.State.WAITING) {
                     status = 5;
+                    finished++;
                     try {
                         //Not ready yet, This Thread now should fall asleep
                         this.wait();
@@ -41,29 +42,17 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
                     return;
                 }
             }
-//            finished++;
-//            if (finished < threads.size()) {
-//                status = 5;
-//                try {
-//                       //Not ready yet, This Thread now should fall asleep
-//                    //The calling Thread will fall asleep at this moment.
-//                    this.wait();
-//                } catch (InterruptedException ex) {
-//                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
-//                }
-//                status = 6;
-//                return;
-//            }
-
             status = 2; //all threads finished their loop
             finished = 0;
             notifyWhenReady.finishedLoop(this);
 
-            try {
-                status = 3;//Wait until revoken.
-                this.wait();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+            if (status > 0) {
+                try {
+                    status = 3;//Wait until revoken.
+                    this.wait();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
             status = 4;//Startover
         }

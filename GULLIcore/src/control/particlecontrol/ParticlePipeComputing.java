@@ -318,7 +318,7 @@ public class ParticlePipeComputing {
                 Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(actualC, rand, position1d);
                 if (con == null) {
                     if (actualC.isSetAsOutlet()) {
-                        p.setInactive();
+                        p.setLeftSimulation();
 
                     } else {
 //                        needCalculation = true;
@@ -410,7 +410,7 @@ public class ParticlePipeComputing {
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (c == null || c.isSetAsOutlet()) {
-            p.setInactive();
+            p.setLeftSimulation();
             p.setPosition1d_actual(0);
             p.setVelocity1d(0);
             return;
@@ -511,7 +511,7 @@ public class ParticlePipeComputing {
                 try {
                     Manhole mh = (Manhole) c;
                     if (c.isSetAsOutlet()) {
-                        p.setInactive();
+                        p.setLeftSimulation();
                         p.setPosition1d_actual(0);
                         p.setSurrounding_actual(c);
                         return;
@@ -655,7 +655,7 @@ public class ParticlePipeComputing {
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (c == null || c.isSetAsOutlet()) {
-            p.setInactive();
+            p.setLeftSimulation();
             p.setPosition1d_actual(0);
             p.setVelocity1d(0);
             return;
@@ -799,7 +799,7 @@ public class ParticlePipeComputing {
                     try {
                         Manhole mh = (Manhole) c;
                         if (c.isSetAsOutlet()) {
-                            p.setInactive();
+                            p.setLeftSimulation();
 //                            p.setPosition1d_actual(0);
                             p.setSurrounding_actual(c);
                             return;
@@ -916,7 +916,7 @@ public class ParticlePipeComputing {
 
                     Manhole mh = (Manhole) c;
                     if (c.isSetAsOutlet()) {
-                        p.setInactive();
+                        p.setLeftSimulation();
                         p.setPosition1d_actual(0);
                         p.setSurrounding_actual(c);
                         return;
@@ -1038,7 +1038,8 @@ public class ParticlePipeComputing {
             position1d = 0;
         }
         if (c == null || c.isSetAsOutlet()) {
-            p.setInactive();
+//            p.setInactive();
+            p.setLeftSimulation();
             p.setPosition1d_actual(0);
             p.setVelocity1d(0);
             return;
@@ -1197,7 +1198,7 @@ public class ParticlePipeComputing {
                         try {
                             Manhole mh = (Manhole) c;
                             if (c.isSetAsOutlet()) {
-                                p.setInactive();
+                                p.setLeftSimulation();
                                 p.setPosition1d_actual(0);
                                 p.setSurrounding_actual(c);
                                 return;
@@ -1349,7 +1350,7 @@ public class ParticlePipeComputing {
                         }
                         Manhole mh = (Manhole) c;
                         if (c.isSetAsOutlet()) {
-                            p.setInactive();
+                            p.setLeftSimulation();
                             p.setPosition1d_actual(0);
                             p.setSurrounding_actual(c);
                             return;

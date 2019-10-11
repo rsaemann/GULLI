@@ -28,6 +28,7 @@ import model.GeoTools;
 import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.surface.measurement.SurfaceMeasurementRaster;
+import model.surface.measurement.SurfaceMeasurementRectangleRaster;
 import model.surface.measurement.TriangleMeasurement;
 import model.topology.Inlet;
 import model.topology.Manhole;
@@ -747,6 +748,18 @@ public class HE_SurfaceIO {
                         }
                         bw.newLine();
                     }
+                }
+            } else if (surface.getMeasurementRaster() instanceof SurfaceMeasurementRectangleRaster) {
+                SurfaceMeasurementRectangleRaster raster = (SurfaceMeasurementRectangleRaster) surface.getMeasurementRaster();
+                for (int y = 0; y < raster.getNumberYIntervals(); y++) {
+                    for (int x = 0; x < raster.getNumberXIntervals(); x++) {
+                        int count = 0;
+                        for (int t = 0; t < raster.getNumberOfTimes(); t++) {
+                            count += raster.getParticlesCountedMaterialSum(x, y, t);
+                        }
+                        bw.write(count + ";");
+                    }
+                    bw.newLine();
                 }
             } else {
                 throw new UnsupportedOperationException("Type of Surface Raster " + surface.getMeasurementRaster().getClass().getSimpleName() + " is not known to be handled for output.");

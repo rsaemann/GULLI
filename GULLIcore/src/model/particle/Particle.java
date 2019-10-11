@@ -88,10 +88,10 @@ public class Particle {
 
 //    protected long activationTime = 0;
     /**
-     * Status to determine the domain of the particle. 0:inactive; 10:
+     * Status to determine the domain of the particle. -10:leftSimulation, -1:waiting, 0:inactive; 10:
      * pipenetwork 20:surface; 30:underground.
      */
-    public byte status = 0;   //0=inactive, 10=pipenetwork , 20=surface, 30=Underground
+    public byte status = -1;   //-10 left simulation, -1 waiting,0=inactive, 10=pipenetwork , 20=surface, 30=Underground, 
 
     public boolean deposited = false;
 
@@ -149,7 +149,20 @@ public class Particle {
     }
 
     public boolean isInactive() {
-        return status == 0;
+        return status < 1;
+    }
+    
+    public boolean hasLeftSimulation(){
+        return status==-10;
+    }
+
+    /**
+     * Is waiting for release into the simulation
+     *
+     * @return
+     */
+    public boolean isWaiting() {
+        return status == -1;
     }
 
     public boolean isActive() {
@@ -182,6 +195,14 @@ public class Particle {
 
     public void setInSoil() {
         this.status = 30;
+    }
+
+    public void setWaiting() {
+        this.status = -1;
+    }
+    
+    public void setLeftSimulation(){
+        this.status=-10;
     }
 
     public double getPosition1d_actual() {
@@ -377,7 +398,6 @@ public class Particle {
         this.moveLengthAbsolute = 0;
         this.moveLengthCummulative = 0;
     }
-
 
     public void setPosition3D(Coordinate c) {
         if (c == null) {

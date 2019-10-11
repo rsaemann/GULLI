@@ -218,7 +218,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             pos.y += (float) velo[1] * dt;// only advection
         } else {
             // calculate diffusion
-            if (u > 0.00001f) {
+            if (u > 0.000001f) {
                 double[] Diff = D.calculateDiffusion(velo[0], velo[1], surface, triangleID);
                 double sqrt2dtDx = Math.sqrt(2 * dt * Diff[0]);
                 double sqrt2dtDy = Math.sqrt(2 * dt * Diff[1]);
