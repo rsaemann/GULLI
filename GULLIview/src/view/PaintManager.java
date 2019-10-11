@@ -3,6 +3,7 @@ package view;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LinearRing;
 import control.Action.Action;
 import control.Controller;
 import control.LocationIDListener;
@@ -48,6 +49,7 @@ import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.surface.SurfacePathStatistics;
 import model.surface.SurfaceTriangle;
+import model.surface.measurement.SurfaceMeasurementRaster;
 import model.surface.measurement.SurfaceMeasurementRectangleRaster;
 import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
@@ -161,6 +163,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public final String layerSurfaceContaminated = layerTriangle + "CONT";
     public final String layerSurfaceWaterlevel = layerTriangle + "WL";
     public final String layerSurfaceGrid = layerTriangle + "RID";
+    public final String layerSurfaceMeasurementRaster = layerTriangle + "MRaster";
     private final ColorHolder chTriangleMeasurement = new ColorHolder(Color.orange, "Triangle probe");
     private final DoubleColorHolder chTrianglesContaminated = new DoubleColorHolder(Color.orange, Color.yellow, "Surface contaminated");
     private final DoubleColorHolder chTrianglesGrid = new DoubleColorHolder(Color.orange, new Color(1, 1, 1, 0), "Surface Triangles");
@@ -213,7 +216,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, WATERLEVEL1, WATERLEVEL10, WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY;
+        NONE, GRID, ANALYSISRASTER, WATERLEVEL1, WATERLEVEL10, WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY;
     };
     private SURFACESHOW surfaceShow = SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -987,6 +990,87 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+
+        } else if (this.surfaceShow == SURFACESHOW.ANALYSISRASTER) {
+            if (surface == null || surface.getMeasurementRaster() == null) {
+                this.surfaceShow = SURFACESHOW.NONE;
+                return;
+            }
+            mapViewer.clearLayer(layerSurfaceMeasurementRaster);
+
+            int id = 0;
+            SurfaceMeasurementRaster raster = surface.getMeasurementRaster();
+            if (raster instanceof SurfaceMeasurementRectangleRaster) {
+                SurfaceMeasurementRectangleRaster rectRaster = (SurfaceMeasurementRectangleRaster) raster;
+                if (drawTrianglesAsNodes) {
+                    for (int x = 0; x < rectRaster.getNumberXIntervals(); x++) {
+                        for (int y = 0; y < rectRaster.getNumberYIntervals(); y++) {
+                            try {
+                                Coordinate longlat = surface.getGeotools().toGlobal(rectRaster.getMidCoordinate(x, y), true);
+                                NodePainting np = new NodePainting(x * rectRaster.getNumberYIntervals() + y, longlat, chTrianglesGrid);
+                                mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, np);
+                            } catch (TransformException ex) {
+                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                    }
+                } else {
+                    for (int x = 0; x < rectRaster.getNumberXIntervals(); x++) {
+                        for (int y = 0; y < rectRaster.getNumberYIntervals(); y++) {
+
+                            try {
+                                Coordinate lowleft = new Coordinate(rectRaster.getXmin() + x * rectRaster.getxIntervalWidth(), rectRaster.getYmin() + y * rectRaster.getYIntervalHeight());
+                                Coordinate topRight = new Coordinate(lowleft.x + rectRaster.getxIntervalWidth(), lowleft.y + rectRaster.getYIntervalHeight());
+                                Coordinate topleft = new Coordinate(lowleft.x, topRight.y);
+                                Coordinate lowRight = new Coordinate(topRight.x, lowleft.y);
+
+                                Coordinate llll = surface.getGeotools().toGlobal(lowleft, true);
+                                Coordinate lltr = surface.getGeotools().toGlobal(topRight, true);
+                                Coordinate lltl = surface.getGeotools().toGlobal(topleft, true);
+                                Coordinate lllr = surface.getGeotools().toGlobal(lowRight, true);
+
+                                LinearRing ring = gf.createLinearRing(new Coordinate[]{llll, lltl, lltr, lllr, llll});
+                                AreaPainting ap = new AreaPainting(x * rectRaster.getNumberYIntervals() + y, chTrianglesGrid, ring);
+                                mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, ap);
+                            } catch (TransformException ex) {
+                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                    }
+                }
+
+                mapViewer.recalculateShapes();
+                mapViewer.recomputeLegend();
+            }
+//            if (false) {
+//                for (int i = 0; i < shownSurfaceTriangles.length; i++) {
+//                    id = shownSurfaceTriangles[i];
+//                    try {
+//                        NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chTrianglesGrid);
+//                        id++;
+//                        mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+//                        if (id > maximumNumberOfSurfaceShapes) {
+//                            break;
+//                        }
+//                    } catch (TransformException ex) {
+//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+//                }
+//            }
+//            if (true) {
+//                for (double[] triangleMid : surface.getTriangleMids()) {
+//                    try {
+//                        NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
+//                        id++;
+//                        mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+//                        if (id > maximumNumberOfSurfaceShapes) {
+//                            break;
+//                        }
+//                    } catch (TransformException ex) {
+//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+//                }
+//            }
 
         } else if (this.surfaceShow == SURFACESHOW.SPECTRALMAP) {
             try {
@@ -1874,9 +1958,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             globalCoordinate = geoToolsSurface.toGlobal(p.getPosition3d(), true);
         } else {
             globalCoordinate = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()).get3DCoordinate();
+
         }
 
-        if (p.getClass().equals(HistoryParticle.class)) {
+        if (p.getClass().equals(HistoryParticle.class
+        )) {
             HistoryParticle hp = (HistoryParticle) p;
 
             NodePainting np = new NodePainting(p.getId(), globalCoordinate, chParticles) {
@@ -1973,8 +2059,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         for (Particle particle : particles) {
             try {
                 this.addParticle(particle);
+
             } catch (TransformException ex) {
-                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(PaintManager.class
+                        .getName()).log(Level.SEVERE, null, ex);
             }
         }
 
@@ -2026,7 +2114,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         surfaceLayer.add(np1);
                     } catch (TransformException ex) {
                         System.err.println("surface Pos utm: " + p.getPosition3d());
-                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger
+                                .getLogger(PaintManager.class
+                                        .getName()).log(Level.SEVERE, null, ex);
                     }
 
                 } else {
@@ -2192,6 +2282,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             information += ";Triangle " + st.getAutoID();
                             if (st.manhole != null) {
                                 information += ";spilled @" + st.manhole;
+
                             }
 //                            position = new GeoPosition(geoToolsSurface.toGlobal(p.getPosition3d()));
 
@@ -2641,6 +2732,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         this.mapViewer.clearLayer(layerSurfaceContaminated);
         this.mapViewer.clearLayer(layerSurfaceWaterlevel);
         this.mapViewer.clearLayer(layerSurfaceGrid);
+        this.mapViewer.clearLayer(layerSurfaceMeasurementRaster);
         this.mapViewer.clearLayer(layerLabelWaterlevel);
 
         if (surface == null) {
@@ -2724,6 +2816,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     }
                     this.shownSurfaceTriangles = tris;
 //                    System.out.println("currently " + tris.length + " triangles in visible rectangle.");
+
                 }
             }
 
@@ -2853,6 +2946,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             mapViewer.clearLayer(layerSurfaceBoundary);
             mapViewer.clearLayer(layerSurfaceContaminated);
             mapViewer.clearLayer(layerSurfaceWaterlevel);
+            mapViewer.clearLayer(layerSurfaceMeasurementRaster);
             this.mapViewer.clearLayer(layerSurfaceGrid);
             if (surface != null) {
                 this.geoToolsSurface = surface.getGeotools();
@@ -2863,6 +2957,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 }
                 mapViewer.recalculateShapes();
                 mapViewer.adjustMap();
+
             }
         } catch (Exception ex) {
             Logger.getLogger(PaintManager.class
@@ -2899,8 +2994,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     }
                     ArrowPainting ap = new ArrowPainting(s.id, new Coordinate[]{c0, c1}, chShortcut);
                     mapViewer.addPaintInfoToLayer(layerShortcut, ap);
+
                 } catch (TransformException ex) {
-                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(PaintManager.class
+                            .getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }
@@ -2918,6 +3015,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         this.mapViewer.clearLayer(layerSurfaceContaminated);
         this.mapViewer.clearLayer(layerSurfaceWaterlevel);
         this.mapViewer.clearLayer(layerSurfaceGrid);
+        this.mapViewer.clearLayer(layerSurfaceMeasurementRaster);
 
         this.drawTrianglesAsNodes = asNodes;
         this.addSurfacePaint();
@@ -3043,9 +3141,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 addInjectionLocation(control.getScenario().getInjections());
                 mapViewer.recomputeLegend();
                 mapViewer.recalculateShapes();
+
             }
         } catch (Exception ex) {
-            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(PaintManager.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 
@@ -3094,9 +3194,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 addInjectionLocation(control.getScenario().getInjections());
                 mapViewer.recomputeLegend();
                 mapViewer.recalculateShapes();
+
             }
         } catch (Exception ex) {
-            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(PaintManager.class
+                    .getName()).log(Level.SEVERE, null, ex);
         }
     }
 

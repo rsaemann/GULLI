@@ -206,26 +206,19 @@ public class SurfaceTools implements LocationIDListener {
         maximum = new float[lengthX][lengthY];
         dreieckIDminimum = new int[lengthX][lengthY];
         zielKoordinaten = new int[lengthX][lengthY][2];
-//        zielKoordinatenFlood = new int[lengthX][lengthY][2];
-//        float[][] maximum = new float[lengthX][lengthY];
 
         //Auslesen
         int count = 0;
         float z;
         double y;
         double x;
-//        double fX, fY;
         int iX, iY;
 
-//        dreiecke = new LinkedList<LocalMinimumTriangle>();
         SimpleFeature f;
         MultiPolygon the_geom;
         Coordinate coord;
         while (iterator.hasNext()) {
             count++;
-//            if (count > 200000) {
-//                break;
-//            }
             if (/*verbose &&*/count % zehntelschritte == 0) {
                 System.out.println(" " + ((int) (count * 100. / fc.size())) + "%\t" + (int) ((System.currentTimeMillis() - starttime) / 1000) + " s.");
             }
@@ -246,45 +239,16 @@ public class SurfaceTools implements LocationIDListener {
             // Mittelpunkt betrachten
             iX = getXindex(coord.x);
             iY = getYindex(coord.y);
-//            boolean addtriangle = false;
             if (minimum[iX][iY] < 1) {
                 minimum[iX][iY] = z;
                 dreieckIDminimum[iX][iY] = count;
-//                addtriangle = true;
             } else {
                 if (minimum[iX][iY] > z) {
                     minimum[iX][iY] = z;
                     dreieckIDminimum[iX][iY] = count;
-//                    addtriangle = true;
                 }
             }
             maximum[iX][iY] = Math.max(maximum[iX][iY], z);
-
-            //Eckpunkte betrachten
-//            for (int i = 0; i < 1; i++) {
-//                Coordinate c=the_geom.getCentroid().getCoordinate();
-//                System.out.println("X="+x+"\tY="+y+"\t Center X="+c.x+"\tY="+c.y);
-//                fX = ((c.x - utmXmin)/* */) / breite;
-//                fY = ((c.y - utmYmin)/* */) / hoehe;
-//                iX = (int) (fX * lengthX);
-//                iY = (int) (fY * lengthY);
-//                if (minimum[iX][iY] < 1) {
-//                    minimum[iX][iY] = z;
-//                } else {
-//                    minimum[iX][iY] = Math.min(minimum[iX][iY], z);
-//                }
-//                maximum[iX][iY] = Math.max(maximum[iX][iY], z);
-//            }
-//            if (addtriangle) {//||(count > 100000 && count < 300000)) {
-//                LocalMinimumTriangle lmt = new LocalMinimumTriangle(count);
-//                lmt.geomUTM = transform(the_geom, utm32wgs);
-//                lmt.z = z;
-////                dreiecke.add(lmt);
-//            }
-//
-//            if (count > 50000) {
-//                break;
-//            }
         }
         iterator.close();
 
