@@ -2,8 +2,6 @@ package view;
 
 import control.Action.Action;
 import control.Controller;
-import control.LocationIDListener;
-import control.listener.CapacitySelectionListener;
 import control.listener.LoadingActionListener;
 import control.listener.SimulationActionListener;
 import java.awt.BorderLayout;
@@ -20,7 +18,6 @@ import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import model.surface.Surface;
-import model.topology.Capacity;
 import model.topology.Network;
 
 /**
@@ -60,7 +57,7 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
         //tab multi controll
         multiControl = new MultiControllPanel(controller);
         JScrollPane scrollMulti = new JScrollPane(multiControl);
-        tabs.add("Multiple Events", scrollMulti);
+//        tabs.add("Multiple Events", scrollMulti);
 
         /// Bottom Buttons
         panelBottomButtons = new JPanel(new GridLayout(2, 1));

@@ -155,7 +155,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         BoxLayout layoutSimulation = new BoxLayout(panelTabSimulation, BoxLayout.Y_AXIS);
         panelTabSimulation.setLayout(layoutSimulation);
         tabs.add("Simulation", panelTabSimulation);
-        this.add(tabs);
+        
         //new BorderLayout());
         this.controler = controller;
         this.control = control;
@@ -221,8 +221,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         panelButtons.add(buttonPause, 2);
         panelButtons.add(buttonReset, 3);
-        panelTabSimulation.add(panelButtons);
+//        panelTabSimulation.add(panelButtons);
+                this.add(panelButtons);
 
+this.add(tabs);
+                
         //Loading buttons
         buildFilesLoadingPanel();
         panelTabLoading.add(panelLoading);
@@ -866,7 +869,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         });
         panelView.add(textUpdateLoops, BorderLayout.CENTER);
         panelView.add(new JLabel("loops"), BorderLayout.EAST);
-        this.add(panelView);
+        panelTabSimulation.add(panelView);
 
         ////////////////////////////////////////////////////////////////////////
         ////// Panelshapeview
