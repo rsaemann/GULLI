@@ -139,18 +139,27 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             return;
         }
         try {
-            if (mass[xindex] == null) {
-                mass[xindex] = new double[numberYIntervals][][];
-                particlecounter[xindex] = new int[numberYIntervals][][];
 
+            if (mass[xindex] == null) {
+                synchronized (mass) {
+                    if (mass[xindex] == null) {
+                        mass[xindex] = new double[numberYIntervals][][];
+                        particlecounter[xindex] = new int[numberYIntervals][][];
+                    }
+                }
             }
             if (mass[xindex][yindex] == null) {
-                mass[xindex][yindex] = new double[times.getNumberOfTimes()][numberOfMaterials];
-                particlecounter[xindex][yindex] = new int[times.getNumberOfTimes()][numberOfMaterials];
+                synchronized (mass) {
+                    if (mass[xindex][yindex] == null) {
+                        mass[xindex][yindex] = new double[times.getNumberOfTimes()][numberOfMaterials];
+                        particlecounter[xindex][yindex] = new int[times.getNumberOfTimes()][numberOfMaterials];
+                    }
+                }
             }
 
             mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
             particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("X index: " + xindex + "    pos.x=" + particle.getPosition3d().x + "    xmin=" + xmin + "     diff=" + ((particle.getPosition3d().x - xmin) + "    xIwidth=" + xIntervalWidth));

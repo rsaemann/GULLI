@@ -60,7 +60,6 @@ public class ParticleThread extends Thread {
 //
 //    public final LinkedList<Particle> activeList = new LinkedList<>();
 //    public final LinkedList<Particle> completedList = new LinkedList<>();
-
     public ParticlePipeComputing pc;
     private final ThreadBarrier<ParticleThread> barrier;
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(4);
@@ -143,7 +142,8 @@ public class ParticleThread extends Thread {
         //if woken up start the normal loop
         Particle p;
         while (runendless) {
-            activeCalculation = true;
+            try {
+                activeCalculation = true;
 //            if (ThreadController.particlesInThreads) {
 //                particleID = -2;
 //                // Copy particles to more performant array
@@ -270,20 +270,20 @@ public class ParticleThread extends Thread {
 //                                continue;
                             } else {
 //                                if (p.getSurrounding_actual() == null || p.getSurrounding_actual() == p.injectionSurrounding) {
-                                    if (p.injectionSurrounding instanceof SurfaceTriangle) {
-                                        p.setOnSurface();
-                                        p.surfaceCellID = p.getInjectionCellID();
-                                        p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
-                                    } else if (p.injectionSurrounding instanceof Surface) {
-                                        p.setOnSurface();
-                                        p.surfaceCellID = p.getInjectionCellID();
-                                        double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
-                                        p.setPosition3D(pos[0], pos[1]);
-                                    } else {
-                                        p.setInPipenetwork();
-                                        p.setPosition1d_actual(p.injectionPosition1D);
-                                    }
-                                    p.setSurrounding_actual(p.injectionSurrounding);
+                                if (p.injectionSurrounding instanceof SurfaceTriangle) {
+                                    p.setOnSurface();
+                                    p.surfaceCellID = p.getInjectionCellID();
+                                    p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
+                                } else if (p.injectionSurrounding instanceof Surface) {
+                                    p.setOnSurface();
+                                    p.surfaceCellID = p.getInjectionCellID();
+                                    double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
+                                    p.setPosition3D(pos[0], pos[1]);
+                                } else {
+                                    p.setInPipenetwork();
+                                    p.setPosition1d_actual(p.injectionPosition1D);
+                                }
+                                p.setSurrounding_actual(p.injectionSurrounding);
 //                                }
                             }
                         }
@@ -309,6 +309,14 @@ public class ParticleThread extends Thread {
                     activeCalculation = false;
                 }
 //            }
+
+            } catch (Exception ex) {
+                activeCalculation = false;
+                this.allParticlesReachedOutlet = false;
+                ex.printStackTrace();
+                status = 200;
+                barrier.loopfinished(this);
+            }
         }
     }
 
@@ -433,7 +441,6 @@ public class ParticleThread extends Thread {
 //            particleID = -6;
 //        }
 //    }
-
     /**
      * Returns true if this Thread is inside its calculation loop and not
      * waiting.
@@ -464,7 +471,6 @@ public class ParticleThread extends Thread {
 //            sort();
 //        }
 //    }
-
     public double getDeltatime() {
         return pc.getDeltaTime();
     }
@@ -528,7 +534,6 @@ public class ParticleThread extends Thread {
 //            }
 //        });
 //    }
-
 //    public Particle[] getParticles() {
 //        return particles;
 //    }
@@ -550,5 +555,4 @@ public class ParticleThread extends Thread {
 //        activeList.clear();
 //        completedList.clear();
 //    }
-
 }
