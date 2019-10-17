@@ -87,7 +87,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     public int intervallHistoryParticles = 0;
 
     public Controller() throws Exception {
-        threadController = new ThreadController(8, this);
+        int numberOfCores=Runtime.getRuntime().availableProcessors();
+        threadController = new ThreadController(Math.max(4,numberOfCores), this);
 
         threadController.addSimulationListener(this);
         loadingCoordinator = new LoadingCoordinator(this);

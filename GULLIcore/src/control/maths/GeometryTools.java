@@ -284,17 +284,17 @@ public class GeometryTools {
         }
         return polys;
     }
-    
-    public static MultiPolygon toMultipolygon(Collection<Polygon> polys){
-        Polygon[] pol=new Polygon[polys.size()];
-        int index=0;
+
+    public static MultiPolygon toMultipolygon(Collection<Polygon> polys) {
+        Polygon[] pol = new Polygon[polys.size()];
+        int index = 0;
         Iterator<Polygon> it = polys.iterator();
-        while(it.hasNext()){
-            pol[index]=it.next();
+        while (it.hasNext()) {
+            pol[index] = it.next();
             index++;
         }
         return pol[0].getFactory().createMultiPolygon(pol);
-        
+
     }
 
     /**
@@ -357,8 +357,8 @@ public class GeometryTools {
      * @return length factor s.
      */
     public static double lineIntersectionS(double ax, double ay, double bx, double by, double cx, double cy, double dx, double dy) {
-        double s = ((dx - cx) * (ay - cy) - (dy - cy) * (ax - cx)) / (-(dx - cx) * (by - ay) + (bx - ax) * (dy - cy));
-        return s;
+        return ((dx - cx) * (ay - cy) - (dy - cy) * (ax - cx)) / (-(dx - cx) * (by - ay) + (bx - ax) * (dy - cy));
+
     }
 
     /**

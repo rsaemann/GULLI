@@ -70,8 +70,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         HYDRODYNAMICS, PARTICLE, SYNC, POSITION
     }
-    private int numberParallelParticleThreads = 2;
-    private int numberParallelSyncThreads = 2;
+    private int numberParallelParticleThreads;
+    private int numberParallelSyncThreads=2;
     private boolean run = false;
     private boolean initialized = false;
     private static double deltaTime = 0.1;//seconds

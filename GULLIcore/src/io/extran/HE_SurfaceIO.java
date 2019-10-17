@@ -585,25 +585,8 @@ public class HE_SurfaceIO {
                             //Closer look
                             boolean contains = GeometryTools.triangleContainsPoint(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, m1.x, m1.y);
                             if (contains) {
-//                                SurfaceTriangle tri = surface.triangleCapacitys[i];
-//                                if (tri == null) {
-//                                    tri = new SurfaceTriangle(i);
-//                                    surface.triangleCapacitys[i] = tri;
-//                                    Coordinate c = new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]);
-//                                    try {
-//                                        Coordinate cll = geotools.toGlobal(c);
-////                                    System.out.println("x:"+cll.x+" y:"+cll.y);
-//                                        tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[i][2]));
-//
-//                                    } catch (TransformException ex) {
-//                                        Logger.getLogger(Surface.class
-//                                                .getName()).log(Level.SEVERE, null, ex);
-//                                    }
-//                                }
                                 Manhole mh = manholes[j];
                                 mh.setSurfaceTriangle(i);
-//                                tri.manhole = mh;
-//                                mh.setSurfaceTriangle(tri);
                                 counterManholes++;
                                 break;
                             }
@@ -654,25 +637,8 @@ public class HE_SurfaceIO {
                     if (Math.abs(c0.y - m1.y) < 20) {
                         if (c0.distance(m1) < 20) {
                             //Closer look
-
                             boolean contains = GeometryTools.triangleContainsPoint(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, m1.x, m1.y);
                             if (contains) {
-//                                SurfaceTriangle tri = surface.triangleCapacitys[i];
-//                                if (tri == null) {
-////                                    tri = new SurfaceTriangle(i);
-////                                    surface.triangleCapacitys[i] = tri;
-//                                    Coordinate c = new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]);
-//                                    try {
-//                                        Coordinate cll = surface.getGeotools().toGlobal(c);
-//                                        tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[i][2]));
-//
-//                                    } catch (TransformException ex) {
-//                                        Logger.getLogger(Surface.class
-//                                                .getName()).log(Level.SEVERE, null, ex);
-//                                    }
-//                                }
-//                                Inlet mh = inlets[j];
-//                                tri.inlet = mh;
                                 counterInlets++;
                                 if (true) {
                                     //Neighbour Triangles also get a reference to this inlet
@@ -682,22 +648,6 @@ public class HE_SurfaceIO {
                                             if (nbi < 0) {
                                                 continue;
                                             }
-//                                            tri = surface.triangleCapacitys[nbi];
-//                                            if (tri == null) {
-//                                                tri = new SurfaceTriangle(nbi);
-//                                                surface.triangleCapacitys[nbi] = tri;
-//                                                Coordinate c = new Coordinate(surface.getTriangleMids()[nbi][0], surface.getTriangleMids()[nbi][1]);
-//                                                try {
-//                                                    Coordinate cll = surface.getGeotools().toGlobal(c);
-//                                                    tri.setPosition(new Position3D(cll.x, cll.y, c.x, c.y, surface.getTriangleMids()[nbi][2]));
-//
-//                                                } catch (TransformException ex) {
-//                                                    Logger.getLogger(Surface.class
-//                                                            .getName()).log(Level.SEVERE, null, ex);
-//                                                }
-//                                            }
-//                                            tri.inlet = inlets[j];
-
                                         }
                                     }
                                 }
@@ -721,8 +671,6 @@ public class HE_SurfaceIO {
             }
             bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
             bw.newLine();
-//            bw.write("Max Contaminated Triangles:" + surface.triangleCapacitys.length);
-//            bw.newLine();
             int categories = surface.getNumberOfMaterials();
 
             bw.write("Contaminant categories:" + categories);
@@ -1120,27 +1068,6 @@ public class HE_SurfaceIO {
         return manhole2Triangle;
     }
 
-//    public static void referenceInlets(Collection<Pair<String, Integer>> references, Network network, Surface surface) {
-//        ArrayList<Inlet> inlets=new ArrayList<>(references.size());
-//        for (Pair<String, Integer> ref : references) {
-//            Pipe p = network.getPipeByName(ref.first);
-//            if (p == null) {
-//                System.err.println(HE_SurfaceIO.class + "::could not find Pipe " + ref.first + " to connect to surfaceinlet.");
-//                continue;
-//            }
-//            SurfaceTriangle tri = surface.requestSurfaceTriangle(ref.second);
-//            if (tri == null) {
-//                System.err.println(HE_SurfaceIO.class + "::could not find Triangle " + ref.second + " to connect inlet to Pipe.");
-//                continue;
-//            }
-//            Inlet inlet = new Inlet(tri.getPosition3D(0), p, 0.5f * p.getLength());
-//            tri.inlet = inlet;
-//            network.setCapacities(null);
-//            inlets.add(inlet);
-//        }
-//        network.setStreetInlets(inlets);
-//        surface.
-//    }
     public static void writeRasterContaminationCSV(SurfaceMeasurementRaster raster, File outFile) throws IOException, TransformException {
         if (!outFile.getParentFile().exists()) {
             outFile.getParentFile().mkdirs();

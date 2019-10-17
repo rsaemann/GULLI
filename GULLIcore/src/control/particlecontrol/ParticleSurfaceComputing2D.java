@@ -148,6 +148,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         if (pos != null && triangleID >= 0) {
             //Everything ok.
         } else {
+            System.err.println("particle lost on surface");
             if (p.getSurrounding_actual() instanceof Surface) {
                 p.setOnSurface();
                 if (p.surfaceCellID >= 0) {
@@ -237,10 +238,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         // da eine Veränderung durch Modellränder vorkommen kann
         int id;
         try {
-            id = surface.getTargetTriangleID(p, triangleID, posxalt, posyalt, pos.x, pos.y, 20);
+            id = surface.getTargetTriangleID(p, triangleID, posxalt, posyalt, pos.x, pos.y, 10);
         } catch (Surface.BoundHitException boundHitException) {
-            pos.x = boundHitException.correctedPosition[0];
-            pos.y = boundHitException.correctedPosition[1];
+            pos.x = boundHitException.correctedPositionX;
+            pos.y = boundHitException.correctedPositionY;
             id = boundHitException.id;
         }
 
@@ -288,7 +289,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         if (p.isOnSurface()) {
             surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p);
         }
-//        }
     }
 
     public String getDiffusionString() {
