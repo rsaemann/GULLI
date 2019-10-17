@@ -71,7 +71,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     private final ThreadController threadController;
     private final LoadingCoordinator loadingCoordinator;
-//    private GeoTools geoTools;
 
     private final ArrayList<PipeResultData> multiInputData = new ArrayList<>(1);
 
@@ -87,19 +86,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      */
     public int intervallHistoryParticles = 0;
 
-//    public static void main(String[] args) {
-//        try {
-////            System.out.println("init new controller");
-//            Controller c = new Controller();
-////            System.out.println("controller initialized");
-//        } catch (Exception ex) {
-//            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//    }
-//    public final ArrayList<InjectionInformation> injections = new ArrayList<>(1);
     public Controller() throws Exception {
-//        geoTools = new GeoTools("EPSG:4326", "EPSG:31467", StartParameters.JTS_WGS84_LONGITUDE_FIRST);
-
         threadController = new ThreadController(8, this);
 
         threadController.addSimulationListener(this);
@@ -240,8 +227,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
             list.add(p);
         }
-//        threadController.setParticles(list);
-//        paintManager.setParticles(list);
         return list;
     }
 
@@ -272,6 +257,17 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         return list;
     }
 
+    /**
+     * @deprecated used for former comparison between particles and analystical
+     * solution
+     * @param c_ini
+     * @param dispersionCoefficient
+     * @param startCapacity
+     * @param position1d
+     * @param material
+     * @param starttime
+     * @param endtime
+     */
     private void computeAnalyticalSolution(double c_ini, double dispersionCoefficient, Capacity startCapacity, double position1d, Material material, long starttime, long endtime) {
         //Calculate the analytical solution
         double numberOfParticles = c_ini;
@@ -309,7 +305,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (startCapacity == null) {
             throw new IllegalArgumentException("Initial Capacity is null!");
         }
-//        System.out.println("Threadcontroller has " + threadController.getNumberOfTotalParticles() + ".\t Adding " + numberOfParticles + " particles.");
         long scenarioStarttime = 0;
         if (scenario != null) {
             scenarioStarttime = scenario.getStartTime();
@@ -326,8 +321,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 } else {
                     p = new Particle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
                 }
-//                p.setPosition1d_actual(0);
-//                p.setPosition3d(p.getSurrounding_actual().getPosition3D(0));
                 p.setMaterial(material);
                 p.setWaiting();
                 list.add(p);
@@ -335,13 +328,15 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             }
         }
 
-//        if (calculateAnalyticalSolution) {
-//            computeAnalyticalSolution(numberOfParticles, ParticlePipeComputing.getDispersionCoefficient(), startCapacity, position1d, material, starttime, endtime);
-//        }
         return list;
     }
 
-    public void setParticles(List<Particle> particles) {
+    /**
+     * Send information about particles to all listener
+     *
+     * @param particles
+     */
+    private void setParticles(List<Particle> particles) {
         currentAction.description = "add and sort particles";
         currentAction.hasProgress = false;
         currentAction.progress = 0f;
@@ -460,140 +455,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
 
         initMeasurementTimelines(scenario, times, numberContaminantTypes);
-//        if (verbose) {
-//            System.out.println(ArrayTimeLineMeasurement.class + " initilized.");
-//        }
     }
 
-//    public SimpleMapViewerFrame getMapFrame() {
-//        return mapFrame;
-//    }
-//    public void openTimelineFrame(ArrayTimeLinePipeContainer[] timelineContainer) {
-//        timelineFrame = new EditorTableFrame(null, this, timelineContainer);
-//        timelineFrame.setTitle("Timeline");
-//        timelineFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-//
-////        timelinePanel = new CapacityTimelinePanel("", this, timelineContainer);
-////        timelineFrame.add(timelinePanel);
-//        timelineFrame.setBounds(this.mapFrame.getX() + this.mapFrame.getWidth() + 30, this.mapFrame.getY(), 750, 700);
-//        timelineFrame.setVisible(true);
-//        timelinePanel = timelineFrame.getTimelinePanel();
-//        threadController.addTimelinePanel(timelinePanel);
-//    }
-//    public void openTimelineFrame(PipeResultData input) {
-//        openTimelineFrame(new PipeResultData[]{input});
-//    }
-//
-//    public void openTimelineFrame(Collection<PipeResultData> input) {
-//        openTimelineFrame(input.toArray(new PipeResultData[input.size()]));
-//    }
-//    public void openTimelineFrame(PipeResultData[] input) {
-//        timelineFrame = new EditorTableFrame(null, this, input);
-//        timelineFrame.setTitle("Timeline");
-//        timelineFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-//
-////        timelinePanel = new CapacityTimelinePanel("", this, timelineContainer);
-////        timelineFrame.add(timelinePanel);
-//        timelineFrame.setBounds(this.mapFrame.getX() + this.mapFrame.getWidth() + 30, this.mapFrame.getY(), 750, 700);
-//        timelineFrame.setVisible(true);
-//        timelinePanel = timelineFrame.getTimelinePanel();
-//        threadController.addTimelinePanel(timelinePanel);
-//    }
-//
-//    public void openSpatialLineFrame(ArrayTimeLinePipe timeline) {
-//        spacelineFrame = new JFrame("Spatial lines");
-//        spacelineFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        spacelinePanel = new SpacelinePanel(timeline, "Timeline");
-//        spacelineFrame.add(spacelinePanel);
-//        spacelineFrame.setBounds(this.mapFrame.getX() + this.mapFrame.getWidth() + 100, this.mapFrame.getY() + 100, 750, 500);
-//        spacelineFrame.setVisible(true);
-//        spacelinePanel.setSplitDivider(0.8);
-////        JFrame pframe = new JFrame("Pipes Timeline");
-////        pframe.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-////        mptPanel = new MultiplePipesTimelinesPanel(null, mapFrame.getMapViewer(), network);
-////        pframe.add(mptPanel);
-////        pframe.setBounds(this.mapFrame.getX() + this.mapFrame.getWidth() + 30, this.mapFrame.getY() + 50, 800, 700);
-////        pframe.setVisible(true);
-//    }
-//    private void showTimeline(Capacity c) {
-//
-//        if (timelineFrame == null || !timelineFrame.isVisible()) {
-//            if (c == null) {
-//                return;
-//            } else {
-//                openTimelineFrame(getMultiInputData());
-//            }
-//        }
-//
-//        if (c == null) {
-//            timelineFrame.setStorage(null, "");
-//
-//            return;
-//        }
-//        timelineFrame.setStorage(c, c.toString());
-////        spacelinePanel.setTimeToShow(c, c.toString());
-//    }
-//    private void createTimeLineListener() {
-//        LocationIDListener listener = new LocationIDListener() {
-//
-//            @Override
-//            public void selectLocationID(Object o, String layer, long l) {
-////                System.out.println("Controller: selectLocationID "+o+", "+layer+", "+l);
-//                try {
-//                    if (o == this) {
-//                        return;
-//                    }
-////                if (network == null) {
-////                    return;
-////                }
-////                System.out.println("search for "+l);
-//                    if (layer.equals(PaintManager.layerPipes)) {
-//                        for (Pipe pipe : network.getPipes()) {
-//                            if (pipe.getAutoID() == l) {
-//                                showTimeline(pipe);
-//                                return;
-//                            }
-//                        }
-//
-//                    } else if (layer.equals(PaintManager.layerManhole)) {
-//                        for (Manhole pipe : network.getManholes()) {
-//                            if (pipe.getAutoID() == l) {
-//                                showTimeline(pipe);
-//                                return;
-//                            }
-//                        }
-//
-//                    } else if (layer.equals(PaintManager.layerTraingleMeasurement)) {
-//                        showTimeline(surface.triangleCapacitys[(int) l]);
-//                        return;
-//
-//                    } else if (layer.startsWith(PaintManager.layerTriangle)) {
-//                        showTimeline(surface.triangleCapacitys[(int) l]);
-//                        return;
-//
-//                    } else {
-//                        showTimeline(null);
-//                    }
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//
-//        };
-//
-//        this.mapFrame.getMapViewer()
-//                .addListener(listener);
-//    }
-//    public void showStateAtTime(long time, boolean repaint) {
-//        this.paintManager.showOverspillingManholes(time);
-//        this.paintManager.showPipeFillRate(time);
-//        if (repaint) {
-//            this.mapFrame.getMapViewer().repaint();
-//        }
-//    }
-//    public File getDatabaseFile() {
-//        return databaseFile;
-//    }
+    /**
+     * Tells the Threadcontroller to start the simulation.
+     */
     public void start() {
 
         if (scenario == null) {
@@ -602,6 +468,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         threadController.start();
     }
 
+    /**
+     * Clears and Reinitialize the particles based on the Injectioninformation
+     * in the scenario.
+     */
     public void recalculateInjections() {
         for (ParticleListener pl : particleListener) {
             pl.clearParticles(this);
@@ -682,24 +552,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
         if (surface != null) {
             surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
-//            System.out.println("new number of materials: "+surface.getNumberOfMaterials());
         }
     }
 
     @Override
     public void simulationFINISH(boolean timeOut, boolean particlesOut) {
-//        System.out.println("Counter of manhole reaching per timestep:");
-//        for (int i = 0; i < ParticlePipeComputing.passedPipesCounter.length; i++) {
-//            System.out.println(i + ": " + ParticlePipeComputing.passedPipesCounter[i]);
-//
-//        }
-
-//        if (mapFrame != null) {
-//            mapFrame.toFront();
-//        }
-//        if (timelineFrame != null) {
-//            timelineFrame.toFront();
-//        }
     }
 
     public ArrayList<PipeResultData> getMultiInputData() {
@@ -719,16 +576,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         return multiInputData.get(0);
     }
 
-//    public CapacityTimelinePanel getTimelinePanel() {
-//        return timelinePanel;
-//    }
     public Surface getSurface() {
         return surface;
     }
 
-//    public ControllFrame getControllFrame() {
-//        return controllFrame;
-//    }
     public Scenario getScenario() {
         return scenario;
     }
@@ -751,7 +602,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     @Override
     public void simulationRESET(Object caller) {
-//        recalculateInjections();
     }
 
     @Override
@@ -760,7 +610,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     @Override
     public void simulationINIT(Object caller) {
-//        recalculateInjections();
     }
 
     @Override
@@ -772,18 +621,13 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     public void loadNetwork(Network network, Object caller) {
         //Repeater
         this.importNetwork(network);
-//        System.out.println("controller load Network");
-//        if (caller instanceof LoadingCoordinator) {
         for (LoadingActionListener ll : actionListener) {
-//                System.out.println("inform "+ll+" about loaded network");
             ll.loadNetwork(network, caller);
         }
-//        }
     }
 
     @Override
     public void loadSurface(Surface surface, Object caller) {
-//        if (caller instanceof LoadingCoordinator) {
         this.surface = surface;
         for (LoadingActionListener ll : actionListener) {
             currentAction.description = "contrl. loadsurface inform " + ll;
@@ -791,7 +635,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             fireAction(currentAction);
             ll.loadSurface(surface, caller);
         }
-//        }
     }
 
 }

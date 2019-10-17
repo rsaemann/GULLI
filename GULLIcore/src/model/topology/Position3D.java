@@ -65,8 +65,8 @@ public class Position3D extends Position {
      *
      * @return
      */
-    public Coordinate latLonZCoordinate() {
-        Coordinate c = latLonCoordinate();
+    public Coordinate lonLatZCoordinate() {
+        Coordinate c = lonLatCoordinate();
         c.z = this.z;
         return c;
     }

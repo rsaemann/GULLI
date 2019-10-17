@@ -556,7 +556,7 @@ public class HE_SurfaceIO {
 //        MathTransform transform2UTM = CRS.findMathTransform(Network.crsWGS84, nw.crsUTM);
         int index = 0;
         for (Manhole manhole : nw.getManholes()) {
-            Coordinate cll = manhole.getPosition().latLonCoordinate();
+            Coordinate cll = manhole.getPosition().lonLatCoordinate();
             //switch coordinates
             m[index] = geotools.toUTM(manhole.getPosition());
             index++;
@@ -627,7 +627,7 @@ public class HE_SurfaceIO {
         if (nw.getStreetInlets() != null) {
             in = new Coordinate[nw.getStreetInlets().size()];
             for (Inlet inlet : nw.getStreetInlets()) {
-                in[index] = surface.getGeotools().toUTM(inlet.getPosition().latLonCoordinate());
+                in[index] = surface.getGeotools().toUTM(inlet.getPosition().lonLatCoordinate());
                 index++;
             }
         } else {

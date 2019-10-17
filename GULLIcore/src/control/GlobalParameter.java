@@ -33,6 +33,5 @@ public class GlobalParameter {
      Gravity in m/s^2
      */
     public static double GRAVITY = 9.80665;
-    
-    public static boolean notifyUnperformantCalls=true;
+
 }

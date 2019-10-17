@@ -37,13 +37,10 @@ import model.timeline.array.TimeContainer;
  */
 public class SpillScenario extends Scenario {
 
-//    private long start, end;
     private final ArrayList<InjectionInformation> injections;
 
     public SpillScenario(TimeContainer container, ArrayList<InjectionInformation> injections) {
         super();
-//        this.start = start;
-//        this.end = end;
         this.injections = injections;
 
         if (container instanceof ArrayTimeLinePipeContainer) {
@@ -71,6 +68,4 @@ public class SpillScenario extends Scenario {
         return getClass().getSimpleName()+"{"+new Date(starttime)+", "+injections.size()+" injections}";
     }
     
-    
-
 }

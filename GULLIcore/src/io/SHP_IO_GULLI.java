@@ -106,7 +106,7 @@ public class SHP_IO_GULLI {
 
             DefaultFeatureCollection collection = new DefaultFeatureCollection();
             for (Manhole manhole : nw.getManholes()) {
-                Point p = gf.createPoint(manhole.getPosition().latLonCoordinate());
+                Point p = gf.createPoint(manhole.getPosition().lonLatCoordinate());
 //                System.out.println("Point="+p);
                 String n = manhole.getName();
 //                String type = manhole.getWaterType().name();
@@ -174,7 +174,7 @@ public class SHP_IO_GULLI {
 
                 Position start = pipe.getStartConnection().getPosition();
                 Position ende = pipe.getEndConnection().getPosition();
-                LineString ls = gf.createLineString(new Coordinate[]{start.latLonCoordinate(), ende.latLonCoordinate()});
+                LineString ls = gf.createLineString(new Coordinate[]{start.lonLatCoordinate(), ende.lonLatCoordinate()});
 //                System.out.println("Point="+p);
                 String n = pipe.getName();
 //                String type = manhole.getWaterType().name();
@@ -514,10 +514,10 @@ public class SHP_IO_GULLI {
         for (Position p : positions) {
             double distance = Double.POSITIVE_INFINITY;
             Pipe bestpipe = null;
-            Coordinate c = p.latLonCoordinate();
+            Coordinate c = p.lonLatCoordinate();
             Point point = gf.createPoint(c);
             for (Pipe pipe : network.getPipes()) {
-                LineString ls = gf.createLineString(new Coordinate[]{pipe.getStartConnection().getPosition().latLonCoordinate(), pipe.getEndConnection().getPosition().latLonCoordinate()});
+                LineString ls = gf.createLineString(new Coordinate[]{pipe.getStartConnection().getPosition().lonLatCoordinate(), pipe.getEndConnection().getPosition().lonLatCoordinate()});
                 double dt = ls.distance(point);
                 if (dt < distance) {
                     distance = dt;
@@ -525,7 +525,7 @@ public class SHP_IO_GULLI {
                 }
             }
 //            System.out.println("distance: "+distance+" m to best pipe "+bestpipe);
-            Coordinate[] cls = new Coordinate[]{bestpipe.getStartConnection().getPosition().latLonCoordinate(), bestpipe.getEndConnection().getPosition().latLonCoordinate()};
+            Coordinate[] cls = new Coordinate[]{bestpipe.getStartConnection().getPosition().lonLatCoordinate(), bestpipe.getEndConnection().getPosition().lonLatCoordinate()};
             LineString ls = gf.createLineString(cls);
 
             Coordinate[] cs = DistanceOp.nearestPoints(point, ls);

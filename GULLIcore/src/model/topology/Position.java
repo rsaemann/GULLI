@@ -67,7 +67,7 @@ public class Position extends Point2D.Double implements GeoPosition2D {
      *
      * @return
      */
-    public Coordinate latLonCoordinate() {
+    public Coordinate lonLatCoordinate() {
         return new Coordinate(longitude, latitude);
     }
 
@@ -81,7 +81,7 @@ public class Position extends Point2D.Double implements GeoPosition2D {
 
     @Override
     public String toString() {
-        return "Position(lat:" + latitude + ",lon:" + longitude + "; x:" + x + ",y:" + y + ")";
+        return "Position(lon:" + longitude + ",lat:" + latitude + " ; x:" + x + ",y:" + y + ")";
     }
 
 }

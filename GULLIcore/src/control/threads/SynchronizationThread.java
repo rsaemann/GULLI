@@ -47,7 +47,6 @@ public class SynchronizationThread extends Thread {
 
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(1);
 
-//    private ParticleThread[] particleThreads;
     private Pipe[] pipes;
 
     public SynchronizationThread(String string, ThreadBarrier<SynchronizationThread> barrier, Controller control) {
@@ -61,78 +60,15 @@ public class SynchronizationThread extends Thread {
         //is initialized now
         barrier.initialized(this);
 
-//        double factor = 0;
         //if woken up start the normal loop
         while (runendless) {
             if (true) {
                 try {
                     status = 0;
                     actualSimulationTime = barrier.getSimulationtime();
-//                    if (!tempList.isEmpty()) {
-                        /*Add waiting Particles into the list before iterating the list to
-                     prevent Concurrent Modification Exceptions.*/
-//                        particles.addAll(tempList);
-//                        tempList.clear();
-//                    }
-                    /*
-                     * Tell the particles this timestep is finished Set the actual
-                     * parameters as the past, to prepare the particles for the next
-                     * simulation step.
-                     */
-//                particleCount.clear();
-//                    particlePipes.clear();
-//                    boolean stopCalculating = true;
-//                    for (ParticleThread pT : control.getThreadController().getParticleThreads()) {
-//                    for (ParticleThread pT : particleThreads) {
-//                        for (Particle p : pT.getParticles()) {
-//                            if(p.isInactive())continue;
-////                            if (p.isOnSurface()) {
-////                                control.getSurface().getMeasurementRaster().measureParticle(actualSimulationTime, p);
-////                            }
-//                        }
-//
-//                        if (!pT.allParticlesReachedOutlet) {
-//                            stopCalculating = false;
-//                        }
-//                    }
-//                    for (Particle particle : particles) {
-//                        if (particle.active) {
-//                            Capacity c = particle.getSurrounding_actual();
-//                            if (c != null && c.getClass().equals(Pipe.class)) {
-//                                Pipe p = (Pipe) c;
-//                                p.getMeasurementTimeLine().addParticle();
-//                                particlePipes.add(p);
-////                        if (particleCount.containsKey(p)) {
-////                            int anzahl = particleCount.get(p);                            
-////                            anzahl++;
-////                            particleCount.put(p, anzahl);
-////                        } else {
-////                            particleCount.put(p, 1);
-////                        }
-//                            }
-//                            if (stopCalculating) {
-//                            // Suche Partikel, die noch behandelt werden müssen.
-//                                // Sobald eines gefunden ist, nicht weiter suchen.
-//                                try {
-//                                    if (particle.getSurrounding_actual() == null) {
-//                                        continue;
-//                                    }
-//                                    if (!particle.getSurrounding_actual().isSetAsOutlet()) {
-//                                        stopCalculating = false;
-//                                    }
-//                                } catch (Exception e) {
-//                                    e.printStackTrace();
-//                                }
-//                            }
-//                        }
-//                    }
-//                    if (stopCalculating) {
-//                        allFinished = true;
-//                    }
 
                     // Schreibe die Gesammelten Werte in die Mess-Zeitreihe der Rohre
                     ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
-//                    System.out.println(getClass()+":: getMeasurementContainerPipe:"+mcp);
                     status = 1;
                     int timeindex = mcp.getIndexForTime(actualSimulationTime);
                     if (timeindex >= mcp.getNumberOfTimes()) {
@@ -140,7 +76,6 @@ public class SynchronizationThread extends Thread {
                     }
                     status = 2;
                     if (!mcp.isTimespotmeasurement() || timeindex != lastMeasurementImeIndex && pipes != null) {
-//                        for (Pipe pipe : barrier.getThreadController().control.getNetwork().getPipes()) {
                         status = 3;
                         for (Pipe pipe : pipes) {
                             if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
@@ -186,20 +121,10 @@ public class SynchronizationThread extends Thread {
         this.runendless = false;
     }
 
-//    public void addParticle(Particle p) {
-//        this.tempList.add(p);
-//    }
-//
-//    public void setParticles(Collection<Particle> p) {
-//        this.tempList.addAll(p);
-//    }
     public void addParticlemeasurement(ParticleMeasurement pm) {
         this.messung.add(pm);
     }
 
-//    public void setParticleThreads(ParticleThread[] particleThreads) {
-//        this.particleThreads = particleThreads;
-//    }
     public void setPipes(Pipe[] pipes) {
         this.pipes = pipes;
     }
@@ -208,17 +133,4 @@ public class SynchronizationThread extends Thread {
         return pipes;
     }
 
-//    public int getNumberOfParticles() {
-//        int n = 0;
-//        if (this.particles != null) {
-//            n += this.particles.size();
-//        }
-//        if (this.tempList != null) {
-//            n += this.tempList.size();
-//        }
-//        return n;
-//    }
-//    public ParticleThread[] getParticleThreads() {
-//        return particleThreads;
-//    }
 }

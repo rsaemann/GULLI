@@ -31,24 +31,18 @@ package control.threads;
  */
 public abstract class ThreadBarrier<T extends Thread> implements ThreadListener<T> {
 
-//    private final ArrayList<T> threads;
-
     protected final ThreadController notifyWhenReady;
 
     protected final String name;
 
     protected boolean isinitialized = false;
-    
-    protected long simulationtime=0;
-    
-   
+
+    protected long simulationtime = 0;
 
     public ThreadBarrier(String name, ThreadController controller) {
         this.name = name;
         notifyWhenReady = controller;
-        
     }
-
 
     public void startover() {
         synchronized (this) {
@@ -78,7 +72,4 @@ public abstract class ThreadBarrier<T extends Thread> implements ThreadListener<
     public String toString() {
         return getName();
     }
-    
-    
-
 }

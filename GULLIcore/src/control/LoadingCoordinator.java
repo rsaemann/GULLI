@@ -80,9 +80,6 @@ public class LoadingCoordinator implements LoadingActionListener {
 
     private SpillScenario scenario;
     private boolean changedSurface;
-//    private boolean relaodNetwork;
-//    private boolean manholesLoaded;
-//    private boolean inletsLoaded;
 
     public enum LOADINGSTATUS {
 
@@ -231,6 +228,10 @@ public class LoadingCoordinator implements LoadingActionListener {
                     changedSurface = false;
                     if (loadingpipeNetwork == LOADINGSTATUS.REQUESTED) {
                         network = loadPipeNetwork();
+                        if (network == null) {
+                            loadingpipeNetwork = LOADINGSTATUS.ERROR;
+                            System.err.println("Network could not be loaded.");
+                        }
                     }
                     if (isInterrupted()) {
                         break;
@@ -244,8 +245,10 @@ public class LoadingCoordinator implements LoadingActionListener {
                         System.out.println("   LoadingThread is interrupted -> break");
                         break;
                     }
-                    for (LoadingActionListener ll : listener) {
-                        ll.loadNetwork(network, this);
+                    if (network != null) {
+                        for (LoadingActionListener ll : listener) {
+                            ll.loadNetwork(network, this);
+                        }
                     }
                     // Loading Surface topology
                     if (loadingSurface == LOADINGSTATUS.REQUESTED) {
@@ -289,9 +292,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         fireLoadingActionUpdate();
                     }
 
-//                    if (control.getPaintManager() != null) {
-//                        control.getPaintManager().setSurface(control.getSurface());
-//                    }
                     if (scenario != null) {
                         action.description = "Load Scenario";
                         action.progress = 0f;
@@ -299,7 +299,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         control.loadScenario(scenario);
                     }
                     //Inform controller about updated timecontainer.
-//                    control.importSurface(control.getSurface());
                     action.description = "GC clean up";
                     System.gc();
                     if (isInterrupted()) {
@@ -346,6 +345,13 @@ public class LoadingCoordinator implements LoadingActionListener {
             System.out.println("went into loading Network '" + fileNetwork + "'");
         }
         fireLoadingActionUpdate();
+
+        if (!fileNetwork.exists()) {
+            action.description = "File does not exists @" + fileNetwork;
+            loadingpipeNetwork = LOADINGSTATUS.ERROR;
+            return null;
+        }
+
         try {
             Network nw;
             if (fileNetwork.getName().endsWith(".idbf") || fileNetwork.getName().endsWith(".idbm") || fileNetwork.getName().endsWith(".idbr")) {
@@ -468,7 +474,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         if (sparsePipeLoading) {
                             //load minmax velocity
                             action.description = "Load Maximum velocity";
-//                                            HE_Database fbdb = new HE_Database(fileMainPipeResult, true);
                             float[][] minmax = resultDatabase.getMinMaxVelocity();
                             LinkedList<Pipe> pipesToLoad = new LinkedList<>();
                             LinkedList<StorageVolume> manholesToLoad = new LinkedList<>();
@@ -552,12 +557,9 @@ public class LoadingCoordinator implements LoadingActionListener {
 
                     if (cancelLoading) {
                         loadingPipeResult = LOADINGSTATUS.REQUESTED;
-//                        break;
                         return false;
                     }
 
-//                                    ArrayTimeLinePipeContainer.instance = p.first;
-//                                    ArrayTimeLineManholeContainer.instance = p.second;
                     if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
                         //Load spill events from database
                         if (injection != null && !injection.isEmpty()) {
@@ -604,7 +606,6 @@ public class LoadingCoordinator implements LoadingActionListener {
             while (!list_loadingPipeResults.isEmpty()) {
                 if (cancelLoading) {
                     System.out.println("   LoadingThread is interrupted -> break");
-//                    break;
                     return false;
                 }
                 Pair<File, Boolean> file = null;
@@ -622,9 +623,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         }
                         control.getMultiInputData().add(0, data);
                         control.getThreadController().cleanFromParticles();
-//                                        ArrayTimeLinePipeContainer.instance = p.first;
-//                                        ArrayTimeLineManholeContainer.instance = p.second;
-
                         //Scenario laden only as mainresult
                         ArrayList<HEInjectionInformation> injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
                         int materialnumber = 0;
@@ -656,16 +654,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                             scenario.setTimesPipe(p.first);
                             scenario.setTimesManhole(p.second);
                         }
-//                        if (isInterrupted()) {
-//                            System.out.println("   LoadingThread is interrupted -> break");
-//                            break;
-//                        }
-//                                        control.loadScenario(hescenario);
                     } else {
-//                                        if (control.getMultiInputData().isEmpty()) {
-////                                            ArrayTimeLinePipeContainer.instance = p.first;
-//                                            ArrayTimeLineManholeContainer.instance = p.second;
-//                                        }
                         control.getMultiInputData().add(data);
                     }
 
@@ -679,7 +668,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                     int n = JOptionPane.showConfirmDialog(null, "Load Pipenetwork with topological\ninformation of the result file?", "Network and Result not consistent.", JOptionPane.YES_NO_CANCEL_OPTION);
                     if (n == JOptionPane.YES_OPTION) {
                         requestLoading = true;
-//                        relaodNetwork = true;
                         setPipeNetworkFile(file.first);
                         list_loadingPipeResults.addFirst(file);
                         loadingPipeResult = LOADINGSTATUS.REQUESTED;
@@ -687,8 +675,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         break;
                     }
                     loadingPipeResult = LOADINGSTATUS.ERROR;
-                } finally {
-
                 }
             }
         }
@@ -705,7 +691,6 @@ public class LoadingCoordinator implements LoadingActionListener {
         try {
             long start = System.currentTimeMillis();
             Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
-//            System.out.println("Load pure triangles took " + (System.currentTimeMillis() - start) + "ms");
             start = System.currentTimeMillis();
             //load neighbour definitions
             {
@@ -719,19 +704,16 @@ public class LoadingCoordinator implements LoadingActionListener {
                     if (!outNodeTriangles.exists()) {
                         ArrayList<Integer>[] n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
                         HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
-//                        System.out.println("Created new Nodes->Triangle File " + outNodeTriangles);
                         fileSufaceNode2Triangle = outNodeTriangles;
                         surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
                     }
                 }
             }
-//            System.out.println("Applying nodes'triangles took " + (System.currentTimeMillis() - start) + "ms.");
             start = System.currentTimeMillis();
             if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
                 surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
             } else {
                 //Create neumann neighbours
-//                                Surface surf=control.getSurface();
                 action.description = "Create Moore Neighbours File MOORE.dat";
                 fireLoadingActionUpdate();
                 fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
@@ -742,8 +724,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                     surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
                 }
             }
-//            System.out.println("Moor Neighbours took " + (System.currentTimeMillis() - start) + "ms.");
-
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInformation injection : injections) {
                 injection.setTriangleID(-1);
@@ -812,10 +792,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                             if (sparseSurfaceLoading) {
                                 int numberTriangles = surface.getTriangleMids().length;
                                 int times = gdb.getNumberOfWaterlevelTimeSteps();
-//                                                control.getSurface().setWaterlevels(new float[numberTriangles][]);
                                 surface.waterlevelLoader = gdb;
                                 surface.initVelocityArrayForSparseLoading(numberTriangles, times);
-//                                                control.getSurface().getWaterlevels()[0]=gdb.loadWaterlevlvalues(0);
                             } else {
                                 gdb.applyWaterlevelsToSurface(surface);
                                 surface.waterlevelLoader = gdb;
@@ -864,11 +842,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                 starttime = System.currentTimeMillis();
 
                 // Calculate surface velocites from waterlevels.
-//                                if (control.getSurface().getTriangleVelocity() != null) {
                 if (!loadGDBVelocity) {
                     surface.calcNeighbourVelocityFromTriangleVelocity();
                 }
-//                                } else {
                 if (!sparseSurfaceLoading) {
                     surface.calculateNeighbourVelocitiesFromWaterlevels();
                     surface.calculateVelocities2d();
@@ -881,16 +857,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                     } else {
                         surface.initSparseTriangleVelocityLoading(null, true, true);
                     }
-//                                        control.getSurface().calculateNeighbourVelocitiesFromWaterlevels();
-//                                        control.getSurface().calculateVelocities2d();
                 }
-//                                }
-
-                //Calculate times of velocity snapshots of waterlevel & velocity
-//                                Scenario sc = control.getScenario();
                 if (scenario != null) {
                     surface.setTimeContainer(createSurfaceTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps()));
-//                                    System.out.println("Calculating velocities took " + ((System.currentTimeMillis() - starttime) / 1000) + "s.");
                     scenario.setTimesSurface(surface);
                 } else {
                     System.err.println("No Scenario loaded, can not calculate timeintervalls for surface waterheight and velocities.");
@@ -924,7 +893,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                 if (verbose) {
                     System.out.println("loaded " + manhRefs.size() + " manhole references");
                 }
-//                manholesLoaded = true;
             } catch (IOException ex) {
                 Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -949,7 +917,6 @@ public class LoadingCoordinator implements LoadingActionListener {
             fireLoadingActionUpdate();
             try {
                 inletRefs = HE_SurfaceIO.loadStreetInletsReferences(fileSurfaceInlets);
-//                inletsLoaded = true;
             } catch (IOException ex) {
                 Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -1119,7 +1086,6 @@ public class LoadingCoordinator implements LoadingActionListener {
         if (!surfaceTopologyDirectory.isDirectory()) {
             File olddir = surfaceTopologyDirectory;
             surfaceTopologyDirectory = surfaceTopologyDirectory.getParentFile();
-//            throw new FileNotFoundException("Is not a directory to find Surface information: " + olddir.getAbsolutePath());
         }
         File fileCoordinates = new File(surfaceTopologyDirectory, "X.dat");
         if (!fileCoordinates.exists()) {

@@ -167,7 +167,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 SurfaceTriangle st = (SurfaceTriangle) p.getSurrounding_actual();
                 triangleID = (int) st.getManualID();
                 if (pos == null) {
-                    Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).latLonCoordinate(), false);
+                    Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).lonLatCoordinate(), false);
                     pos = new Coordinate(utm.x, utm.y, st.getPosition3D(0).z);
                 }
             } else if ((p.getSurrounding_actual() instanceof SurfaceTrianglePath)) {
@@ -177,7 +177,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 Manhole mh = (Manhole) p.getSurrounding_actual();
                 triangleID = (int) mh.getSurfaceTriangleID();
                 if (pos == null) {
-                    Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().latLonCoordinate(), false);
+                    Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().lonLatCoordinate(), false);
                     System.out.println("Converted manhole to " + utm);
                     pos = new Coordinate(utm.x, utm.y, mh.getSurface_height());
                 }

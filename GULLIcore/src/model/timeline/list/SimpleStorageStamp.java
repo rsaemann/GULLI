@@ -39,9 +39,7 @@ public abstract class SimpleStorageStamp implements StorageStamp{
         if (additionalValues == null) {
             return true;
         }
-        if (GlobalParameter.notifyUnperformantCalls) {
-            throw new UnsupportedOperationException("Unperformant Method Call.");
-        }
+       
         return removeAdditionalValue(getIndex(v));
     }
 

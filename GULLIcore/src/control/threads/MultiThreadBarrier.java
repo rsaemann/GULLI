@@ -25,36 +25,24 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public void loopfinished(T finishedThread) {
-        status = 0;
         synchronized (this) {
-            status = 1;
-            for (T value : threads) {
-                if (value != finishedThread && value.getState() != Thread.State.WAITING) {
-                    status = 5;
-                    finished++;
-                    try {
-                        //Not ready yet, This Thread now should fall asleep
-                        this.wait();
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                    status = 6;
-                    return;
-                }
-            }
-            status = 2; //all threads finished their loop
-            finished = 0;
-            notifyWhenReady.finishedLoop(this);
-
-            if (status > 0) {
+            finished++;
+            if (finished < threads.size()) {     
                 try {
-                    status = 3;//Wait until revoken.
+                    //Not all are ready yet, This Thread now should fall asleep
+                    this.wait();
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                //Last thread has to call the accomplished!-function
+                notifyWhenReady.finishedLoop(this);
+                try {
                     this.wait();
                 } catch (InterruptedException ex) {
                     Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            status = 4;//Startover
         }
     }
 
@@ -64,8 +52,10 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public void startover() {
-        this.status = -1;
-        super.startover(); //To change body of generated methods, choose Tools | Templates.
+        synchronized (this) {
+            finished = 0;
+            this.notifyAll();
+        }
     }
 
     @Override
