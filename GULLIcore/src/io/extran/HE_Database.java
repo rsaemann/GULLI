@@ -109,8 +109,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
     protected Connection con;
 
     protected final ArrayList<ThreadConnection> threadConnections = new ArrayList<>(2);
-    
-    private final HEConnectionSerializer serializer=new HEConnectionSerializer();
+
+    private final HEConnectionSerializer serializer = new HEConnectionSerializer();
 
     protected boolean readOnly = false;
 
@@ -354,60 +354,72 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * @throws IOException
      */
     public Connection getConnection() throws SQLException, IOException {
-        if (con == null || con.isClosed()) {
-            if (isSQLite) {
+        synchronized (this) {
+            if (con == null || con.isClosed()) {
+                if (isSQLite) {
 //                try {
 //                    Class.forName("org.sqlite.JDBC");
-                SQLiteConfig config = new SQLiteConfig();
-                config.setEncoding(SQLiteConfig.Encoding.UTF8);
-                config.setReadOnly(this.readOnly);
-                con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
-                return con;
+                    SQLiteConfig config = new SQLiteConfig();
+                    config.setEncoding(SQLiteConfig.Encoding.UTF8);
+                    config.setReadOnly(this.readOnly);
+                    con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
+                    return con;
 //                } catch (ClassNotFoundException ex) {
 //                    Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
 //                }
-            } else {
-                //Firebird
+                } else {
+                    //Firebird
 
-                try {
-                    if (this.localFile == null) {
-                        System.err.println("local File is null: ");
+                    try {
+                        if (this.localFile == null) {
+                            System.err.println("local File is null: ");
+                        }
+                        String url = "jdbc:firebirdsql:embedded:" + this.localFile.getAbsolutePath().replaceAll("\\\\", "/").toLowerCase();
+                        con = DriverManager.getConnection(url, connectionProperties);
+                        con.setReadOnly(this.readOnly);
+//                        System.out.println("created new FNConnection " + con);
+                        return con;
+                    } catch (SQLException e) {
+                        throw new IOException("Remote File '" + localFile.getAbsolutePath() + "' can not be used directly. Copy to local or temporal file did not work. " + e.getLocalizedMessage());
                     }
-                    String url = "jdbc:firebirdsql:embedded:" + this.localFile.getAbsolutePath().replaceAll("\\\\", "/").toLowerCase();
-                    con = DriverManager.getConnection(url, connectionProperties);
-                    con.setReadOnly(this.readOnly);
-                    return con;
-                } catch (SQLException e) {
-                    throw new IOException("Remote File '" + localFile.getAbsolutePath() + "' can not be used directly. Copy to local or temporal file did not work. " + e.getLocalizedMessage());
                 }
             }
+
         }
         return con;
-
     }
 
     /**
      * Returns an open or reactivates a closed connection.
      *
+     * @param idToLoad
      * @return a Read-only Connection
      * @throws SQLException
      * @throws IOException
      */
-    public  ThreadConnection getUnusedConnection() throws SQLException, IOException {
+    public ThreadConnection getUnusedConnection(long idToLoad) throws SQLException, IOException {
         synchronized (serializer) {
             for (ThreadConnection threadConnection : threadConnections) {
-                if (!threadConnection.inUse) {
-                    threadConnection.inUse = true;
+                if (threadConnection.id == idToLoad) {
+//                    System.out.println(" return inuse connection for "+idToLoad);
                     return threadConnection;
                 }
             }
-            System.out.println("need another connection on top of the existing " + threadConnections.size());
+            for (ThreadConnection threadConnection : threadConnections) {
+                if (!threadConnection.inUse) {
+                    threadConnection.inUse = true;
+                    threadConnection.id = idToLoad;
+//                    System.out.println(" return free connection for "+idToLoad);
+                    return threadConnection;
+                }
+            }
+//            System.out.println("need another connection on top of the existing " + threadConnections.size());
             //No free threadconnection was found. create a new one
-            ThreadConnection toAdd;
+            ThreadConnection toAdd = null;
             if (isSQLite) {
                 SQLiteConfig config = new SQLiteConfig();
                 config.setEncoding(SQLiteConfig.Encoding.UTF8);
-                config.setReadOnly(this.readOnly);
+                config.setReadOnly(true);
                 toAdd = new ThreadConnection(DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties()));
             } else {
                 //Firebird
@@ -417,15 +429,17 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     }
                     String url = "jdbc:firebirdsql:embedded:" + this.localFile.getAbsolutePath().replaceAll("\\\\", "/").toLowerCase();
                     Connection c = DriverManager.getConnection(url, connectionProperties);
-                    c.setReadOnly(this.readOnly);
+                    c.setReadOnly(true);
                     toAdd = new ThreadConnection(c);
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     throw new IOException("Remote File '" + localFile.getAbsolutePath() + "' can not be used directly. Copy to local or temporal file did not work. " + e.getLocalizedMessage());
                 }
             }
             if (toAdd != null) {
                 this.threadConnections.add(toAdd);
                 toAdd.inUse = true;
+                toAdd.id = idToLoad;
+//                System.out.println("add new FB Connection");
                 return toAdd;
             }
         }
@@ -1865,9 +1879,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineValuesPipe(long pipeMaualID, String pipeName, int numberOfTimes, String columname) {
         float[] values = new float[numberOfTimes];
         try {
-            ThreadConnection uc = getUnusedConnection();
-            
-                Connection c = uc.con;
+//            ThreadConnection uc = getUnusedConnection();
+
+            Connection c = getConnection();
+            synchronized (c) {
                 try {
                     Statement st = c.createStatement();
                     //in HE Database only use Pipe ID.
@@ -1875,7 +1890,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     if (!rs.isBeforeFirst()) {
                         //No Data
                         System.err.println(getClass() + " could not load " + columname + " values for pipe id:" + pipeMaualID + ". It is not found in the database.");
-                        uc.inUse = false;
+//                        uc.inUse = false;
                         return values;
                     }
                     int index = 0;
@@ -1883,15 +1898,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         values[index] = rs.getFloat(1);
                         index++;
                     }
-                    uc.inUse = false;
+//                    uc.inUse = false;
                     return values;
 
                 } catch (SQLException ex) {
                     Logger.getLogger(HE_Database.class
                             .getName()).log(Level.SEVERE, null, ex);
                 }
-                uc.inUse = false;
-            
+//                uc.inUse = false;
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -1919,9 +1934,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
         float[] values = new float[numberOfTimes];
 
         try {
-            ThreadConnection uc = getUnusedConnection();
-            
-                Connection c = uc.con;
+//            ThreadConnection uc = getUnusedConnection();
+
+            Connection c = getConnection();//uc.con;
+            synchronized (c) {
                 Statement st = c.createStatement();
                 //in HE Database only use Pipe ID.
 
@@ -1934,7 +1950,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load KANTESTOFFLAUFEND values for pipe id:" + pipeMaualID + ". It is not found in the database.");
-                    uc.inUse = false;
+//                uc.inUse = false;
                     return values;
                 }
                 int index = 0;
@@ -1943,9 +1959,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 st.close();
-                uc.inUse = false;
+//            uc.inUse = false;
                 return values;
-            
+            }
         } catch (SQLException | IOException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -1992,15 +2008,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineWaterheightManhole(long manholeMaualID, String manholeName, int numberOfTimes) {
         float[] values = new float[numberOfTimes];
         try {
-            ThreadConnection uc = getUnusedConnection();
-                Connection c = uc.con;
+            Connection c = getConnection();
+            synchronized (c) {
                 Statement st = c.createStatement();
                 //in HE Database only use Manhole ID.
                 ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeMaualID + " ORDER BY ZEITPUNKT ");
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load wasserstand for manhole id:" + manholeMaualID + ". It is not found in the database.");
-                    uc.inUse = false;
                     return values;
                 }
                 int index = 0;
@@ -2009,8 +2024,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 st.close();
-                uc.inUse = false;
                 return values;
+            }
         } catch (SQLException | IOException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -2021,16 +2036,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineOutflowManhole(long manholeDatabaseID, int numberOfTimes) {
         float[] values = new float[numberOfTimes];
         try {
-            ThreadConnection uc = getUnusedConnection();
-            
-                Connection c = uc.con;
+
+            Connection c = getConnection();
+            synchronized (c) {
                 Statement st = c.createStatement();
                 //in HE Database only use Manhole ID.
                 ResultSet rs = st.executeQuery("SELECT DURCHFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeDatabaseID + " ORDER BY ZEITPUNKT ");
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load outflow for manhole id:" + manholeDatabaseID + ". It was not found in the database.");
-                    uc.inUse = false;
+
                     return values;
                 }
                 int index = 0;
@@ -2039,10 +2054,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 st.close();
-                uc.inUse = false;
                 return values;
-
-            
+            }
         } catch (SQLException | IOException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -2053,16 +2066,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineOutflowManhole(String manholeName, int numberOfTimes) {
         float[] values = new float[numberOfTimes];
         try {
-            ThreadConnection uc = getUnusedConnection();
-           
-                Connection c = uc.con;
+
+            Connection c = getConnection();
+            synchronized (c) {
                 Statement st = c.createStatement();
                 //in HE Database only use Manhole ID.
                 ResultSet rs = st.executeQuery("SELECT DURCHFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE KNOTEN='" + manholeName + "' ORDER BY ZEITPUNKT ");
                 if (!rs.isBeforeFirst()) {
                     //No Data
                     System.err.println(getClass() + " could not load outflow for manhole name:" + manholeName + ". It was not found in the database.");
-                    uc.inUse = false;
+
                     return values;
                 }
                 int index = 0;
@@ -2071,9 +2084,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 st.clearBatch();
-                uc.inUse = false;
                 return values;
-
+            }
         } catch (SQLException | IOException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -2087,9 +2099,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
         //NEW SCHEME INCLUDING 2D SURFACEx
 
         try {
-            ThreadConnection uc = getUnusedConnection();
-            
-                Connection c = uc.con;
+
+            Connection c = getConnection();
+            synchronized (c) {
                 Statement st = c.createStatement();
                 //ABFLUSS: Flow from Surface to Pipesystem
                 ResultSet res = st.executeQuery("SELECT ID,"
@@ -2106,9 +2118,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 st.close();
-                uc.inUse = false;
                 return flux;
-            
+            }
         } catch (SQLException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -2123,9 +2134,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public String[] getOverspillingManholes(double minFlux) {
         LinkedList<String> names = new LinkedList<>();
         try {
-            ThreadConnection uc = getUnusedConnection();
-            
-                Connection c = uc.con;
+
+            Connection c = getConnection();
+            synchronized (c) {
                 Statement st = c.createStatement();
                 //ABFLUSS: Flow from Surface to Pipesystem
                 ResultSet res = st.executeQuery("SELECT DISTINCT ID,KNOTEN FROM KNOTENLAUFEND2D WHERE ABFLUSS-ZUFLUSS>" + minFlux + " ORDER BY ID");
@@ -2133,8 +2144,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     names.add(res.getString(2));
                 }
                 st.close();
-                uc.inUse = false;
-            
+            }
         } catch (SQLException | IOException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -2488,15 +2498,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
     @Override
     public boolean fillTimelinePipe(long pipeManualID, String pipeName, SparseTimelinePipe timeline) {
         try {
-            ThreadConnection uc = getUnusedConnection();
+            ThreadConnection tc = getUnusedConnection(pipeManualID);
+            Connection c = tc.con;
+            synchronized (c) {
                 if (timeline.isInitialized()) {
                     //Does not need to be loaded any more. another Thread did that for us, while this thread was waiting for the monitor.
-
-                    uc.inUse = false;
+//                    System.out.println("do not need to load values for " + pipeManualID);
+                    tc.inUse = false;
                     return true;
                 }
+//                System.out.println("request \t" + pipeManualID + " con:" + c);
                 try {
-                    Connection c = uc.con;
+
                     try ( //in HE Database only use Pipe ID.
                             Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT GESCHWINDIGKEIT,DURCHFLUSS,WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_EL WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ")) {
                         int times = timeline.getNumberOfTimes();
@@ -2517,24 +2530,19 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         timeline.setWaterlevel(waterlevel);
                         st.close();
                     }
-                    uc.inUse = false;
-//                workingonpipe = false;
+                    tc.inUse = false;
                     return true;
-
                 } catch (SQLException ex) {
                     Logger.getLogger(HE_Database.class
                             .getName()).log(Level.SEVERE, null, ex);
                 }
-                uc.inUse = false;
                 return false;
-            
-
+            }
         } catch (SQLException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         }
-
         return false;
     }
 
@@ -2579,9 +2587,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public float[] loadTimeLineConcentration(long pipeManualID, String pipeName, int numberOfTimes) {
         float[] concentration = new float[numberOfTimes];
         try {
-            ThreadConnection uc = getUnusedConnection();
-            
-                Connection c = uc.con;
+//            ThreadConnection uc = getUnusedConnection();
+
+            Connection c = getConnection();
+            synchronized (c) {
                 //in HE Database only use Pipe ID.
                 Statement st = c.createStatement();
                 ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ASC");
@@ -2589,7 +2598,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (!rs.isBeforeFirst()) {
                     //Result set is empty, there are no concentrations set
 
-                    uc.inUse = false;
+//                    uc.inUse = false;
                     return concentration;
                 }
 
@@ -2599,9 +2608,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 st.close();
-                uc.inUse = false;
-            
-
+//                uc.inUse = false;
+            }
         } catch (SQLException ex) {
             Logger.getLogger(HE_Database.class
                     .getName()).log(Level.SEVERE, null, ex);
@@ -2617,12 +2625,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
         public boolean inUse = false;
         public Connection con;
+        public long id = -1;
 
         public ThreadConnection(Connection con) {
             this.con = con;
         }
 
     }
-    
-    public class HEConnectionSerializer{};
+
+    public class HEConnectionSerializer {
+    };
 }

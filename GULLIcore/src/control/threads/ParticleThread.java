@@ -5,12 +5,7 @@ import control.particlecontrol.ParticleSurfaceComputing;
 import control.particlecontrol.ParticleSurfaceComputing1D;
 import control.particlecontrol.ParticleSurfaceComputing2D;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.LinkedList;
-import model.particle.HistoryParticle;
+import java.util.Random;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
@@ -45,8 +40,8 @@ public class ParticleThread extends Thread {
 
     public ParticleThread(String string, long seed, ThreadBarrier<ParticleThread> barrier) {
         super(string);
-        pc = new ParticlePipeComputing(seed, this);
-        surfcomp = new ParticleSurfaceComputing2D(null, seed);
+        pc = new ParticlePipeComputing();
+        surfcomp = new ParticleSurfaceComputing2D(null);
         this.barrier = barrier;
     }
 
@@ -66,7 +61,7 @@ public class ParticleThread extends Thread {
         if (surfcomp == null) {
             surfcomp = new ParticleSurfaceComputing1D(null, Thread.activeCount());
         } else if (!(surfcomp instanceof ParticleSurfaceComputing1D)) {
-            surfcomp = new ParticleSurfaceComputing1D(surfcomp.getSurface(), surfcomp.getSeed());
+            surfcomp = new ParticleSurfaceComputing1D(surfcomp.getSurface());
         }
         if (surfcomp != null) {
             surfcomp.setDeltaTimestep(pc.getDeltaTime());
@@ -75,9 +70,9 @@ public class ParticleThread extends Thread {
 
     public void setSurfaceComputing2D() {
         if (surfcomp == null) {
-            surfcomp = new ParticleSurfaceComputing2D(null, Thread.activeCount());
+            surfcomp = new ParticleSurfaceComputing2D(null);
         } else if (!(surfcomp instanceof ParticleSurfaceComputing2D)) {
-            surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface(), surfcomp.getSeed());
+            surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface());
         }
         if (surfcomp != null) {
             surfcomp.setDeltaTimestep(pc.getDeltaTime());
@@ -106,22 +101,29 @@ public class ParticleThread extends Thread {
         barrier.initialized(this);
         //if woken up start the normal loop
         Particle p;
+        int[] fromto = null;
         while (runendless) {
             try {
                 activeCalculation = true;
-                int[] fromto = threadController.getNextParticlesToTreat();
-                if (fromto == null) {
+                fromto = threadController.getNextParticlesToTreat(fromto);
+                if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
                     particleID = -5;
                     activeCalculation = false;
                     status = 20;
                     barrier.loopfinished(this);
-                    status=21;
+                    status = 21;
                 } else {
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getSimulationtime();
                     int from = fromto[0];
                     int to = fromto[1];
+                    if (fromto[2] >= threadController.randomNumberGenerators.length) {
+                        System.err.println("wrong index " + fromto[2] + " for particles " + fromto[0] + "-" + fromto[1] + " of total " + threadController.randomNumberGenerators.length + "   waitingindex: " + threadController.waitingParticleIndex);
+                    }
+                    Random random = threadController.randomNumberGenerators[fromto[2]];
+                    this.pc.setRandomNumberGenerator(random);
+                    this.surfcomp.setRandomNumberGenerator(random);
                     for (int i = from; i <= to; i++) {
                         p = threadController.particles[i];
                         this.particleID = p.getId();
@@ -180,11 +182,11 @@ public class ParticleThread extends Thread {
         }
     }
 
-    public void setSeed(long seed) {
-        surfcomp.setSeed(seed);
-        pc.setSeed(seed);
-    }
-
+//    public void setSeed(long seed) {
+////        surfcomp.setSeed(seed);
+////        pc.setSeed(seed);
+//        if()
+//    }
     /**
      * Returns true if this Thread is inside its calculation loop and not
      * waiting.

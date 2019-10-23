@@ -1213,8 +1213,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public float[] getTriangleVelocity(int triangleID, double indexDouble) {
         float[] lower = getTriangleVelocity(triangleID)[(int) indexDouble];
         float[] upper = getTriangleVelocity(triangleID)[(int) indexDouble + 1];
-        double frac = (indexDouble % 1.);
-        return new float[]{(float) (lower[0] + (upper[0] - lower[0]) * frac), (float) (lower[1] + (upper[1] - lower[1]) * frac)};
+        float frac = (float) (indexDouble % 1f);
+        return new float[]{(lower[0] + (upper[0] - lower[0]) * frac), (lower[1] + (upper[1] - lower[1]) * frac)};
     }
 
     public float[] getTriangleVelocity(int triangleID, int indexInteger) {
@@ -1449,7 +1449,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         sourcesForSpilloutParticles.clear();
     }
 
-
     /**
      * Set number of different materials that are injected.
      *
@@ -1566,7 +1565,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 System.err.println("Could not find Pipe with name '" + capacityName + "' to apply a treetinlet next to it.");
                 continue;
             }
-           
+
             //Transform Pipe to surface coordinates
             double distancealongPipe = 0;
             double[] tpos = getTriangleMids()[triangleID];
@@ -2154,10 +2153,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 } else {
                     v2 = getTriangleVelocity(nb2, timeIndex);
                 }
-                velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
-                velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
+                velocityParticle[0] = ((1 - w[0]) * (v0[0]) + (1 - w[1]) * (v1[0]) + (1 - w[2]) * (v2[0]) + vt[0]) * 0.333f;
+                velocityParticle[1] = ((1 - w[0]) * (v0[1]) + (1 - w[1]) * (v1[1]) + (1 - w[2]) * (v2[1]) + vt[1]) * 0.333f;
 //                System.out.println("benutze kleinste gewichtete richtung zeitlich interpoliert");
-                  //Use only the samllest weight to interpolate velocity
+                //Use only the samllest weight to interpolate velocity
 //                float[] v1t;
 //                double w1t = 0;
 //                if (w[0] < w[1]) {
@@ -2210,7 +2209,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //                velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
 //                velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
 
-                
                 velocityParticle[0] = ((1 - w[0]) * (v0[0] + vt[0]) + (1 - w[1]) * (v1[0] + vt[0]) + (1 - w[2]) * (v2[0] + vt[0])) * 0.25;
                 velocityParticle[1] = ((1 - w[0]) * (v0[1] + vt[1]) + (1 - w[1]) * (v1[1] + vt[1]) + (1 - w[2]) * (v2[1] + vt[1])) * 0.25;
 
@@ -2273,11 +2271,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         double smallest = 0;
         int bestEdge = -1;
         int secondBest = -1;
-//        for (double w : bw) {
-//            if (w < 0) {
-//                outs++;
-//            }
-//        }
         for (int i = 0; i < 3; i++) {
             if (bw[i] < 0) {
                 if (bw[i] < smallest) {
@@ -2298,9 +2291,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
 
         int nextID = -1;
-//        boolean boundaryFound = false;
         //find triangle with same edge 
-        boolean foundoneEdgenode = false;
+        boolean foundFirstEdgeNode;
         int testNode0, testNode1;
         boolean found = false;
         if (bestEdge == 0) {
@@ -2320,16 +2312,17 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 //boundary found, but we are not yet sure if this is the target triangle. Do NOT set the found-boundary flag.
                 continue;
             }
-            foundoneEdgenode = false;
+            //Test nodes of the surrounding triangles to find a matching edge.
+            foundFirstEdgeNode = false;
             for (int j = 0; j < 3; j++) {
                 int testEdgeNode = triangleNodes[neighbourID][j];
                 if (testEdgeNode == testNode0 || testEdgeNode == testNode1) {
-                    if (foundoneEdgenode) {
+                    if (foundFirstEdgeNode) {
                         found = true;
                         nextID = neighbourID;
                         break;
                     }
-                    foundoneEdgenode = true;
+                    foundFirstEdgeNode = true;
                 }
             }
             if (found) {
@@ -2355,16 +2348,16 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     //boundary found, but we are not yet sure if this is the target triangle. Do NOT set the found-boundary flag.
                     continue;
                 }
-                foundoneEdgenode = false;
+                foundFirstEdgeNode = false;
                 for (int j = 0; j < 2; j++) {
                     int testEdgeNode = triangleNodes[neighbourID][j];
                     if (testEdgeNode == testNode0 || testEdgeNode == testNode1) {
-                        if (foundoneEdgenode) {
+                        if (foundFirstEdgeNode) {
                             found = true;
                             nextID = neighbourID;
                             break;
                         }
-                        foundoneEdgenode = true;
+                        foundFirstEdgeNode = true;
                     }
                 }
                 if (found) {
@@ -2372,13 +2365,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 }
             }
         }
-
-//        if (!found) {
-//            boundaryFound = true;
-////            System.out.println("nothing found -> boundary");
-//        } else {
-////            System.out.println("found " + nextID);
-//        }
 
         if (nextID >= 0 && leftIterations > 0) {
             leftIterations--;
@@ -2415,13 +2401,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by);
                     s = st1[0];
                     if (s < 0 || s > 1) {
-//                        System.out.println("line1: " + xold + " | " + yold + "  to " + x + " | " + y + "  \t crosses " + ax + " | " + ay + " to " + bx + " | " + by);
-//                        System.out.println("BAD: s=" + st1[0] + "|" + st1[1] + "\t edges: " + (secondBest >= 0 ? "2" : "1") + "   left:" + leftIterations + "\tweights: " + bw[0] + ", " + bw[1] + ", " + bw[2] + "  " + (boundaryFound ? "Boundary hit!" : ""));
                         throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
                     }
                 } else {
-//                    System.out.println("reset to triangle mid");
-
                     throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
                 }
             }
@@ -2637,7 +2619,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 double xneu = xold + s * (x - xold);
                 double yneu = yold + s * (y - yold);
                 //Fire Message with the new position.
-                throw new BoundHitException(id,xneu, yneu);
+                throw new BoundHitException(id, xneu, yneu);
             }
         }
 //        throw new BoundHitException(id, new double[]{triangleMids[id][0], triangleMids[id][1]});
@@ -3231,9 +3213,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public class BoundHitException extends Exception {
 
         public final int id;
-        public final double correctedPositionX,correctedPositionY;
+        public final double correctedPositionX, correctedPositionY;
 
-        public BoundHitException(int id, double correctedPositionX,double correctedPositionY) {
+        public BoundHitException(int id, double correctedPositionX, double correctedPositionY) {
             this.id = id;
             this.correctedPositionX = correctedPositionX;
             this.correctedPositionY = correctedPositionY;

@@ -23,32 +23,33 @@
  */
 package model.topology;
 
-import model.surface.SurfaceTriangle;
+import model.surface.Surface;
 
 /**
  *
  * @author saemann
  */
 public class Connection_Manhole_Surface implements Connection_Manhole {
-    
-     protected StorageVolume manhole;
-     
-     protected Position3D position;
-     
-     protected SurfaceTriangle surfaceTriangle;
 
-    public Connection_Manhole_Surface(StorageVolume manhole, Position3D position, SurfaceTriangle surfaceTriangle) {
+    protected StorageVolume manhole;
+
+    protected Position3D position;
+
+    protected int surfaceTriangleId;
+    protected Surface surf;
+
+    public Connection_Manhole_Surface(StorageVolume manhole, Position3D position, int surfaceTriangleid, Surface surface) {
         this.manhole = manhole;
         this.position = position;
-        this.surfaceTriangle = surfaceTriangle;
+        this.surfaceTriangleId = surfaceTriangleid;
     }
 
-    public SurfaceTriangle getSurfaceTriangle() {
-        return surfaceTriangle;
+    public int getSurfaceTriangleId() {
+        return surfaceTriangleId;
     }
 
-    public void setSurfaceTriangle(SurfaceTriangle surfaceTriangle) {
-        this.surfaceTriangle = surfaceTriangle;
+    public void setSurfaceTriangleId(int surfaceTriangle) {
+        this.surfaceTriangleId = surfaceTriangle;
     }
 
     @Override
@@ -58,17 +59,17 @@ public class Connection_Manhole_Surface implements Connection_Manhole {
 
     @Override
     public float getHeight() {
-       return (float) position.z;
+        return (float) position.z;
     }
 
     @Override
     public StorageVolume getManhole() {
-       return manhole;
+        return manhole;
     }
 
     @Override
     public Capacity getConnectedCapacity() {
-        return surfaceTriangle;
+        return surf;
     }
 
 }

@@ -23,6 +23,7 @@
  */
 package control.particlecontrol;
 
+import java.util.Random;
 import model.particle.Particle;
 import model.surface.Surface;
 
@@ -31,20 +32,22 @@ import model.surface.Surface;
  * @author saemann
  */
 public interface ParticleSurfaceComputing {
-    
+
     public void setSurface(Surface surface);
-    
+
     public Surface getSurface();
-    
+
     public void setDeltaTimestep(double seconds);
-    
+
     public void moveParticle(Particle particle);
-    
+
     public void reset();
-    
-    public void setSeed(long seed);
-    
-    public long getSeed();
-    
+
+//    public void setSeed(long seed);
+//
+//    public long getSeed();
+
     public String reportCalculationStatus();
+
+    public void setRandomNumberGenerator(Random rd);
 }

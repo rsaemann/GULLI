@@ -56,40 +56,33 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         if (particle != null && particle.getSurrounding_actual() != null) {
             if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
                 //for risk map do not show inertial particles
-//            System.out.println("Do not track particle "+particle.getTravelledPathLength());
                 return;
             }
-            int timeindex = times.getTimeIndex(time);
 
             int id = particle.surfaceCellID;
-           
+
             if (id < 0) {
                 return;
             }
-             if(!countStayingParticle){
-                 if(particle.surfaceCellID==particle.lastSurfaceCellID){
-                     //Do not count particle, if it only stays at the same cell
-                     return;
-                 }else{
-                     particle.lastSurfaceCellID=particle.surfaceCellID;
-                 }
-             }
-//            int id = (int) particle.getSurrounding_actual().getManualID();
-//            if(particle.getSurrounding_actual()==surf){
-//                id=particle.surfaceCellID;
-//            }
+            if (!countStayingParticle) {
+                if (particle.surfaceCellID == particle.lastSurfaceCellID) {
+                    //Do not count particle, if it only stays at the same cell
+                    return;
+                } else {
+                    particle.lastSurfaceCellID = particle.surfaceCellID;
+                }
+            }
             if (measurements[id] == null) {
                 createMeasurement(id);
             }
             TriangleMeasurement m = null;
+            int timeindex = times.getTimeIndex(time);
+
             try {
                 m = measurements[id];
                 m.mass[particle.getMaterial().materialIndex][timeindex] += particle.particleMass;
                 m.particlecounter[particle.getMaterial().materialIndex][timeindex]++;
-//                if (time != lastRequestTime) {
-//                    timerequestCount[timeindex]++;
-//                    lastRequestTime = time;
-//                }
+
             } catch (IndexOutOfBoundsException e) {
                 e.printStackTrace();
                 System.err.println(getClass() + "::Request t=" + timeindex + " m=" + particle.getMaterial().materialIndex + "   mass.length: " + m.mass.length + "   times.length=" + times.getNumberOfTimes());
@@ -150,7 +143,5 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
     public int getNumberOfMaterials() {
         return numberOfMaterials;
     }
-    
-    
 
 }

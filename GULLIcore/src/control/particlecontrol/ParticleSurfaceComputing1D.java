@@ -54,10 +54,10 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      */
     protected Random random;
 
-    /**
-     * Seed used for generating the same random numbers for each run.
-     */
-    protected long seed = 0;
+//    /**
+//     * Seed used for generating the same random numbers for each run.
+//     */
+//    protected long seed = 0;
 
     /**
      * Stutus variable for debugging. Increase after every important step to see
@@ -72,11 +72,11 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 
     public ParticleSurfaceComputing1D(Surface surface) {
         this(surface, 0);
-    }
+    }   
 
     public ParticleSurfaceComputing1D(Surface surface, long seed) {
         this.surface = surface;
-        this.random = new Random(seed);// new UniformDistribution(new Random(seed), 0.5, 1);
+//        this.random = new Random(seed);// new UniformDistribution(new Random(seed), 0.5, 1);
 //        this.random.setRandomGenerator(new Random(seed));
     }
 
@@ -85,7 +85,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      */
     @Override
     public void reset() {
-        this.random = new Random(seed);//.setRandomGenerator(new Random(seed));
+//        this.random = new Random(seed);//.setRandomGenerator(new Random(seed));
 
     }
 
@@ -343,20 +343,25 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         this.dt = (float) seconds;
     }
 
-    @Override
-    public void setSeed(long seed) {
-        this.seed = seed;
-        this.random.setSeed(seed);
-    }
-
-    @Override
-    public long getSeed() {
-        return seed;
-    }
+//    @Override
+//    public void setSeed(long seed) {
+//        this.seed = seed;
+////        this.random.setSeed(seed);
+//    }
+//
+//    @Override
+//    public long getSeed() {
+//        return seed;
+//    }
 
     @Override
     public String reportCalculationStatus() {
         return status + "";
+    }
+
+    @Override
+    public void setRandomNumberGenerator(Random rd) {
+        this.random = rd;
     }
 
 }

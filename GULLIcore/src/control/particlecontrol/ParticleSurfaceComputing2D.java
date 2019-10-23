@@ -57,8 +57,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     /**
      * Seed used for generating the same random numbers for each run.
      */
-    protected long seed = 0;
-
+//    protected long seed = 0;
     /**
      * Stutus variable for debugging. Increase after every important step to see
      * where surface computing is hanging.
@@ -80,13 +79,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public static boolean allowWashToPipesystem = true;
 
     public ParticleSurfaceComputing2D(Surface surface) {
-        this(surface, 0);
-    }
-
-    public ParticleSurfaceComputing2D(Surface surface, long seed) {
         this.surface = surface;
-        this.seed = seed;
-        this.random = new Random(seed);
     }
 
     public void setDiffusionCalculation(DiffusionCalculator2D D) {
@@ -102,7 +95,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     @Override
     public void reset() {
-        this.random = new Random(seed);//.setRandomGenerator(new Random(seed));
+//        this.random = new Random(seed);//.setRandomGenerator(new Random(seed));
 
     }
 
@@ -193,19 +186,17 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             System.out.println("Problem with particle on surface (surfacecell:" + p.surfaceCellID + ", onsurface:" + p.isOnSurface());
         }
         // get the particle velocity
-        double[] velo;// = new double[2];
-
-        velo = surface.getParticleVelocity2D(p, triangleID);
+        double[] velo = surface.getParticleVelocity2D(p, triangleID);
         double u = Math.sqrt((velo[0] * velo[0]) + (velo[1] * velo[1]));
-        if (u > 5 || u < -5) {
-            System.out.println("velocity (" + u + ")is implausible. set to +/- 5m/s");
+        if (u > 3 || u < -3) {
+            System.out.println("velocity (" + u + ")is implausible. set to +/- 3m/s");
             double veloverhaeltnis = velo[0] / velo[1];
             if (veloverhaeltnis < 1) {
-                velo[1] = 5;
-                velo[0] = 5 * veloverhaeltnis;
+                velo[1] = 3;
+                velo[0] = 3 * veloverhaeltnis;
             } else {
-                velo[0] = 5;
-                velo[1] = 5 * (1. / veloverhaeltnis);
+                velo[0] = 3;
+                velo[1] = 3 * (1. / veloverhaeltnis);
             }
         }
 
@@ -219,16 +210,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             pos.y += (float) velo[1] * dt;// only advection
         } else {
             // calculate diffusion
-            if (u > 0.000001f) {
+            if (u > 0.0000001f) {
                 double[] Diff = D.calculateDiffusion(velo[0], velo[1], surface, triangleID);
-                double sqrt2dtDx = Math.sqrt(2 * dt * Diff[0]);
-                double sqrt2dtDy = Math.sqrt(2 * dt * Diff[1]);
+                double sqrt2dtDx = Math.sqrt(2. * dt * Diff[0]);
+                double sqrt2dtDy = Math.sqrt(2. * dt * Diff[1]);
 
                 // random walk simulation
                 double z2 = random.nextGaussian();           // random number to simulate random walk (lagrangean transport)
                 double z1 = random.nextGaussian();
 
-            // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
+                // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
                 pos.x += velo[0] * dt + (velo[0] / u) * z1 * sqrt2dtDx + ((velo[1] / u) * z2 * sqrt2dtDy);
                 pos.y += velo[1] * dt + (velo[1] / u) * z1 * sqrt2dtDx + ((velo[0] / u) * z2 * sqrt2dtDy);
             }
@@ -300,25 +291,30 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         this.dt = (float) seconds;
     }
 
-    @Override
-    public void setSeed(long seed) {
-        this.seed = seed;
-        random.setSeed(seed);
-    }
+//    @Override
+//    public void setSeed(long seed) {
+//        this.seed = seed;
+//        random.setSeed(seed);
+//    }
 
     @Override
     public Surface getSurface() {
         return this.surface;
     }
 
-    @Override
-    public long getSeed() {
-        return this.seed;
-    }
+//    @Override
+//    public long getSeed() {
+//        return this.seed;
+//    }
 
     @Override
     public String reportCalculationStatus() {
         return "Status:" + status;
+    }
+
+    @Override
+    public void setRandomNumberGenerator(Random rd) {
+        this.random = rd;
     }
 
 }

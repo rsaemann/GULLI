@@ -57,7 +57,7 @@ public class DiffusionCalculator2D {
     public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID) {
         double h = 0;
         switch (diffType) {
-             case FISCHER:
+            case FISCHER:
                 al = 5.91;
                 at = 0.15;
                 break;
@@ -76,7 +76,7 @@ public class DiffusionCalculator2D {
             case Htenth:
                 h = surface.getActualWaterlevel(triangleID);
                 return new double[]{h * 0.1, h * 0.1};
-           
+
             default:
                 D[0] = 0;
                 D[1] = 0;
