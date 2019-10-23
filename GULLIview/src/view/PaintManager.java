@@ -3105,6 +3105,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             }
 
         }
+//        } catch (FactoryException ex) {
+//            Logger.getLogger(PaintManager.class
+//                    .getName()).log(Level.SEVERE, null, ex);
+//        }
     }
 
     public void setSurface(Surface surface) {

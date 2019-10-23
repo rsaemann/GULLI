@@ -279,7 +279,7 @@ this.add(tabs);
         JPanel panelSeed = new JPanel(new BorderLayout());
         panelSeed.add(new JLabel("Seed :"), BorderLayout.WEST);
         textSeed = new JFormattedTextField(DecimalFormat.getIntegerInstance());
-        textSeed.setValue(controller.seed);
+        textSeed.setValue(controller.getSeed());
         panelSeed.add(textSeed, BorderLayout.CENTER);
         panelParameter.add(panelSeed);
 
@@ -818,7 +818,7 @@ this.add(tabs);
                         long newSeed = Long.parseLong(textSeed.getText());
                         controller.setSeed(newSeed);
                     } catch (Exception exception) {
-                        textSeed.setText(controller.seed + "");
+                        textSeed.setText(controller.getSeed() + "");
                     }
                 }
             }
