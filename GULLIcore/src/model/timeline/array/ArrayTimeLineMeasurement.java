@@ -18,6 +18,13 @@ public class ArrayTimeLineMeasurement {
      */
     public static boolean useIDsharpParticleCounting = false;
 
+    /**
+     * Using synchronized measurements is slower because Particle threas writing
+     * on this list have to wait on each other. Enabling this results in a more
+     * accurate counting because adding a value is not threadsave.
+     */
+    public static boolean useSynchronizedMeasurements = true;
+
     private double maxMass = 0;
     private double maxConcentration = 0;
     private final HashSet<Particle> particles;//new HashSet<>(0);
@@ -37,6 +44,10 @@ public class ArrayTimeLineMeasurement {
      */
     private double particleMassInTimestep = 0;
 
+    /**
+     * if not active, then no information is collected and stored.
+     */
+    public boolean active = true;
 
     public ArrayTimeLineMeasurement(ArrayTimeLineMeasurementContainer container, int spatialIndex) {
         this.container = container;
@@ -59,7 +70,10 @@ public class ArrayTimeLineMeasurement {
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] /** container.counts[index]*/ /(float) (container.volumes[index] * container.messungenProZeitschritt));
+        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] /**
+                 * container.counts[index]
+                 */
+                / (float) (container.volumes[index] * container.messungenProZeitschritt));
 
     }
 
@@ -104,7 +118,7 @@ public class ArrayTimeLineMeasurement {
                 maxMass = tempmass;
             }
 //            System.out.println("store mass at time "+timeindex +" counts: "+container.counts[index]);
-            double temp_c = (tempmass * container.counts[index] / (container.volumes[index]));
+            double temp_c = tempmass / container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
             if (!Double.isInfinite(temp_c) && !Double.isNaN(temp_c)) {
                 if (temp_c > maxConcentration) {
                     maxConcentration = temp_c;
@@ -144,18 +158,33 @@ public class ArrayTimeLineMeasurement {
     }
 
     public void addParticle(Particle particleToCount) {
+        if (!active) {
+            return;
+        }
 //        System.out.println(getClass()+":: particle count "+particleToCount);
-        if (useIDsharpParticleCounting) {
-            synchronized (particles) {
-                if (!particles.contains(particleToCount)) {
-                    particles.add(particleToCount);
+        if (useSynchronizedMeasurements) {
+            if (useIDsharpParticleCounting) {
+                synchronized (particles) {
+                    if (!particles.contains(particleToCount)) {
+                        particles.add(particleToCount);
+                    }
                 }
             }
-        }
-//        synchronized (this) {
+            synchronized (this) {
+                this.particleMassInTimestep += particleToCount.particleMass;
+                this.numberOfParticlesInTimestep++;
+            }
+        } else {
+            if (useIDsharpParticleCounting) {
+                synchronized (particles) {
+                    if (!particles.contains(particleToCount)) {
+                        particles.add(particleToCount);
+                    }
+                }
+            }
             this.particleMassInTimestep += particleToCount.particleMass;
             this.numberOfParticlesInTimestep++;
-//        }
+        }
     }
 
     public void resetNumberOfParticles() {
@@ -172,8 +201,6 @@ public class ArrayTimeLineMeasurement {
     public boolean hasMeasurements(int timeIndex) {
         return container.counts[startIndex + timeIndex] > 0;
     }
-    
-  
 
 //    public static float[] getMassForTimeIndex(int timeIndex) {
 //        float[] r = new float[distance.length];

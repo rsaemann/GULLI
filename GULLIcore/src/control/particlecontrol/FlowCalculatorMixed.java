@@ -43,6 +43,10 @@ public class FlowCalculatorMixed implements FlowCalculator {
     public static boolean verbose = false;
     public static boolean useFlowProportionalityOutflow = true;
 
+    /**
+     * Waterlevels below this value are treted as dry / immovable.
+     */
+    public static float dryWaterlevel = 0.001f;
 
     public static int numberOfWettedConnections(Manhole mh) {
         int number = 0;
@@ -78,9 +82,9 @@ public class FlowCalculatorMixed implements FlowCalculator {
     @Override
     public Connection_Manhole whichConnection(Manhole mh, Random probability, double ds) {
 
-        if (mh.getWaterlevel() < 0.001) {
+        if (mh.getWaterlevel() < dryWaterlevel) {
             if (verbose) {
-                System.out.println("waterlevel<0.001\t wL:" + mh.getWaterlevel() + "\t h:" + mh.getWaterHeight() + " --> null");
+                System.out.println("waterlevel<"+dryWaterlevel+"m\t wL:" + mh.getWaterlevel() + "\t h:" + mh.getWaterHeight() + " --> null");
             }
             return null;
         }

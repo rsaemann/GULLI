@@ -27,21 +27,14 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
     public void loopfinished(T finishedThread) {
         synchronized (this) {
             finished++;
-            if (finished < threads.size()) {     
-                try {
-                    //Not all are ready yet, This Thread now should fall asleep
-                    this.wait();
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            } else {
+            if (finished >= threads.size()) {
                 //Last thread has to call the accomplished!-function
                 notifyWhenReady.finishedLoop(this);
-                try {
-                    this.wait();
-                } catch (InterruptedException ex) {
-                    Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
-                }
+            } //else Not all are ready yet, This Thread now should fall asleep
+            try {
+                this.wait();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
     }
@@ -80,6 +73,7 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
     @Override
     public void initialized(T itsMe) {
         synchronized (this) {
+            //Check if this is the last Thread that finished initialization.
             for (T value : threads) {
                 if (value != itsMe && value.getState() != Thread.State.WAITING) {
                     try {
@@ -92,6 +86,7 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
                 }
             }
             isinitialized = true;
+            //Notify threadcontroller : all threads on this barrier have been initialized.
             notifyWhenReady.initializingFinished(this);
             try {
                 this.wait();

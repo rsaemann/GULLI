@@ -935,6 +935,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 } else {
                     times[i] = res.getTimestamp(1).getTime();
                 }
+                
                 i++;
             }
             container = new ArrayTimeLinePipeContainer(times, net.getPipes().size());

@@ -25,6 +25,8 @@ package control.threads;
 
 import control.Controller;
 import java.util.ArrayList;
+import java.util.Date;
+import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Pipe;
 import model.topology.measurement.ParticleMeasurement;
@@ -42,6 +44,11 @@ public class SynchronizationThread extends Thread {
     public long actualSimulationTime = 0;
 
     public int lastMeasurementImeIndex = -1;
+
+    private long nextOpenTime = 0;
+    private int writeindex = 0;
+    private boolean openMeasurements = false;
+
     protected Controller control;
     public int status = -1;
 
@@ -64,28 +71,52 @@ public class SynchronizationThread extends Thread {
         while (runendless) {
             if (true) {
                 try {
-                    status = 0;
+//                    status = 0;
                     actualSimulationTime = barrier.getSimulationtime();
 
                     // Schreibe die Gesammelten Werte in die Mess-Zeitreihe der Rohre
                     ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
-                    status = 1;
-                    int timeindex = mcp.getIndexForTime(actualSimulationTime);
-                    if (timeindex >= mcp.getNumberOfTimes()) {
-                        timeindex = mcp.getNumberOfTimes() - 1;
-                    }
-                    status = 2;
-                    if (!mcp.isTimespotmeasurement() || timeindex != lastMeasurementImeIndex && pipes != null) {
-                        status = 3;
+
+                    if (mcp.isTimespotmeasurement()) {
+                        if (openMeasurements) {
+                            for (Pipe pipe : pipes) {
+                                ArrayTimeLineMeasurement tl = pipe.getMeasurementTimeLine();
+                                if (tl != null && tl.getNumberOfParticles() > 0) {
+                                    tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
+                                    tl.resetNumberOfParticles();
+                                    tl.active = false;
+                                }
+                            }
+                            int timeindex = mcp.getIndexForTime(actualSimulationTime);
+                            if (timeindex >= mcp.getNumberOfTimes()) {
+                                timeindex = mcp.getNumberOfTimes() - 1;
+                            }
+                            if (mcp.getNumberOfTimes() > timeindex + 1) {
+                                if (mcp.getNumberOfTimes() == timeindex + 2) {
+                                    nextOpenTime = (long) (mcp.getEndTime() - ThreadController.getDeltaTime() * 2000);
+                                    writeindex = timeindex + 1;
+                                } else {
+                                    nextOpenTime = mcp.getTimeMillisecondsAtIndex(timeindex + 1) - (int) (ThreadController.getDeltaTime() * 1000);
+                                    writeindex = timeindex + 1;
+                                }
+                            }
+                        }
+                        openMeasurements = false;
+                    } else if (pipes != null) {
+                        int timeindex = mcp.getIndexForTime(actualSimulationTime);
+                        if (timeindex >= mcp.getNumberOfTimes()) {
+                            timeindex = mcp.getNumberOfTimes() - 1;
+                        }
                         for (Pipe pipe : pipes) {
                             if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
-                                pipe.getMeasurementTimeLine().addMeasurement(timeindex,/* pipe.getMeasurementTimeLine().getNumberOfParticles(),pipe.getMeasurementTimeLine().getParticleMassInTimestep(),*/ (float) pipe.getFluidVolume());
+                                pipe.getMeasurementTimeLine().addMeasurement(timeindex, (float) pipe.getFluidVolume());
                                 pipe.getMeasurementTimeLine().resetNumberOfParticles();
                             }
                         }
+                        lastMeasurementImeIndex = timeindex;
                     }
-                    lastMeasurementImeIndex = timeindex;
-                    status = 4;
+
+//                    status = 4;
                     for (ParticleMeasurement pm : messung) {
                         try {
                             pm.writeCounter(actualSimulationTime);
@@ -93,11 +124,17 @@ public class SynchronizationThread extends Thread {
                             e.printStackTrace();
                         }
                     }
-                    status = 5;
+//                    status = 5;
                     if (mcp.isTimespotmeasurement()) {
-//                        for (Pipe pipe : barrier.getThreadController().control.getNetwork().getPipes()) {
-                        for (Pipe pipe : pipes) {
-                            pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                        //test if next timestep has to be used for value collection & writing
+                        if (actualSimulationTime >= nextOpenTime) {
+                            openMeasurements = true;
+                            for (Pipe pipe : pipes) {
+                                if (pipe.getMeasurementTimeLine() != null) {
+                                    pipe.getMeasurementTimeLine().active = true;
+                                    pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                }
+                            }
                         }
                     }
                 } catch (Exception e) {

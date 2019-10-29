@@ -122,7 +122,7 @@ public class ParticlePipeComputing {
 //    private ParticleThread thread;
     public static int[] passedPipesCounter;
 
-    private int passedPipes;
+//    private int passedPipes;
 
     public static boolean spillOutToSurface = false;
 
@@ -147,8 +147,7 @@ public class ParticlePipeComputing {
     }
 
     /**
-     * @deprecated 
-     * @param seed
+     * @deprecated @param seed
      * @param pt
      */
     public ParticlePipeComputing(long seed, ParticleThread pt) {
@@ -263,7 +262,7 @@ public class ParticlePipeComputing {
     }
 
     public void moveParticle(Particle p) {
-        passedPipes = 0;
+//        passedPipes = 0;
         moveParticle4_transfersensitive(p);
         //passedPipesCounter[Math.min(passedPipesCounter.length - 1, passedPipes)]++;
 //        moveParticleSurface1(p);
@@ -802,7 +801,7 @@ public class ParticlePipeComputing {
 //            }
             if (ds >= 0) {
                 for (int i = 0; i < 30; i++) {
-                    passedPipes++;
+//                    passedPipes++;
                     loops++;
                     /**
                      * 1. Case: capacity is in a Manhole
@@ -919,7 +918,7 @@ public class ParticlePipeComputing {
                 //Negative directed ds because of great negative Diffusion influence
                 //-> backward (against velocitiy) travelling
                 for (int i = 0; i < 30; i++) {
-                    passedPipes++;
+//                    passedPipes++;
                     loops++;
                     /**
                      * 1. Case: capacity is in a Manhole
@@ -1056,10 +1055,10 @@ public class ParticlePipeComputing {
             return;
         }
         //Skip dry condition 
-        if (c.getWaterlevel() < 0.001) {
+        if (c.getWaterlevel() < FlowCalculatorMixed.dryWaterlevel) {
             return;
         }
-        int oldCapacityID = (int) c.getAutoID();
+//        int oldCapacityID = (int) c.getAutoID();
 
         if (useDeposition) {
 //Test for deposition
@@ -1108,6 +1107,7 @@ public class ParticlePipeComputing {
         double ds;
         float ds_adv = 0;
         for (int lengthtype = 0; lengthtype < 2; lengthtype++) {
+            //Do the advektive step first and the diffusive step second to distinguish between the two travel types for the total travel distance.
             if (lengthtype == 0) {
                 ds = (float) Math.abs(adv);
             } else {
@@ -1198,7 +1198,7 @@ public class ParticlePipeComputing {
                 position1d = 0;
                 if (ds >= 0) {
                     for (int i = 0; i < 30; i++) {
-                        passedPipes++;
+//                        passedPipes++;
                         loops++;
                         /**
                          * 1. Case: capacity is in a Manhole
@@ -1214,44 +1214,6 @@ public class ParticlePipeComputing {
                                 p.setSurrounding_actual(c);
                                 return;
                             }
-                            //outflow enabled?
-//                            if (spillOutToSurface) {
-//                                if (!mh.isPressure_save_cover()) {
-//                                    if (mh.getStatusTimeLine().getActualWaterZ() > mh.getTop_height() && mh.getStatusTimeLine().isWaterlevelIncreasing()) {
-//
-//                                        /**
-//                                         * Deprecated: was interface for
-//                                         * communicating with 3D Visualization:
-//                                         * if (Surface_Pipe_IO.instance != null)
-//                                         * {
-//                                         * Surface_Pipe_IO.instance.notifyAboutFloodedManhole(mh);
-//                                         * }
-//                                         *
-//                                         */
-//                                        //Spillout : transport particle to surface
-//                                        if (mh.getSurfaceTriangleID() >= 0) {
-//                                            p.surfaceCellID = mh.getSurfaceTriangleID();
-//                                            p.setSurrounding_actual(surface);
-//                                            c=surface;
-//                                            double[] tripos = surface.getTriangleMids()[mh.getSurfaceTriangleID()];
-//                                            p.setPosition3D(tripos[0], tripos[1]);
-//                                            p.setOnSurface();
-//                                            p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
-//                                            p.toSurface = mh;
-//                                            p.posToSurface = (float) p.getTravelledPathLength();
-//                                            if (p.getClass().equals(HistoryParticle.class)) {
-//                                                ((HistoryParticle) p).addToHistory(c);
-//                                            }
-////                                            System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangle());
-//                                            break;
-//                                        } else {
-//
-//                                            System.out.println("Cannot spillout Particle " + p.getId() + " to triangle " + mh.getSurfaceTriangleID());
-//                                        }
-//                                    }
-//                                }
-//                            }
-
                             /**
                              * search only for outflowing connections
                              */
@@ -1370,7 +1332,7 @@ public class ParticlePipeComputing {
                     //-> backward (against velocitiy) travelling
                     for (int i = 0; i < 30; i++) {
                         loops++;
-                        passedPipes++;
+//                        passedPipes++;
                         /**
                          * 1. Case: capacity is in a Manhole
                          */
@@ -1472,12 +1434,12 @@ public class ParticlePipeComputing {
         p.setPosition1d_actual(position1d);
         p.addMovingLength(ds_adv + diff);
 
-        if (c instanceof Pipe) {
+        if (c.getClass().equals(Pipe.class)) {
             Pipe pipe = (Pipe) c;
 
             pipe.getMeasurementTimeLine().addParticle(p);
 
-            p.setVelocity1d(pipe.getVelocity());
+//            p.setVelocity1d(pipe.getVelocity());
         }
 
     }

@@ -57,8 +57,8 @@ public class SparseTimelinePipe implements TimeLinePipe {
      * Reference mass if given in scenario. May be null
      */
     private float[] mass_reference;
-    
-     /**
+
+    /**
      * Reference concentration if given in scenario. May be null
      */
     private float[] concentration_reference;
@@ -116,8 +116,8 @@ public class SparseTimelinePipe implements TimeLinePipe {
         }
         return mass_reference[temporalIndex];
     }
-    
-     @Override
+
+    @Override
     public float getConcentration_reference(int temporalIndex) {
         if (concentration_reference == null) {
             this.container.loadTimelineConcentration(this, pipeManualID, pipeName);
@@ -131,17 +131,29 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     private void calculateActualValues() {
-        this.actualVelocity = getValue_DoubleIndex(velocity, container.getActualTimeIndex_double());
-        this.actualWaterlevel = getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
-        this.actualFlux = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
-        this.actualTimestamp = container.getActualTime();
+        synchronized (this) {
+            if (this.actualTimestamp == container.getActualTime()) {
+                return;//Already calculated by another thread.
+            }
+            if (velocity == null) {
+                container.loadTimelineVelocity(this, pipeManualID, pipeName);
+            }
+            if (flux == null) {
+                container.loadTimelineFlux(this, pipeManualID, pipeName);
+            }
+            if (waterlevel == null) {
+                container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
+            }
+            this.actualVelocity = getValue_DoubleIndex(velocity, container.getActualTimeIndex_double());
+            this.actualWaterlevel = getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
+            this.actualFlux = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+            this.actualTimestamp = container.getActualTime();
+        }
     }
 
     @Override
     public float getVelocity() {
-        if (velocity == null) {
-            container.loadTimelineVelocity(this, pipeManualID, pipeName);
-        }
+
         if (actualTimestamp != container.getActualTime()) {
             calculateActualValues();
         }
@@ -150,9 +162,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
 
     @Override
     public double getDischarge() {
-        if (flux == null) {
-            container.loadTimelineFlux(this, pipeManualID, pipeName);
-        }
+
         if (actualTimestamp != container.getActualTime()) {
             calculateActualValues();
         }
@@ -161,9 +171,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
 
     @Override
     public double getWaterlevel() {
-        if (waterlevel == null) {
-            container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
-        }
+
         if (actualTimestamp != container.getActualTime()) {
             calculateActualValues();
         }
@@ -178,7 +186,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     public void setMass_reference(float[] mass_reference) {
         this.mass_reference = mass_reference;
     }
-    
+
     public void setConcentration_reference(float[] concentration_reference) {
         this.concentration_reference = concentration_reference;
     }

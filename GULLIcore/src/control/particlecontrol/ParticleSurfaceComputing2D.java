@@ -78,6 +78,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     public static boolean allowWashToPipesystem = true;
 
+    public static int numberOfErrors = 0;
+
     public ParticleSurfaceComputing2D(Surface surface) {
         this.surface = surface;
     }
@@ -227,14 +229,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
         // da eine Veränderung durch Modellränder vorkommen kann
-        int id;
-        try {
-            id = surface.getTargetTriangleID(p, triangleID, posxalt, posyalt, pos.x, pos.y, 10);
-        } catch (Surface.BoundHitException boundHitException) {
-            pos.x = boundHitException.correctedPositionX;
-            pos.y = boundHitException.correctedPositionY;
-            id = boundHitException.id;
-        }
+//        int id;
+//        try {
+        int    id = surface.getTargetTriangleID(p, triangleID, posxalt, posyalt, pos.x, pos.y, 10);
+//        } catch (Surface.BoundHitException boundHitException) {
+//            pos.x = boundHitException.correctedPositionX;
+//            pos.y = boundHitException.correctedPositionY;
+//            id = boundHitException.id;
+//            numberOfErrors++;
+//            System.out.println(numberOfErrors + " position sets on surface.");
+//        }
 
         p.surfaceCellID = id;
 
@@ -296,7 +300,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //        this.seed = seed;
 //        random.setSeed(seed);
 //    }
-
     @Override
     public Surface getSurface() {
         return this.surface;
@@ -306,7 +309,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //    public long getSeed() {
 //        return this.seed;
 //    }
-
     @Override
     public String reportCalculationStatus() {
         return "Status:" + status;

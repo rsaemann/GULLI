@@ -5,10 +5,7 @@
  */
 package control.threads;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import model.particle.Particle;
-import model.topology.Position3D;
-import org.opengis.referencing.operation.TransformException;
 
 /**
  * This Thread updates the 2d-position of Particles. It only has to be status,

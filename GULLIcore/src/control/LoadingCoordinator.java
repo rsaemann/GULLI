@@ -296,6 +296,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                         action.description = "Load Scenario";
                         action.progress = 0f;
                         fireLoadingActionUpdate();
+
                         control.loadScenario(scenario);
                     }
                     //Inform controller about updated timecontainer.

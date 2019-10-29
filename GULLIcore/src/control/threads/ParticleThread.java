@@ -108,41 +108,41 @@ public class ParticleThread extends Thread {
                 fromto = threadController.getNextParticlesToTreat(fromto);
                 if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
-                    particleID = -5;
+//                    particleID = -5;
                     activeCalculation = false;
-                    status = 20;
+//                    status = 20;
                     barrier.loopfinished(this);
-                    status = 21;
+//                    status = 21;
                 } else {
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getSimulationtime();
                     int from = fromto[0];
                     int to = fromto[1];
-                    if (fromto[2] >= threadController.randomNumberGenerators.length) {
-                        System.err.println("wrong index " + fromto[2] + " for particles " + fromto[0] + "-" + fromto[1] + " of total " + threadController.randomNumberGenerators.length + "   waitingindex: " + threadController.waitingParticleIndex);
-                    }
+//                    if (fromto[2] >= threadController.randomNumberGenerators.length) {
+//                        System.err.println("wrong index " + fromto[2] + " for particles " + fromto[0] + "-" + fromto[1] + " of total " + threadController.randomNumberGenerators.length + "   waitingindex: " + threadController.waitingParticleIndex);
+//                    }
                     Random random = threadController.randomNumberGenerators[fromto[2]];
                     this.pc.setRandomNumberGenerator(random);
                     this.surfcomp.setRandomNumberGenerator(random);
                     for (int i = from; i <= to; i++) {
                         p = threadController.particles[i];
-                        this.particleID = p.getId();
+//                        this.particleID = p.getId();
                         if (p.isWaiting()) {
                             if (p.getInsertionTime() > this.simulationTime) {
                                 //this particle is still waiting for its initialization.
                                 //All further particles area also waiting. Break the loop here.
                                 break;
                             } else {
-                                if (p.injectionSurrounding instanceof SurfaceTriangle) {
-                                    p.setOnSurface();
-                                    p.surfaceCellID = p.getInjectionCellID();
-                                    p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
-                                } else if (p.injectionSurrounding instanceof Surface) {
+                                 if (p.injectionSurrounding.getClass().equals(Surface.class)) {
                                     p.setOnSurface();
                                     p.surfaceCellID = p.getInjectionCellID();
                                     double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
                                     p.setPosition3D(pos[0], pos[1]);
-                                } else {
+                                } else if (p.injectionSurrounding.getClass().equals(SurfaceTriangle.class)) {
+                                    p.setOnSurface();
+                                    p.surfaceCellID = p.getInjectionCellID();
+                                    p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
+                                } else{
                                     p.setInPipenetwork();
                                     p.setPosition1d_actual(p.injectionPosition1D);
                                 }
@@ -151,23 +151,22 @@ public class ParticleThread extends Thread {
                         }
                         //check if it has been initialized from waiting list yet
                         if (p.isActive()) {
-                            particleID = p.getId();
-                            particle = p;
+//                            particleID = p.getId();
+//                            particle = p;
 
                             if (p.isInPipeNetwork()) {
-                                status = 4;
+//                                status = 4;
                                 pc.moveParticle(p);
                             } else if (p.isOnSurface()) {
-                                status = 5;
+//                                status = 5;
                                 surfcomp.moveParticle(p);
-
                             } else {
-                                status = 6;
+//                                status = 6;
                                 System.out.println(getClass() + ":: undefined status (" + p.status + ") of particle (" + p.getId() + "). Surrounding=" + p.getSurrounding_actual());
                             }
                         }
                         particle = null;
-                        particleID = -1;
+//                        particleID = -1;
                     }
                     this.allParticlesReachedOutlet = false;
                     activeCalculation = false;

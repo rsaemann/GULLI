@@ -1,5 +1,7 @@
 package model.timeline.array;
 
+import java.util.Date;
+
 /**
  *
  * @author saemann
@@ -9,18 +11,18 @@ public class ArrayTimeLineMeasurementContainer {
     public static ArrayTimeLineMeasurementContainer instance;
 
     private final TimeContainer times;
-    public  int[] particles;
+    public int[] particles;
     /**
      * Mass of contaminants in total [timeindex]
      */
-    public  float[] mass_total;
+    public float[] mass_total;
     /**
      * mass of different types of contaminants [timeindex][contaminantIndex]
      */
-    public  float[][] mass_type;
-    public  int[] particles_visited;
-    public  float[] volumes;
-    public  int[] counts;
+    public float[][] mass_type;
+    public int[] particles_visited;
+    public float[] volumes;
+    public int[] counts;
 
     /**
      * Is it only recorded once per timeindex?
@@ -61,7 +63,7 @@ public class ArrayTimeLineMeasurementContainer {
     public ArrayTimeLineMeasurementContainer(TimeContainer times, int numberOfPipes, int numberOfContaminantTypes) {
         this.times = times;
         this.numberOfCapacities = numberOfPipes;
-        this.numberOfContaminants=numberOfContaminantTypes;
+        this.numberOfContaminants = numberOfContaminantTypes;
         this.counts = new int[numberOfPipes * times.getNumberOfTimes()];
         this.particles = new int[numberOfPipes * times.getNumberOfTimes()];
         this.particles_visited = new int[numberOfPipes * times.getNumberOfTimes()];
@@ -84,10 +86,10 @@ public class ArrayTimeLineMeasurementContainer {
         this.timespotmeasurement = true;
         this.messungenProZeitschritt = 1;
     }
-    
-    public void setRecordsPerTimeindex(int recordsPerTimeindex){
-        this.timespotmeasurement=false;
-        this.messungenProZeitschritt=recordsPerTimeindex;
+
+    public void setRecordsPerTimeindex(int recordsPerTimeindex) {
+        this.timespotmeasurement = false;
+        this.messungenProZeitschritt = recordsPerTimeindex;
     }
 
     /**
@@ -172,35 +174,20 @@ public class ArrayTimeLineMeasurementContainer {
     }
 
     public long getEndTime() {
-        return times.getTimeIndex(times.getNumberOfTimes() - 1);
+        return times.getTimeMilliseconds(times.getNumberOfTimes() - 1);
     }
 
     public void clearValues() {
-//        System.out.println("Clear Measurement values for "+numberOfCapacities+" pipes.");
-        long start=System.currentTimeMillis();
-      
-         this.counts = new int[numberOfCapacities * times.getNumberOfTimes()];
+
+        this.counts = new int[numberOfCapacities * times.getNumberOfTimes()];
         this.particles = new int[numberOfCapacities * times.getNumberOfTimes()];
         this.particles_visited = new int[numberOfCapacities * times.getNumberOfTimes()];
         this.volumes = new float[numberOfCapacities * times.getNumberOfTimes()];
         this.mass_total = new float[numberOfCapacities * times.getNumberOfTimes()];
 
         this.mass_type = new float[numberOfCapacities * times.getNumberOfTimes()][numberOfContaminants];
-        
-//        for (int i = 0; i < particles.length; i++) {
-//            particles[i] = 0;
-//            particles_visited[i] = 0;
-//            volumes[i] = 0;
-//            counts[i] = 0;
-//            mass_total[i] = 0;
-//            for (int j = 0; j < mass_type.length; j++) {
-//                for (int k = 0; k < mass_type[j].length; k++) {
-//                    mass_type[j][k]=0;                    
-//                }
-//            }
-//        }
+
         maxConcentration_global = 0;
-//        System.out.println(((System.currentTimeMillis()-start)/1000)+" s");
     }
 
     public float[] getMassForTimeIndex(int timeIndex) {
@@ -236,27 +223,10 @@ public class ArrayTimeLineMeasurementContainer {
         return r;
     }
 
-//    public double getMaxMass() {
-//        return maxMass;
-//    }
-//    public double getMaxConcentration() {
-//        return maxConcentration;
-//    }
     public static double getMaxConcentration_global() {
         return maxConcentration_global;
     }
 
-//    /**
-//     * The number of particles in this timeintervall without timecorrection
-//     * factor.
-//     *
-//     * @param temporalIndex
-//     * @return
-//     */
-//    public int getParticlesPur(int temporalIndex) {
-//        int index = getIndex(temporalIndex);
-//        return (particles[index]);
-//    }
     public int getNumberOfCapacities() {
         return numberOfCapacities;
     }
@@ -264,7 +234,5 @@ public class ArrayTimeLineMeasurementContainer {
     public boolean isTimespotmeasurement() {
         return timespotmeasurement;
     }
-    
-    
 
 }

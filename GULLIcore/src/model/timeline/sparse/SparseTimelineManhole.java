@@ -51,6 +51,9 @@ public class SparseTimelineManhole implements TimeLineManhole {
      */
     private float[] flux;
 
+    private float actualWaterHeight, actualFlowToSurface;
+    private long actualTimestamp;
+
     public SparseTimelineManhole(SparseTimeLineManholeContainer container, StorageVolume manhole) {
         this.container = container;
         this.manholeManualID = manhole.getManualID();
@@ -80,7 +83,7 @@ public class SparseTimelineManhole implements TimeLineManhole {
         }
         float v0 = array[(int) i];
         float v1 = array[(int) i + 1];
-        float ratio = i % 1;
+        float ratio = i % 1f;
         return (v0 + (v1 - v0) * ratio);
     }
 
@@ -100,10 +103,10 @@ public class SparseTimelineManhole implements TimeLineManhole {
 
     @Override
     public float getActualWaterZ() {
-        if (waterheight == null) {
-            container.loadTimelineWaterHeight(this, manholeManualID, manholeName);
+        if (actualTimestamp != container.getActualTime()) {
+            updateValues();
         }
-        return getValue_DoubleIndex(waterheight, container.getActualTimeIndex_double());
+        return actualWaterHeight;
     }
 
     @Override
@@ -116,10 +119,11 @@ public class SparseTimelineManhole implements TimeLineManhole {
 
     @Override
     public float getActualFlowToSurface() {
-        if (flux == null) {
-            container.loadTimelineSpilloutFlux(this, manholeManualID, manholeName);
+
+        if (actualTimestamp != container.getActualTime()) {
+            updateValues();
         }
-        return getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+        return actualFlowToSurface;
     }
 
     @Override
@@ -131,7 +135,22 @@ public class SparseTimelineManhole implements TimeLineManhole {
     public TimeContainer getTimeContainer() {
         return container;
     }
-    
-    
+
+    private void updateValues() {
+        synchronized (this) {
+            if (actualTimestamp == container.getActualTime()) {
+                return;
+            }
+            if (flux == null) {
+                container.loadTimelineSpilloutFlux(this, manholeManualID, manholeName);
+            }
+            if (waterheight == null) {
+                container.loadTimelineWaterHeight(this, manholeManualID, manholeName);
+            }
+            this.actualFlowToSurface = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+            this.actualWaterHeight = getValue_DoubleIndex(waterheight, container.getActualTimeIndex_double());
+            this.actualTimestamp = container.getActualTime();
+        }
+    }
 
 }
