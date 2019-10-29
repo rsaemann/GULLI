@@ -192,6 +192,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public int repaintPerLoops = 300;
 
+    public Thread repaintThread;
+
     private final ArrayList<Particle> particles = new ArrayList<>();
 
     /**
@@ -222,6 +224,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private final ArrayList<CapacitySelectionListener> selectionListener = new ArrayList<>(1);
 
     public PaintManager(Controller con, SimpleMapViewerFrame frame) {
+
         this.mapViewer = frame.mapViewer;
         this.control = con;
         if (control != null) {
@@ -286,6 +289,28 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             mapViewer.addMouseListener(ma);
             mapViewer.addMouseMotionListener(ma);
             mapViewer.addMouseWheelListener(ma);
+
+            this.repaintThread = new Thread("RepaintManager") {
+
+                @Override
+                public void run() {
+                    while (true) {
+                        orderParticlesPainting();
+                        mapViewer.recalculateShapes();
+                        updateLabel();
+                        mapViewer.repaint();
+                        synchronized (this) {
+                            try {
+                                this.wait();
+                            } catch (InterruptedException ex) {
+                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                    }
+                }
+
+            };
+            repaintThread.start();
 
         } catch (Exception ex) {
             Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
@@ -2337,9 +2362,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         surfaceLayer.add(np1);
                     } catch (TransformException ex) {
                         System.err.println("surface Pos utm: " + p.getPosition3d());
-                        Logger
-                                .getLogger(PaintManager.class
-                                        .getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                     }
 
                 } else {
@@ -3332,10 +3355,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     @Override
     public void simulationSTEPFINISH(long loop, Object caller) {
         if (loop % repaintPerLoops == 0) {
-            this.orderParticlesPainting();
-            this.mapViewer.recalculateShapes();
-            this.updateLabel();
-            this.mapViewer.repaint();
+            synchronized (repaintThread) {
+                repaintThread.notifyAll();
+            }
         }
     }
 
