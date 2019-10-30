@@ -67,6 +67,28 @@ public class SynchronizationThread extends Thread {
         //is initialized now
         barrier.initialized(this);
 
+        try {
+            ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
+            if (mcp.isTimespotmeasurement()) {
+                for (Pipe pipe : pipes) {
+
+                    pipe.getMeasurementTimeLine().active = false;
+
+                }
+                this.openMeasurements = false;
+//                System.out.println("closed measurements");
+            } else {
+                for (Pipe pipe : pipes) {
+                    if (pipe.getMeasurementTimeLine() != null) {
+                        pipe.getMeasurementTimeLine().active = true;
+                    }
+                }
+
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        };
+
         //if woken up start the normal loop
         while (runendless) {
             if (true) {
@@ -81,12 +103,16 @@ public class SynchronizationThread extends Thread {
                         if (openMeasurements) {
                             for (Pipe pipe : pipes) {
                                 ArrayTimeLineMeasurement tl = pipe.getMeasurementTimeLine();
-                                if (tl != null && tl.getNumberOfParticles() > 0) {
-                                    tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
+                                if (tl != null) {
+                                    if (tl.getNumberOfParticles() > 0) {
+                                        tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
+
+                                    }
                                     tl.resetNumberOfParticles();
                                     tl.active = false;
                                 }
                             }
+//                            System.out.println("closed tl");
                             int timeindex = mcp.getIndexForTime(actualSimulationTime);
                             if (timeindex >= mcp.getNumberOfTimes()) {
                                 timeindex = mcp.getNumberOfTimes() - 1;
@@ -107,13 +133,18 @@ public class SynchronizationThread extends Thread {
                         if (timeindex >= mcp.getNumberOfTimes()) {
                             timeindex = mcp.getNumberOfTimes() - 1;
                         }
-                        for (Pipe pipe : pipes) {
-                            if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
-                                pipe.getMeasurementTimeLine().addMeasurement(timeindex, (float) pipe.getFluidVolume());
-                                pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                        if (lastMeasurementImeIndex != timeindex) {
+                            lastMeasurementImeIndex = timeindex;
+//                            System.out.println("write pipe measurements for index " + timeindex + " at " + ((actualSimulationTime - mcp.getStartTime()) / 60000.) + " min.  Messungen pro zeitschritt:"+mcp.messungenProZeitschritt);
+                            for (Pipe pipe : pipes) {
+                                if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
+                                    pipe.getMeasurementTimeLine().addMeasurement(timeindex, (float) pipe.getFluidVolume());
+                                    pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                }
                             }
+
                         }
-                        lastMeasurementImeIndex = timeindex;
+
                     }
 
 //                    status = 4;
@@ -129,10 +160,19 @@ public class SynchronizationThread extends Thread {
                         //test if next timestep has to be used for value collection & writing
                         if (actualSimulationTime >= nextOpenTime) {
                             openMeasurements = true;
+//                            System.out.println("open measurements");
                             for (Pipe pipe : pipes) {
                                 if (pipe.getMeasurementTimeLine() != null) {
                                     pipe.getMeasurementTimeLine().active = true;
-                                    pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                    if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 1000) {
+                                        int count = pipe.getMeasurementTimeLine().getNumberOfParticles();
+                                        pipe.getMeasurementTimeLine().resetNumberOfParticles();
+
+//                                        System.out.println("Particles in " + pipe.getName() + " are " + count + " before reset and " + pipe.getMeasurementTimeLine().getNumberOfParticles() + " afterwards");
+
+                                    } else {
+                                        pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                    }
                                 }
                             }
                         }

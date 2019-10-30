@@ -440,6 +440,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                         action.description = "Load spill events";
                         if (this.loadInputInjections) {
                             injection = resultDatabase.readInjectionInformation();
+
                         } else {
                             injection = new ArrayList<>(0);
                         }

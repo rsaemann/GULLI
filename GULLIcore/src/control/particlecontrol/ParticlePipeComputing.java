@@ -123,7 +123,6 @@ public class ParticlePipeComputing {
     public static int[] passedPipesCounter;
 
 //    private int passedPipes;
-
     public static boolean spillOutToSurface = false;
 
     private Surface surface;
@@ -660,6 +659,9 @@ public class ParticlePipeComputing {
         p.setPosition1d_actual(position1d);
     }
 
+    /**
+     * @deprecated @param p
+     */
     private void moveParticle3(Particle p) {
 
         double position1d = p.getPosition1d_actual();
@@ -1029,7 +1031,7 @@ public class ParticlePipeComputing {
         p.setSurrounding_actual(c);
 
         p.setPosition1d_actual(position1d);
-        if (c instanceof Pipe) {
+        if (c.getClass().equals(Pipe.class)) {
 //            System.out.println("letzte is Pipe loops="+loops);
             ((Pipe) c).getMeasurementTimeLine().addParticle(p);
         }

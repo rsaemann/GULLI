@@ -1,7 +1,5 @@
 package model.timeline.array;
 
-import java.util.Date;
-
 /**
  *
  * @author saemann
@@ -87,7 +85,7 @@ public class ArrayTimeLineMeasurementContainer {
         this.messungenProZeitschritt = 1;
     }
 
-    public void setRecordsPerTimeindex(int recordsPerTimeindex) {
+    public void setRecordsPerTimeindex(double recordsPerTimeindex) {
         this.timespotmeasurement = false;
         this.messungenProZeitschritt = recordsPerTimeindex;
     }
@@ -97,7 +95,7 @@ public class ArrayTimeLineMeasurementContainer {
      * @return seconds
      */
     public double getDeltaTime() {
-        return times.getDeltaTime();
+        return times.getDeltaTimeMS()/1000.;
     }
 
     public double getMomentum1_xc(int timeIndex) {
@@ -105,7 +103,7 @@ public class ArrayTimeLineMeasurementContainer {
         double nenner = 0;
         double c;
         int index = 0;
-        int mittlungsradius = 5;
+//        int mittlungsradius = 5;
         for (int i = 0; i < Math.min(distance.length, numberOfCapacities); i++) {
             try {
                 index = i * times.getNumberOfTimes() + timeIndex;

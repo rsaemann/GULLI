@@ -935,7 +935,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 } else {
                     times[i] = res.getTimestamp(1).getTime();
                 }
-                
+
                 i++;
             }
             container = new ArrayTimeLinePipeContainer(times, net.getPipes().size());
@@ -1228,39 +1228,154 @@ public class HE_Database implements SparseTimeLineDataProvider {
         rs.close();
 
         ArrayList<HEInjectionInformation> particles = new ArrayList<>();
-        String qstring = "SELECT ROHR, ROHRREF,ZUFLUSSDIREKT AS ZUFLUSSDIREKT_LperS,"
-                + "FAKTOR AS FAKTOR_von1,KONZENTRATION AS KONZENTRATION_MGperL,"
-                + "EINZELMUSTER.Wert AS EINZELWERT_von24,STOFFMUSTER.WERT AS STOFFWERT_von24,"
-                + "STOFFMUSTER.KEYWERT AS STARTZEIT, EINZELEINLEITER.NAME,"
-                + "EINZELEINLEITER.ZEITMUSTER AS EINZELEINLEITERZEITMUSTER,"
-                + "Stoffeinzeleinleiter.Zeitmuster AS STOFFEINLEITERZEITMUSTER "
-                + "FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON STOFFEINZELEINLEITER.EINZELEINLEITERREF=EINZELEINLEITER.ID\n"
-                + "JOIN TABELLENINHALTE AS EINZELMUSTER ON EINZELEINLEITER.ZEITMUSTERREF=EINZELMUSTER.ID\n"
-                + "JOIN TABELLENINHALTE AS STOFFMUSTER ON  EINZELMUSTER.KEYWERT=STOFFMUSTER.KEYWERT AND (STOFFEINZELEINLEITER.ZEITMUSTERREF=STOFFMUSTER.ID OR STOFFEINZELEINLEITER.ZEITMUSTERREF IS NULL)\n"
-                + "WHERE STOFFMUSTER.WERT>0 AND EINZELMUSTER.WERT>0 AND FAKTOR >0 AND KONZENTRATION>0\n"
-                + "ORDER BY EINZELEINLEITER.ID,STOFFEINZELEINLEITER.ID,EINZELMUSTER.ID,STARTZEIT";
 
-        rs = st.executeQuery(qstring);
-        Material m = new Material("Stofff", 1000, true);
-        while (rs.next()) {
-            double tfactor = rs.getDouble("EINZELWERT_von24") * rs.getDouble("STOFFWERT_von24");
-            double lps = rs.getDouble("ZUFLUSSDIREKT_LperS");
-            double c = rs.getDouble("KONZENTRATION_MGperL");
+//        System.out.println("Load injections from Database . sql?"+isSQLite);
+        if (isSQLite) {
+            //get joins of substance and injectionlocation
+            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFF,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id";
+            rs = st.executeQuery(qstring);
+            if (!rs.isBeforeFirst()) {
+//                System.out.println("Database has no soluteSpill elements defined");
+                //Is empty
+                return particles;
+            }
+            ArrayList<EinzelStoffeinleiter> einleiter = new ArrayList<>(3);
+            while (rs.next()) {
+                EinzelStoffeinleiter eze = new EinzelStoffeinleiter();
+                eze.pipename = rs.getString("ROHR");
+                eze.discharge = rs.getDouble("ZUFLUSSDIREKT");
+                eze.concentration = rs.getDouble("KONZENTRATION");
+                eze.name = rs.getString("STOFF");
+                eze.refIDTimelineVolume = rs.getInt("EINZELMUSTERREF");
+                eze.refIDTimelineSolute = rs.getInt("STOFFMUSTERREF");
+                einleiter.add(eze);
+            }
+            rs.close();
+            //Request the time lines for volume and solute injection intensity
+            for (EinzelStoffeinleiter ele : einleiter) {
+                double[] volumefactor = new double[24];
+                double[] solutefactor = new double[24];
 
-            int rf = rs.getInt("Startzeit");
-            long starttime = daystart.getTime() + (long) ((rf) * 60 * 60 * 1000);
-            long endtime = daystart.getTime() + (long) ((rf + 1) * 60 * 60 * 1000);
-            double injectionTime = (endtime - starttime) / 1000;
-            double wert = tfactor * c * lps * injectionTime / 1000000.;
+                boolean writtenVolumes = false;
+                if (ele.refIDTimelineVolume >= 0) {
+                    qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineVolume + " ORDER BY REIHENFOLGE";
+                    rs = st.executeQuery(qstring);
+                    int index = 0;
+                    if (rs.isBeforeFirst()) {
+                        while (rs.next()) {
+                            volumefactor[index] = rs.getDouble("WERT");
+                            index++;
+                            writtenVolumes = true;
+                        }
+                    }
+                }
+                if (!writtenVolumes) {
+                    for (int i = 0; i < volumefactor.length; i++) {
+                        volumefactor[i] = 1.;
+                    }
+                }
+                boolean writtenSolute = false;
+                if (ele.refIDTimelineSolute >= 0) {
+                    qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineSolute + " ORDER BY REIHENFOLGE";
+                    rs = st.executeQuery(qstring);
+                    int index = 0;
+                    if (rs.isBeforeFirst()) {
+                        while (rs.next()) {
+                            solutefactor[index] = rs.getDouble("WERT");
+                            index++;
+                            writtenSolute = true;
+                        }
+                    }
+                }
+                if (!writtenSolute) {
+                    for (int i = 0; i < solutefactor.length; i++) {
+                        solutefactor[i] = 1.;
+                    }
+                }
+                int start = -1;
+                int duration = -1;
+                double intensity = -1;
+                //Search for the right starttime
+                for (int i = 0; i < solutefactor.length; i++) {
+                    double factor = solutefactor[i] * volumefactor[i];
+                    if (factor > 0) {
+                        if (intensity <= 0) {
+                            //this is the first interval with information
+                            start = i;
+                            duration = 1;
+                            intensity = factor;
+                        } else {
+                            //this is an ongoing interval
+                            if (Math.abs(intensity - factor) < 0.001) {
+                                //Ongoing injection
+                                duration++;
+                            } else {
+                                //TODO: terminate the old spill and start a new one
+                                duration++;
+                                intensity = factor;
+                            }
+                        }
+                    }
+                }
+                //Create a injection information
+                if (start >= 0 && intensity > 0) {
+                    long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000);
+                    long endtime = starttime + (long) ((duration) * 60 * 60 * 1000);
+                    double injectionTimeSeconds = (endtime - starttime) / 1000;
+                    double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
 
-            System.out.println("Scenario injection: c=" + c + "mg/l,  q=" + lps + "L/s, timevariation:" + tfactor + ", duration:" + injectionTime + "s = total: " + wert + "kg");
+                    System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
 
-            try {
-                HEInjectionInformation info = new HEInjectionInformation(rs.getString("ROHR"), starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
-                particles.add(info);
-            } catch (Exception exception) {
-                System.err.println("Could not find Pipe '" + rs.getString("ROHR") + "'.");
-                exception.printStackTrace();
+                    try {
+                        HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                        particles.add(info);
+                    } catch (Exception exception) {
+                        System.err.println("Could not find Pipe '" + ele.pipename + "' to inject "+ele.name);
+                        exception.printStackTrace();
+                    }
+                }
+
+                rs.close();
+            }
+
+        } else {
+            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSSDIREKT AS ZUFLUSSDIREKT_LperS,"
+                    + "FAKTOR AS FAKTOR_von1,KONZENTRATION AS KONZENTRATION_MGperL,"
+                    + "EINZELMUSTER.Wert AS EINZELWERT_von24,STOFFMUSTER.WERT AS STOFFWERT_von24,"
+                    + "STOFFMUSTER.KEYWERT AS STARTZEIT, EINZELEINLEITER.NAME,"
+                    + "EINZELEINLEITER.ZEITMUSTER AS EINZELEINLEITERZEITMUSTER,"
+                    + "Stoffeinzeleinleiter.Zeitmuster AS STOFFEINLEITERZEITMUSTER "
+                    + "FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON STOFFEINZELEINLEITER.EINZELEINLEITERREF=EINZELEINLEITER.ID\n"
+                    + "JOIN TABELLENINHALTE AS EINZELMUSTER ON EINZELEINLEITER.ZEITMUSTERREF=EINZELMUSTER.ID\n"
+                    + "JOIN TABELLENINHALTE AS STOFFMUSTER ON  EINZELMUSTER.KEYWERT=STOFFMUSTER.KEYWERT AND (STOFFEINZELEINLEITER.ZEITMUSTERREF=STOFFMUSTER.ID OR STOFFEINZELEINLEITER.ZEITMUSTERREF IS NULL)\n"
+                    + "WHERE STOFFMUSTER.WERT>0 AND EINZELMUSTER.WERT>0 AND FAKTOR >0 AND KONZENTRATION>0\n"
+                    + "ORDER BY EINZELEINLEITER.ID,STOFFEINZELEINLEITER.ID,EINZELMUSTER.ID,STARTZEIT";
+
+            rs = st.executeQuery(qstring);
+            Material m = new Material("Stofff", 1000, true);
+            if (!rs.isBeforeFirst()) {
+                System.out.println("no injections in database");
+            }
+            while (rs.next()) {
+                double tfactor = rs.getDouble("EINZELWERT_von24") * rs.getDouble("STOFFWERT_von24");
+                double lps = rs.getDouble("ZUFLUSSDIREKT_LperS");
+                double c = rs.getDouble("KONZENTRATION_MGperL");
+
+                int rf = rs.getInt("Startzeit");
+                long starttime = daystart.getTime() + (long) ((rf) * 60 * 60 * 1000);
+                long endtime = daystart.getTime() + (long) ((rf + 1) * 60 * 60 * 1000);
+                double injectionTime = (endtime - starttime) / 1000;
+                double wert = tfactor * c * lps * injectionTime / 1000000.;
+
+                System.out.println("Scenario injection: c=" + c + "mg/l,  q=" + lps + "L/s, timevariation:" + tfactor + ", duration:" + injectionTime + "s = total: " + wert + "kg");
+
+                try {
+                    HEInjectionInformation info = new HEInjectionInformation(rs.getString("ROHR"), starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                    particles.add(info);
+                } catch (Exception exception) {
+                    System.err.println("Could not find Pipe '" + rs.getString("ROHR") + "'.");
+                    exception.printStackTrace();
+                }
             }
         }
         rs.close();
@@ -2636,4 +2751,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public class HEConnectionSerializer {
     };
+
+    public class EinzelStoffeinleiter {
+
+        public String pipename;
+        public double discharge;
+        public double concentration;
+        public String name;
+        public int refIDTimelineVolume;
+        public int refIDTimelineSolute;
+    }
+
 }

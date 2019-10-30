@@ -420,7 +420,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
         scenario.setMeasurementsPipe(container_m);
         ArrayTimeLineMeasurementContainer.instance = container_m;
-        container_m.messungenProZeitschritt = container_m.getDeltaTime() / ThreadController.getDeltaTime();
+        container_m.setRecordsPerTimeindex(container_m.getDeltaTime() / ThreadController.getDeltaTime());
         int number = 0;
         for (Pipe p : network.getPipes()) {
             p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));

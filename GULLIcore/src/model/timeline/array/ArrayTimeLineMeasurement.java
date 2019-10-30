@@ -1,5 +1,7 @@
 package model.timeline.array;
 
+import control.threads.ThreadController;
+import java.util.Date;
 import java.util.HashSet;
 import model.particle.Particle;
 
@@ -70,11 +72,11 @@ public class ArrayTimeLineMeasurement {
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] /**
-                 * container.counts[index]
-                 */
-                / (float) (container.volumes[index] * container.messungenProZeitschritt));
-
+        return (float) (container.mass_total[index] / (float) (container.volumes[index] * container.messungenProZeitschritt));
+        /*container.particles[index] * Particle.massPerParticle*/
+        /**
+         * container.counts[index]
+         */
     }
 
     public float getMass(int temporalIndex) {
@@ -118,7 +120,7 @@ public class ArrayTimeLineMeasurement {
                 maxMass = tempmass;
             }
 //            System.out.println("store mass at time "+timeindex +" counts: "+container.counts[index]);
-            double temp_c = tempmass / container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
+            double temp_c = tempmass / volumeValue;//container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
             if (!Double.isInfinite(temp_c) && !Double.isNaN(temp_c)) {
                 if (temp_c > maxConcentration) {
                     maxConcentration = temp_c;
@@ -161,18 +163,22 @@ public class ArrayTimeLineMeasurement {
         if (!active) {
             return;
         }
-//        System.out.println(getClass()+":: particle count "+particleToCount);
         if (useSynchronizedMeasurements) {
             if (useIDsharpParticleCounting) {
                 synchronized (particles) {
                     if (!particles.contains(particleToCount)) {
                         particles.add(particleToCount);
+                        synchronized (this) {
+                            this.particleMassInTimestep += particleToCount.particleMass;
+                            this.numberOfParticlesInTimestep++;
+                        }
                     }
                 }
-            }
-            synchronized (this) {
-                this.particleMassInTimestep += particleToCount.particleMass;
-                this.numberOfParticlesInTimestep++;
+            } else {
+                synchronized (this) {
+                    this.particleMassInTimestep += particleToCount.particleMass;
+                    this.numberOfParticlesInTimestep++;
+                }
             }
         } else {
             if (useIDsharpParticleCounting) {

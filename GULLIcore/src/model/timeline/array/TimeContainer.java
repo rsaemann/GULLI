@@ -70,7 +70,7 @@ public class TimeContainer {
         return times.length;
     }
 
-    public long getDeltaTime() {
+    public long getDeltaTimeMS() {
         return times[1] - times[0];
     }
 
