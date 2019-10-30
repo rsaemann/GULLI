@@ -76,6 +76,7 @@ public class InjectionPanel extends JPanel {
         this.add(spinnerInjection);
 
         modelDuration = new SpinnerNumberModel(0., 0., Double.POSITIVE_INFINITY, 5);
+        modelDuration.setValue(info.getDurationSeconds() / 60);
         spinnerDuration = new JSpinner(modelDuration);
         spinnerDuration.setPreferredSize(new Dimension(60, 12));
         this.add(new JLabel("Duration [min]"));

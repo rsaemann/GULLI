@@ -344,7 +344,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             for (int i = 0; i < tl.getTimeContainer().getNumberOfTimes(); i++) {
                 Date d;
                 long timeMilliseconds = tl.getTimeContainer().getTimeMilliseconds(i);
-//                timeMilliseconds -= tl.getTimeContainer().getDeltaTime() / 2;
+//                timeMilliseconds -= tl.getTimeContainer().getDeltaTimeMS() / 2;
 
                 if (showSimulationTime) {
                     d = new Date(calcSimulationTime(timeMilliseconds, tl.getTimeContainer().getTimeMilliseconds(0)));
@@ -592,7 +592,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             mass[i] = new TimeSeries(new SeriesKey("Mass (" + i + ")", "m(" + i + ")", "kg", Color.PINK, new AxisKey("m", "Mass")), "kg", "Time");
         }
 
-        double timescale = ThreadController.getDeltaTime() / (triM.getTimes().getDeltaTime() / 1000.);
+        double timescale = ThreadController.getDeltaTime() / (triM.getTimes().getDeltaTimeMS() / 1000.);
 
         for (int i = 0; i < triM.getTimes().getNumberOfTimes(); i++) {
             Date d;

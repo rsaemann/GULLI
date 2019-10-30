@@ -1285,7 +1285,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             highColorCount = Math.log10(totalparticleCount);
                         }
 
-//                        double timeScale = ThreadController.getDeltaTime() / (surface.getTimes().getDeltaTime() / 1000.);
+//                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
                         for (int i = 0; i < raster.getMeasurements().length; i++) {
                             TriangleMeasurement triangleMeasurement = raster.getMeasurements()[i];
                             if (triangleMeasurement == null) {
@@ -1372,7 +1372,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             highColorCount = Math.log10(totalparticleCount);
                         }
 
-//                        double timeScale = ThreadController.getDeltaTime() / (surface.getTimes().getDeltaTime() / 1000.);
+//                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
                         for (int x = 0; x < raster.getNumberXIntervals(); x++) {
                             if (raster.getParticlecounter()[x] == null) {
                                 continue;
@@ -1459,7 +1459,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         //                         */
         //                        double highColorCount = Math.log10(totalparticleCount);
         //
-        //                        double timeScale = ThreadController.getDeltaTime() / (surface.getTimes().getDeltaTime() / 1000.);
+        //                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
         //                        for (int i = 0; i < raster.getMeasurements().length; i++) {
         //                            TriangleMeasurement triangleMeasurement = raster.getMeasurements()[i];
         //                            if (triangleMeasurement == null) {
