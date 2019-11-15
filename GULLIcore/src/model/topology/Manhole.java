@@ -8,10 +8,9 @@ import model.topology.profile.Profile;
  */
 public class Manhole extends StorageVolume {
 
-    protected Position position;
+    protected Position3D position;
 
 //    protected String name;
-
     protected float surface_height;
 
     protected boolean pressure_save_cover;
@@ -22,7 +21,11 @@ public class Manhole extends StorageVolume {
 
     public Manhole(Position position, String name, Profile profile) {
         super(profile);
-        this.position = position;
+        if (!(position instanceof Position3D)) {
+            this.position = new Position3D(position);
+        } else {
+            this.position = (Position3D) position;
+        }
         this.name = name;
     }
 
@@ -51,7 +54,11 @@ public class Manhole extends StorageVolume {
     }
 
     public void setPosition(Position position) {
-        this.position = position;
+        if (position instanceof Position3D) {
+            this.position = (Position3D) position;
+        } else {
+            this.position = new Position3D(position);
+        }
     }
 
     public void setName(String name) {
@@ -89,7 +96,7 @@ public class Manhole extends StorageVolume {
 
     @Override
     public Position3D getPosition3D(double meter) {
-        return new Position3D(this.position);
+        return this.position;
     }
 
     public int getSurfaceTriangleID() {

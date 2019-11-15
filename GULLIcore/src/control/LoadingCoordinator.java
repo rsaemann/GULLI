@@ -300,8 +300,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                         control.loadScenario(scenario);
                     }
                     //Inform controller about updated timecontainer.
-                    action.description = "GC clean up";
-                    System.gc();
+//                    action.description = "GC clean up";
+//                    System.gc();
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
                         break;
@@ -440,7 +440,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         action.description = "Load spill events";
                         if (this.loadInputInjections) {
                             injection = resultDatabase.readInjectionInformation();
-
                         } else {
                             injection = new ArrayList<>(0);
                         }
@@ -733,20 +732,20 @@ public class LoadingCoordinator implements LoadingActionListener {
 
             if (cancelLoading) {
                 loadingSurface = LOADINGSTATUS.REQUESTED;
-                System.gc();
+//                System.gc();
                 return null;
             }
             changedSurface = true;
             action.description = "Surface loaded";
             fireLoadingActionUpdate();
             loadingSurface = LOADINGSTATUS.LOADED;
-            System.gc();
+//            System.gc();
             return surf;
         } catch (Exception ex) {
             loadingSurface = LOADINGSTATUS.ERROR;
             Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.gc();
+//        System.gc();
         return null;
     }
 

@@ -7,6 +7,8 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import control.StartParameters;
 import control.maths.GeometryTools;
+import io.NumberConverter;
+import static io.NumberConverter.parseIntegerFromToInclude;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -22,8 +24,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Locale;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import model.GeoTools;
 import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
@@ -182,7 +186,7 @@ public class HE_SurfaceIO {
             counter++;
         }
         verticesL.clear();
-        System.gc();
+//        System.gc();
         //fileTriangleIndizes  //TRIMOD2.dat
         fr = new FileReader(fileTriangleIndizes);
         br = new BufferedReader(fr);
@@ -255,7 +259,7 @@ public class HE_SurfaceIO {
         }
         triangleIndizesL.clear();
         triangleMidPointsL.clear();
-        System.gc();
+//        System.gc();
 
         //fileNeighbours
         fr = new FileReader(fileNeighbours);
@@ -341,7 +345,7 @@ public class HE_SurfaceIO {
 
 //        System.out.println("Load surface without filter");
 //Coordinates   //X.dat
-        long start = System.currentTimeMillis();
+//        long start = System.currentTimeMillis();
         FileReader fr = new FileReader(fileCoordinates);
         BufferedReader br = new BufferedReader(fr);
         String line = br.readLine();
@@ -353,22 +357,33 @@ public class HE_SurfaceIO {
 
         //Here comes information about the coordinates
         String seperator = " ";
+        Pattern splitter = Pattern.compile(seperator);
+        int lines = 0;
+        int parts = 0;
+
+        NumberConverter nc = new NumberConverter(br);
+        double[] dataparts = new double[3];
         while (br.ready()) {
-            line = br.readLine();
-            values = line.split(seperator);
-            double x = Double.parseDouble(values[0]);
-            double y = Double.parseDouble(values[1]);
-            double ele = Double.parseDouble((values[values.length - 1]));
-            vertices[index][0] = x;
-            vertices[index][1] = y;
-            vertices[index][2] = ele;
-            index++;
+//            line = br.readLine();
+//            lines++;
+//            values = splitter.split(line,3);//line.split(seperator, 3);
+//            parts+=values.length;
+////            double x =Double.parseDouble(values[0]);//x;
+////            double y = ;Double.parseDouble(values[1]);//y;
+////            double ele = Double.parseDouble((values[values.length - 1])); //Double.parseDouble(values[2]);//ele;
+
+            if (nc.readNextLineDoubles(dataparts)) {//                
+                vertices[index][0] = dataparts[0];
+                vertices[index][1] = dataparts[1];
+                vertices[index][2] = dataparts[2];
+                index++;
+            }
         }
         br.close();
         fr.close();
 //        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
-        start = System.currentTimeMillis();
+//        start = System.currentTimeMillis();
         String epsgCode = "EPSG:25832"; //Use this standard code for Hannover
         if (coordReferenceXML != null && coordReferenceXML.exists() && coordReferenceXML.canRead()) {
             epsgCode = loadSpatialReferenceCode(coordReferenceXML);
@@ -385,7 +400,7 @@ public class HE_SurfaceIO {
 //        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
 
         //fileTriangleIndizes  //TRIMOD2.dat
-        start = System.currentTimeMillis();
+//        start = System.currentTimeMillis();
         fr = new FileReader(fileTriangleIndizes);
         br = new BufferedReader(fr);
         line = br.readLine();
@@ -394,53 +409,68 @@ public class HE_SurfaceIO {
         double[][] triangleMidPoints = new double[numberofTriangles][3];
         index = 0;
         double oneThird = 1. / 3.;
+        nc.setReader(br);
+        int[] integerParts = new int[3];
+        int first, second, third;
         while (br.ready()) {
-            line = br.readLine();
-            values = line.split(seperator);
-            int first = Integer.parseInt(values[0]);
-            int second = Integer.parseInt(values[1]);
-            int third = Integer.parseInt(values[2]);
+//            line = br.readLine();
+//            lines++;
+//            values = splitter.split(line);//line.split(seperator);
+//            parts += values.length;
+//            int first = Integer.parseInt(values[0]);
+//            int second = Integer.parseInt(values[1]);
+//            int third = Integer.parseInt(values[2]);
+            if (nc.readNextLineInteger(integerParts)) {
+                first = integerParts[0];
+                second = integerParts[1];
+                third = integerParts[2];
 
-            triangleIndizes[index][0] = first;
-            triangleIndizes[index][1] = second;
-            triangleIndizes[index][2] = third;
+                triangleIndizes[index][0] = first;
+                triangleIndizes[index][1] = second;
+                triangleIndizes[index][2] = third;
 
-            triangleMidPoints[index][0] = (vertices[first][0] * oneThird + vertices[second][0] * oneThird + vertices[third][0] * oneThird);
-            triangleMidPoints[index][1] = (vertices[first][1] * oneThird + vertices[second][1] * oneThird + vertices[third][1] * oneThird);
-            triangleMidPoints[index][2] = (vertices[first][2] * oneThird + vertices[second][2] * oneThird + vertices[third][2] * oneThird);
+                triangleMidPoints[index][0] = (vertices[first][0] * oneThird + vertices[second][0] * oneThird + vertices[third][0] * oneThird);
+                triangleMidPoints[index][1] = (vertices[first][1] * oneThird + vertices[second][1] * oneThird + vertices[third][1] * oneThird);
+                triangleMidPoints[index][2] = (vertices[first][2] * oneThird + vertices[second][2] * oneThird + vertices[third][2] * oneThird);
 
-            index++;
+                index++;
+            }
         }
         br.close();
         fr.close();
 //        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
         //fileNeighbours
-        start = System.currentTimeMillis();
+//        start = System.currentTimeMillis();
         fr = new FileReader(fileNeighbours);
         br = new BufferedReader(fr);
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
         try {
+            nc.setReader(br);
             while (br.ready()) {
-                line = br.readLine();
-                values = line.split(seperator);
-                int first = Integer.parseInt(values[0]);
-                int second = Integer.parseInt(values[1]);
-                int third = Integer.parseInt(values[2]);
+//                line = br.readLine();
+//                lines++;
+//                values = splitter.split(line);//line.split(seperator);
+//                parts += values.length;
+//                int first = Integer.parseInt(values[0]);
+//                int second = Integer.parseInt(values[1]);
+//                int third = Integer.parseInt(values[2]);
+                if (nc.readNextLineInteger(integerParts)) {
+                    neighbours[index][0] = integerParts[0];
+                    neighbours[index][1] = integerParts[1];
+                    neighbours[index][2] = integerParts[2];
 
-                neighbours[index][0] = first;
-                neighbours[index][1] = second;
-                neighbours[index][2] = third;
-
-                index++;
+                    index++;
+                }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
         br.close();
         fr.close();
+//        System.out.println("HE_SurfaceIO.loadSurface parsed " + lines + " into " + parts + " split parts.");
 //        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
-        start = System.currentTimeMillis();
+//        start = System.currentTimeMillis();
         Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
         surf.setTriangleMids(triangleMidPoints);
         surf.fileTriangles = fileCoordinates.getParentFile();
@@ -619,11 +649,11 @@ public class HE_SurfaceIO {
             return;
         }
         index = 0;
-        int counterManholes = 0, counterInlets = 0;
-        Inlet[] inlets = new Inlet[0];
-        if (nw.getStreetInlets() != null) {
-            inlets = nw.getStreetInlets().toArray(new Inlet[nw.getStreetInlets().size()]);
-        }
+//        int counterManholes = 0, counterInlets = 0;
+//        Inlet[] inlets = new Inlet[0];
+//        if (nw.getStreetInlets() != null) {
+//            inlets = nw.getStreetInlets().toArray(new Inlet[nw.getStreetInlets().size()]);
+//        }
 
         for (int i = 0; i < surface.triangleNodes.length; i++) {
             Coordinate c0 = new Coordinate(surface.vertices[surface.triangleNodes[i][0]][0], surface.vertices[surface.triangleNodes[i][0]][1]);
@@ -632,14 +662,14 @@ public class HE_SurfaceIO {
 
             for (int j = 0; j < in.length; j++) {
                 Coordinate m1 = in[j];
-                Point p1 = null;
+//                Point p1 = null;
                 if (Math.abs(c0.x - m1.x) < 20) {
                     if (Math.abs(c0.y - m1.y) < 20) {
                         if (c0.distance(m1) < 20) {
                             //Closer look
                             boolean contains = GeometryTools.triangleContainsPoint(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, m1.x, m1.y);
                             if (contains) {
-                                counterInlets++;
+//                                counterInlets++;
                                 if (true) {
                                     //Neighbour Triangles also get a reference to this inlet
                                     if (surface.neumannNeighbours != null) {
@@ -686,7 +716,7 @@ public class HE_SurfaceIO {
                     TriangleMeasurement measurement = raster.getMeasurements()[mID];
                     if (measurement != null && measurement.getParticlecount() != null && measurement.getParticlecount().length > 0) {
                         bw.write(mID + "");
-                        int timesteps = measurement.getTimes().getNumberOfTimes();
+                        int timesteps = raster.getIndexContainer().getNumberOfTimes();
                         for (int i = 0; i < categories; i++) {
                             int sum = 0;
                             for (int j = 0; j < timesteps; j++) {
@@ -712,7 +742,6 @@ public class HE_SurfaceIO {
             } else {
                 throw new UnsupportedOperationException("Type of Surface Raster " + surface.getMeasurementRaster().getClass().getSimpleName() + " is not known to be handled for output.");
             }
-
         }
     }
 
@@ -813,35 +842,74 @@ public class HE_SurfaceIO {
 
     public static int[][] readMooreNeighbours(File file) throws FileNotFoundException, IOException {
         int[][] neumann = null;
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line = "";
-            line = br.readLine();
+        FileReader fr = new FileReader(file);
+        try (BufferedReader br = new BufferedReader(fr)) {
+
+            String line = br.readLine();
             int numberOfTriangles = Integer.parseInt(line);
             neumann = new int[numberOfTriangles][];
-            String[] split;
+            NumberConverter nc = new NumberConverter(br);
+            char c;
+//        boolean lastWasSplitter = true;
+            int linelength = -1;
+            char splitID = ',';
+            char splitNeighbours = ' ';
+            int indexComma = -1;
+            int neighbours = 0;
+            int index = 0;
+            char[] buffer = new char[256];
             while (br.ready()) {
-                try {
-                    line = br.readLine();
-                    split = line.split(",");
-                    if (split.length < 2) {
-                        continue;
-                    }
-                    int id = Integer.parseInt(split[0]);
-                    split = split[1].trim().split(" ");
-                    int[] entries = new int[split.length];
-                    neumann[id] = entries;
-                    for (int i = 0; i < split.length; i++) {
-                        if (split[i].isEmpty()) {
-                            System.err.println("can not read line '" + line + "' i=" + i);
-                        } else {
-                            entries[i] = Integer.parseInt(split[i]);
+                index = 0;
+                neighbours = 0;
+                indexComma = -1;
+                linelength = -1;
+                for (int i = 0; i < buffer.length; i++) {
+                    if (br.ready()) {
+                        c = (char) br.read();
+                        if (c == 10 || c == 13) {
+                            if (i == 0) {
+                                //this LF still is part of the old line. we need to skip this to get the next line
+                                i--;
+                                continue;
+                            }
+                            linelength = i;
+                            break;//\n & \r
+                        } else if (c == splitID) {
+                            indexComma = i;
+                        } else if (c == splitNeighbours) {
+                            neighbours++;
                         }
+                        buffer[i] = c;
                     }
-                } catch (Exception exception) {
-                    System.err.println("Problem in Moore line '" + line);
-                    exception.printStackTrace();
                 }
+
+                if (indexComma < 0) {
+                    if (linelength > 0) {
+                        //return number of elements
+                        int[][] retur = new int[1][1];
+                        retur[0][0] = parseIntegerFromToInclude(buffer, 0, linelength);
+                        return retur;
+                    } else {
+                        //no line here, it was the end of the file
+                        return null;
+                    }
+                }
+                int[] neighbourIDs = new int[neighbours];
+                int lastBlank = indexComma + 1;
+                index = 0;
+                for (int i = lastBlank + 1; i < linelength; i++) {
+                    if (buffer[i] == splitNeighbours) {
+                        neighbourIDs[index] = parseIntegerFromToInclude(buffer, lastBlank + 1, i - 1);
+                        index++;
+                        lastBlank = i;
+                    }
+                }
+                int triangleID = parseIntegerFromToInclude(buffer, 0, indexComma - 1);
+                neumann[triangleID] = neighbourIDs;
             }
+            fr.close();
+//            line = null;
+//            split = null;
         }
         return neumann;
     }
@@ -878,8 +946,8 @@ public class HE_SurfaceIO {
      */
     public static int[][] loadNodesTriangleIDs(File file) throws FileNotFoundException, IOException {
         int[][] node2TriangleIDs;
-        //Read number of nodes to get the size of array
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        try (FileReader fr = new FileReader(file); BufferedReader br = new BufferedReader(fr)) {
+            NumberConverter nc = new NumberConverter(br);
             //Read number of nodes to get the size of array
             String line = br.readLine();
             String[] str = line.split(":");
@@ -889,16 +957,24 @@ public class HE_SurfaceIO {
             br.readLine();
             //Read content
             while (br.ready()) {
-                line = br.readLine();
-                str = line.split(";");
-                int nodeID = Integer.parseInt(str[0]);
-                //Length=number of triangle IDs assigned to this Node.
-                int length = Integer.parseInt(str[1]);
-                node2TriangleIDs[nodeID] = new int[length];
-                for (int i = 0; i < length; i++) {
-                    node2TriangleIDs[nodeID][i] = Integer.parseInt(str[i + 2]);
+                int[][] data = nc.getNodeToTriangleLine();
+                if (data == null || data.length < 2) {
+                    break;
                 }
+                node2TriangleIDs[data[0][0]] = data[1];
             }
+//            Pattern splitter = Pattern.compile(";");
+//            while (br.ready()) {
+//                line = br.readLine();
+//                str = splitter.split(line);//line.split(";");
+//                int nodeID = Integer.parseInt(str[0]);
+//                //Length=number of triangle IDs assigned to this Node.
+//                int length = Integer.parseInt(str[1]);
+//                node2TriangleIDs[nodeID] = new int[length];
+//                for (int i = 0; i < length; i++) {
+//                    node2TriangleIDs[nodeID][i] = Integer.parseInt(str[i + 2]);
+//                }
+//            }
         }
         return node2TriangleIDs;
     }

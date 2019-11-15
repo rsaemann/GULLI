@@ -49,12 +49,101 @@ public class DiffusionCalculator2D {
     private final double wg = Math.sqrt(9.81);
 
     public double[] directD = new double[]{0.01, 0.01, 0};
+    public double[] directSqrtD = new double[]{0.1, 0.1, 0};
 
     public DiffusionCalculator2D() {
         D = new double[3];
     }
 
     public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID) {
+        return calculateDiffusion(vx, vy, surface, triangleID, null);
+    }
+
+    /**
+     * Calculate sqrt(Dxx) and sqrt(Dyy) for the given particle surrounding.
+     * Already the sqrt is calculated to optimize further calculation with these
+     * values.
+     *
+     * @param vx
+     * @param vy
+     * @param surface
+     * @param triangleID
+     * @param tofill
+     * @return
+     */
+    public double[] calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
+
+        if (diffType == DIFFTYPE.D) {
+            return directSqrtD;
+        }
+
+        double[] retur = tofill;
+        if (retur == null) {
+            System.out.println("new double[3] for diffusion");
+            retur = new double[3];
+        }
+        double h;
+        switch (diffType) {
+            case FISCHER:
+                al = 5.91;
+                at = 0.15;
+                break;
+            case LIN:
+                al = 13;
+                at = 1.2;
+                break;
+            case D:
+                return directSqrtD;
+            case tenH:
+                h = surface.getActualWaterlevel(triangleID);
+                retur[0] = Math.sqrt(h * 10.);
+                retur[1] = retur[0];
+                return retur;
+            case H:
+                h = surface.getActualWaterlevel(triangleID);
+                retur[0] = Math.sqrt(h);
+                retur[1] = retur[0];
+                return retur;
+            case Htenth:
+                h = surface.getActualWaterlevel(triangleID);
+                retur[0] = Math.sqrt(h * .1);
+                retur[1] = retur[0];
+                return retur;
+
+            default:
+                D[0] = 0;
+                D[1] = 0;
+        }
+        h = surface.getActualWaterlevel(triangleID);
+        C = surface.getkst() * Math.pow(h, 1. / 6.); //
+        Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+        Dyy = ((al * (vy * vy) + at * (vx * vx)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+//        System.out.println("Dxx: "+Dxx+"   Dyy="+Dyy);
+        //Dxx = 1;
+        //Dyy = 1;
+
+        //altenative: D after Bear(1972) for groundwater:
+        //double vabs = Math.sqrt(vx*vx+vy*vy);
+        //Dxx = al*vabs + dm;
+        //Dyy = at*vabs + dm;
+        D[0] = Math.sqrt(Dxx);
+        D[1] = Math.sqrt(Dyy);
+        D[2] = Math.sqrt(Dxy);
+
+        return D;
+    }
+
+    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
+
+        if (diffType == DIFFTYPE.D) {
+            return directD;
+        }
+
+        double[] retur = tofill;
+        if (retur == null) {
+            System.out.println("new double[3] for diffusion");
+            retur = new double[3];
+        }
         double h = 0;
         switch (diffType) {
             case FISCHER:
@@ -69,13 +158,19 @@ public class DiffusionCalculator2D {
                 return directD;
             case tenH:
                 h = surface.getActualWaterlevel(triangleID);
-                return new double[]{h * 10., h * 10.};
+                retur[0] = h * 10.;
+                retur[1] = retur[0];
+                return retur;
             case H:
                 h = surface.getActualWaterlevel(triangleID);
-                return new double[]{h, h};
+                retur[0] = h;
+                retur[1] = h;
+                return retur;
             case Htenth:
                 h = surface.getActualWaterlevel(triangleID);
-                return new double[]{h * 0.1, h * 0.1};
+                retur[0] = h * .1;
+                retur[1] = retur[0];
+                return retur;
 
             default:
                 D[0] = 0;

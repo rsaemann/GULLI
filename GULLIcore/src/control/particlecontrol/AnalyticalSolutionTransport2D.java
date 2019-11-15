@@ -157,7 +157,7 @@ public class AnalyticalSolutionTransport2D {
         }
 
         //get the particlecounts/masses/areas in right order
-        int times = tri.get(triID[0]).getTimes().getNumberOfTimes();
+        int times = surface.getMeasurementRaster().getIndexContainer().getNumberOfTimes();//tri.get(triID[0]).getTimes().getNumberOfTimes();
         int[][] partcount = new int[triID.length][times];
 
         int[][] pc = new int[1][times];

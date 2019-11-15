@@ -1,11 +1,8 @@
 package model.topology;
 
-import control.GlobalParameter;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.particle.Particle;
-import model.particle.ParticleQueue;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.TimeLinePipe;
 import model.topology.profile.Medium;
@@ -63,7 +60,7 @@ public class Pipe extends Capacity {
     /**
      * Orientation & Order of Particles in this pipe at the end of this sim.step
      */
-    protected ParticleQueue particleQueueFuture;
+//    protected ParticleQueue particleQueueFuture;
     private boolean negativeflowDirection;
 
     /**
@@ -189,14 +186,14 @@ public class Pipe extends Capacity {
 
     @Override
     public double getFluidVolume() {
-//        if(actualValues==null)return 0;
-        try {
-            return this.profile.getFlowArea(timelineStatus.getWaterlevel()) * length;
-        } catch (Exception e) {
-            System.out.println("Profile: " + profile);
-            e.printStackTrace();
-        }
-        return 0;
+        return this.timelineStatus.getVolume();
+//        try {
+//            return this.profile.getFlowArea(timelineStatus.getWaterlevel()) * length;
+//        } catch (Exception e) {
+//            System.out.println("Profile: " + profile);
+//            e.printStackTrace();
+//        }
+//        return 0;
     }
 
     @Override
@@ -283,19 +280,19 @@ public class Pipe extends Capacity {
 //        }
 //        return !particleQueuePast.isEmpty();
 //    }
-    /**
-     * Add a particle to the queue of the actual/futur simulation step
-     *
-     * @param particle
-     * @return
-     */
-    public boolean addParticle(Particle particle) {
-        if (particleQueueFuture == null) {
-            particleQueueFuture = new ParticleQueue();
-        }
-        particleQueueFuture.insert(particle);
-        return true;
-    }
+//    /**
+//     * Add a particle to the queue of the actual/futur simulation step
+//     *
+//     * @param particle
+//     * @return
+//     */
+//    public boolean addParticle(Particle particle) {
+//        if (particleQueueFuture == null) {
+//            particleQueueFuture = new ParticleQueue();
+//        }
+//        particleQueueFuture.insert(particle);
+//        return true;
+//    }
 
 //    /**
 //     * Removes a particle from the Past-step queue
@@ -309,18 +306,18 @@ public class Pipe extends Capacity {
 //        }
 //        return particleQueuePast.remove(particle);
 //    }
-    /**
-     * Removes a particle from the actual-step queue
-     *
-     * @param particle
-     * @return
-     */
-    public boolean removeParticleActual(Particle particle) {
-        if (particleQueueFuture == null) {
-            return false;
-        }
-        return particleQueueFuture.remove(particle);
-    }
+//    /**
+//     * Removes a particle from the actual-step queue
+//     *
+//     * @param particle
+//     * @return
+//     */
+//    public boolean removeParticleActual(Particle particle) {
+//        if (particleQueueFuture == null) {
+//            return false;
+//        }
+//        return particleQueueFuture.remove(particle);
+//    }
 
     @Override
     public Position3D getPosition3D(double meter) {
@@ -416,84 +413,79 @@ public class Pipe extends Capacity {
     }
 
     public float averageVelocity_actual() {
-//        if (isHorizontal) {
-//            return startConnection.velocity_m2p;
-//        }
         if (timelineStatus != null) {
             return timelineStatus.getVelocity();
         }
         return 0;
-//        return velocity;
-//        return averageVelocity_gravity(getWaterHeight());
     }
 
-    public double getLambdaInverted(double reynoldsnumber, double water_level_in_pipe) {
-        if (reynoldsnumber < 2330) {
-            return reynoldsnumber / 64.;
-        }
-        return 4 * Math.pow(Math.log10(this.getRoughnessKst(roughness_k, water_level_in_pipe) / profile.getHydraulicDiameter(water_level_in_pipe) * 0.269542 + 5.72 * Math.pow(reynoldsnumber, 0.9)), 2);
-    }
+//    public double getLambdaInverted(double reynoldsnumber, double water_level_in_pipe) {
+//        if (reynoldsnumber < 2330) {
+//            return reynoldsnumber / 64.;
+//        }
+//        return 4 * Math.pow(Math.log10(this.getRoughnessKst(roughness_k, water_level_in_pipe) / profile.getHydraulicDiameter(water_level_in_pipe) * 0.269542 + 5.72 * Math.pow(reynoldsnumber, 0.9)), 2);
+//    }
+//
+//    public double getAverageShearVelocity(double water_level_in_pipe) {
+//        double hydraulicRadius = profile.getHydraulicRadius(water_level_in_pipe);
+//        return Math.sqrt(Math.abs(GlobalParameter.GRAVITY * hydraulicRadius * this.getDecline()));
+//    }
 
-    public double getAverageShearVelocity(double water_level_in_pipe) {
-        double hydraulicRadius = profile.getHydraulicRadius(water_level_in_pipe);
-        return Math.sqrt(Math.abs(GlobalParameter.GRAVITY * hydraulicRadius * this.getDecline()));
-    }
-
-    public double getFlow(double water_level_in_pipe) {
-        if (water_level_in_pipe <= 0) {
-            return 0;
-        }
-        if (profile.isFreeflow(water_level_in_pipe)) {
-            //partial-filled-pipe / Gerinneströmung
-            double kst = getRoughnessKst(roughness_k);//, profile.getHydraulicRadius(water_level_in_pipe));
-//              System.out.println("Kst: " + kst + "   <- k: " + roughness_k * 1000 + "mm    rh=" + profile.getHydraulicRadius(water_level_in_pipe) + "m  hydraulic diameter: " + profile.getHydraulicDiameter(water_level_in_pipe));
-            double velocity = kst * Math.pow(profile.getHydraulicRadius(water_level_in_pipe), 2. / 3.) * Math.sqrt(Math.abs(decline));
-            //   System.out.println("h: " + water_level_in_pipe + "m  velocity_m2p: " + velocity_m2p + " m/s,    Steigung I: " + decline + " A: " + profile.getFlowArea(water_level_in_pipe) + "m²");
-            return velocity * profile.getFlowArea(water_level_in_pipe);
-            //FGDL Merkblatt 2003 Freistaat Sachsen
-//            double dh = profile.getHydraulicDiameter(water_level_in_pipe);
-//            double ls = Math.abs(decline);
-//            double v = -2 * Math.log10((2.51 * medium.kin_viscosity) / Math.sqrt(2 * GlobalParameter.GRAVITY * dh/**
-//                     * dh*dh
-//                     */
-//                    * ls) + roughness_k / (3.71 * dh)) * Math.sqrt(2 * GlobalParameter.GRAVITY * dh * ls);
-//            double Q = v * profile.getFlowArea(water_level_in_pipe);
-//            return Q;
-        } else {
-            //full-pipe-flow_m2p
-            double kst = getRoughnessKst(roughness_k);//, profile.getHydraulicRadius(water_level_in_pipe));
-
-            double velocity = kst * Math.pow(profile.getHydraulicRadius(water_level_in_pipe), 2. / 3.) * Math.sqrt(Math.abs(decline));
-            //System.out.println("Kst: " + kst + "   <- k: " + roughness_k * 1000 + "mm    rh=" + (profile.getHydraulicRadius(water_level_in_pipe)));
-
-            // System.out.println("h: " + water_level_in_pipe + "m  velocity_m2p: " + velocity_m2p + " m/s,    Steigung I: " + decline + " A: " + profile.getFlowArea(water_level_in_pipe) + "m²");
-            return velocity * profile.getFlowArea(water_level_in_pipe);
-        }
-    }
-
-    public double getFlow_ManningStrickler(double h) {
-        double kst = getRoughnessKst(roughness_k);
-        double v = kst * Math.pow(profile.getHydraulicRadius(h), 2. / 3.) * Math.sqrt(Math.abs(decline));
-        return profile.getFlowArea(h) * v;
-    }
-
-    public double getFlow_Prandtl_Colebrook(double h) {
-        double dh = profile.getHydraulicDiameter(h);
-        double g2 = 2. * GlobalParameter.GRAVITY;
-        double i = Math.abs(decline);
-        double q = -2 * Math.log10(2.51 * medium.kin_viscosity / Math.sqrt(g2 * i * dh) + roughness_k / (3.71 * dh)) * Math.sqrt(g2 * i * dh);
-        return profile.getFlowArea(h) * q;
-    }
-
-    public double getFlow_FGDL2003Freispiegel(double h) {
-        double dh = profile.getHydraulicDiameter(h);
-        double ls = Math.abs(decline);
-        double lambda = 1. / Math.sqrt(-2 * Math.log10(dh));
-        double v = -2 * Math.log10((2.51 * medium.kin_viscosity) / Math.sqrt(2 * GlobalParameter.GRAVITY * dh * ls) + roughness_k / (3.71 * dh)) * Math.sqrt(2 * GlobalParameter.GRAVITY * dh * ls);
-        double Q = v * profile.getFlowArea(h);
-        return Q;
-    }
-
+//    public double getFlow(double water_level_in_pipe) {
+//        if (water_level_in_pipe <= 0) {
+//            return 0;
+//        }
+//        if (profile.isFreeflow(water_level_in_pipe)) {
+//            //partial-filled-pipe / Gerinneströmung
+//            double kst = getRoughnessKst(roughness_k);//, profile.getHydraulicRadius(water_level_in_pipe));
+////              System.out.println("Kst: " + kst + "   <- k: " + roughness_k * 1000 + "mm    rh=" + profile.getHydraulicRadius(water_level_in_pipe) + "m  hydraulic diameter: " + profile.getHydraulicDiameter(water_level_in_pipe));
+//            double velocity = kst * Math.pow(profile.getHydraulicRadius(water_level_in_pipe), 2. / 3.) * Math.sqrt(Math.abs(decline));
+//            //   System.out.println("h: " + water_level_in_pipe + "m  velocity_m2p: " + velocity_m2p + " m/s,    Steigung I: " + decline + " A: " + profile.getFlowArea(water_level_in_pipe) + "m²");
+//            return velocity * profile.getFlowArea(water_level_in_pipe);
+//            //FGDL Merkblatt 2003 Freistaat Sachsen
+////            double dh = profile.getHydraulicDiameter(water_level_in_pipe);
+////            double ls = Math.abs(decline);
+////            double v = -2 * Math.log10((2.51 * medium.kin_viscosity) / Math.sqrt(2 * GlobalParameter.GRAVITY * dh/**
+////                     * dh*dh
+////                     */
+////                    * ls) + roughness_k / (3.71 * dh)) * Math.sqrt(2 * GlobalParameter.GRAVITY * dh * ls);
+////            double Q = v * profile.getFlowArea(water_level_in_pipe);
+////            return Q;
+//        } else {
+//            //full-pipe-flow_m2p
+//            double kst = getRoughnessKst(roughness_k);//, profile.getHydraulicRadius(water_level_in_pipe));
+//
+//            double velocity = kst * Math.pow(profile.getHydraulicRadius(water_level_in_pipe), 2. / 3.) * Math.sqrt(Math.abs(decline));
+//            //System.out.println("Kst: " + kst + "   <- k: " + roughness_k * 1000 + "mm    rh=" + (profile.getHydraulicRadius(water_level_in_pipe)));
+//
+//            // System.out.println("h: " + water_level_in_pipe + "m  velocity_m2p: " + velocity_m2p + " m/s,    Steigung I: " + decline + " A: " + profile.getFlowArea(water_level_in_pipe) + "m²");
+//            return velocity * profile.getFlowArea(water_level_in_pipe);
+//        }
+//    }
+//
+//    public double getFlow_ManningStrickler(double h) {
+//        double kst = getRoughnessKst(roughness_k);
+//        double v = kst * Math.pow(profile.getHydraulicRadius(h), 2. / 3.) * Math.sqrt(Math.abs(decline));
+//        return profile.getFlowArea(h) * v;
+//    }
+//
+//    public double getFlow_Prandtl_Colebrook(double h) {
+//        double dh = profile.getHydraulicDiameter(h);
+//        double g2 = 2. * GlobalParameter.GRAVITY;
+//        double i = Math.abs(decline);
+//        double q = -2 * Math.log10(2.51 * medium.kin_viscosity / Math.sqrt(g2 * i * dh) + roughness_k / (3.71 * dh)) * Math.sqrt(g2 * i * dh);
+//        return profile.getFlowArea(h) * q;
+//    }
+//
+//    public double getFlow_FGDL2003Freispiegel(double h) {
+//        double dh = profile.getHydraulicDiameter(h);
+//        double ls = Math.abs(decline);
+//        double lambda = 1. / Math.sqrt(-2 * Math.log10(dh));
+//        double v = -2 * Math.log10((2.51 * medium.kin_viscosity) / Math.sqrt(2 * GlobalParameter.GRAVITY * dh * ls) + roughness_k / (3.71 * dh)) * Math.sqrt(2 * GlobalParameter.GRAVITY * dh * ls);
+//        double Q = v * profile.getFlowArea(h);
+//        return Q;
+//    }
+//
     /**
      * Get the Strickler's coefficient from a rougness k [m]! for smooth walls.
      *
@@ -504,100 +496,100 @@ public class Pipe extends Capacity {
         return 26. / (Math.pow(rougnessK, 1. / 6.));
 
     }
-
-    /**
-     * Get the Strickler's coefficient from a rougness k [m].
-     *
-     * @param rougnessK in [m!]
-     * @param hydraulicRadius hydraulic radius [m]
-     * @return k_st [m^(1/3) /s]
-     */
-    public double getRoughnessKst(double rougnessK, double hydraulicRadius) {
-        if (hydraulicRadius <= 0) {
-            return getRoughnessKst(rougnessK);
-        }
-        return 17.72 / Math.pow(hydraulicRadius, 0.16666667) * Math.log10(14.84 * hydraulicRadius / (rougnessK));
-
-    }
-
-    public double getRoughnessK(double kst) {
-        return 1. / Math.pow(kst / 26., 6);
-
-    }
-
-    public double getReynoldsNumber(double water_level_in_pipe) {
-        if (water_level_in_pipe <= 0) {
-            return 0;
-        }
-        return averageVelocity_gravity(water_level_in_pipe) * profile.getHydraulicDiameter(water_level_in_pipe) / medium.kin_viscosity;
-    }
-
-    public double getShearstress(double water_level_in_pipe) {
-        double flow = this.getFlow(water_level_in_pipe);
-        return medium.getDensity() * flow * flow / (getLambdaInverted(getReynoldsNumber(water_level_in_pipe), water_level_in_pipe) * profile.getHydraulicDiameter(water_level_in_pipe) * 2 * profile.getFlowArea(water_level_in_pipe));
-    }
-
-    public double getLaminarBoundaryShearStress(double water_level_in_pipe) {
-        double tau = profile.getLaminarAverageBoundaryShearStress(water_level_in_pipe, decline, medium.getWeight());
-        return tau;
-    }
-
-    public double getLaminarVelocity(double ywidth, double zheight, double water_level_in_pipe) {
-        if (zheight > water_level_in_pipe) {
-            return 0;
-        }
-        double u1 = this.profile.getLaminarVelocity(ywidth, zheight, water_level_in_pipe, decline, medium.getWeight(), medium.dyn_viscosity);
-        double u2 = this.profile.getLaminarUniformVelocity(ywidth, zheight, water_level_in_pipe);
-        double u2Factor = medium.getWeight() * Math.abs(decline) * 0.25 / medium.dyn_viscosity;
-        System.out.println("u1 : " + u1);
-        System.out.println("u2 : " + u2 * u2Factor + "  by " + u2 + " x " + u2Factor);
-        return u2 * u2Factor;
-    }
-
-    /**
-     * // * @deprecated Noch nicht fertig Iteration according to Guo 2015
-     *
-     * @param water_level_in_pipe_guess [m] start value for iteration
-     * @param flow [m³/s]
-     * @return [water_level,velocity_m2p]
-     */
-    public double[] iterateLevelAndVelocity(double water_level_in_pipe_guess, double flow) {
-
-//        throw new UnsupportedOperationException("Not yet implemented");
-        double height = water_level_in_pipe_guess;
-        double frictionSlope = Math.abs(this.decline); //Sf
-        double heightnew;
-        double area = profile.getFlowArea(height);//A
-        if (area / profile.getTotalArea() < 0.001) {
-            return new double[]{0, 0};
-        }
-        double perimeter;//P
-        double hydraulicDiameter;//Dh
-        double velocity = 0;// V
-        double reynolds; //R
-        double finvert;//=1/f
-        for (int i = 0; i < 5; i++) {
-            perimeter = profile.getWettedPerimeter(height);
-            //
-            hydraulicDiameter = 4 * area / perimeter;
-            velocity = flow / area;
-            //
-            reynolds = velocity * hydraulicDiameter / medium.kin_viscosity;
-            //
-            finvert = 4 * Math.pow(Math.log10(roughness_k / hydraulicDiameter * 0.2702703 + 5.72 * Math.pow(reynolds, 0.9)), 2);
-            //
-            velocity = Math.sqrt(19.62 * hydraulicDiameter * frictionSlope * finvert);
-            //
-            area = flow / velocity;
-            //
-            heightnew = profile.getWaterLevel_byFlowArea(area);
-
-            double deltaH = Math.abs(heightnew - height);
-            System.out.println("iteration " + i + ":  h=" + heightnew + "\tdh=" + deltaH + "\tarea:" + area);
-            height = heightnew;
-        }
-        return new double[]{height, velocity};
-    }
+//
+//    /**
+//     * Get the Strickler's coefficient from a rougness k [m].
+//     *
+//     * @param rougnessK in [m!]
+//     * @param hydraulicRadius hydraulic radius [m]
+//     * @return k_st [m^(1/3) /s]
+//     */
+//    public double getRoughnessKst(double rougnessK, double hydraulicRadius) {
+//        if (hydraulicRadius <= 0) {
+//            return getRoughnessKst(rougnessK);
+//        }
+//        return 17.72 / Math.pow(hydraulicRadius, 0.16666667) * Math.log10(14.84 * hydraulicRadius / (rougnessK));
+//
+//    }
+//
+//    public double getRoughnessK(double kst) {
+//        return 1. / Math.pow(kst / 26., 6);
+//
+//    }
+//
+//    public double getReynoldsNumber(double water_level_in_pipe) {
+//        if (water_level_in_pipe <= 0) {
+//            return 0;
+//        }
+//        return averageVelocity_gravity(water_level_in_pipe) * profile.getHydraulicDiameter(water_level_in_pipe) / medium.kin_viscosity;
+//    }
+//
+//    public double getShearstress(double water_level_in_pipe) {
+//        double flow = this.getFlow(water_level_in_pipe);
+//        return medium.getDensity() * flow * flow / (getLambdaInverted(getReynoldsNumber(water_level_in_pipe), water_level_in_pipe) * profile.getHydraulicDiameter(water_level_in_pipe) * 2 * profile.getFlowArea(water_level_in_pipe));
+//    }
+//
+//    public double getLaminarBoundaryShearStress(double water_level_in_pipe) {
+//        double tau = profile.getLaminarAverageBoundaryShearStress(water_level_in_pipe, decline, medium.getWeight());
+//        return tau;
+//    }
+//
+//    public double getLaminarVelocity(double ywidth, double zheight, double water_level_in_pipe) {
+//        if (zheight > water_level_in_pipe) {
+//            return 0;
+//        }
+//        double u1 = this.profile.getLaminarVelocity(ywidth, zheight, water_level_in_pipe, decline, medium.getWeight(), medium.dyn_viscosity);
+//        double u2 = this.profile.getLaminarUniformVelocity(ywidth, zheight, water_level_in_pipe);
+//        double u2Factor = medium.getWeight() * Math.abs(decline) * 0.25 / medium.dyn_viscosity;
+//        System.out.println("u1 : " + u1);
+//        System.out.println("u2 : " + u2 * u2Factor + "  by " + u2 + " x " + u2Factor);
+//        return u2 * u2Factor;
+//    }
+//
+//    /**
+//     * // * @deprecated Noch nicht fertig Iteration according to Guo 2015
+//     *
+//     * @param water_level_in_pipe_guess [m] start value for iteration
+//     * @param flow [m³/s]
+//     * @return [water_level,velocity_m2p]
+//     */
+//    public double[] iterateLevelAndVelocity(double water_level_in_pipe_guess, double flow) {
+//
+////        throw new UnsupportedOperationException("Not yet implemented");
+//        double height = water_level_in_pipe_guess;
+//        double frictionSlope = Math.abs(this.decline); //Sf
+//        double heightnew;
+//        double area = profile.getFlowArea(height);//A
+//        if (area / profile.getTotalArea() < 0.001) {
+//            return new double[]{0, 0};
+//        }
+//        double perimeter;//P
+//        double hydraulicDiameter;//Dh
+//        double velocity = 0;// V
+//        double reynolds; //R
+//        double finvert;//=1/f
+//        for (int i = 0; i < 5; i++) {
+//            perimeter = profile.getWettedPerimeter(height);
+//            //
+//            hydraulicDiameter = 4 * area / perimeter;
+//            velocity = flow / area;
+//            //
+//            reynolds = velocity * hydraulicDiameter / medium.kin_viscosity;
+//            //
+//            finvert = 4 * Math.pow(Math.log10(roughness_k / hydraulicDiameter * 0.2702703 + 5.72 * Math.pow(reynolds, 0.9)), 2);
+//            //
+//            velocity = Math.sqrt(19.62 * hydraulicDiameter * frictionSlope * finvert);
+//            //
+//            area = flow / velocity;
+//            //
+//            heightnew = profile.getWaterLevel_byFlowArea(area);
+//
+//            double deltaH = Math.abs(heightnew - height);
+//            System.out.println("iteration " + i + ":  h=" + heightnew + "\tdh=" + deltaH + "\tarea:" + area);
+//            height = heightnew;
+//        }
+//        return new double[]{height, velocity};
+//    }
 
 //    public double[] getParticleorientedSpaceForParticle(Particle p) {
 //        if (p.getSurrounding_actual() == this) {

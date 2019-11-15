@@ -74,7 +74,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     private float[][] neighbourDistances;
     public final HashMap<Integer, SurfaceTrianglePath[]> paths;
 
-    protected SurfaceMeasurementRaster measurementRaster;
+    volatile protected SurfaceMeasurementRaster measurementRaster;
 
     /**
      * edgelength between neumannNeighbours. [triangleId][nbIndex0-2]: length in
@@ -160,6 +160,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * Fraction of time between the last and the next timestep [0,1];
      */
     protected double timeFrac = 0;
+    protected double timeinvFrac = 1;
 
     /**
      * Timeindex as int.
@@ -191,8 +192,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     /**
      * possible Inlet on/for every triangle ID
      */
-    protected ConcurrentHashMap<Integer, Inlet> inlets;
-    protected Inlet[] inletArray;
+//    protected ConcurrentHashMap<Integer, Inlet> inlets;
+    protected Inlet[] inletArray;//an array is larger but generates much less overhead compared to a hashmap. And an array is faster
     /**
      * possible Manhole on/for every triangle ID
      */
@@ -1195,53 +1196,74 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         //getmeanvelo2dNodes(velocityNodes);
     }
 
+    /**
+     * Get the velocity for this triangle. if it is not yet known. the
+     * information is loaded via the velocityloader connected for this surface.
+     *
+     * @param triangleID
+     * @return float[times][2:x,y] velocity (m/s)
+     */
     private float[][] getTriangleVelocity(int triangleID) {
         if (triangleVelocity[triangleID] == null) {
-            float[][] tv;
             try {
-                tv = velocityLoader.loadVelocity(triangleID);
+                triangleVelocity[triangleID] = velocityLoader.loadVelocity(triangleID);
             } catch (Exception e) {
                 //Id Not found or equal exception. This triangle has no velocity information -> set everything to zero.
-                tv = new float[numberOfTimestamps][2];
+                triangleVelocity[triangleID] = new float[numberOfTimestamps][2];
             }
-            triangleVelocity[triangleID] = tv;
         }
         return triangleVelocity[triangleID];
     }
 
     public float[] getTriangleVelocity(int triangleID, double indexDouble) {
+        return getTriangleVelocity(triangleID, indexDouble, null);
+    }
+
+    public float[] getTriangleVelocity(int triangleID, double indexDouble, float[] tofill) {
+        if (tofill == null) {
+            System.out.println("create new float[2] to return interpolated velocity.");
+            tofill = new float[2];
+        }
         float[] lower = getTriangleVelocity(triangleID)[(int) indexDouble];
         float[] upper = getTriangleVelocity(triangleID)[(int) indexDouble + 1];
         float frac = (float) (indexDouble % 1f);
-        return new float[]{(lower[0] + (upper[0] - lower[0]) * frac), (lower[1] + (upper[1] - lower[1]) * frac)};
+        tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
+        tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
+        return tofill;
     }
 
+    public float[] getTriangleVelocity(int triangleID, int timeindexInt, float frac, float[] tofill) {
+        if (tofill == null) {
+            System.out.println("create new float[2] to return interpolated velocity.");
+            tofill = new float[2];
+        }
+        float[] lower = getTriangleVelocity(triangleID)[timeindexInt];
+        float[] upper = getTriangleVelocity(triangleID)[timeindexInt + 1];
+        tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
+        tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
+        return tofill;
+    }
+
+    /**
+     * Velocity[x,y] at the center of the triangle at the given timeindex.
+     *
+     * @param triangleID
+     * @param indexInteger
+     * @return float[2] 0:x; 1:y velocity (m/s)
+     */
     public float[] getTriangleVelocity(int triangleID, int indexInteger) {
         return getTriangleVelocity(triangleID)[indexInteger];
-
     }
 
-    // get velocities at the triangle nodes via neighbouring weights 
+    /**
+     * get velocities at the triangle nodes via neighbouring weights
+     *
+     * @param nodeID
+     */
     public void loadSparseNodeVelocity2D(int nodeID) {
-//        long start = System.currentTimeMillis();
-//        calcTriangleVelocityFromNeighbourVelocity();
-//        long dura = System.currentTimeMillis() - start;
-        //System.out.println("triangleVeloCalc took: "+ dura/1000 + " s. With " + triangleVelocity);
         if (velocityNodes == null) {
             velocityNodes = new float[NodeNeighbours.length][][];
         }
-        //System.out.println(getClass() + ":: calculateVelocity2d: Nodeneighbours:" + NodeNeighbours);
-//        for (int j = 0; j < NodeNeighbours.length; j++) {                   //welche vertice
-//            if (NodeNeighbours[j] == null) {
-//                for (int t = 0; t < numberOfTimestamps; t++) {//wann
-//                    for (int k = 0; k < 2; k++) {  //x und y                      
-//                        velocityNodes[j][t][k] = 0; //triangleVelo: [triangle][timeindex][direction(0:x,1:y)]
-//                    }
-//                }
-//                continue;
-//            }
-//        System.out.println(nodeID+"'s nodeNeighbours: "+NodeNeighbours[nodeID].length);
-
         for (int n = 0; n < NodeNeighbours[nodeID].length; n++) {        //welches triangle an vertice
             if (NodeNeighbours[nodeID][n] >= 0) {
                 int triangleID;
@@ -1426,6 +1448,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         this.actualTime = time;
         this.timeIndex = times.getTimeIndexDouble(time);
         this.timeFrac = timeIndex % 1.;
+        this.timeinvFrac = 1. - timeFrac;
         this.timeIndexInt = (int) this.timeIndex;
     }
 
@@ -1474,7 +1497,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @param pipeANDTriangleIDs
      */
     public void applyStreetInlets(Network nw, Collection<Pair<String, Integer>> pipeANDTriangleIDs) {
-        inlets = new ConcurrentHashMap<>(pipeANDTriangleIDs.size());//new Inlet[triangleNodes.length];
+//        inlets = new ConcurrentHashMap<>(pipeANDTriangleIDs.size());//new Inlet[triangleNodes.length];
         inletArray = new Inlet[getMaxTriangleID() + 1];
         ArrayList<Inlet> inletList = new ArrayList<>(pipeANDTriangleIDs.size());
 
@@ -1536,7 +1559,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 Inlet inlet = new Inlet(new Position3D(longlat.x, longlat.y, tpos[0], tpos[1], tpos[3]), (Pipe) cap, distancealongPipe);
 //                tri.inlet = inlet;
                 inletList.add(inlet);
-                inlets.put(triangleID, inlet);
+//                inlets.put(triangleID, inlet);
                 inletArray[triangleID] = inlet;
 //                inlets[triangleID] = inlet;
             } catch (Exception e) {
@@ -1549,7 +1572,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public void applyStreetInlets(Network network, ArrayList<HE_InletReference> inletRefs) throws TransformException {
-        inlets = new ConcurrentHashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
+//        inlets = new ConcurrentHashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
 
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
         manholes = new Manhole[triangleNodes.length];
@@ -1609,7 +1632,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             try {
                 Inlet inlet = new Inlet(new Position3D(tposWGS84.x, tposWGS84.y, tposUTM.x, tposUTM.y, tposUTM.z), cap, distancealongPipe);
                 inletList.add(inlet);
-                inlets.put(triangleID, inlet);
+//                inlets.put(triangleID, inlet);
                 inletArray[triangleID] = inlet;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -1652,6 +1675,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public void addStatistic(Particle p, int startTriangleID, Inlet inlet, Manhole manhole, long traveltime) {
+        if (true) {
+            return;
+        }
         SurfacePathStatistics stat = null;
         if (inlet != null) {
             synchronized (statistics) {
@@ -1720,7 +1746,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return
      */
     public Inlet getInlet(int triangleID) {
-        if(inletArray==null)return null;
+        if (inletArray == null) {
+            return null;
+        }
         return inletArray[triangleID];
 //        if (inlets == null) {
 //            return null;
@@ -2080,25 +2108,54 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         return triangleNodes.length + 1;
     }
 
+    /**
+     * * Calculates the velocity [x,y] on the surface at the position of the
+     * particle.
+     *
+     * @param p
+     * @param triangleID
+     * @return
+     */
     public double[] getParticleVelocity2D(Particle p, int triangleID) {
+        return getParticleVelocity2D(p, triangleID, null, null);
+    }
 
-        double[] velocityParticle = new double[2];
-//        int timeindex = timeIndexInt;
+    /**
+     * Calculates the velocity [x,y] on the surface at the position of the
+     * particle.
+     *
+     * @param p
+     * @param triangleID
+     * @param tofillVelocity can be given to prevent allocation
+     * @param tofillBarycentric can be given to prevent allocation
+     * @return
+     */
+    public double[] getParticleVelocity2D(Particle p, int triangleID, double[] tofillVelocity, double[] tofillBarycentric) {
+
+        double[] velocityParticle = tofillVelocity;
+        if (tofillVelocity == null) {
+//            System.out.println("create new double[2] for particle velocity on surface");
+            velocityParticle = new double[2];
+        }
         //Get node IDs for the triangle
         int t0 = triangleNodes[triangleID][0];
         int t1 = triangleNodes[triangleID][1];
         int t2 = triangleNodes[triangleID][2];
 
         // get utm coordinates of the actual triangle
-        float x1 = (float) vertices[t0][0];
-        float x2 = (float) vertices[t1][0];
-        float x3 = (float) vertices[t2][0];
-        float y1 = (float) vertices[t0][1];
-        float y2 = (float) vertices[t1][1];
-        float y3 = (float) vertices[t2][1];
-
+//        float x1 = (float) vertices[t0][0];
+//        float x2 = (float) vertices[t1][0];
+//        float x3 = (float) vertices[t2][0];
+//        float y1 = (float) vertices[t0][1];
+//        float y2 = (float) vertices[t1][1];
+//        float y3 = (float) vertices[t2][1];
         // barycentric koordinate weighing for velocity calculation
-        double[] w = getBarycentricWeighing(x1, x2, x3, y1, y2, y3, p.getPosition3d().x, p.getPosition3d().y);
+        if (tofillBarycentric == null) {
+//            System.out.println("create new double[3] for barycentric coordinates");
+            tofillBarycentric = new double[3];
+        }
+        getBarycentricWeighing_FillArray(vertices[t0][0], vertices[t1][0], vertices[t2][0], vertices[t0][1], vertices[t1][1], vertices[t2][1], p.getPosition3d().x, p.getPosition3d().y, tofillBarycentric);
+        double[] w = tofillBarycentric;
         if (calculateWeighted && velocityNodes != null) {
             if (velocityNodes[t0] == null) {
                 loadSparseNodeVelocity2D(t0);
@@ -2112,10 +2169,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
             // particle velocity in x and y direction at given timeindex
             try {
-//            System.out.println("v1:"+ velocityNodes[triangleNodes[triangleID][0]][(int) timeIndex][0]+"  tri:"+triangleNodes[triangleID][0]+" time: "+timeIndex+"   w0="+w[0]);
                 velocityParticle[0] = w[0] * velocityNodes[t0][timeIndexInt][0] + w[1] * velocityNodes[t1][timeIndexInt][0] + w[2] * velocityNodes[t2][timeIndexInt][0];
                 velocityParticle[1] = w[0] * velocityNodes[t0][timeIndexInt][1] + w[1] * velocityNodes[t1][timeIndexInt][1] + w[2] * velocityNodes[t2][timeIndexInt][1];
-
             } catch (Exception e) {
                 System.err.println("velocity nodes.length=" + velocityNodes.length + "  triangleNodes.length=" + triangleNodes.length + "\t tN0:" + triangleNodes[triangleID][0] + "\t1:" + triangleNodes[triangleID][1] + "\t2:" + triangleNodes[triangleID][2]);
                 e.printStackTrace();
@@ -2123,32 +2178,45 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         } else {
             //If no weights are calculated, just use mean velocity from neighbouring triangle nodes.
             if (timeInterpolatedValues) {
-                float[] vt = getTriangleVelocity(triangleID, timeIndex);
+//                if (toFillSurfaceVelocity == null) {
+//                    toFillSurfaceVelocity = new float[4][2][2]; //4times 2 directions
+//                }
+                float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+
                 //neighbours:
                 int nb0 = neumannNeighbours[triangleID][0];
                 int nb1 = neumannNeighbours[triangleID][1];
                 int nb2 = neumannNeighbours[triangleID][2];
 
-                float[] v0;
+                float[] v0_t;
+                float[] v0_tp;
                 if (nb0 < 0) {
-                    v0 = zeroVelocity;
+                    v0_t = zeroVelocity;
+                    v0_tp = zeroVelocity;
                 } else {
-                    v0 = getTriangleVelocity(nb0, timeIndex);
+                    v0_t = getTriangleVelocity(nb0, timeIndexInt);
+                    v0_tp = getTriangleVelocity(nb0, timeIndexInt + 1);
                 }
-                float[] v1;
+                float[] v1_t, v1_tp;
                 if (nb1 < 0) {
-                    v1 = zeroVelocity;
+                    v1_t = zeroVelocity;
+                    v1_tp = zeroVelocity;
                 } else {
-                    v1 = getTriangleVelocity(nb1, timeIndex);
+                    v1_t = getTriangleVelocity(nb1, timeIndexInt);
+                    v1_tp = getTriangleVelocity(nb1, timeIndexInt + 1);
                 }
-                float[] v2;
+                float[] v2_t, v2_tp;
                 if (nb2 < 0) {
-                    v2 = zeroVelocity;
+                    v2_t = zeroVelocity;
+                    v2_tp = zeroVelocity;
                 } else {
-                    v2 = getTriangleVelocity(nb2, timeIndex);
+                    v2_t = getTriangleVelocity(nb2, timeIndexInt);
+                    v2_tp = getTriangleVelocity(nb2, timeIndexInt + 1);
                 }
-                velocityParticle[0] = ((1 - w[0]) * (v0[0]) + (1 - w[1]) * (v1[0]) + (1 - w[2]) * (v2[0]) + vt[0]) * 0.333f;
-                velocityParticle[1] = ((1 - w[0]) * (v0[1]) + (1 - w[1]) * (v1[1]) + (1 - w[2]) * (v2[1]) + vt[1]) * 0.333f;
+
+                velocityParticle[0] = ((1 - w[0]) * (v0_t[0] * timeinvFrac + v0_tp[0] * timeFrac) + (1 - w[1]) * (v1_t[0] * timeinvFrac + v1_tp[0] * timeFrac) + (1 - w[2]) * (v2_t[0] * timeinvFrac + v2_tp[0] * timeFrac) + (vt_t[0] * timeinvFrac + vt_tp[0] * timeFrac)) * 0.333f;
+                velocityParticle[1] = ((1 - w[0]) * (v0_t[1] * timeinvFrac + v0_tp[1] * timeFrac) + (1 - w[1]) * (v1_t[1] * timeinvFrac + v1_tp[1] * timeFrac) + (1 - w[2]) * (v2_t[1] * timeinvFrac + v2_tp[1] * timeFrac) + (vt_t[1] * timeinvFrac + vt_tp[1] * timeFrac)) * 0.333f;
 
             } else {
                 float[] vt = getTriangleVelocity(triangleID)[timeIndexInt];
@@ -2162,19 +2230,19 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
                 float[] v0;
                 if (nb0 < 0) {
-                    v0 = new float[]{0, 0};
+                    v0 = zeroVelocity;
                 } else {
                     v0 = getTriangleVelocity(nb0, timeIndexInt);
                 }
                 float[] v1;
                 if (nb1 < 0) {
-                    v1 = new float[]{0, 0};
+                    v1 = zeroVelocity;
                 } else {
                     v1 = getTriangleVelocity(nb1, timeIndexInt);
                 }
                 float[] v2;
                 if (nb2 < 0) {
-                    v2 = new float[]{0, 0};
+                    v2 = zeroVelocity;
                 } else {
                     v2 = getTriangleVelocity(nb2, timeIndexInt);
                 }
@@ -2223,21 +2291,26 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @param x calculated new Position with unknown particle id
      * @param y
      * @param leftIterations max number of iterations that shall be computet
+     * @param barycentric can be given to prevent new allocation
+     * @param temp_vertexcoordsarray can be given to prevent new allocation
      * @return id of the new triangle
-     * @throws model.surface.Surface.BoundHitException
      */
-    public int getTargetTriangleID(Particle p, int id, double xold, double yold, double x, double y, int leftIterations) /*throws BoundHitException*/ {
+    public int getTargetTriangleID(Particle p, int id, double xold, double yold, double x, double y, int leftIterations, double[] bw, double[][] t) /*throws BoundHitException*/ {
 
         // is particle still in start triangle? use barycentric weighing to check.
         int node0 = triangleNodes[id][0];
         int node1 = triangleNodes[id][1];
         int node2 = triangleNodes[id][2];
-        double[][] t = new double[3][];
+
+        if (t == null) {
+            System.out.println("new double[][] for triangle vertex coords in Surface");
+            t = new double[3][];
+        }
         t[0] = vertices[node0];
         t[1] = vertices[node1];
         t[2] = vertices[node2];
 
-        double[] bw = getBarycentricWeighing(t[0][0], t[1][0], t[2][0], t[0][1], t[1][1], t[2][1], x, y);
+        getBarycentricWeighing_FillArray(t[0][0], t[1][0], t[2][0], t[0][1], t[1][1], t[2][1], x, y, bw);
 
 //        int outs = 0;
         double smallest = 0;
@@ -2259,6 +2332,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
         if (bestEdge < 0) {
             //Particle stays in this triangle;
+            p.setPosition3D(x, y);
             return id;
         }
 
@@ -2340,7 +2414,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
         if (nextID >= 0 && leftIterations > 0) {
             leftIterations--;
-            return getTargetTriangleID(p, nextID, xold, yold, x, y, leftIterations);
+            return getTargetTriangleID(p, nextID, xold, yold, x, y, leftIterations, bw, t);
         }
 
         //no outgoing triangle
@@ -2354,6 +2428,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         double s = GeometryTools.lineIntersectionS(xold, yold, x, y, ax, ay, bx, by);
 
         if (s < 0 || s > 1) {
+
 //            System.err.println("Bad backprojection on intersection edge");
             //Something Bad happened, particle seems not to go via this edge. Check the other node, if a second edge was found
             double paralleldiff = ((y - yold) / (x - xold)) - ((by - ay) / (bx - ax));
@@ -2373,7 +2448,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     ay = t[startindex][1];
                     bx = t[(startindex + 1) % 3][0];
                     by = t[(startindex + 1) % 3][1];
-                    double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by);
+                    double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by, bw);
+
                     s = st1[0];
                     if (s < 0 || s > 1) {
                         //throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
@@ -2403,213 +2479,212 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         //throw new BoundHitException(id, xneu, yneu);
     }
 
-    /**
-     * Returns the target triangle id or a BoundHitException with corrected
-     * coordinates if the particle could not move out of the triangle
-     *
-     * @param p Particle
-     * @param id startTriangleID
-     * @param xold
-     * @param yold
-     * @param x calculated new Position with unknown particle id
-     * @param y
-     * @param leftIterations max number of iterations that shall be computet
-     * @return id of the new triangle
-     * @throws model.surface.Surface.BoundHitException
-     */
-    public int getTargetTriangleIDorg(Particle p, int id, double xold, double yold, double x, double y, int leftIterations) throws BoundHitException {
-        //if particle didn't move return old id
-//        if (xold == x && yold == y) {
+//    /**
+//     * Returns the target triangle id or a BoundHitException with corrected
+//     * coordinates if the particle could not move out of the triangle
+//     *
+//     * @param p Particle
+//     * @param id startTriangleID
+//     * @param xold
+//     * @param yold
+//     * @param x calculated new Position with unknown particle id
+//     * @param y
+//     * @param leftIterations max number of iterations that shall be computet
+//     * @return id of the new triangle
+//     * @throws model.surface.Surface.BoundHitException
+//     */
+//    public int getTargetTriangleIDorg(Particle p, int id, double xold, double yold, double x, double y, int leftIterations) throws BoundHitException {
+//        //if particle didn't move return old id
+////        if (xold == x && yold == y) {
+////
+////            return id;
+////        }
 //
+////        searchcounter++;
+////        if (searchcounter % 100 == 0) {
+////            System.out.println(" gettargettriangle calls " + leftIterations);
+////            System.out.println("need to search for Triangle " + (searchcounter));
+////        }
+//        // is particle still in start triangle? use barycentric weighing to check.
+//        double[][] t = new double[3][];
+//        t[0] = vertices[triangleNodes[id][0]];
+//        t[1] = vertices[triangleNodes[id][1]];
+//        t[2] = vertices[triangleNodes[id][2]];
+////        float[] pos = new float[]{(float) x, (float) y};
+//
+//        double[] bw = getBarycentricWeighing(t[0][0], t[1][0], t[2][0], t[0][1], t[1][1], t[2][1], x, y);
+//
+//        int outs = 0;
+//        for (double w : bw) {
+//            if (w < 0) {
+//                outs++;
+//            }
+//        }
+//        if (outs == 0) {
+//            //Particle stays in this triangle;
 //            return id;
-//        }
-
-//        searchcounter++;
-//        if (searchcounter % 100 == 0) {
-//            System.out.println(" gettargettriangle calls " + leftIterations);
-//            System.out.println("need to search for Triangle " + (searchcounter));
-//        }
-        // is particle still in start triangle? use barycentric weighing to check.
-        double[][] t = new double[3][];
-        t[0] = vertices[triangleNodes[id][0]];
-        t[1] = vertices[triangleNodes[id][1]];
-        t[2] = vertices[triangleNodes[id][2]];
-//        float[] pos = new float[]{(float) x, (float) y};
-
-        double[] bw = getBarycentricWeighing(t[0][0], t[1][0], t[2][0], t[0][1], t[1][1], t[2][1], x, y);
-
-        int outs = 0;
-        for (double w : bw) {
-            if (w < 0) {
-                outs++;
-            }
-        }
-        if (outs == 0) {
-            //Particle stays in this triangle;
-            return id;
-        } else {
-
-            //Search for direction of outgoing
-            int[][] edgeIndices = new int[outs][];
-//            int[] edgeIndices2=null;
-
-            int[] vertexIndex = new int[outs];
-//            int vertexIndex2=-1;
-            boolean firstFound = false;
-            for (int i = 0; i < bw.length; i++) {
-                if (bw[i] < 0) {
-                    if (firstFound) {
-                        edgeIndices[1] = new int[]{triangleNodes[id][i], triangleNodes[id][(i + 1) % 3]};
-                        vertexIndex[1] = i;
-                        break;
-                    } else {
-                        edgeIndices[0] = new int[]{triangleNodes[id][i], triangleNodes[id][(i + 1) % 3]};
-                        vertexIndex[0] = i;
-                        firstFound = true;
-                    }
-                }
-            }
-            if (outs > 1) {
-                //Prefere the one with larger area (higher negative value)
-                if (bw[vertexIndex[1]] < bw[vertexIndex[0]]) {
-                    //Switch indizes
-                    int[] edgeTemp = edgeIndices[0];
-                    edgeIndices[0] = edgeIndices[1];
-                    edgeIndices[1] = edgeTemp;
-                    int vertexTemp = vertexIndex[0];
-                    vertexIndex[0] = vertexIndex[1];
-                    vertexIndex[1] = vertexTemp;
-                }
-            }
-
-            //Search for neighbour, that contains these points
-            /*Id of Neighbourtriangle that shall be investigated next.*/
-            int nextID = -1;
-            //First try to find triangle that holds first edge
-            boolean boundaryFound = false;
-            for (int n = 0; n < 3; n++) {
-                int neighbourID = neumannNeighbours[id][n];
-                if (neighbourID < 0) {
-                    boundaryFound = true;
-                    continue;
-                }
-                //Check triangle nodes
-                boolean foundOne = false;
-//                 System.out.println("in Triangle "+n+" : "+triangleNodes[neighbourID][0]+" - "+triangleNodes[neighbourID][1]+" - "+triangleNodes[neighbourID][2]);
-                for (int i = 0; i < edgeIndices[0].length; i++) {
-                    for (int nbn = 0; nbn < 3; nbn++) {
-                        if (edgeIndices[0][i] == triangleNodes[neighbourID][nbn]) {
-                            if (foundOne) {
-                                //Found second matching edge node.
-                                nextID = neighbourID;
-                                break;
-                            }
-                            //Found first matching edgenode
-                            foundOne = true;
-                        }
-                    }
-                    if (nextID >= 0) {
-                        break;
-                    }
-                }
-                if (nextID >= 0) {
-                    break;
-                }
-            }
-            //If nothing was found, try to find not so good edge
-            if (nextID < 0 && outs > 1) {
-                for (int n = 0; n < 3; n++) {
-                    int neighbourID = neumannNeighbours[id][n];
-                    if (neighbourID < 0) {
-                        boundaryFound = true;
-                        continue;
-                    }
-
-                    boolean foundOne = false;
-
-                    for (int i = 0; i < edgeIndices[1].length; i++) {
-                        for (int nbn = 0; nbn < 3; nbn++) {
-                            if (edgeIndices[1][i] == triangleNodes[neighbourID][nbn]) {
-                                if (foundOne) {
-                                    //Found second matching edge node.
-                                    nextID = neighbourID;
-                                    break;
-                                }
-                                //Found first matching edgenode
-                                foundOne = true;
-                            }
-                        }
-                        if (nextID >= 0) {
-                            break;
-                        }
-                    }
-                    if (nextID >= 0) {
-                        break;
-                    }
-                }
-            }
-
-            if (nextID >= 0 && leftIterations > 0) {
-                leftIterations--;
-                return getTargetTriangleID(p, nextID, xold, yold, x, y, leftIterations);
-            }
-
-            {
-                //no outgoing triangle
-                //Projection of triangle back to triangle boundary
-                int startindex = vertexIndex[0];
-                double ax = t[startindex][0];
-                double ay = t[startindex][1];
-                double bx = t[(startindex + 1) % 3][0];
-                double by = t[(startindex + 1) % 3][1];
-
-//                double distanceT = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+//        } else {
+//
+//            //Search for direction of outgoing
+//            int[][] edgeIndices = new int[outs][];
+////            int[] edgeIndices2=null;
+//
+//            int[] vertexIndex = new int[outs];
+////            int vertexIndex2=-1;
+//            boolean firstFound = false;
+//            for (int i = 0; i < bw.length; i++) {
+//                if (bw[i] < 0) {
+//                    if (firstFound) {
+//                        edgeIndices[1] = new int[]{triangleNodes[id][i], triangleNodes[id][(i + 1) % 3]};
+//                        vertexIndex[1] = i;
+//                        break;
+//                    } else {
+//                        edgeIndices[0] = new int[]{triangleNodes[id][i], triangleNodes[id][(i + 1) % 3]};
+//                        vertexIndex[0] = i;
+//                        firstFound = true;
+//                    }
+//                }
+//            }
+//            if (outs > 1) {
+//                //Prefere the one with larger area (higher negative value)
+//                if (bw[vertexIndex[1]] < bw[vertexIndex[0]]) {
+//                    //Switch indizes
+//                    int[] edgeTemp = edgeIndices[0];
+//                    edgeIndices[0] = edgeIndices[1];
+//                    edgeIndices[1] = edgeTemp;
+//                    int vertexTemp = vertexIndex[0];
+//                    vertexIndex[0] = vertexIndex[1];
+//                    vertexIndex[1] = vertexTemp;
+//                }
+//            }
+//
+//            //Search for neighbour, that contains these points
+//            /*Id of Neighbourtriangle that shall be investigated next.*/
+//            int nextID = -1;
+//            //First try to find triangle that holds first edge
+//            boolean boundaryFound = false;
+//            for (int n = 0; n < 3; n++) {
+//                int neighbourID = neumannNeighbours[id][n];
+//                if (neighbourID < 0) {
+//                    boundaryFound = true;
+//                    continue;
+//                }
+//                //Check triangle nodes
+//                boolean foundOne = false;
+////                 System.out.println("in Triangle "+n+" : "+triangleNodes[neighbourID][0]+" - "+triangleNodes[neighbourID][1]+" - "+triangleNodes[neighbourID][2]);
+//                for (int i = 0; i < edgeIndices[0].length; i++) {
+//                    for (int nbn = 0; nbn < 3; nbn++) {
+//                        if (edgeIndices[0][i] == triangleNodes[neighbourID][nbn]) {
+//                            if (foundOne) {
+//                                //Found second matching edge node.
+//                                nextID = neighbourID;
+//                                break;
+//                            }
+//                            //Found first matching edgenode
+//                            foundOne = true;
+//                        }
+//                    }
+//                    if (nextID >= 0) {
+//                        break;
+//                    }
+//                }
+//                if (nextID >= 0) {
+//                    break;
+//                }
+//            }
+//            //If nothing was found, try to find not so good edge
+//            if (nextID < 0 && outs > 1) {
+//                for (int n = 0; n < 3; n++) {
+//                    int neighbourID = neumannNeighbours[id][n];
+//                    if (neighbourID < 0) {
+//                        boundaryFound = true;
+//                        continue;
+//                    }
+//
+//                    boolean foundOne = false;
+//
+//                    for (int i = 0; i < edgeIndices[1].length; i++) {
+//                        for (int nbn = 0; nbn < 3; nbn++) {
+//                            if (edgeIndices[1][i] == triangleNodes[neighbourID][nbn]) {
+//                                if (foundOne) {
+//                                    //Found second matching edge node.
+//                                    nextID = neighbourID;
+//                                    break;
+//                                }
+//                                //Found first matching edgenode
+//                                foundOne = true;
+//                            }
+//                        }
+//                        if (nextID >= 0) {
+//                            break;
+//                        }
+//                    }
+//                    if (nextID >= 0) {
+//                        break;
+//                    }
+//                }
+//            }
+//
+//            if (nextID >= 0 && leftIterations > 0) {
+//                leftIterations--;
+//                return getTargetTriangleID(p, nextID, xold, yold, x, y, leftIterations, null, null);
+//            }
+//
+//            {
+//                //no outgoing triangle
+//                //Projection of triangle back to triangle boundary
+//                int startindex = vertexIndex[0];
+//                double ax = t[startindex][0];
+//                double ay = t[startindex][1];
+//                double bx = t[(startindex + 1) % 3][0];
+//                double by = t[(startindex + 1) % 3][1];
+//
+////                double distanceT = Math.sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+////                double s = GeometryTools.lineIntersectionS(xold, yold, x, y, ax, ay, bx, by);
 //                double s = GeometryTools.lineIntersectionS(xold, yold, x, y, ax, ay, bx, by);
-                double s = GeometryTools.lineIntersectionS(xold, yold, x, y, ax, ay, bx, by);
-//                double s = st0[0];
-                if (s < 0 || s > 1) {
-                    //Something Bad happened, particle seems not to go via this edge. Check the other node, if a second edge was found
-                    double paralleldiff = ((y - yold) / (x - xold)) - ((by - ay) / (bx - ax));
-//                    System.out.println("WRONG intersection : " + st + "\tdistance:" + distance + " / " + distanceT + "\tslopediff:" + paralleldiff + "  outs:" + outs);
-                    //Check for parallel 
-                    if (Math.abs(paralleldiff) < 0.0001) {
-//                        System.out.println("PARALLEL");
-                        //Parallel movement& boundary -> Set to this tringle's midpoint
-                        //TODO 
-                        throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
-                    } else {
-                        if (outs > 1) {
-                            //Try to find a better calculation for the other possible neighbour
-                            startindex = vertexIndex[1];
-                            ax = t[startindex][0];
-                            ay = t[startindex][1];
-                            bx = t[(startindex + 1) % 3][0];
-                            by = t[(startindex + 1) % 3][1];
-                            double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by);
-                            s = st1[0];
-                            if (s < 0 || s > 1) {
-                                System.out.println("line1: " + xold + " | " + yold + "  to " + x + " | " + y + "  \t crosses " + ax + " | " + ay + " to " + bx + " | " + by);
-                                System.out.println("BAD: s=" + st1[0] + "|" + st1[1] + "\t edges: " + outs + "   left:" + leftIterations + "\tweights: " + bw[0] + ", " + bw[1] + ", " + bw[2] + "  " + (boundaryFound ? "Boundary hit!" : ""));
-                                throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
-                            }
-                        } else {
-                            throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
-                        }
-                    }
-                }
-                //Scale s so that the particle does not get nearer than 1cm to the boundary
-                double distance = Math.sqrt((x - xold) * (x - xold) + (y - yold) * (y - yold));
-                s -= 0.01 / distance;
-                //Calculate new position
-                double xneu = xold + s * (x - xold);
-                double yneu = yold + s * (y - yold);
-                //Fire Message with the new position.
-                throw new BoundHitException(id, xneu, yneu);
-            }
-        }
-//        throw new BoundHitException(id, new double[]{triangleMids[id][0], triangleMids[id][1]});
-    }
-
+////                double s = st0[0];
+//                if (s < 0 || s > 1) {
+//                    //Something Bad happened, particle seems not to go via this edge. Check the other node, if a second edge was found
+//                    double paralleldiff = ((y - yold) / (x - xold)) - ((by - ay) / (bx - ax));
+////                    System.out.println("WRONG intersection : " + st + "\tdistance:" + distance + " / " + distanceT + "\tslopediff:" + paralleldiff + "  outs:" + outs);
+//                    //Check for parallel 
+//                    if (Math.abs(paralleldiff) < 0.0001) {
+////                        System.out.println("PARALLEL");
+//                        //Parallel movement& boundary -> Set to this tringle's midpoint
+//                        //TODO 
+//                        throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
+//                    } else {
+//                        if (outs > 1) {
+//                            //Try to find a better calculation for the other possible neighbour
+//                            startindex = vertexIndex[1];
+//                            ax = t[startindex][0];
+//                            ay = t[startindex][1];
+//                            bx = t[(startindex + 1) % 3][0];
+//                            by = t[(startindex + 1) % 3][1];
+//                            double[] st1 = GeometryTools.lineIntersectionST(xold, yold, x, y, ax, ay, bx, by);
+//                            s = st1[0];
+//                            if (s < 0 || s > 1) {
+//                                System.out.println("line1: " + xold + " | " + yold + "  to " + x + " | " + y + "  \t crosses " + ax + " | " + ay + " to " + bx + " | " + by);
+//                                System.out.println("BAD: s=" + st1[0] + "|" + st1[1] + "\t edges: " + outs + "   left:" + leftIterations + "\tweights: " + bw[0] + ", " + bw[1] + ", " + bw[2] + "  " + (boundaryFound ? "Boundary hit!" : ""));
+//                                throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
+//                            }
+//                        } else {
+//                            throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
+//                        }
+//                    }
+//                }
+//                //Scale s so that the particle does not get nearer than 1cm to the boundary
+//                double distance = Math.sqrt((x - xold) * (x - xold) + (y - yold) * (y - yold));
+//                s -= 0.01 / distance;
+//                //Calculate new position
+//                double xneu = xold + s * (x - xold);
+//                double yneu = yold + s * (y - yold);
+//                //Fire Message with the new position.
+//                throw new BoundHitException(id, xneu, yneu);
+//            }
+//        }
+////        throw new BoundHitException(id, new double[]{triangleMids[id][0], triangleMids[id][1]});
+//    }
     /**
      * @deprecated @param p
      * @param id
@@ -3087,22 +3162,27 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         w[1] = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / atri;
         w[2] = ((py - y2) * (x0 - x2) + (x2 - px) * (y0 - y2)) / atri;
         w[0] = 1. - w[1] - w[2];
-//        w[0] = ((y1 - py) * (x0 - px) + (px - x1) * (y0 - py)) / atri;
 
         w[3] = atri;
-//        double wenorm_ges = w[0] + w[1] + w[2];
-//        if (wenorm_ges > 1.01 || wenorm_ges < 0.99) {
-//            System.err.println("weighting is not 1!" + wenorm_ges);
-//            throw new NullPointerException("weighting is not 1!" + wenorm_ges + "   x1:" + x0 + "\tx2:" + x1 + "\tx3:" + x2 + "\ty1:" + y0 + "\tpx:" + px);
-//        }
         return w;
     }
 
+    private void getBarycentricWeighing_FillArray(double x0, double x1, double x2, double y0, double y1, double y2, double px, double py, double[] barycentricWeights) {
+        // barycentric koordinate weighing for velocity calculation
+        // x, y = triangle coordinates, p = searched point
+        double[] w = barycentricWeights;
+        double atri = ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+        w[1] = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / atri;
+        w[2] = ((py - y2) * (x0 - x2) + (x2 - px) * (y0 - y2)) / atri;
+        w[0] = 1. - w[1] - w[2];
+    }
+
     public Inlet[] getInlets() {
-        if (inlets == null) {
-            return null;
-        }
-        return inlets.values().toArray(new Inlet[inlets.size()]);
+        return inletArray;
+//        if (inlets == null) {
+//            return null;
+//        }
+//        return inlets.values().toArray(new Inlet[inlets.size()]);
     }
 
 //    public TriangleMeasurement[] getTriangleMeasurements() {

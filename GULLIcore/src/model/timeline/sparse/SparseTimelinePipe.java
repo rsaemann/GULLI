@@ -23,6 +23,7 @@
  */
 package model.timeline.sparse;
 
+import java.util.concurrent.locks.ReentrantLock;
 import model.timeline.array.TimeContainer;
 import model.timeline.array.TimeLinePipe;
 import model.topology.Pipe;
@@ -34,6 +35,8 @@ import model.topology.Pipe;
  * @author saemann
  */
 public class SparseTimelinePipe implements TimeLinePipe {
+
+    private Pipe pipe;
 
     private long pipeManualID;
 
@@ -50,6 +53,10 @@ public class SparseTimelinePipe implements TimeLinePipe {
      */
     private float[] waterlevel;
     /**
+     * Fluidvolume in pipe [m³]
+     */
+    private float[] volume;
+    /**
      * VolumeFlow q in pipe in [m³/s]
      */
     private float[] flux;
@@ -63,21 +70,23 @@ public class SparseTimelinePipe implements TimeLinePipe {
      */
     private float[] concentration_reference;
 
-    private float actualVelocity, actualWaterlevel, actualFlux;
+    private float actualVelocity, actualWaterlevel, actualDischarge, actualVolume;
     private long actualTimestamp;
 
+    private ReentrantLock lock = new ReentrantLock();
+
     public SparseTimelinePipe(SparseTimeLinePipeContainer container, Pipe pipe) {
+        this.pipe = pipe;
         this.container = container;
         this.pipeManualID = pipe.getManualID();
         this.pipeName = pipe.getName();
     }
 
-    public SparseTimelinePipe(SparseTimeLinePipeContainer container, long pipeManualID, String pipeName) {
-        this.pipeManualID = pipeManualID;
-        this.pipeName = pipeName;
-        this.container = container;
-    }
-
+//    public SparseTimelinePipe(SparseTimeLinePipeContainer container, long pipeManualID, String pipeName) {
+//        this.pipeManualID = pipeManualID;
+//        this.pipeName = pipeName;
+//        this.container = container;
+//    }
 //    public void setPipeManualID(int pipeManualID) {
 //        this.pipeManualID = pipeManualID;
 //    }
@@ -131,10 +140,20 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     private void calculateActualValues() {
-        synchronized (this) {
+//        if(lock.isLocked()){
+//            System.out.println(pipeName+"Lock is locked , queued "+lock.getQueueLength()+"  threads queued?"+lock.hasQueuedThreads());
+//        }
+//        else{
+//            System.out.println("Lock is free on "+pipeName);
+//        }
+        lock.lock();
+//        System.out.println(pipeName+"entered , waiting: "+lock.getQueueLength());
+        try {
             if (this.actualTimestamp == container.getActualTime()) {
+//                System.out.println(pipeName+"already calculated ");
                 return;//Already calculated by another thread.
             }
+//            System.out.println(pipeName+"  calculate ");
             if (velocity == null) {
                 container.loadTimelineVelocity(this, pipeManualID, pipeName);
             }
@@ -143,11 +162,24 @@ public class SparseTimelinePipe implements TimeLinePipe {
             }
             if (waterlevel == null) {
                 container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
+
+            }
+            if (volume == null) {
+                //calculate fluid volume
+                volume = new float[waterlevel.length];
+                for (int i = 0; i < waterlevel.length; i++) {
+                    volume[i] = (float) (pipe.getProfile().getFlowArea(waterlevel[i]) * pipe.getLength());
+                }
             }
             this.actualVelocity = getValue_DoubleIndex(velocity, container.getActualTimeIndex_double());
             this.actualWaterlevel = getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
-            this.actualFlux = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+            this.actualDischarge = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+            this.actualVolume = getValue_DoubleIndex(volume, container.getActualTimeIndex_double());
             this.actualTimestamp = container.getActualTime();
+//            System.out.println(pipeName+"  finished calculation actual values on ");
+        } finally {
+//            System.out.println(pipeName+"unlock , waiting: "+lock.getQueueLength());
+            lock.unlock();
         }
     }
 
@@ -166,7 +198,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
         if (actualTimestamp != container.getActualTime()) {
             calculateActualValues();
         }
-        return this.actualFlux;//return getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
+        return this.actualDischarge;//return getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
     }
 
     @Override
@@ -176,6 +208,14 @@ public class SparseTimelinePipe implements TimeLinePipe {
             calculateActualValues();
         }
         return this.actualWaterlevel;//return getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
+    }
+
+    @Override
+    public double getVolume() {
+        if (actualTimestamp != container.getActualTime()) {
+            calculateActualValues();
+        }
+        return this.actualVolume;//return getValue_DoubleIndex(waterlevel, container.getActualTimeIndex_double());
     }
 
     public void setFlux(float[] flux) {

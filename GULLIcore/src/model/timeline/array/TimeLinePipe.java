@@ -102,6 +102,13 @@ public interface TimeLinePipe {
      * @return
      */
     public double getWaterlevel();
+    
+     /**
+     * FluidVolume(water) in pipe at actual timestep.
+     *
+     * @return
+     */
+    public double getVolume();
 
     /**
      * Holds information about stored timestamps

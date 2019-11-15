@@ -32,12 +32,19 @@ import model.timeline.array.TimeIndexContainer;
  * @author saemann
  */
 public abstract class SurfaceMeasurementRaster {
-    
+
+    /**
+     * if particles have lower travel length than this, they are not measured.
+     */
+    public static double minTravelLengthToMeasure = 0;
+
     public static boolean countStayingParticle = true;
+
+    public static boolean synchronizeMeasures = true;
 
     protected TimeIndexContainer times;
 
-    public abstract void measureParticle(long time, Particle particle);
+    public abstract void measureParticle(long time, Particle particle, int threadIndex);
 
     public abstract void setNumberOfMaterials(int numberOfMaterials);
 
@@ -47,5 +54,15 @@ public abstract class SurfaceMeasurementRaster {
         return times;
     }
 
+    public int status = -1;
+
+    public int[] statuse = new int[8];
+    volatile public TriangleMeasurement[] monitor = new TriangleMeasurement[8];
+
     public abstract void reset();
+
+    /**
+     * This is called, when a Thread blocks the simulation.
+     */
+    public abstract void breakAllLocks();
 }

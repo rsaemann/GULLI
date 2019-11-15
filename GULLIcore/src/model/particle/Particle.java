@@ -86,10 +86,9 @@ public class Particle {
      */
     protected float moveLengthAbsolute = 0;
 
-//    protected long activationTime = 0;
     /**
-     * Status to determine the domain of the particle. -10:leftSimulation, -1:waiting, 0:inactive; 10:
-     * pipenetwork 20:surface; 30:underground.
+     * Status to determine the domain of the particle. -10:leftSimulation,
+     * -1:waiting, 0:inactive; 10: pipenetwork 20:surface; 30:underground.
      */
     public byte status = -1;   //-10 left simulation, -1 waiting,0=inactive, 10=pipenetwork , 20=surface, 30=Underground, 
 
@@ -151,7 +150,7 @@ public class Particle {
     public boolean isInactive() {
         return status < 1;
     }
-    
+
     public boolean hasLeftSimulation(){
         return status==-10;
     }
@@ -200,12 +199,12 @@ public class Particle {
     public void setWaiting() {
         this.status = -1;
     }
-    
+
     public void setLeftSimulation(){
         this.status=-10;
     }
 
-    public double getPosition1d_actual() {
+    public float getPosition1d_actual() {
         return position1d_actual; //position3d.x;//
     }
 

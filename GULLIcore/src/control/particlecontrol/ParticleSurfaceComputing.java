@@ -23,7 +23,7 @@
  */
 package control.particlecontrol;
 
-import java.util.Random;
+import control.maths.RandomArray;
 import model.particle.Particle;
 import model.surface.Surface;
 
@@ -38,6 +38,8 @@ public interface ParticleSurfaceComputing {
     public Surface getSurface();
 
     public void setDeltaTimestep(double seconds);
+    
+    public void setActualSimulationTime(long timeMS);
 
     public void moveParticle(Particle particle);
 
@@ -49,5 +51,5 @@ public interface ParticleSurfaceComputing {
 
     public String reportCalculationStatus();
 
-    public void setRandomNumberGenerator(Random rd);
+    public void setRandomNumberGenerator(RandomArray rd);
 }

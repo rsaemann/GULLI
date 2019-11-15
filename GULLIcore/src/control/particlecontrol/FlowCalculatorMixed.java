@@ -23,8 +23,7 @@
  */
 package control.particlecontrol;
 
-import control.maths.UniformDistribution;
-import java.util.Random;
+import control.maths.RandomArray;
 import model.particle.Particle;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole;
@@ -70,28 +69,27 @@ public class FlowCalculatorMixed implements FlowCalculator {
     }
 
     @Override
-    public boolean particleIsDepositing(Particle particle, Capacity capacity, UniformDistribution random) {
+    public boolean particleIsDepositing(Particle particle, Capacity capacity, RandomArray random) {
         return false;
     }
 
     @Override
-    public boolean particleIsEroding(Particle particle, Capacity capacity, UniformDistribution random) {
+    public boolean particleIsEroding(Particle particle, Capacity capacity, RandomArray random) {
         return true;
     }
 
     @Override
-    public Connection_Manhole whichConnection(Manhole mh, Random probability, double ds) {
+    public Connection_Manhole whichConnection(Manhole mh, RandomArray probability, boolean forward) {
 
         if (mh.getWaterlevel() < dryWaterlevel) {
             if (verbose) {
-                System.out.println("waterlevel<"+dryWaterlevel+"m\t wL:" + mh.getWaterlevel() + "\t h:" + mh.getWaterHeight() + " --> null");
+                System.out.println("waterlevel<" + dryWaterlevel + "m\t wL:" + mh.getWaterlevel() + "\t h:" + mh.getWaterHeight() + " --> null");
             }
             return null;
         }
-
         float h = (float) mh.getWaterHeight();
         int counter = 0;
-        if (ds > 0) {
+        if (forward) {
             //Positive Flow, Particle will leave in direction of flow
             float qsum = 0;
 
@@ -112,7 +110,8 @@ public class FlowCalculatorMixed implements FlowCalculator {
 //            //Test Top connection
             if (ParticlePipeComputing.spillOutToSurface) {
                 if (mh.getStatusTimeLine().getActualFlowToSurface() > 0) {
-                    qsum += Math.abs(mh.getStatusTimeLine().getActualFlowToSurface());
+                    qsum += mh.getStatusTimeLine().getActualFlowToSurface();
+                    counter++;
 //                    System.out.println("add outflow to surface "+mh.getStatusTimeLine().getActualFlowToSurface());
                 }
             }
@@ -123,7 +122,7 @@ public class FlowCalculatorMixed implements FlowCalculator {
 
                 return null;
             }
-            float p = probability.nextFloat();
+            float p = (float) probability.nextDouble();
             float threashold = p * qsum;
 
             if (threashold > spillthreashold) {
@@ -182,8 +181,8 @@ public class FlowCalculatorMixed implements FlowCalculator {
 
                 return null;
             }
-            float p = probability.nextFloat();
-            float threashold = p * qsum;
+            double p = probability.nextDouble();
+            double threashold = p * qsum;
 //            if (threashold > spillthreashold) {
 //                //Spill out to surface
 //                return mh.getTopConnection();

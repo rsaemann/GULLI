@@ -9,22 +9,26 @@ import java.util.Random;
 public class GaussDistribution extends RandomDistribution {
 
 //    public int[] verteilung;
-//    public double[] xe;
-
+//    private double[] xe;
+//    private int index = 0;
     public GaussDistribution(Random random) {
         super(random);
-        
-//        xe=new double[100];
+//        index = 0;
+//        xe = new double[10000];
+//        for (int i = 0; i < xe.length; i++) {
+//            xe[i] = random.nextGaussian();
+//        }
 ////        verteilung=new int[xe.length];
 //        for (int i = 0; i < xe.length; i++) {
 //            xe[i]=-4+(i/(double)xe.length)*8.;            
 //        }
-        
+
     }
 
     @Override
     public double nextDouble() {
-        double r= random.nextGaussian();
+        return super.random.nextDouble();
+//        double r= random.nextGaussian();
 //        if(r<xe[0]){
 //            verteilung[0]++;
 //        }else if(r>=xe[xe.length-1]){
@@ -32,7 +36,34 @@ public class GaussDistribution extends RandomDistribution {
 //        }else{
 //            verteilung[(int)(((r+4.)/8.)*(double)verteilung.length)]++;
 //        }
-        return r;
+//        return r;
+    }
+
+    /**
+     * Returns a normal-distributed random number
+     *
+     * @return
+     */
+    public double nextGaussian() {
+        return super.random.nextGaussian();
+//        if (index >= xe.length) {
+//            index = 0;
+//        }
+//        return xe[index++];
+    }
+
+    public void setRandom(Random random) {
+        this.random = random;
+//        index = 0;
+//        xe = new double[10005];
+//        for (int i = 0; i < xe.length; i++) {
+//            xe[i] = random.nextGaussian();
+//        }
+    }
+
+    @Override
+    public void setRandomGenerator(Random rand) {
+        this.setRandom(random);
     }
 
 }

@@ -27,7 +27,7 @@ public class ArrayTimeLineMeasurementContainer {
      */
     private boolean timespotmeasurement = false;
 
-    public double messungenProZeitschritt;
+    public double samplesPerTimeinterval;
     /**
      * Distance from an injection point to calculate the momentum of
      * concentration.
@@ -82,19 +82,19 @@ public class ArrayTimeLineMeasurementContainer {
 
     public void OnlyRecordOncePerTimeindex() {
         this.timespotmeasurement = true;
-        this.messungenProZeitschritt = 1;
+        this.samplesPerTimeinterval = 1;
     }
 
-    public void setRecordsPerTimeindex(double recordsPerTimeindex) {
+    public void setSamplesPerTimeindex(double recordsPerTimeindex) {
         this.timespotmeasurement = false;
-        this.messungenProZeitschritt = recordsPerTimeindex;
+        this.samplesPerTimeinterval = recordsPerTimeindex;
     }
 
     /**
-     *
+     * Seconds per Timeindex between storing timesteps.
      * @return seconds
      */
-    public double getDeltaTime() {
+    public double getDeltaTimeS() {
         return times.getDeltaTimeMS()/1000.;
     }
 
@@ -110,7 +110,7 @@ public class ArrayTimeLineMeasurementContainer {
                 if (particles[index] < 1) {
                     continue;
                 }
-                c = (((double) mass_total[index] * (double) counts[index]) / (volumes[index] * messungenProZeitschritt));
+                c = (((double) mass_total[index] * (double) counts[index]) / (volumes[index] * samplesPerTimeinterval));
 
                 zaehler += (distance[i]) * c;
                 nenner += c;
@@ -139,7 +139,7 @@ public class ArrayTimeLineMeasurementContainer {
                     continue;
                 }
 //                //ArrayTimeLinePipe.concentration_reference[index];//
-                c = (((double) mass_total[index] * (double) counts[index]) / (volumes[index] * messungenProZeitschritt));
+                c = (((double) mass_total[index] * (double) counts[index]) / (volumes[index] * samplesPerTimeinterval));
 
                 zaehler += (distance[i] - moment1) * (distance[i] - moment1) * c;
                 nenner += c;
@@ -191,7 +191,7 @@ public class ArrayTimeLineMeasurementContainer {
     public float[] getMassForTimeIndex(int timeIndex) {
         float[] r = new float[distance.length];
         for (int i = 0; i < distance.length; i++) {
-            r[i] = (float) ((mass_total[i * times.getNumberOfTimes() + timeIndex]) / (messungenProZeitschritt));
+            r[i] = (float) ((mass_total[i * times.getNumberOfTimes() + timeIndex]) / (samplesPerTimeinterval));
 //            System.out.println(getClass()+" t="+timeIndex);
         }
         return r;
@@ -200,7 +200,7 @@ public class ArrayTimeLineMeasurementContainer {
     public float[] getConcentrationForTimeIndex(int timeIndex) {
         float[] r = new float[distance.length];
         for (int i = 0; i < distance.length; i++) {
-            r[i] = (float) ((mass_total[i * times.getNumberOfTimes() + timeIndex] * counts[i * times.getNumberOfTimes() + timeIndex]) / (volumes[i * times.getNumberOfTimes() + timeIndex] * messungenProZeitschritt));
+            r[i] = (float) ((mass_total[i * times.getNumberOfTimes() + timeIndex] * counts[i * times.getNumberOfTimes() + timeIndex]) / (volumes[i * times.getNumberOfTimes() + timeIndex] * samplesPerTimeinterval));
         }
         return r;
     }
@@ -208,7 +208,7 @@ public class ArrayTimeLineMeasurementContainer {
     public float[] getNumberOfParticlesForTimeIndex(int timeIndex) {
         float[] r = new float[distance.length];
         for (int i = 0; i < distance.length; i++) {
-            r[i] = (float) ((particles[i * times.getNumberOfTimes() + timeIndex]) / (float) (messungenProZeitschritt));
+            r[i] = (float) ((particles[i * times.getNumberOfTimes() + timeIndex]) / (float) (samplesPerTimeinterval));
         }
         return r;
     }

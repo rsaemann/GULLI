@@ -25,18 +25,26 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public void loopfinished(T finishedThread) {
+//        status = 0;
         synchronized (this) {
+//            status = 1;
             finished++;
             if (finished >= threads.size()) {
                 //Last thread has to call the accomplished!-function
+//                status = 2;
                 notifyWhenReady.finishedLoop(this);
+//                status = 3;
             } //else Not all are ready yet, This Thread now should fall asleep
             try {
+//                status = 6;
                 this.wait();
+//                status = 7;
             } catch (InterruptedException ex) {
+//                status = 10;
                 Logger.getLogger(MultiThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
+//        status = 11;
     }
 
     public void addThread(T thread) {
@@ -45,9 +53,12 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public void startover() {
+        status = 100;
         synchronized (this) {
+            status = 101;
             finished = 0;
             this.notifyAll();
+            status = 103;
         }
     }
 
@@ -72,6 +83,12 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public void initialized(T itsMe) {
+        if (isinitialized) {
+            //a newly created Thread was added. it can directly proceed to the barrier
+            loopfinished(itsMe);
+            return;
+        }
+
         synchronized (this) {
             //Check if this is the last Thread that finished initialization.
             for (T value : threads) {

@@ -49,10 +49,10 @@ public class MatlabIO {
     public MatlabIO(File f) throws IOException {
 
         long start = System.currentTimeMillis();
-       
+
         MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s", "m2s"});
 
-        mfr = new MatFileReader(); 
+        mfr = new MatFileReader();
         System.out.println((System.currentTimeMillis() - start) + "ms\tinit MatlabFileReader...");
         mfr.read(f, filter, 2);
         System.out.println((System.currentTimeMillis() - start) + "ms\t MatlabFileReader loaded.");
@@ -83,7 +83,7 @@ public class MatlabIO {
             times[i] = (long) (cal.getTimeInMillis() + (t2.get(i) * 1000));
 
         }
-        t2a = null;
+//        t2a = null;
         //Fließwerte für t2 auslesen
         MLSingle vs = (MLSingle) mfr.getMLArray("vs");
         MLSingle hs = (MLSingle) mfr.getMLArray("hs");
@@ -202,6 +202,11 @@ public class MatlabIO {
                 public TimeContainer getTimeContainer() {
                     return pipeTLcontainer;
                 }
+
+                @Override
+                public float getActualWaterLevel() {
+                    return 2f;
+                }
             };
 
             try {
@@ -214,6 +219,7 @@ public class MatlabIO {
 //                    tl.setDischarge(vs.get(t, i), t);
                     tl.setVelocity(vs.get(t, i), t);
                     tl.setWaterlevel(hs.get(t, i), t);
+                    tl.setWaterlevel((float) (p.getProfile().getFlowArea(hs.get(t, i)) * p.getLength()), t);
                     tl.setDischarge(vs.get(t, i), t);
                     tl.setMassflux_reference(phis.get(t, i) * hs.get(t, i), t);
                 }
@@ -338,7 +344,7 @@ public class MatlabIO {
 //            c.getMapFrame().getMapViewer().setDisplayPositionByLatLon(pos.getLatitude(), pos.getLongitude(), 15);
 //            c.getMapFrame().repaint();
 ////            ArrayTimeLineMeasurementContainer.instance.OnlyRecordOncePerTimeindex();
-//            System.out.println("messungen pro zeitschritt: " + ArrayTimeLineMeasurementContainer.instance.messungenProZeitschritt);
+//            System.out.println("messungen pro zeitschritt: " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval);
 ////            System.out.println("surrounding:"+c.getThreadController().barrier_particle.getThreads().get(0).waitingList.getFirst().injectionSurrounding);
 //            c.start();
 //
@@ -354,7 +360,6 @@ public class MatlabIO {
 //            Logger.getLogger(MatlabIO.class.getName()).log(Level.SEVERE, null, ex);
 //        }
 //    }
-
 //    public static void main2(String[] args) {
 //        FileReader fr = null;
 //        try {

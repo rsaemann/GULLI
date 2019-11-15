@@ -616,7 +616,7 @@ public class SHP_IO_GULLI {
                 }
             }
             iterator.close();
-            System.gc();
+//            System.gc();
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
@@ -976,7 +976,7 @@ public class SHP_IO_GULLI {
                 lvls[id] = maxWlvl;
             }
             iterator.close();
-            System.gc();
+//            System.gc();
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {

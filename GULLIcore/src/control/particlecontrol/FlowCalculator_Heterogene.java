@@ -23,7 +23,7 @@
  */
 package control.particlecontrol;
 
-import control.maths.UniformDistribution;
+import control.maths.RandomArray;
 import model.particle.Particle;
 import model.surface.SurfaceTrianglePath;
 import model.topology.Capacity;
@@ -47,13 +47,13 @@ public class FlowCalculator_Heterogene extends FlowCalculatorMixed {
     }
 
     @Override
-    public boolean particleIsDepositing(Particle particle, Capacity capacity, UniformDistribution random) {
+    public boolean particleIsDepositing(Particle particle, Capacity capacity, RandomArray random) {
         // P=1-(v_pipe²/v_deposit²)
 
         if (capacity instanceof Pipe) {
             double r = random.nextDouble();
             double v_p = ((Pipe) capacity).getStatusTimeLine().getVelocity();
-            double p=(1 - (v_p * v_p / v_deposit_quadrat));
+            double p = (1 - (v_p * v_p / v_deposit_quadrat));
             boolean d = r < p;
 //            if (particle.getId()==0) {
 //                System.out.println("vp=" + v_p + " \tP=" + p + "     random=" + r + "\t deposit? " + d);
@@ -68,11 +68,11 @@ public class FlowCalculator_Heterogene extends FlowCalculatorMixed {
     }
 
     @Override
-    public boolean particleIsEroding(Particle particle, Capacity capacity,UniformDistribution random) {
+    public boolean particleIsEroding(Particle particle, Capacity capacity, RandomArray random) {
         if (capacity instanceof Pipe) {
             double r = random.nextDouble();
             double v_p = ((Pipe) capacity).getStatusTimeLine().getVelocity();
-            double p=((v_p * v_p / v_erode_quadrat) - 1);
+            double p = ((v_p * v_p / v_erode_quadrat) - 1);
             boolean e = r < p;
 //            if (particle.getId()==0) {
 //                System.out.println("vp=" + v_p + " \tP=" + p + "     random=" + r + "\t erode? " + e);

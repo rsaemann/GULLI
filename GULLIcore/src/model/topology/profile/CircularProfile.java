@@ -98,21 +98,6 @@ public class CircularProfile extends Profile {
 
     @Override
     public double getFlowArea(double water_level_in_pipe) {
-//        if (water_level_in_pipe == lastFlowAreaWL) {
-//            return lastCalculatedArea;
-//        }
-//        lastFlowAreaWL = water_level_in_pipe;
-//        if (water_level_in_pipe <= 0) {
-//            lastCalculatedArea = 0;
-//        } else if (water_level_in_pipe >= diameter) {
-//            lastCalculatedArea = Math.PI * 0.25 * diameter * diameter;
-//        } else {
-//            //Calculate angle of hydraulic U
-//            double angle = 2 * getAlpha(water_level_in_pipe);
-//            //Calculate hydraulic area
-//            lastCalculatedArea = diameter * diameter * 0.125 * (angle - Math.sin(angle));
-//        }
-//        return lastCalculatedArea;
         if(verbose)System.out.println(getClass()+"::Lookup FlowArea");
         if (water_level_in_pipe <= 0) {
             return 0;
@@ -120,8 +105,6 @@ public class CircularProfile extends Profile {
         if (water_level_in_pipe >= diameter) {
             return totalarea;
         } else {
-//            int index=(int)(water_level_in_pipe/diameter);
-//            return flowarea[index];
             
             //Calculate angle of hydraulic U
             double angle = 2 * getAlpha(water_level_in_pipe);

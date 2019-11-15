@@ -6,7 +6,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
@@ -111,7 +110,7 @@ public class SWMM_IO {
                         readRaingages(br);
                         System.out.println(raingages.size() + " raingages read:");
                         for (Raingage value : raingages.values()) {
-                            System.out.println("   "+value.name);
+                            System.out.println("   " + value.name);
                         }
                     } else if (line.toUpperCase().equals("[SUBCATCHMENTS]")) {
                         readSubcatchments(br);
@@ -1707,7 +1706,9 @@ public class SWMM_IO {
                         if (line.length() < 10) {
                             break;
                         }
-                        tmh.setWaterZ(Float.parseFloat(line.substring(line.lastIndexOf(" ") + 1)), timecounter);
+                        float hz = Float.parseFloat(line.substring(line.lastIndexOf(" ") + 1));
+                        tmh.setWaterZ(hz, timecounter);
+                        tmh.setWaterLevel(hz - mh.getSole_height(), timecounter);
                         timecounter++;
                     }
                 } else if (line.contains("Link Results")) {
@@ -1756,6 +1757,7 @@ public class SWMM_IO {
 //                        System.out.println("Pipes split to "+parts.length+" parts");
                         tmh.setVelocity(Float.parseFloat(parts[3]), timecounter);
                         tmh.setWaterlevel(Float.parseFloat(parts[4]), timecounter);
+                        tmh.setVolume((float) (pipe.getProfile().getFlowArea(Float.parseFloat(parts[4])) * pipe.getLength()), timecounter);
 
                         timecounter++;
                     }

@@ -50,9 +50,7 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
     public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider) {
         super(dataprovider.loadTimeStepsNetwork());
         this.dataprovider = dataprovider;
-        if (dataprovider != null) {
-            hasReferencePollution = dataprovider.hasTimeLineMass();
-        }
+        hasReferencePollution = dataprovider.hasTimeLineMass();
     }
 
     public SparseTimeLinePipeContainer(long[] times) {
@@ -82,9 +80,7 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
         if (verboseRequests) {
             System.out.println(getClass() + ": request loading Waterlevel timeline for pipe " + pipeName + " / " + pipeManualId);
         }
-//        System.out.println("Load SParseTimeline: Waterleveltimeline");
         dataprovider.fillTimelinePipe(pipeManualId, pipeName, tl);
-//        tl.setWaterlevel(dataprovider.loadTimeLineWaterlevel(pipeManualId, pipeName, getNumberOfTimes()));
     }
 
     public void loadTimelineFlux(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
@@ -102,7 +98,7 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
         }
         tl.setMass_reference(dataprovider.loadTimeLineMass(pipeManualId, pipeName, getNumberOfTimes()));
     }
-    
+
     public void loadTimelineConcentration(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
             System.out.println(getClass() + ": request loading Concentration timeline for pipe " + pipeName + " / " + pipeManualId);

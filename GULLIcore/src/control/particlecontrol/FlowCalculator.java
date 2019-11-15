@@ -23,8 +23,7 @@
  */
 package control.particlecontrol;
 
-import control.maths.UniformDistribution;
-import java.util.Random;
+import control.maths.RandomArray;
 import model.particle.Particle;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole;
@@ -40,10 +39,10 @@ public interface FlowCalculator {
      *
      * @param mh
      * @param probability
-     * @param ds > 0 in advective direction, ds < 0 : anti advection direction
+     * @param forward in advective direction, ds < 0 : anti advection direction 
      * @return
      */
-    public abstract Connection_Manhole whichConnection(Manhole mh, Random probability, double ds);
+    public abstract Connection_Manhole whichConnection(Manhole mh, RandomArray probability, boolean forward);
 
     /**
      * Returns if a particle is changing to immobilize state. Does not affect
@@ -54,7 +53,7 @@ public interface FlowCalculator {
      * @param random
      * @return
      */
-    public abstract boolean particleIsDepositing(Particle particle, Capacity capacity,  UniformDistribution random);
+    public abstract boolean particleIsDepositing(Particle particle, Capacity capacity,  RandomArray random);
 
     /**
      * Returns wheather a particle is changing back to mobile state (from
@@ -66,6 +65,6 @@ public interface FlowCalculator {
      * @param random
      * @return
      */
-    public abstract boolean particleIsEroding(Particle particle, Capacity capacity, UniformDistribution random);
+    public abstract boolean particleIsEroding(Particle particle, Capacity capacity, RandomArray random);
 
 }

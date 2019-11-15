@@ -133,13 +133,13 @@ public class DBMSAccess {
 
             pipe.setWaterType(type);
             pipe.setLength(res.getFloat(6));
-            pipe.setRoughness_k(res.getFloat(10));
+//            pipe.setRoughness_k(res.getFloat(10));
             
             pipes_sewer.add(pipe);
         }
         res.close();
         pipes_drain.addAll(pipes_sewer);
-        return new Network(pipes_drain, new HashSet<Manhole>(smap.values()));
+        return new Network(pipes_drain, new HashSet<>(smap.values()));
     }
     
 }

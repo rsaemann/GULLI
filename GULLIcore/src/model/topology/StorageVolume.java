@@ -117,7 +117,7 @@ public class StorageVolume extends Capacity {
 
     @Override
     public double getFluidVolume() {
-        return profile.getTotalArea() * (getWaterHeight() - sole_height);
+        return profile.getTotalArea() * (getWaterlevel());
     }
 
     public float getSole_height() {
@@ -149,17 +149,6 @@ public class StorageVolume extends Capacity {
         return numberOutgoings;
     }
 
-    
-//    public void setWater_height(double water_height) {
-//        this.water_height = (float) water_height;
-//        this.waterlevel = this.water_height - sole_height;
-//    }
-
-//    @Override
-//    public void setWaterZ(double waterlevel) {
-//        super.setWaterZ(waterlevel);
-//        this.water_height = (float) (waterlevel + sole_height);
-//    }
 
     public String getName() {
         return name;
@@ -188,7 +177,7 @@ public class StorageVolume extends Capacity {
 
     @Override
     public double getWaterlevel() {
-        return timelineStatus.getActualWaterZ()-this.getSole_height();
+        return timelineStatus.getActualWaterLevel();//timelineStatus.getActualWaterZ()-this.getSole_height();
     }
     
     

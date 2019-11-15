@@ -325,6 +325,42 @@ public class GeometryTools {
     }
 
     /**
+     *
+     * @param p0_x
+     * @param p0_y
+     * @param p1_x
+     * @param p1_y
+     * @param p2_x
+     * @param p2_y
+     * @param p3_x
+     * @param p3_y
+     * @return [0:factor along p0-p1,1:factor along p2-p3]
+     */
+    public static double[] lineIntersectionST(double p0_x, double p0_y, double p1_x, double p1_y,
+            double p2_x, double p2_y, double p3_x, double p3_y, double[] tofill) {
+
+        double s1_x, s1_y, s2_x, s2_y;
+        s1_x = p1_x - p0_x;
+        s1_y = p1_y - p0_y;
+        s2_x = p3_x - p2_x;
+        s2_y = p3_y - p2_y;
+
+        double s, t;
+        t = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+        s = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+
+        if (tofill == null) {
+             System.out.println("new double[] for lineintersectionTS");
+            return new double[]{s, t};
+        } else {
+            tofill[0] = s;
+            tofill[1] = t;
+            return tofill;
+        }
+
+    }
+
+    /**
      * returns the length factor of line a-b, to reach the crossing point with
      * line c-d.
      *

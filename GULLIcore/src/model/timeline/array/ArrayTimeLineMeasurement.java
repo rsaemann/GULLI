@@ -1,8 +1,8 @@
 package model.timeline.array;
 
-import control.threads.ThreadController;
-import java.util.Date;
 import java.util.HashSet;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import model.particle.Particle;
 
 /**
@@ -25,7 +25,8 @@ public class ArrayTimeLineMeasurement {
      * on this list have to wait on each other. Enabling this results in a more
      * accurate counting because adding a value is not threadsave.
      */
-    public static boolean useSynchronizedMeasurements = true;
+    public static boolean synchronizeMeasures = true;
+    private Lock lock = new ReentrantLock();
 
     private double maxMass = 0;
     private double maxConcentration = 0;
@@ -72,7 +73,7 @@ public class ArrayTimeLineMeasurement {
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (container.mass_total[index] / (float) (container.volumes[index] * container.messungenProZeitschritt));
+        return (float) (container.mass_total[index] / (float) (container.volumes[index] * container.samplesPerTimeinterval));
         /*container.particles[index] * Particle.massPerParticle*/
         /**
          * container.counts[index]
@@ -81,13 +82,13 @@ public class ArrayTimeLineMeasurement {
 
     public float getMass(int temporalIndex) {
         int index = getIndex(temporalIndex);
-        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] / (container.messungenProZeitschritt));
+        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] / (container.samplesPerTimeinterval));
 
     }
 
     public float getParticles(int temporalIndex) {
         int index = getIndex(temporalIndex);
-        return (float) (container.particles[index] / (float) container.messungenProZeitschritt);
+        return (float) (container.particles[index] / (float) container.samplesPerTimeinterval);
     }
 
     public float getVolume(int temporalIndex) {
@@ -115,7 +116,7 @@ public class ArrayTimeLineMeasurement {
             container.volumes[index] += volumeValue;
             container.mass_total[index] += particleMassInTimestep;
             container.counts[index]++;
-            double tempmass = (particleMassInTimestep / (container.messungenProZeitschritt));
+            double tempmass = (particleMassInTimestep / (container.samplesPerTimeinterval));
             if (tempmass > maxMass) {
                 maxMass = tempmass;
             }
@@ -163,7 +164,7 @@ public class ArrayTimeLineMeasurement {
         if (!active) {
             return;
         }
-        if (useSynchronizedMeasurements) {
+        if (synchronizeMeasures) {
             if (useIDsharpParticleCounting) {
                 synchronized (particles) {
                     if (!particles.contains(particleToCount)) {
@@ -175,10 +176,15 @@ public class ArrayTimeLineMeasurement {
                     }
                 }
             } else {
-                synchronized (this) {
+//                synchronized (this) {
+                lock.lock();
+                try {
                     this.particleMassInTimestep += particleToCount.particleMass;
                     this.numberOfParticlesInTimestep++;
+                } finally {
+                    lock.unlock();
                 }
+//                }
             }
         } else {
             if (useIDsharpParticleCounting) {
@@ -211,21 +217,21 @@ public class ArrayTimeLineMeasurement {
 //    public static float[] getMassForTimeIndex(int timeIndex) {
 //        float[] r = new float[distance.length];
 //        for (int i = 0; i < distance.length; i++) {
-//            r[i] = (float) ((particles[i * times.length + timeIndex] * Particle.massPerParticle) / (messungenProZeitschritt));
+//            r[i] = (float) ((particles[i * times.length + timeIndex] * Particle.massPerParticle) / (samplesPerTimeinterval));
 //        }
 //        return r;
 //    }
 //    public static float[] getConcentrationForTimeIndex(int timeIndex) {
 //        float[] r = new float[distance.length];
 //        for (int i = 0; i < distance.length; i++) {
-//            r[i] = (float) ((particles[i * times.length + timeIndex] * Particle.massPerParticle * counts[i * times.length + timeIndex]) / (volumes[i * times.length + timeIndex] * messungenProZeitschritt));
+//            r[i] = (float) ((particles[i * times.length + timeIndex] * Particle.massPerParticle * counts[i * times.length + timeIndex]) / (volumes[i * times.length + timeIndex] * samplesPerTimeinterval));
 //        }
 //        return r;
 //    }
 //    public static float[] getNumberOfParticlesForTimeIndex(int timeIndex) {
 //        float[] r = new float[distance.length];
 //        for (int i = 0; i < distance.length; i++) {
-//            r[i] = (float) ((particles[i * times.length + timeIndex]) / (messungenProZeitschritt));
+//            r[i] = (float) ((particles[i * times.length + timeIndex]) / (samplesPerTimeinterval));
 //        }
 //        return r;
 //    }

@@ -25,6 +25,14 @@ public interface TimeLineManhole {
     public float getActualWaterZ();
 
     /**
+     * The waterheight above sole at the current set timestamp. Actual time is
+     * set by calling setActualTime on the Container.
+     *
+     * @return
+     */
+    public float getActualWaterLevel();
+
+    /**
      * Outflow from manhole to surface in m³/s.
      *
      * @param temporalIndex
@@ -46,7 +54,7 @@ public interface TimeLineManhole {
      * @return
      */
     public int getNumberOfTimes();
-    
+
     /**
      * Holds information about stored timestamps
      *

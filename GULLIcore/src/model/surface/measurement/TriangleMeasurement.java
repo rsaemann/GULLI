@@ -23,8 +23,8 @@
  */
 package model.surface.measurement;
 
-import model.particle.Particle;
-import model.timeline.array.TimeIndexContainer;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Stores number/mass of particles on a surface triangle
@@ -32,13 +32,7 @@ import model.timeline.array.TimeIndexContainer;
  * @author saemann
  */
 public class TriangleMeasurement {
-    
-    /**
-     * if particles have lower travel length than this, they are not measured.
-     */
-    public static double minTravelLengthToMeasure=0;
 
-    TimeIndexContainer times;
     int triangleID;
     /**
      * [material index][timeindex]
@@ -49,60 +43,17 @@ public class TriangleMeasurement {
      */
     int[][] particlecounter;
 
-//    int[] timerequestCount;
+    public ReentrantLock lock = new ReentrantLock();
 
-//    long lastRequestTime = 0;
+    public TriangleMeasurement(int triangleID, int numberOfTimes, int numberOfMaterials) {
 
-    public TriangleMeasurement(TimeIndexContainer times, int triangleID, int numberOfMaterials) {
-        this.times = times;
         this.triangleID = triangleID;
-        this.mass = new double[numberOfMaterials][times.getNumberOfTimes()];
-        this.particlecounter = new int[numberOfMaterials][times.getNumberOfTimes()];
-//        this.timerequestCount = new int[times.getNumberOfTimes()];
+        this.mass = new double[numberOfMaterials][numberOfTimes];
+        this.particlecounter = new int[numberOfMaterials][numberOfTimes];
     }
 
     public int getTriangleID() {
         return triangleID;
-    }
-
-    public void measureParticle(long time, Particle particle) {
-        if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
-            //for risk map do not show inertial particles
-//            System.out.println("Do not track particle "+particle.getTravelledPathLength());
-            return;
-        }
-        int timeindex = times.getTimeIndex(time);
-        try {
-            mass[particle.getMaterial().materialIndex][timeindex] += particle.particleMass;
-            particlecounter[particle.getMaterial().materialIndex][timeindex]++;
-//            if (time != lastRequestTime) {
-//                timerequestCount[timeindex]++;
-//                lastRequestTime = time;
-//            }
-        } catch (IndexOutOfBoundsException e) {
-            System.err.println(getClass() + "::Request t=" + timeindex + " m=" + particle.getMaterial().materialIndex + "   length: " + mass.length + "   times.length=" + times.getNumberOfTimes());
-        }
-    }
-
-    public void reset() {
-        this.mass = new double[mass.length][times.getNumberOfTimes()];
-        this.particlecounter = new int[particlecounter.length][times.getNumberOfTimes()];
-//        this.timerequestCount = new int[times.getNumberOfTimes()];
-    }
-
-    public void reset(int numberOfMaterials) {
-        this.mass = new double[numberOfMaterials][times.getNumberOfTimes()];
-        this.particlecounter = new int[numberOfMaterials][times.getNumberOfTimes()];
-//        this.timerequestCount = new int[times.getNumberOfTimes()];
-    }
-
-    public void setTimecontainer(TimeIndexContainer container) {
-        this.times = container;
-        reset();
-    }
-
-    public TimeIndexContainer getTimes() {
-        return times;
     }
 
     /**
@@ -123,8 +74,19 @@ public class TriangleMeasurement {
         return particlecounter;
     }
 
-//    public int requestInTimestep(int timeIndex) {
-//        return 0;//timerequestCount[timeIndex];
-//    }
+    @Override
+    public String toString() {
+        return "TriangleMeasurement " + triangleID + " " + super.toString();
+    }
+
+    public int totalParticleCount() {
+        int counter = 0;
+        for (int i = 0; i < particlecounter.length; i++) {
+            for (int j = 0; j < particlecounter[i].length; j++) {
+                counter += particlecounter[i][j];
+            }
+        }
+        return counter;
+    }
 
 }

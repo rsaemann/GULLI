@@ -25,7 +25,6 @@ package control.threads;
 
 import control.Controller;
 import java.util.ArrayList;
-import java.util.Date;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Pipe;
@@ -106,7 +105,6 @@ public class SynchronizationThread extends Thread {
                                 if (tl != null) {
                                     if (tl.getNumberOfParticles() > 0) {
                                         tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
-
                                     }
                                     tl.resetNumberOfParticles();
                                     tl.active = false;
@@ -165,7 +163,7 @@ public class SynchronizationThread extends Thread {
                                 if (pipe.getMeasurementTimeLine() != null) {
                                     pipe.getMeasurementTimeLine().active = true;
                                     if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 1000) {
-                                        int count = pipe.getMeasurementTimeLine().getNumberOfParticles();
+//                                        int count = pipe.getMeasurementTimeLine().getNumberOfParticles();
                                         pipe.getMeasurementTimeLine().resetNumberOfParticles();
 
 //                                        System.out.println("Particles in " + pipe.getName() + " are " + count + " before reset and " + pipe.getMeasurementTimeLine().getNumberOfParticles() + " afterwards");

@@ -23,8 +23,8 @@
  */
 package control.particlecontrol;
 
+import control.maths.RandomArray;
 import control.threads.ThreadController;
-import java.util.Random;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
@@ -52,7 +52,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      * A random variable to generate decisions. Should be reset at each new
      * start of a simulation.
      */
-    protected Random random;
+    protected RandomArray random;
 
 //    /**
 //     * Seed used for generating the same random numbers for each run.
@@ -187,7 +187,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         for (int i = 0; i < 10; i++) {
             SurfaceTriangle triangle = (SurfaceTriangle) p.getSurrounding_actual();
 
-            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p);
+            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p,0);
 
 //            if (triangle.measurement != null) {
 //                triangle.measurement.measureParticle(ThreadController.getSimulationTimeMS(), p);
@@ -305,10 +305,9 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      */
     private Pair<SurfaceTrianglePath, Float> calcOutgoingPath(int triangleID, double ds) {
 
-        int outgoing = 0;
 
 //        status = 30;
-        outgoing = (int) (random.nextInt(3));
+        int outgoing = (int) (random.nextDouble()*3);
 //        status = 100 + outgoing;
         if (surface.getNeighbours()[triangleID][outgoing] < 0) {
             //Hit wall (no neighbour here)
@@ -360,8 +359,12 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
     }
 
     @Override
-    public void setRandomNumberGenerator(Random rd) {
+    public void setRandomNumberGenerator(RandomArray rd) {
         this.random = rd;
+    }
+
+    @Override
+    public void setActualSimulationTime(long timeMS) {
     }
 
 }

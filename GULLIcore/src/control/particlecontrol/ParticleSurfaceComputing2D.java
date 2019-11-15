@@ -24,18 +24,22 @@
 package control.particlecontrol;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import control.maths.RandomArray;
 import control.threads.ThreadController;
-import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
 import model.surface.SurfaceTrianglePath;
 import model.topology.Inlet;
 import model.topology.Manhole;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  * Dealing with the transport of particles on a surface. Particles move in 2d
- * space continuum.
+ * space continuum. Must be one per ParticleThread. is not threadsave when used
+ * by multiple htreads.
  *
  * @author riss,saemann
  */
@@ -46,13 +50,19 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     protected float dt = 1;
 
+    public int threadindex = 0;
+
+    private float sqrt2dt = (float) Math.sqrt(2 * dt);
+
+    private long simulationtime;
+
     protected Surface surface;
 
     /**
      * A random variable to generate decisions. Should be reset at each new
      * start of a simulation.
      */
-    protected Random random;
+    protected RandomArray random;
 
     /**
      * Seed used for generating the same random numbers for each run.
@@ -80,8 +90,17 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     public static int numberOfErrors = 0;
 
-    public ParticleSurfaceComputing2D(Surface surface) {
+    /////Arrays to be filled from other functions. so no extra allocation is needed.
+    private double[] particlevelocity = new double[2];
+    private final double[] temp_barycentricWeights = new double[3];
+    private final double[][] tempVertices = new double[3][3];
+    private double[] tempDiff = new double[2];
+
+    private double posxalt, posyalt, posxneu, posyneu, totalvelocity;
+
+    public ParticleSurfaceComputing2D(Surface surface, int threadIndex) {
         this.surface = surface;
+        this.threadindex = threadIndex;
     }
 
     public void setDiffusionCalculation(DiffusionCalculator2D D) {
@@ -114,6 +133,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         }
     }
 
+    public void setSimulationtime(long simulationtime) {
+        this.simulationtime = simulationtime;
+    }
+
     /**
      * Called from Threadcontroller for each Particle. Delegates to the actual
      * selected transport function.
@@ -124,7 +147,20 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public void moveParticle(Particle p) {
         try {
 //            status = 0;
+            checkSurrounding(p);
+//            status = 10;
             moveParticle2(p);
+//            status = 20;
+            if (allowWashToPipesystem) {
+//                status = 21;
+                washToPipesystem(p, p.surfaceCellID);
+            }
+//            status = 30;
+            if (p.isOnSurface()) {
+//                status = 31;
+                surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
+            }
+//            status = 40;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -137,11 +173,49 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * @param p
      */
     private void moveParticle2(Particle p) throws Exception {
+
+        // get the particle velocity (most computation time used here)
+        particlevelocity = surface.getParticleVelocity2D(p, p.surfaceCellID, particlevelocity, temp_barycentricWeights);
+
+        totalvelocity = (float) testVelocity(particlevelocity);
+        p.addMovingLength(totalvelocity * dt);
+
+        posxalt = (float) p.getPosition3d().x;
+        posyalt = (float) p.getPosition3d().y;
+
+        if (!enableDiffusion) {
+            posxneu = (posxalt + particlevelocity[0] * dt);// only advection
+            posyneu = (posyalt + particlevelocity[1] * dt);// only advection
+        } else {
+            // calculate diffusion
+            if (totalvelocity > 0.0000001f) {
+                //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
+                tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
+                double sqrt2dtDx = sqrt2dt * tempDiff[0];
+                double sqrt2dtDy = sqrt2dt * tempDiff[1];
+
+                // random walk simulation
+                float z2 = (float) nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+                float z1 = (float) nextRandomGaussian();
+
+                // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
+                posxneu = (posxalt + particlevelocity[0] * dt + (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy));
+                posyneu = (posyalt + particlevelocity[1] * dt + (particlevelocity[1] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[0] / totalvelocity) * z2 * sqrt2dtDy));
+            }
+        }
+
+        // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
+        // da eine Veränderung durch Modellränder vorkommen kann
+        p.surfaceCellID = surface.getTargetTriangleID(p, p.surfaceCellID, posxalt, posyalt, posxneu, posyneu, 10, temp_barycentricWeights, tempVertices);
+
+    }
+
+    private void checkSurrounding(Particle p) {
         int triangleID = p.surfaceCellID;
         Coordinate pos = p.getPosition3d();
-
         if (pos != null && triangleID >= 0) {
             //Everything ok.
+            return;
         } else {
             System.err.println("particle lost on surface");
             if (p.getSurrounding_actual() instanceof Surface) {
@@ -163,8 +237,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 SurfaceTriangle st = (SurfaceTriangle) p.getSurrounding_actual();
                 triangleID = (int) st.getManualID();
                 if (pos == null) {
-                    Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).lonLatCoordinate(), false);
-                    pos = new Coordinate(utm.x, utm.y, st.getPosition3D(0).z);
+                    try {
+                        Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).lonLatCoordinate(), false);
+                        pos = new Coordinate(utm.x, utm.y, st.getPosition3D(0).z);
+                    } catch (TransformException ex) {
+                        Logger.getLogger(ParticleSurfaceComputing2D.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
             } else if ((p.getSurrounding_actual() instanceof SurfaceTrianglePath)) {
                 System.out.println("particle is on 1d surface path ... something is wrong!");
@@ -173,9 +251,13 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 Manhole mh = (Manhole) p.getSurrounding_actual();
                 triangleID = (int) mh.getSurfaceTriangleID();
                 if (pos == null) {
-                    Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().lonLatCoordinate(), false);
-                    System.out.println("Converted manhole to " + utm);
-                    pos = new Coordinate(utm.x, utm.y, mh.getSurface_height());
+                    try {
+                        Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().lonLatCoordinate(), false);
+                        System.out.println("Converted manhole to " + utm);
+                        pos = new Coordinate(utm.x, utm.y, mh.getSurface_height());
+                    } catch (TransformException ex) {
+                        Logger.getLogger(ParticleSurfaceComputing2D.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
             } else {
                 System.out.println("Particle " + p + " is in unknown Capacity " + p.getSurrounding_actual());
@@ -187,103 +269,67 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         if (p.surfaceCellID < 0) {
             System.out.println("Problem with particle on surface (surfacecell:" + p.surfaceCellID + ", onsurface:" + p.isOnSurface());
         }
-        // get the particle velocity
-        double[] velo = surface.getParticleVelocity2D(p, triangleID);
-        double u = Math.sqrt((velo[0] * velo[0]) + (velo[1] * velo[1]));
+    }
+
+    private double testVelocity(double[] particlevelocity) {
+        double u = Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1]));
         if (u > 3 || u < -3) {
-            System.out.println("velocity (" + u + ")is implausible. set to +/- 3m/s");
-            double veloverhaeltnis = velo[0] / velo[1];
+            System.out.println("velocity (" + u + ")is implausible. set to +/- 3m/s [" + particlevelocity[0] + ", " + particlevelocity[1] + "] = " + Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1])));
+            double veloverhaeltnis = particlevelocity[0] / particlevelocity[1];
             if (veloverhaeltnis < 1) {
-                velo[1] = 3;
-                velo[0] = 3 * veloverhaeltnis;
+                particlevelocity[1] = 3;
+                particlevelocity[0] = 3 * veloverhaeltnis;
             } else {
-                velo[0] = 3;
-                velo[1] = 3 * (1. / veloverhaeltnis);
+                particlevelocity[0] = 3;
+                particlevelocity[1] = 3 * (1. / veloverhaeltnis);
             }
+
+            u = 3;
         }
+        return u;
+    }
 
-        p.addMovingLength(u * dt);
-
-        double posxalt = p.getPosition3d().x;
-        double posyalt = p.getPosition3d().y;
-
-        if (!enableDiffusion) {
-            pos.x += (float) velo[0] * dt;// only advection
-            pos.y += (float) velo[1] * dt;// only advection
-        } else {
-            // calculate diffusion
-            if (u > 0.0000001f) {
-                double[] Diff = D.calculateDiffusion(velo[0], velo[1], surface, triangleID);
-                double sqrt2dtDx = Math.sqrt(2. * dt * Diff[0]);
-                double sqrt2dtDy = Math.sqrt(2. * dt * Diff[1]);
-
-                // random walk simulation
-                double z2 = random.nextGaussian();           // random number to simulate random walk (lagrangean transport)
-                double z1 = random.nextGaussian();
-
-                // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
-                pos.x += velo[0] * dt + (velo[0] / u) * z1 * sqrt2dtDx + ((velo[1] / u) * z2 * sqrt2dtDy);
-                pos.y += velo[1] * dt + (velo[1] / u) * z1 * sqrt2dtDx + ((velo[0] / u) * z2 * sqrt2dtDy);
-            }
-        }
-
-        // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
-        // da eine Veränderung durch Modellränder vorkommen kann
-//        int id;
-//        try {
-        int    id = surface.getTargetTriangleID(p, triangleID, posxalt, posyalt, pos.x, pos.y, 10);
-//        } catch (Surface.BoundHitException boundHitException) {
-//            pos.x = boundHitException.correctedPositionX;
-//            pos.y = boundHitException.correctedPositionY;
-//            id = boundHitException.id;
-//            numberOfErrors++;
-//            System.out.println(numberOfErrors + " position sets on surface.");
-//        }
-
-        p.surfaceCellID = id;
-
-        if (allowWashToPipesystem) {
-            //Check if particle can go back to pipe system.
-            Inlet inlet = surface.getInlet(id);
-            if (inlet != null) {
-                // Check if Inlet is flooded
-                if (inlet.getNetworkCapacity() != null) {
-                    double fillrate = inlet.getNetworkCapacity().getProfile().getFillRate(inlet.getNetworkCapacity().getWaterlevel());
-                    if (fillrate < 0.9) {
-                        //Pipe is not flooded. Particles can enter pipenetwork here.
-                        p.setSurrounding_actual(inlet.getNetworkCapacity());
-                        p.setPosition1d_actual(inlet.getPipeposition1d());
-                        p.setInPipenetwork();
-                        p.toPipenetwork = inlet.getNetworkCapacity();
-                        //Create Shortcut
-                        if (p.toSurface != null) {
-                            surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
-                        }
-                        return;
-                    }
-                } else {
-                    System.out.println("Inlet " + inlet.toString() + " has no pipe.");
-                }
-            }
-            Manhole m = surface.getManhole(id);
-            if (m != null) {
-                if (m.getStatusTimeLine().getActualFlowToSurface() <= 0) {
-                    //Water can flow back into pipe network
-                    p.setSurrounding_actual(m);
-                    p.setPosition1d_actual(0);
+    private void washToPipesystem(Particle p, int triangleID) {
+        //Check if particle can go back to pipe system.
+        Inlet inlet = surface.getInlet(triangleID);
+        if (inlet != null) {
+            // Check if Inlet is flooded
+            if (inlet.getNetworkCapacity() != null) {
+                double fillrate = inlet.getNetworkCapacity().getProfile().getFillRate(inlet.getNetworkCapacity().getWaterlevel());
+                if (fillrate < 0.9) {
+                    //Pipe is not flooded. Particles can enter pipenetwork here.
+                    p.setSurrounding_actual(inlet.getNetworkCapacity());
+                    p.setPosition1d_actual(inlet.getPipeposition1d());
                     p.setInPipenetwork();
-                    p.toPipenetwork = m;
-
+                    p.toPipenetwork = inlet.getNetworkCapacity();
+                    //Create Shortcut
                     if (p.toSurface != null) {
-                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                        surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
                     }
                     return;
                 }
+            } else {
+                System.out.println("Inlet " + inlet.toString() + " has no pipe.");
             }
         }
-        if (p.isOnSurface()) {
-            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p);
+        Manhole m = surface.getManhole(triangleID);
+        if (m != null) {
+            if (m.getStatusTimeLine().getActualFlowToSurface() <= 0) {
+                //Water can flow back into pipe network
+                p.setSurrounding_actual(m);
+                p.setPosition1d_actual(0);
+                p.setInPipenetwork();
+                p.toPipenetwork = m;
+
+                if (p.toSurface != null) {
+                    surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
+                }
+            }
         }
+    }
+
+    private double nextRandomGaussian() {
+        return random.nextGaussian();
     }
 
     public String getDiffusionString() {
@@ -293,6 +339,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     @Override
     public void setDeltaTimestep(double seconds) {
         this.dt = (float) seconds;
+        this.sqrt2dt = (float) Math.sqrt(2 * dt);
     }
 
 //    @Override
@@ -309,14 +356,27 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //    public long getSeed() {
 //        return this.seed;
 //    }
+    /**
+     *
+     * @return
+     */
     @Override
     public String reportCalculationStatus() {
-        return "Status:" + status;
+        if (surface.getMeasurementRaster().statuse != null && surface.getMeasurementRaster().monitor != null && surface.getMeasurementRaster().monitor[threadindex] != null) {
+            return "Status:" + status + "  Raster:" + surface.getMeasurementRaster().statuse[threadindex] + " monitor: " + surface.getMeasurementRaster().monitor[threadindex] + "   mass: " + surface.getMeasurementRaster().monitor[threadindex].totalParticleCount() + "  isused:" + surface.getMeasurementRaster().monitor[threadindex].lock.toString();
+        } else {
+            return "Status:" + status;
+        }
     }
 
     @Override
-    public void setRandomNumberGenerator(Random rd) {
+    public void setRandomNumberGenerator(RandomArray rd) {
         this.random = rd;
+    }
+
+    @Override
+    public void setActualSimulationTime(long timeMS) {
+        this.setSimulationtime(timeMS);
     }
 
 }

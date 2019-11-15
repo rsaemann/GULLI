@@ -88,7 +88,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     public Controller() throws Exception {
         int numberOfCores=Runtime.getRuntime().availableProcessors();
-        threadController = new ThreadController(Math.max(4,numberOfCores), this);
+//        numberOfCores=4;
+        threadController = new ThreadController(Math.max(1,numberOfCores), this);
 
         threadController.addSimulationListener(this);
         loadingCoordinator = new LoadingCoordinator(this);
@@ -354,7 +355,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (ParticleThread pt : threadController.barrier_particle.getThreads()) {
             pt.addParticlemeasurement(pms);
         }
-        threadController.barrier_sync.getThreads().get(0).addParticlemeasurement(pms);
+        threadController.barrier_sync.getThread().addParticlemeasurement(pms);
     }
 
     public void addParticleSectionMeasurement(Pipe p, double positionAbsolute) {
@@ -362,7 +363,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (ParticleThread pt : threadController.barrier_particle.getThreads()) {
             pt.addParticlemeasurement(pms);
         }
-        threadController.barrier_sync.getThreads().get(0).addParticlemeasurement(pms);
+        threadController.barrier_sync.getThread().addParticlemeasurement(pms);
     }
 
     public Network getNetwork() {
@@ -420,7 +421,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
         scenario.setMeasurementsPipe(container_m);
         ArrayTimeLineMeasurementContainer.instance = container_m;
-        container_m.setRecordsPerTimeindex(container_m.getDeltaTime() / ThreadController.getDeltaTime());
+        container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
         int number = 0;
         for (Pipe p : network.getPipes()) {
             p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));

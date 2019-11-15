@@ -65,6 +65,7 @@ public class SparseTimeLineManholeContainer extends TimeIndexContainer {
         }
 
         tl.setWaterHeight(dataprovider.loadTimeLineWaterheightManhole(manholeManualId, manholeName, getNumberOfTimes()));
+
     }
 
     public void loadTimelineSpilloutFlux(SparseTimelineManhole tl, long manholeManualId, String manholeName) {
@@ -73,6 +74,13 @@ public class SparseTimeLineManholeContainer extends TimeIndexContainer {
         }
 
         tl.setSpilloutFlux(dataprovider.loadTimeLineSpilloutFlux(manholeManualId, manholeName, getNumberOfTimes()));
+    }
+
+    public void fillTimeline(SparseTimelineManhole tl, long manholeManualId, String manholeName) {
+        if (verboseLaodingRequests) {
+            System.out.println(getClass() + ": request fill timeline for manhole '" + manholeName + "' / " + manholeManualId);
+        }
+        dataprovider.fillTimelineManhole(manholeManualId, manholeName, tl);
     }
 
 }

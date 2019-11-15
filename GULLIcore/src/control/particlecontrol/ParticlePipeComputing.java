@@ -23,14 +23,8 @@
  */
 package control.particlecontrol;
 
-import control.maths.GaussDistribution;
-import control.maths.RandomDistribution;
-import control.maths.TriangleDistribution;
-import control.maths.UniformDistribution;
-import control.maths.VelocityDistribution;
-import control.threads.ParticleThread;
+import control.maths.RandomArray;
 import control.threads.ThreadController;
-import java.util.Random;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
@@ -54,10 +48,6 @@ public class ParticlePipeComputing {
 
     protected int id = autoIncrement++;
 
-    /**
-     * List containing all particle, that has to be computed by this controller.
-     */
-//    ArrayList<Particle> particles;
     public enum COMPUTING {
 
         RANDOMWALK
@@ -73,11 +63,10 @@ public class ParticlePipeComputing {
         FIX_DIFFUSION_COEFFICIENT, FIX_DIFFUSIVE_COEFFICIENT;
     }
 
-    private final RANDOM_DISTRIBUTION distributionForm;
-    private UniformDistribution uniformDistribution;
-    private final VelocityDistribution velocityFunction;
+//    private final RANDOM_DISTRIBUTION distributionForm;
+//    private UniformDistribution uniformDistribution;
+//    private final VelocityDistribution velocityFunction;
 //    private long seed;
-
     public COMPUTING computing = COMPUTING.RANDOMWALK;
 
 //    public static boolean useDynamicVelocity = true;
@@ -102,10 +91,10 @@ public class ParticlePipeComputing {
      */
     private static double diffusivityTurbulentCoefficient = 2;//m
 
-    /**
-     * [m^2/s] up to 30% fill rate.
-     */
-//    public double dispersionCoefficient_low = 0.015;//m^2/s
+//    /**
+//     * [m^2/s] up to 30% fill rate.
+//     */
+////    public double dispersionCoefficient_low = 0.015;//m^2/s
     protected static float dt;
 
     private static double diffusionDistance = getDispersionDistance(dt, diffusionturbulentCoefficient);
@@ -115,14 +104,16 @@ public class ParticlePipeComputing {
      * [m/s] minimum Velocity even in perfect horizontal pipes
      */
 //    public double minimumVelocity = 0.009;
-    Random rand;
+    private RandomArray rand;
 
-    public RandomDistribution randDist;
-
+//    public RandomDistribution randDist;
 //    private ParticleThread thread;
     public static int[] passedPipesCounter;
 
-//    private int passedPipes;
+    /**
+     * If set to false, particles will not leave the pipe system towards the
+     * surface domain.
+     */
     public static boolean spillOutToSurface = false;
 
     private Surface surface;
@@ -139,71 +130,14 @@ public class ParticlePipeComputing {
      */
     public boolean measureOnlyInDestination = true;
 
+    public int status = -1;
+
     public ParticlePipeComputing() {
-        this.distributionForm = RANDOM_DISTRIBUTION.NORMAL_GAUSS;
-        this.randDist = new GaussDistribution(new Random());
-        velocityFunction = new VelocityDistribution(rand);
-    }
-
-    /**
-     * @deprecated @param seed
-     * @param pt
-     */
-    public ParticlePipeComputing(long seed, ParticleThread pt) {
-        this(seed, RANDOM_DISTRIBUTION.NORMAL_GAUSS);
-//        this.thread = pt;
-    }
-
-    /**
-     * @deprecated @param seed
-     * @param distributiontype
-     */
-    public ParticlePipeComputing(long seed, RANDOM_DISTRIBUTION distributiontype) {
-//        this.particles = new ArrayList<>();
-        this.distributionForm = distributiontype;
-//        this.seed = seed;
-        this.rand = new Random(seed);
-        velocityFunction = new VelocityDistribution(rand);
-        resetRandomDistribution();
     }
 
     public void setSurface(Surface surf, boolean enableSpill) {
         this.surface = surf;
-        this.spillOutToSurface = enableSpill;
-    }
-
-    /**
-     * Set this Distributionfunction sith the given one. Replaces the input's
-     * Random generator by the one in this ParticlePipeComputing object.
-     *
-     * @param randDist
-     */
-    public void setRandDist(RandomDistribution randDist) {
-        this.randDist = randDist;
-        this.randDist.setRandomGenerator(rand);
-
-    }
-
-//    public void setSeed(long seed) {
-//        this.seed = seed;
-//    }
-    public void resetRandomDistribution() {
-        passedPipesCounter = new int[5];
-//        this.rand = new Random(seed);
-//        System.out.println("resetParticlePipeComputing with seed "+seed);
-        this.velocityFunction.setRandomGenerator(rand);
-        if (distributionForm == RANDOM_DISTRIBUTION.NORMAL_GAUSS) {
-            this.randDist = new GaussDistribution(rand);
-        } else if (distributionForm == RANDOM_DISTRIBUTION.UNIFORM) {
-            this.randDist = new UniformDistribution(rand, 0, 3);
-        } else {
-            this.randDist = new TriangleDistribution(rand, 0, 6);
-        }
-        this.uniformDistribution = new UniformDistribution(rand, 0.5, 1);
-//        System.out.println("Random "+id+" Reset ");
-//        for (int i = 0; i < 10; i++) {
-//            System.out.println("Random "+id+": "+i+" = "+rand.nextInt());            
-//        }
+        ParticlePipeComputing.spillOutToSurface = enableSpill;
     }
 
     public void setDeltaTime(double deltaTime) {
@@ -236,7 +170,7 @@ public class ParticlePipeComputing {
         ParticlePipeComputing.diffusionDistance = getDispersionDistance(dt, dispersionCoefficient);
     }
 
-    public double getTraveldistance(Particle p) {
+    private double getTraveldistance(Particle p) {
         double ds = 0;
         Capacity c = p.getSurrounding_actual();
         if (c.getClass().equals(Pipe.class)) {
@@ -244,28 +178,15 @@ public class ParticlePipeComputing {
             ds = p.getVelocity1d() * dt;
         }
 
-        double gauss = randDist.nextDouble();
-//        if (useDynamicDispersion && p.getSurrounding_actual() != null && p.getSurrounding_actual() instanceof Pipe) {
-//            double k = getDispersion((Pipe) p.getSurrounding_actual());
-//            double dsk = getDispersionDistance(dt, k);
-//            System.out.println("dynamic dispersion status!");
-//            ds += dsk * gauss;
-//            if (gauss > 6 || gauss < -6) {
-//                System.out.println("Random number for dispersion is " + gauss + ", resulting in a dsk=" + dsk * gauss);
-//            }
-//        } else {
+        double gauss = rand.nextGaussian();
         double dk = diffusionDistance * gauss;
         ds += dk;
-//        }
+
         return ds;
     }
 
     public void moveParticle(Particle p) {
-//        passedPipes = 0;
         moveParticle4_transfersensitive(p);
-        //passedPipesCounter[Math.min(passedPipesCounter.length - 1, passedPipes)]++;
-//        moveParticleSurface1(p);
-//        moveParticle4_transfersensitive(p);
     }
 
     /**
@@ -324,7 +245,7 @@ public class ParticlePipeComputing {
              */
             if (capa.getClass().equals(Manhole.class)) {
                 Manhole actualC = (Manhole) capa;
-                Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(actualC, rand, position1d);
+                Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(actualC, rand, true);
                 if (con == null) {
                     if (actualC.isSetAsOutlet()) {
                         p.setLeftSimulation();
@@ -433,7 +354,7 @@ public class ParticlePipeComputing {
             adv = Math.abs(((Pipe) c).getVelocity()) * (dt/*-timeSpend*/);
             p.setVelocity1d(((Pipe) c).getVelocity());
         }
-        double diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * randDist.nextDouble();
+        double diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * rand.nextGaussian();
 //        boolean advectiveDominant = Math.abs(adv / diff) > 1;
         /**
          * if ds is positive : advective dominant else diffusiv has higher
@@ -528,7 +449,7 @@ public class ParticlePipeComputing {
                     /**
                      * search only for outflowing connections
                      */
-                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, ds);
+                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, ds > 0);
                     if (con == null) {
 //                        System.out.println(this.getClass() + "::  Flowcalculator returned connection " + con + " for (" + mh + ",ds:" + ds + ")");
 //                        p.status = false;
@@ -681,7 +602,7 @@ public class ParticlePipeComputing {
         if (c.getClass().equals(Pipe.class)) {
             p.setVelocity1d(((Pipe) c).getVelocity());
             if (useStreamlineVelocity) {
-                double f = velocityFunction.nextDouble();
+                double f = rand.nextGaussian();
                 adv = Math.abs(((Pipe) c).getVelocity() * dt * f * 3);
 //                System.out.println("f=" + f + "\t u=" + adv + "m/s");
                 if (adv < 0.00001) {
@@ -689,11 +610,11 @@ public class ParticlePipeComputing {
                 }
             } else {
                 adv = Math.abs(((Pipe) c).getVelocity()) * (dt/*-timeSpend*/);
-                diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * randDist.nextDouble();
+                diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * rand.nextGaussian();
             }
 
         } else {
-            diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * randDist.nextDouble();
+            diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * rand.nextGaussian();
         }
 //        boolean advectiveDominant = Math.abs(adv / diff) > 1;
         /**
@@ -819,7 +740,7 @@ public class ParticlePipeComputing {
                         /**
                          * search only for outflowing connections
                          */
-                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, 1);
+                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, true);
 //                        if (mh.getAutoID() == 638 && p.getAutoID() < 10) {
 //                            System.out.println("particle " + p.getAutoID() + " in " + mh);
 //                            if (con != null) {
@@ -933,7 +854,7 @@ public class ParticlePipeComputing {
                         p.setSurrounding_actual(c);
                         return;
                     }
-                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, -1);
+                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, false);
 //                    if (c.getAutoID() == 638 && p.getAutoID() < 10) {
 //                        System.out.println("ds<=0: particle " + p.getAutoID() + " in " + c + "\tv=" + p.getVelocity1d() + "\tds=" + ds + " con=" + con + "\tstart?" + con.isStartOfPipe() + "\t pipe.v=" + con.getPipe().getVelocity());
 //                    }
@@ -1045,10 +966,11 @@ public class ParticlePipeComputing {
     private void moveParticle4_transfersensitive(Particle p) {
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
-
+//        status = 2;
         if (Double.isNaN(position1d)) {
             position1d = 0;
         }
+//        status = 3;
         if (c == null || c.isSetAsOutlet()) {
 //            p.setInactive();
             p.setLeftSimulation();
@@ -1056,16 +978,18 @@ public class ParticlePipeComputing {
             p.setVelocity1d(0);
             return;
         }
+//        status = 4;
         //Skip dry condition 
         if (c.getWaterlevel() < FlowCalculatorMixed.dryWaterlevel) {
             return;
         }
+//        status=104;
 //        int oldCapacityID = (int) c.getAutoID();
 
         if (useDeposition) {
 //Test for deposition
             if (p.isDeposited()) {
-                if (p.getMaterial().getFlowCalculator().particleIsEroding(p, c, uniformDistribution)) {
+                if (p.getMaterial().getFlowCalculator().particleIsEroding(p, c, rand)) {
                     p.setDeposited(false);
                 } else {
                     //Stays immobile
@@ -1073,7 +997,7 @@ public class ParticlePipeComputing {
                     return;
                 }
             } else {
-                if (p.getMaterial().getFlowCalculator().particleIsDepositing(p, c, uniformDistribution)) {
+                if (p.getMaterial().getFlowCalculator().particleIsDepositing(p, c, rand)) {
                     p.setDeposited(true);
                     //Do nothing anymore from here.
                     return;
@@ -1088,19 +1012,27 @@ public class ParticlePipeComputing {
          * calculate spatial distance in this timestep.
          */
         double adv = 0;
-
+//        status = 5;
         if (c.getClass().equals(Pipe.class)) {
+//            status = 6;
             adv = Math.abs(((Pipe) c).getVelocity()) * (dt/*-timeSpend*/);
             p.setVelocity1d(((Pipe) c).getVelocity());
+//            status = 7;
         } else {
+//            status = 8;
             if (c.getConnections().length > 0) {
-                if (c.getConnections()[0].getHeight() < c.getWaterlevel()) {
+//                status = 9;
+//                System.out.println("water: "+c.getWaterHeight()+",   connection: "+c.getConnections()[0].getHeight());
+                if (c.getConnections()[0].getHeight() > c.getWaterHeight()) {
+//                    status = 10;
                     //Nothing can flow out-> break
                     return;
                 }
             }
         }
-        double diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * randDist.nextDouble();
+//        status = 11;
+        double diff = calcDistanceTurbulentDiffusion(p.getVelocity1d()) * rand.nextGaussian();
+//        status = 12;
         /**
          * if ds is positive : advective dominant else diffusiv has higher
          * negative influence
@@ -1115,26 +1047,31 @@ public class ParticlePipeComputing {
             } else {
                 ds = (float) diff;
             }
-
+//            status = 13;
             /**
              * First step directing particle to next manhole
              */
             if (c.getClass().equals(Pipe.class)) {
+//                status = 14;
                 Pipe pipe = (Pipe) c;
                 if (pipe.getVelocity() > 0) {
                     double neuePosition = position1d + ds;
+//                    status = 15;
                     if (neuePosition < 0) {
                         // Particle flowed to the start of the pipe and reached the manhole
+//                        status = 16;
                         c = pipe.getStartConnection().getManhole();
                         remaining_dt -= Math.abs(position1d / pipe.getVelocity());
                         if (lengthtype == 0) {
                             ds_adv += Math.abs(position1d);
                         }
+//                        status = 17;
                         ds += position1d;
                         position1d = 0;
                     } else if (neuePosition <= pipe.getLength()) {
                         // Nothing to do, if particle stays inside this Pipe
                         position1d = neuePosition;
+//                        status = 18;
                         if (lengthtype == 0) {
                             ds_adv += Math.abs(ds);
                         }
@@ -1143,6 +1080,7 @@ public class ParticlePipeComputing {
                     } else {
                         //Über dieses Rohr hinaus geschossen.
                         // particle reached end of pipe
+//                        status = 20;
                         remaining_dt -= Math.abs((position1d - pipe.getLength()) / pipe.getVelocity());
                         ds = neuePosition - pipe.getLength();
                         if (lengthtype == 0) {
@@ -1158,6 +1096,7 @@ public class ParticlePipeComputing {
                     /**
                      * Negative velocity*
                      */
+//                    status = 30;
                     if (position1d - ds < 0) {
                         // Particle flowed to the start of the pipe and reached the manhole
                         c = pipe.getStartConnection().getManhole();
@@ -1192,6 +1131,7 @@ public class ParticlePipeComputing {
                     }
                 }
             }
+//            status = 40;
             /**
              * Start loop with particles, that start in a Manhole
              */
@@ -1203,7 +1143,7 @@ public class ParticlePipeComputing {
 //                        passedPipes++;
                         loops++;
                         /**
-                         * 1. Case: capacity is in a Manhole
+                         * 1. Case: particle is in a Manhole
                          */
                         if (lengthtype == 0 && remaining_dt <= 0) {
                             break;
@@ -1219,15 +1159,16 @@ public class ParticlePipeComputing {
                             /**
                              * search only for outflowing connections
                              */
-                            Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, 1);
+                            Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, true);
 
                             if (connection == null) {
+                                //particle stays inside this manhole
                                 c = mh;
                                 p.setSurrounding_actual(mh);
                                 p.setPosition1d_actual(0);
                                 break;
                             } else if (connection.getClass().equals(Connection_Manhole_Surface.class)) {
-//                                Connection_Manhole_Surface cms = (Connection_Manhole_Surface) connection;
+                                //spill to surface
                                 p.surfaceCellID = mh.getSurfaceTriangleID();
                                 p.setSurrounding_actual(surface);
                                 c = surface;
@@ -1244,7 +1185,7 @@ public class ParticlePipeComputing {
 //                                            System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangleID());
                                 break;
                             }
-
+                            //else is going into a pipe.
                             Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) connection;
 
                             Pipe pipe = con.getPipe();
@@ -1348,7 +1289,7 @@ public class ParticlePipeComputing {
                             p.setSurrounding_actual(c);
                             return;
                         }
-                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, -1);
+                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, false);
                         if (con == null || con.getPipe() == null) {
                             /*Aktuell kein Ausgang zu finden. Bleibe hier, bis sich 
                              später die Wasserstände ändern*/
@@ -1431,19 +1372,274 @@ public class ParticlePipeComputing {
                 }
             }
         }
-
+//        status = 50;
         p.setSurrounding_actual(c);
         p.setPosition1d_actual(position1d);
-        p.addMovingLength(ds_adv + diff);
-
+//        p.addMovingLength(ds_adv + diff);
+//        status = 51;
+//        c.getMeasurementTimeLine().addParticle(p);
         if (c.getClass().equals(Pipe.class)) {
             Pipe pipe = (Pipe) c;
+//            status = 52;
 
             pipe.getMeasurementTimeLine().addParticle(p);
 
 //            p.setVelocity1d(pipe.getVelocity());
         }
+//        status = 53;
+    }
 
+    /**
+     * Version uses advective speed in every visited pipe
+     *
+     * @param p
+     */
+    private void moveParticle5_transfersensitive(Particle p) {
+        float position1d = p.getPosition1d_actual();
+        Capacity c = p.getSurrounding_actual();
+        if (Float.isNaN(position1d)) {
+            position1d = 0;
+        }
+        if (c == null || c.isSetAsOutlet()) {
+//            p.setInactive();
+            p.setLeftSimulation();
+            p.setPosition1d_actual(0);
+            p.setVelocity1d(0);
+            return;
+        }
+        //Skip dry condition 
+        if (c.getWaterlevel() < FlowCalculatorMixed.dryWaterlevel) {
+            return;
+        }
+
+        if (useDeposition) {
+            //Test for deposition
+            if (p.isDeposited()) {
+                if (p.getMaterial().getFlowCalculator().particleIsEroding(p, c, rand)) {
+                    p.setDeposited(false);
+                } else {
+                    //Stays immobile
+                    //Do nothing
+                    return;
+                }
+            } else {
+                if (p.getMaterial().getFlowCalculator().particleIsDepositing(p, c, rand)) {
+                    p.setDeposited(true);
+                    //Do nothing anymore from here.
+                    return;
+                } else {
+                    //Stays mobile
+
+                }
+            }
+        }
+
+        /**
+         * calculate spatial distance in this timestep.
+         */
+        float distance_adv = 0;
+        float distance_diff = 0;
+        float distance_total = 0;
+        float resultVelocity = 0;
+        boolean forward = true;
+//        status = 5;
+        if (c.getClass().equals(Pipe.class)) {
+//            status = 6;
+            float v = (float) ((Pipe) c).getVelocity();
+//            forward = v >= 0;
+            distance_adv = v * (dt);
+            p.setVelocity1d(v);
+            distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
+            distance_total = distance_adv + distance_diff;
+            resultVelocity = distance_total / dt;
+            forward = distance_total > 0;
+//            status = 7;
+        } else {
+//            status = 8;
+            if (c.getConnections().length > 0) {
+//                status = 9;
+//                System.out.println("water: "+c.getWaterHeight()+",   connection: "+c.getConnections()[0].getHeight());
+                if (c.getConnections()[0].getHeight() > c.getWaterHeight()) {
+//                    status = 10;
+                    //Nothing can flow out-> break
+                    return;
+                }
+            }
+        }
+//        status = 11;
+
+//        status = 12;
+        /**
+         * if ds is positive : advective dominant else diffusiv has higher
+         * negative influence
+         */
+        float remaining_dt = dt;
+        float ds = distance_total;
+        float moved = 0;
+        float neuePosition = position1d;
+        /**
+         * First step directing particle to next manhole
+         */
+        if (c.getClass().equals(Pipe.class)) {
+//                status = 14;
+            Pipe pipe = (Pipe) c;
+
+            neuePosition = position1d + ds;
+//                    status = 15;
+            if (neuePosition < 0) {
+                // Particle flowed to the start of the pipe and reached the manhole
+                c = pipe.getStartConnection().getManhole();
+                remaining_dt -= Math.abs(position1d / resultVelocity);
+                moved += position1d;
+                position1d = 0;
+            } else if (neuePosition <= pipe.getLength()) {
+                // Nothing to do, if particle stays inside this Pipe
+                position1d = neuePosition;
+                moved += ds;
+                remaining_dt = 0;
+            } else {
+                //Über dieses Rohr hinaus geschossen.
+                // particle reached end of pipe
+                remaining_dt -= (pipe.getLength() - position1d) / resultVelocity;
+                moved += pipe.getLength() - position1d;
+                position1d = 0;
+                c = pipe.getEndConnection().getManhole();
+                if (p.getClass().equals(HistoryParticle.class)) {
+                    ((HistoryParticle) p).addToHistory(c);
+                }
+            }
+
+        }
+
+//            status = 40;
+        /**
+         * Start loop with particles, that start in a Manhole
+         */
+        int loops = 0;
+
+        if (c.getClass().equals(Manhole.class)) {
+            position1d = 0;
+            while (remaining_dt > 0 && loops < 5) {
+
+                loops++;
+                /**
+                 * 1. Case: particle is in a Manhole
+                 */
+
+                try {
+                    Manhole mh = (Manhole) c;
+                    if (c.isSetAsOutlet()) {
+                        p.setLeftSimulation();
+                        p.setPosition1d_actual(0);
+                        p.setSurrounding_actual(c);
+                        return;
+                    }
+                    /**
+                     * search only for outflowing connections
+                     */
+                    Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, forward);
+
+                    if (connection == null) {
+                        //particle stays inside this manhole
+                        c = mh;
+                        p.setSurrounding_actual(mh);
+                        p.setPosition1d_actual(0);
+                        break;
+                    } else if (connection.getClass().equals(Connection_Manhole_Surface.class)) {
+                        //spill to surface
+                        p.surfaceCellID = mh.getSurfaceTriangleID();
+                        p.setSurrounding_actual(surface);
+                        c = surface;
+//                                double[] tripos = surface.getTriangleMids()[mh.getSurfaceTriangleID()];
+                        p.setPosition3D(mh.getPosition3D(0));
+//                                p.setPosition3D(tripos[0], tripos[1]);
+                        p.setOnSurface();
+                        p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
+                        p.toSurface = mh;
+                        p.posToSurface = (float) p.getTravelledPathLength();
+                        if (p.getClass().equals(HistoryParticle.class)) {
+                            ((HistoryParticle) p).addToHistory(surface);
+                        }
+//                                            System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangleID());
+                        break;
+                    }
+                    //else is going into a pipe.
+                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) connection;
+
+                    Pipe pipe = con.getPipe();
+
+                    c = pipe;
+                    float v = (float) ((Pipe) c).getVelocity();
+                    distance_adv = v * (remaining_dt);
+                    p.setVelocity1d(v);
+                    distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian()) * remaining_dt / dt;
+                    distance_total = distance_adv + distance_diff;
+                    resultVelocity = distance_total / remaining_dt;
+                    forward = distance_total > 0;
+//                    ds = distance_total;
+
+                    if (con.isStartOfPipe()) {
+                        position1d = 0;
+
+                    } else {
+                        position1d = pipe.getLength();
+                    }
+                    neuePosition = position1d + distance_total;
+
+                    //Downstream Pipe
+                    if (neuePosition < 0) {
+//                                System.out.println("  # ds <0   = " + ds + "  v=" + pipe.getVelocity());
+                        ds = position1d;
+                        moved += ds;
+                        remaining_dt -= Math.abs(ds / resultVelocity);
+                        //Particle is washed back into the manhole it came from
+                        position1d = 0;
+                        neuePosition = 0;
+                        c = pipe.getStartConnection().getManhole();
+                        p.setSurrounding_actual(c);
+                    } else if (neuePosition > pipe.getLength()) {
+                        //rushed through this pipe and is now inside the next manhole
+                        ds = pipe.getLength() - position1d;
+                        moved += ds;
+                        remaining_dt -= Math.abs(ds / resultVelocity);
+                        c = pipe.getEndConnection().getManhole();
+                        position1d = 0;
+                        if (p.getClass().equals(HistoryParticle.class)) {
+                            ((HistoryParticle) p).addToHistory(c);
+                        }
+                        continue;
+                    } else {
+                        // Particle will end this timestep in this pipe.
+//                        if (ds < 0) {
+//                            System.out.println("  downstream in " + c + " ds=" + ds + "   pos1d=" + position1d);
+//                        }
+                        ds = Math.abs(position1d - neuePosition);
+                        position1d = neuePosition;
+                        moved += ds;
+                        remaining_dt = 0;
+                        ds = 0;
+                        if (position1d > pipe.getLength()) {
+                            System.out.println(" +toofar1 ");
+                        }
+                        break;
+                    }
+
+                } catch (Exception e) {
+                    System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual());
+                    e.printStackTrace();
+                    break;
+                }
+            }
+        }
+
+        p.setSurrounding_actual(c);
+
+        p.setPosition1d_actual(position1d);
+
+        if (c.getClass().equals(Pipe.class)) {
+            Pipe pipe = (Pipe) c;
+            pipe.getMeasurementTimeLine().addParticle(p);
+        }
     }
 
     public double getDeltaTime() {
@@ -1465,9 +1661,9 @@ public class ParticlePipeComputing {
         return spillOutToSurface;
     }
 
-    public void setRandomNumberGenerator(Random rd) {
+    public void setRandomNumberGenerator(RandomArray rd) {
         this.rand = rd;
-        this.randDist.setRandomGenerator(rand);
+//        this.randDist.setRandomGenerator(rand);
     }
 
 }

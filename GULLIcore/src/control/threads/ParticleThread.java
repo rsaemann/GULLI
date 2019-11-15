@@ -1,11 +1,11 @@
 package control.threads;
 
+import control.maths.RandomArray;
 import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing;
 import control.particlecontrol.ParticleSurfaceComputing1D;
 import control.particlecontrol.ParticleSurfaceComputing2D;
 import java.util.ArrayList;
-import java.util.Random;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
@@ -23,7 +23,7 @@ public class ParticleThread extends Thread {
 
     public ParticlePipeComputing pc;
     private final ThreadBarrier<ParticleThread> barrier;
-    private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(4);
+    private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(1);
     boolean runendless = true;
 
     public int particleID = -1;
@@ -37,12 +37,27 @@ public class ParticleThread extends Thread {
     public boolean allParticlesReachedOutlet = false;
 
     public ThreadController threadController;
+    public int threadIndex = 0;
 
-    public ParticleThread(String string, long seed, ThreadBarrier<ParticleThread> barrier) {
+    public ParticleThread(String string, int index, ThreadBarrier<ParticleThread> barrier) {
         super(string);
+        this.threadIndex = index;
         pc = new ParticlePipeComputing();
-        surfcomp = new ParticleSurfaceComputing2D(null);
+        surfcomp = new ParticleSurfaceComputing2D(null, index);
+
         this.barrier = barrier;
+    }
+
+    public ParticleThread(ParticleThread ptOld) {
+        super(ptOld.getName() + "+");
+        this.threadController = ptOld.threadController;
+        this.threadIndex = ptOld.threadIndex;
+        this.activeCalculation = false;
+        this.runendless = ptOld.runendless;
+        this.barrier = ptOld.barrier;
+        pc = ptOld.pc;
+        surfcomp = ptOld.surfcomp;
+        this.simulationTime = ptOld.simulationTime;
     }
 
     public void setDeltaTime(double seconds) {
@@ -70,9 +85,9 @@ public class ParticleThread extends Thread {
 
     public void setSurfaceComputing2D() {
         if (surfcomp == null) {
-            surfcomp = new ParticleSurfaceComputing2D(null);
+            surfcomp = new ParticleSurfaceComputing2D(null, threadIndex);
         } else if (!(surfcomp instanceof ParticleSurfaceComputing2D)) {
-            surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface());
+            surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface(), threadIndex);
         }
         if (surfcomp != null) {
             surfcomp.setDeltaTimestep(pc.getDeltaTime());
@@ -104,27 +119,31 @@ public class ParticleThread extends Thread {
         int[] fromto = null;
         while (runendless) {
             try {
-                activeCalculation = true;
+//                activeCalculation = true;
+//                status = 0;
                 fromto = threadController.getNextParticlesToTreat(fromto);
+//                status = 1;
                 if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
 //                    particleID = -5;
-                    activeCalculation = false;
-//                    status = 20;
+//                    activeCalculation = false;
+                    status = 20;
                     barrier.loopfinished(this);
-//                    status = 21;
+                    status = 21;
                 } else {
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getSimulationtime();
+                    this.surfcomp.setActualSimulationTime(simulationTime);
                     int from = fromto[0];
-                    int to = fromto[1];
+                    int toExcld = fromto[1];
 //                    if (fromto[2] >= threadController.randomNumberGenerators.length) {
 //                        System.err.println("wrong index " + fromto[2] + " for particles " + fromto[0] + "-" + fromto[1] + " of total " + threadController.randomNumberGenerators.length + "   waitingindex: " + threadController.waitingParticleIndex);
 //                    }
-                    Random random = threadController.randomNumberGenerators[fromto[2]];
+                    RandomArray random = threadController.randomNumberGenerators[fromto[2]];
                     this.pc.setRandomNumberGenerator(random);
                     this.surfcomp.setRandomNumberGenerator(random);
-                    for (int i = from; i <= to; i++) {
+//                    status = 2;
+                    for (int i = from; i < toExcld; i++) {
                         p = threadController.particles[i];
 //                        this.particleID = p.getId();
                         if (p.isWaiting()) {
@@ -133,7 +152,7 @@ public class ParticleThread extends Thread {
                                 //All further particles area also waiting. Break the loop here.
                                 break;
                             } else {
-                                 if (p.injectionSurrounding.getClass().equals(Surface.class)) {
+                                if (p.injectionSurrounding.getClass().equals(Surface.class)) {
                                     p.setOnSurface();
                                     p.surfaceCellID = p.getInjectionCellID();
                                     double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
@@ -142,7 +161,7 @@ public class ParticleThread extends Thread {
                                     p.setOnSurface();
                                     p.surfaceCellID = p.getInjectionCellID();
                                     p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
-                                } else{
+                                } else {
                                     p.setInPipenetwork();
                                     p.setPosition1d_actual(p.injectionPosition1D);
                                 }
@@ -164,12 +183,14 @@ public class ParticleThread extends Thread {
 //                                status = 6;
                                 System.out.println(getClass() + ":: undefined status (" + p.status + ") of particle (" + p.getId() + "). Surrounding=" + p.getSurrounding_actual());
                             }
+//                            status = 7;
                         }
-                        particle = null;
+//                        particle = null;
 //                        particleID = -1;
                     }
-                    this.allParticlesReachedOutlet = false;
-                    activeCalculation = false;
+//                    status = 100;
+//                    this.allParticlesReachedOutlet = false;
+//                    activeCalculation = false;
                 }
             } catch (Exception ex) {
                 activeCalculation = false;

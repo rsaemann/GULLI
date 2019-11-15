@@ -21,6 +21,11 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
      * Waterlevel above pipe sole [m]
      */
     public float[] waterlevel;
+
+    /**
+     * Watervolume in Pipe [m³]
+     */
+    public float[] volume;
     /**
      * VolumeFlow q in pipe in [m³/s]
      */
@@ -49,6 +54,7 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         super(time);
         this.numberOfPipes = numberOfPipes;
         this.velocity = new float[numberOfPipes * time.getNumberOfTimes()];
+        this.volume = new float[numberOfPipes * time.getNumberOfTimes()];
         this.discharge = new float[numberOfPipes * time.getNumberOfTimes()];
         this.waterlevel = new float[numberOfPipes * time.getNumberOfTimes()];
 //        this.massflux_reference = new float[numberOfPipes * time.getNumberOfTimes()];
@@ -70,6 +76,14 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         float[] r = new float[numberOfPipes];
         for (int i = 0; i < numberOfPipes; i++) {
             r[i] = waterlevel[i * getNumberOfTimes() + timeIndex];
+        }
+        return r;
+    }
+
+    public float[] getVolumesForTimeIndex(int timeIndex) {
+        float[] r = new float[numberOfPipes];
+        for (int i = 0; i < numberOfPipes; i++) {
+            r[i] = volume[i * getNumberOfTimes() + timeIndex];
         }
         return r;
     }

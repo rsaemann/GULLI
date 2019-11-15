@@ -36,11 +36,11 @@ import model.topology.StorageVolume;
  */
 public class SparseTimelineManhole implements TimeLineManhole {
 
-    private long manholeManualID;
+    private final long manholeManualID;
 
-    private String manholeName;
+    private final String manholeName;
 
-    private SparseTimeLineManholeContainer container;
+    private final SparseTimeLineManholeContainer container;
 
     /**
      * Waterlevel above sea level [m üNN].
@@ -51,29 +51,38 @@ public class SparseTimelineManhole implements TimeLineManhole {
      */
     private float[] flux;
 
-    private float actualWaterHeight, actualFlowToSurface;
+    private final float soleheight;
+
+    private float actualWaterHeight, actualFlowToSurface, actualWaterlevel;
     private long actualTimestamp;
+    private boolean initialized = false;
 
     public SparseTimelineManhole(SparseTimeLineManholeContainer container, StorageVolume manhole) {
         this.container = container;
         this.manholeManualID = manhole.getManualID();
-        if (manhole instanceof Manhole) {
-            this.manholeName = ((Manhole) manhole).getName();
-        }
+        this.soleheight = manhole.getSole_height();
+        this.manholeName=manhole.getName();
     }
 
-    public SparseTimelineManhole(SparseTimeLineManholeContainer container, long pipeManualID, String manholeName) {
+    public SparseTimelineManhole(SparseTimeLineManholeContainer container, long pipeManualID, String manholeName, float soleHeight) {
         this.manholeManualID = pipeManualID;
         this.manholeName = manholeName;
         this.container = container;
+        this.soleheight = soleHeight;
     }
 
     public void setSpilloutFlux(float[] flux) {
         this.flux = flux;
+        initialized = flux != null && waterheight != null;
     }
 
     public void setWaterHeight(float[] waterlevel) {
         this.waterheight = waterlevel;
+        initialized = flux != null && waterheight != null;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
     }
 
     private float getValue_DoubleIndex(float[] array, double temporalIndexDouble) {
@@ -110,6 +119,14 @@ public class SparseTimelineManhole implements TimeLineManhole {
     }
 
     @Override
+    public float getActualWaterLevel() {
+        if (actualTimestamp != container.getActualTime()) {
+            updateValues();
+        }
+        return actualWaterlevel;
+    }
+
+    @Override
     public float getFlowToSurface(int temporalIndex) {
         if (flux == null) {
             container.loadTimelineSpilloutFlux(this, manholeManualID, manholeName);
@@ -137,19 +154,30 @@ public class SparseTimelineManhole implements TimeLineManhole {
     }
 
     private void updateValues() {
+//        System.out.println(Thread.currentThread().getName()+" try to access SparseTimeline for "+manholeName);
         synchronized (this) {
+//            System.out.println(Thread.currentThread().getName()+" accesses SparseTimeline for "+manholeName);
+
             if (actualTimestamp == container.getActualTime()) {
+                //Another thread seems to have calculated the new values while this thread was waiting for the lock release.
                 return;
             }
-            if (flux == null) {
-                container.loadTimelineSpilloutFlux(this, manholeManualID, manholeName);
+            if (!initialized) {
+//                System.out.println(Thread.currentThread().getName()+" load spillout for "+manholeName);
+                container.fillTimeline(this, manholeManualID, manholeName);
+//                container.loadTimelineSpilloutFlux(this, manholeManualID, manholeName);
             }
-            if (waterheight == null) {
-                container.loadTimelineWaterHeight(this, manholeManualID, manholeName);
-            }
+//            if (waterheight == null) {
+////                System.out.println(Thread.currentThread().getName()+" load waterheight for "+manholeName);
+//
+//                container.loadTimelineWaterHeight(this, manholeManualID, manholeName);
+//            }
             this.actualFlowToSurface = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
             this.actualWaterHeight = getValue_DoubleIndex(waterheight, container.getActualTimeIndex_double());
+            this.actualWaterlevel = actualWaterHeight - soleheight;
             this.actualTimestamp = container.getActualTime();
+//            System.out.println(Thread.currentThread().getName()+" leaves SparseTimeline for "+manholeName);
+
         }
     }
 

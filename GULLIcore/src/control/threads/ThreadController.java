@@ -28,6 +28,7 @@ import control.Controller;
 import control.listener.LoadingActionListener;
 import control.listener.SimulationActionListener;
 import control.listener.ParticleListener;
+import control.maths.RandomArray;
 import control.scenario.injection.InjectionInformation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,11 +38,15 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Random;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
+import model.surface.measurement.SurfaceMeasurementRaster;
+import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Network;
 import model.topology.Pipe;
@@ -55,7 +60,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     protected Controller control;
     public final MultiThreadBarrier<ParticleThread> barrier_particle;
 //    public final SingleThreadBarrier<LocationThread> barrier_positionUpdate;
-    public final MultiThreadBarrier<SynchronizationThread> barrier_sync;
+    public final SingleThreadBarrier<SynchronizationThread> barrier_sync;
 
     private final ArrayList<SimulationActionListener> listener = new ArrayList<>(2);
 
@@ -71,8 +76,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         HYDRODYNAMICS, PARTICLE, SYNC, POSITION
     }
-    private int numberParallelParticleThreads;
-    private int numberParallelSyncThreads = 2;
+//    private int numberParallelParticleThreads;
+//    private int numberParallelSyncThreads = 2;
     private boolean run = false;
     private boolean initialized = false;
     private static double deltaTime = 0.1;//seconds
@@ -126,22 +131,23 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     /**
      * Generating Random numbers must always happen for the same particles.
      */
-    protected Random[] randomNumberGenerators;
+    protected RandomArray[] randomNumberGenerators;
+    private ReentrantLock lock = new ReentrantLock();
     //number of particles to be treted by one thread
     public int treatblocksize = 1000;
     public int waitingParticleIndex = 0;//first waiting (for injection)  particle index
     public int nextParticleBlockStartIndex = 0;//Index for the tretstart for the next requesting Thread
     public int nextRandomNumberBlockStartIndex = 0;//Index for the random number for the next requesting Thread
 
-    public ThreadController(int threads, final Controller control) {
+    public ThreadController(int numberParticleThreads, final Controller control) {
         this.control = control;
         this.control.addParticleListener(this);
         this.control.addActioListener(this);
-        numberParallelParticleThreads = threads;
+//        numberParallelParticleThreads = threads;
         //Start n threads 
         barrier_particle = new MultiThreadBarrier("ParticleBarrier", this);
-        for (int i = 0; i < numberParallelParticleThreads; i++) {
-            ParticleThread pt = new ParticleThread("ParticleThread[" + i + "]", seed + i, barrier_particle);
+        for (int i = 0; i < numberParticleThreads; i++) {
+            ParticleThread pt = new ParticleThread("ParticleThread[" + i + "]", i, barrier_particle);
             pt.setDeltaTime(deltaTime);
             pt.threadController = this;
             barrier_particle.addThread(pt);
@@ -153,11 +159,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //        barrier_positionUpdate.setThread(put);
 //
 //        barrier_positionUpdate.initialize();
-        barrier_sync = new MultiThreadBarrier<>("SyncBarrier", this);
-        for (int i = 0; i < numberParallelSyncThreads; i++) {
-            SynchronizationThread syncThread = new SynchronizationThread("SyncThread[" + i + "]", barrier_sync, control);
-            barrier_sync.addThread(syncThread);
-        }
+        barrier_sync = new SingleThreadBarrier<>("SyncBarrier", this);
+        barrier_sync.setThread(new SynchronizationThread("SyncThread", barrier_sync, control));
+//        for (int i = 0; i < numberParallelSyncThreads; i++) {
+//            SynchronizationThread syncThread = new SynchronizationThread("SyncThread[" + i + "]", barrier_sync, control);
+//            barrier_sync.addThread(syncThread);
+//        }
 
         barrier_sync.initialize();
 
@@ -178,14 +185,15 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         calculationFinished = false;
 
         Pipe[] fullarray = control.getNetwork().getPipes().toArray(new Pipe[control.getNetwork().getPipes().size()]);
-        int fromIndex = 0;
-        int numberofPipes = fullarray.length / barrier_sync.getThreads().size();
-        for (int i = 0; i < barrier_sync.getThreads().size(); i++) {
-            SynchronizationThread st = barrier_sync.getThreads().get(i);
-            st.allFinished = false;
-            st.setPipes(Arrays.copyOfRange(fullarray, fromIndex, Math.min(fullarray.length, fromIndex + numberofPipes)));
-            fromIndex += numberofPipes + 1;
-        }
+        barrier_sync.getThread().setPipes(fullarray);
+//        int fromIndex = 0;
+//        int numberofPipes = fullarray.length / barrier_sync.getThreads().size();
+//        for (int i = 0; i < barrier_sync.getThreads().size(); i++) {
+//            SynchronizationThread st = barrier_sync.getThreads().get(i);
+//            st.allFinished = false;
+//            st.setPipes(Arrays.copyOfRange(fullarray, fromIndex, Math.min(fullarray.length, fromIndex + numberofPipes)));
+//            fromIndex += numberofPipes + 1;
+//        }
 
         barrier_sync.setSimulationtime(simulationTimeMS);
         barrier_particle.setSimulationtime(simulationTimeMS);
@@ -217,8 +225,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     public void setSeed(long seed) {
         this.seed = seed;
         if (randomNumberGenerators != null) {
+//            System.out.println("resetRandom Seeds");
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                randomNumberGenerators[i] = new Random(seed + i);
+                RandomArray newField = new RandomArray(new Random(seed + i), treatblocksize + 5);
+                if (randomNumberGenerators[i] != null) {
+                    newField.testEquals(randomNumberGenerators[i]);
+                }
+                randomNumberGenerators[i] = newField;
             }
         }
     }
@@ -302,7 +315,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
         ThreadController.deltaTime = deltaTimeSeconds;
         if (ArrayTimeLineMeasurementContainer.isInitialized()) {
-            ArrayTimeLineMeasurementContainer.instance.messungenProZeitschritt = ArrayTimeLineMeasurementContainer.instance.getDeltaTime() / ThreadController.getDeltaTime();
+            ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval = ArrayTimeLineMeasurementContainer.instance.getDeltaTimeS() / ThreadController.getDeltaTime();
         }
         for (ParticleThread thread : barrier_particle.getThreads()) {
             thread.setDeltaTime(deltaTimeSeconds);
@@ -332,7 +345,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         Arrays.sort(this.particles, comp);
 
         //Generate random numbers
-        randomNumberGenerators = new Random[this.particles.length / treatblocksize + 1];
+        randomNumberGenerators = new RandomArray[this.particles.length / treatblocksize + 1];
         setSeed(seed);
         this.waitingParticleIndex = 0;
         this.nextParticleBlockStartIndex = 0;
@@ -470,23 +483,68 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      * Break locks of hanging Threads to reenable correct working of simulation.
      */
     public void breakBarrierLocks() {
-        //break locks of threadbarriers
-        try {
-            if (controlThread.getState() == Thread.State.BLOCKED || controlThread.getState() == Thread.State.WAITING) {
-                controlThread.notifyAll();
+        int actualLoop = steps;
+        //Go through all triangle measurements and free locks
+        Surface surf = control.getSurface();
+        if (surf != null && surf.getMeasurementRaster() != null) {
+            try {
+                surf.getMeasurementRaster().breakAllLocks();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-//        if (calledObject == barrier_positionUpdate) {
-//            barrier_positionUpdate.startover();
-//        } else 
-//        if (calledObject == barrier_particle) {
-            barrier_particle.startover();
-//        } else {
-            barrier_sync.startover();
-//        }
+        try {
+            //wait until hopefully all threads have finished their simulation
+            Thread.sleep(500);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (actualLoop != steps) {
+            //that was enough. simulation is running again. 
+            return;
+        }
+        //that was not enough. threads are still blocking
+        for (int i = 0; i < barrier_particle.getThreads().size(); i++) {
+            ParticleThread pt = barrier_particle.getThreads().get(i);
+            if (pt.getState() == Thread.State.BLOCKED) {
+                System.out.println("Replace blocked Thread " + i);
+                ParticleThread ptnew = new ParticleThread(pt);
+                barrier_particle.getThreads().set(i, ptnew);
+                ptnew.start();
 
+                try {
+                    pt.stopThread();
+                    pt.interrupt();
+                    pt.stop();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else if (pt.getState() == Thread.State.RUNNABLE) {
+                TriangleMeasurement tm = control.getSurface().getMeasurementRaster().monitor[pt.threadIndex];
+                System.out.println("Break lock of " + pt + "  on " + tm);
+                if (tm != null) {
+                    tm.lock.unlock();
+                }
+            }
+        }
+
+        //break locks of threadbarriers
+//        try {
+//            System.out.println("Control Thread: " + controlThread.getState());
+//            if (controlThread.getState() == Thread.State.BLOCKED || controlThread.getState() == Thread.State.WAITING) {
+//                controlThread.notifyAll();
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+////        if (calledObject == barrier_positionUpdate) {
+////            barrier_positionUpdate.startover();
+////        } else 
+////        if (calledObject == barrier_particle) {
+//        barrier_particle.startover();
+////        } else {
+//        barrier_sync.startover();
+////        }
     }
 
     /**
@@ -533,7 +591,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     }
 
     public ParticleThread[] getParticleThreads() {
-        ParticleThread[] a = new ParticleThread[numberParallelParticleThreads];
+        ParticleThread[] a = new ParticleThread[barrier_particle.getThreads().size()];
         int i = 0;
         for (ParticleThread thread : barrier_particle.getThreads()) {
             a[i] = thread;
@@ -556,7 +614,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         BARRIERS barrier;
         private int status = 0;
-        Object lastenvokenListener=null;
+        Object lastenvokenListener = null;
 
         public ControlThread() {
             super("ThreadController");
@@ -606,7 +664,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     status = 10;
                     /*@todo move particle thread after synchr.-thread. */
                     barrier_sync.setSimulationtime(simulationTimeMS);
-                    calledObject = barrier_sync; 
+                    calledObject = barrier_sync;
                     steps++;
                     status = 11;
                     barrier_sync.startover();
@@ -619,7 +677,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                     calculationTimeElapsed += calcStepTime;
                     calculationLoopStarttime = System.currentTimeMillis();
-                   
+
                     simulationTimeMS += deltaTime * 1000;
                     status = 22;
                     if (simulationTimeMS > simulationTimeEnd) {
@@ -669,7 +727,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     status = 30;
                     for (SimulationActionListener l : listener) {
                         try {
-                            lastenvokenListener=l;
+                            lastenvokenListener = l;
                             l.simulationSTEPFINISH(steps, this);
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -770,32 +828,47 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public Thread initStatusThread() {
         final ThreadController tc = this;
+//        boolean informed = false;
 
         statusThread = new Thread("StatusThreadController") {
             private int laststep = -1;
+            long lastworkingTimestamp = 0;
 
             @Override
             public void run() {
+                boolean informed = false;
                 while (true) {
                     try {
+
                         if (tc.barrier_particle != null) {
                             int running = 0, waiting = 0;
                             if (run && steps == laststep) {
                                 // something is incredibly slow. prepare output to console
                                 StringBuilder str = new StringBuilder("--" + getClass() + "--detected hanging at loop " + steps + " called barrier: " + (calledObject) + "   :");
-                                str.append("\n lastfinishedBarrier: " + lastFinishedBarrier + "  :  " + controlThread.barrier + ",," + "\t control.status=" + controlThread.status + " (" + controlThread.getState() + ")  listener: "+controlThread.lastenvokenListener);
+                                str.append("\n lastfinishedBarrier: " + lastFinishedBarrier + "  :  " + controlThread.barrier + ",," + "\t control.status=" + controlThread.status + " (" + controlThread.getState() + ")  listener: " + controlThread.lastenvokenListener);
+                                int someoneblocked = -1;
+                                int someoneRunning = -1;
                                 if (calledObject instanceof MultiThreadBarrier) {
                                     MultiThreadBarrier mtb = (MultiThreadBarrier) calledObject;
                                     for (Object thread : mtb.getThreads()) {
                                         if (thread instanceof ParticleThread) {
                                             ParticleThread pt = (ParticleThread) thread;
                                             str.append("\n ");
-                                            str.append(pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
+                                            str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
                                             if (pt.particle != null) {
                                                 str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
                                             }
+                                            if (pt.pc != null) {
+                                                str.append("  PipeComp.status=" + pt.pc.status);
+                                            }
                                             if (pt.getSurfaceComputing() != null) {
-                                                str.append("    surfComputing: status=" + pt.getSurfaceComputing().reportCalculationStatus());
+                                                str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
+
+                                            }
+                                            if (pt.getState() == State.BLOCKED) {
+                                                someoneblocked = pt.threadIndex;
+                                            } else if (pt.getState() == State.RUNNABLE) {
+                                                someoneRunning = pt.threadIndex;
                                             }
                                         } else if (thread instanceof SynchronizationThread) {
                                             SynchronizationThread st = (SynchronizationThread) thread;
@@ -804,21 +877,34 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                         }
                                     }
                                 }
+                                if (someoneRunning >= 0) {
+                                    System.out.println("Slow simulation, but Thread " + someoneRunning + " is still working.");
+                                }
+
                                 System.out.println(str.toString());
-                                if (lockbreaker == null||lockbreaker.getState() == State.TERMINATED) {
-                                    lockbreaker = new Thread("Lockbreaker") {
-                                        @Override
-                                        public void run() {
-                                            breakBarrierLocks();
+                                int actualloop = steps;
+                                if (someoneblocked >= 0 && someoneRunning < 0 && !informed) {
+                                    JOptionPane.showMessageDialog(null, "Blocked Thread " + someoneblocked, "Blovked Thread", JOptionPane.INFORMATION_MESSAGE);// str.append(" Restart Thread "+pt.threadIndex);
+                                    informed = true;
+                                }
+                                if (someoneRunning < 0 && steps == actualloop) {
+                                    if (lockbreaker == null || lockbreaker.getState() == State.TERMINATED) {
+                                        lockbreaker = new Thread("Lockbreaker") {
+                                            @Override
+                                            public void run() {
+                                                breakBarrierLocks();
+                                            }
+                                        };
+                                        lockbreaker.start();
+                                    } else {
+                                        System.out.println("Lockbreaker: " + lockbreaker.getState());
+                                        if (lockbreaker.getState() == State.BLOCKED || lockbreaker.getState() == State.WAITING) {
+                                            lockbreaker.interrupt();
                                         }
-                                    };
-                                    lockbreaker.start();
-                                } else {
-                                    System.out.println("Lockbreaker: " + lockbreaker.getState());
-                                    if (lockbreaker.getState() == State.BLOCKED || lockbreaker.getState() == State.WAITING) {
-                                        lockbreaker.interrupt();
                                     }
                                 }
+                            } else {
+                                lastworkingTimestamp = System.currentTimeMillis();
                             }
                             laststep = steps;
                         }
@@ -906,7 +992,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      * returns the first and last index of particles to be thretened by the
      * requesting thread. return null if the Thread can go to sleep because
      * there is nothing to do at the moment.; [0] first index of particle from
-     * ThreadController to calculate; [1] last index (include) of particle to
+     * ThreadController to calculate; [1] last index (exclude) of particle to
      * calculate; [2] index of Random number generator to select to calculate
      * the particles
      *
@@ -920,7 +1006,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         if (retur == null) {
             retur = new int[3];
         }
-        synchronized (this) {
+        lock.lock();
+        try {
             if (nextParticleBlockStartIndex >= waitingParticleIndex) {
 //                System.out.println("return null,  start:" + nextParticleBlockStartIndex + ",  waiting: " + waitingParticleIndex);
                 retur[0] = -1;
@@ -932,16 +1019,25 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             if (nextParticleBlockStartIndex >= waitingParticleIndex) {
                 nextParticleBlockStartIndex = waitingParticleIndex;
             }
-            retur[1] = nextParticleBlockStartIndex - 1;
+            retur[1] = nextParticleBlockStartIndex; //exclude this index
             retur[2] = nextRandomNumberBlockStartIndex;
             nextRandomNumberBlockStartIndex++;
 //            System.out.println("return " + retur[0] + ", " + retur[1] + ", " + retur[2] + " waiting: " + waitingParticleIndex);
-            return retur;
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            lock.unlock();
         }
+        return retur;
     }
 
     public long getSeed() {
         return seed;
+    }
+
+    public Particle[] getParticles() {
+        return particles;
     }
 
 }

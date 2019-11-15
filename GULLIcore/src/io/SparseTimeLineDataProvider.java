@@ -52,6 +52,17 @@ public interface SparseTimeLineDataProvider {
 
     public float[] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes);
 
+   /**
+     * Used for filling existing empty timelines on demand.
+     *
+     * @param manholeManualID
+     * @param manholeName
+     * @param timeline
+     * @return
+     */
+    public boolean fillTimelineManhole(long manholeManualID, String manholeName, SparseTimelineManhole timeline);
+
+    
     /**
      * Returns true if the result data contains information about mass
      * concentration.
@@ -62,7 +73,8 @@ public interface SparseTimeLineDataProvider {
 
     public void loadTimelineManholes(Collection<StorageVolume> manholes, SparseTimeLineManholeContainer container);
 
-    public SparseTimelinePipe loadTimelinePipe(long pipeManualID, String pipeName, SparseTimeLinePipeContainer container);
+//    public SparseTimelinePipe loadTimelinePipe(long pipeManualID, String pipeName, SparseTimeLinePipeContainer container);
+    public SparseTimelinePipe loadTimelinePipe(Pipe pipe, SparseTimeLinePipeContainer container);
 
     /**
      * Used for filling existing empty timelines on demand.
@@ -87,10 +99,11 @@ public interface SparseTimeLineDataProvider {
      *
      * @param manholeManualID
      * @param manholeName
+     * @param soleheight ground of manhole above sealevel
      * @param container
      * @return
      */
-    public SparseTimelineManhole loadTimelineManhole(long manholeManualID, String manholeName, SparseTimeLineManholeContainer container);
+    public SparseTimelineManhole loadTimelineManhole(long manholeManualID, String manholeName, float soleheight, SparseTimeLineManholeContainer container);
 
     /**
      * Return the timesteps of the output timeseries of a scenario.

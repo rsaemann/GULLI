@@ -60,6 +60,10 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         return (float) getValue_DoubleIndex(container.waterlevel, temporalIndex);
     }
 
+    public float getVolume_DoubleIndex(double temporalIndex) {
+        return (float) getValue_DoubleIndex(container.volume, temporalIndex);
+    }
+
     public float getDischarge_DoubleIndex(double temporalIndex) {
         return (float) getValue_DoubleIndex(container.discharge, temporalIndex);
     }
@@ -83,6 +87,10 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 
     public void setWaterlevel(float value, int temporalIndex) {
         container.waterlevel[getIndex(temporalIndex)] = value;
+    }
+
+    public void setVolume(float value, int temporalIndex) {
+        container.volume[getIndex(temporalIndex)] = value;
     }
 
     /**
@@ -289,4 +297,8 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 //        return container.massflux_reference[startIndex + temporalIndex];
 ////        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
 //    }
+    @Override
+    public double getVolume() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }

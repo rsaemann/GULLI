@@ -118,11 +118,11 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     }
 
     @Override
-    public void measureParticle(long time, Particle particle) {
+    public void measureParticle(long time, Particle particle, int index) {
         if (particle.getPosition3d() == null) {
             return;
         }
-        if (particle.getTravelledPathLength() < TriangleMeasurement.minTravelLengthToMeasure) {
+        if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
             return;
         }
         if (this.times == null) {
@@ -139,7 +139,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             return;
         }
         try {
-
+//create counters if non existing
             if (mass[xindex] == null) {
                 synchronized (mass) {
                     if (mass[xindex] == null) {
@@ -156,10 +156,16 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                     }
                 }
             }
-
-            mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
-            particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
-
+//count particle
+            if (synchronizeMeasures) {
+                synchronized (mass[xindex][yindex][timeIndex]) {
+                    mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
+                    particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                }
+            } else {
+                mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
+                particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("X index: " + xindex + "    pos.x=" + particle.getPosition3d().x + "    xmin=" + xmin + "     diff=" + ((particle.getPosition3d().x - xmin) + "    xIwidth=" + xIntervalWidth));
@@ -167,7 +173,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     }
 
     @Override
-    public void setNumberOfMaterials(int numberOfMaterials) {
+    public void setNumberOfMaterials(int numberOfMaterials
+    ) {
         if (this.numberOfMaterials == numberOfMaterials) {
             return;
         }
@@ -175,7 +182,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     }
 
     @Override
-    public void setTimeContainer(TimeIndexContainer times) {
+    public void setTimeContainer(TimeIndexContainer times
+    ) {
         this.times = times;
     }
 
@@ -324,5 +332,10 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     public void reset() {
         mass = new double[numberXIntervals][][][];
         particlecounter = new int[numberXIntervals][][][];
+    }
+
+    @Override
+    public void breakAllLocks() {
+        throw new UnsupportedOperationException("RectangularRaster is working with 'synchronize' that cannot be unlocked"); //To change body of generated methods, choose Tools | Templates.
     }
 }

@@ -25,7 +25,6 @@ package model.surface.measurement;
 
 import model.particle.Particle;
 import model.surface.Surface;
-import static model.surface.measurement.TriangleMeasurement.minTravelLengthToMeasure;
 import model.timeline.array.TimeIndexContainer;
 
 /**
@@ -44,6 +43,16 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     protected int numberOfMaterials = 1;
 
+    /**
+     * store the time index for one timestep so it does not need the calculation
+     * of the timecontainer each time.
+     */
+    protected int timeindex = 0;
+    protected long lastIndexTime = 0;
+
+    private boolean used = false;
+
+//    private final Object monitort = new String("Monitor");
     public SurfaceMeasurementTriangleRaster(Surface surf, int numberOfMaterials, TimeIndexContainer time) {
         this.surf = surf;
         this.times = time;
@@ -52,41 +61,67 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
     }
 
     @Override
-    public void measureParticle(long time, Particle particle) {
-        if (particle != null && particle.getSurrounding_actual() != null) {
-            if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
-                //for risk map do not show inertial particles
-                return;
-            }
+    public void measureParticle(long time, Particle particle, int threadIndex) {
 
-            int id = particle.surfaceCellID;
+//        statuse[threadIndex] = 0;
+        if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
+            //for risk map do not show inertial particles
+            return;
+        }
+//        statuse[threadIndex] = 1;
+        int id = particle.surfaceCellID;
 
-            if (id < 0) {
+        if (id < 0) {
+            return;
+        }
+//        statuse[threadIndex] = 2;
+        if (!countStayingParticle) {
+//            statuse[threadIndex] = 3;
+            if (id == particle.lastSurfaceCellID) {
+                //Do not count particle, if it only stays at the same cell
                 return;
+            } else {
+                particle.lastSurfaceCellID = id;
             }
-            if (!countStayingParticle) {
-                if (particle.surfaceCellID == particle.lastSurfaceCellID) {
-                    //Do not count particle, if it only stays at the same cell
-                    return;
+        }
+        if (time != this.lastIndexTime) {
+            //calculate the new index
+            this.timeindex = times.getTimeIndex(time);
+            this.lastIndexTime = time;
+        }
+        try {
+            int materialIndex = particle.getMaterial().materialIndex;
+            TriangleMeasurement m = measurements[id];
+            if (m == null) {
+                m = createMeasurement(id);
+            }
+            if (synchronizeMeasures) {
+                if (m == null) {
+                    System.err.println("monitor object is null for cell triangle " + id);
                 } else {
-                    particle.lastSurfaceCellID = particle.surfaceCellID;
+                    monitor[threadIndex] = m;
+                    m.lock.lock();
+                    try {
+                        m.mass[materialIndex][timeindex] += particle.particleMass;
+                        m.particlecounter[materialIndex][timeindex]++;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        m.lock.unlock();
+                        monitor[threadIndex] = null;
+                    }
                 }
+            } else {
+                m.mass[materialIndex][timeindex] += particle.particleMass;
+                m.particlecounter[materialIndex][timeindex]++;
             }
-            if (measurements[id] == null) {
-                createMeasurement(id);
-            }
-            TriangleMeasurement m = null;
-            int timeindex = times.getTimeIndex(time);
-
-            try {
-                m = measurements[id];
-                m.mass[particle.getMaterial().materialIndex][timeindex] += particle.particleMass;
-                m.particlecounter[particle.getMaterial().materialIndex][timeindex]++;
-
-            } catch (IndexOutOfBoundsException e) {
-                e.printStackTrace();
-                System.err.println(getClass() + "::Request t=" + timeindex + " m=" + particle.getMaterial().materialIndex + "   mass.length: " + m.mass.length + "   times.length=" + times.getNumberOfTimes());
-            }
+        } catch (IndexOutOfBoundsException e) {
+            e.printStackTrace();
+            System.err.println(getClass() + "::Request t=" + timeindex + " m=" + particle.getMaterial().materialIndex + "  times.length=" + times.getNumberOfTimes());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } catch (Error er) {
+            er.printStackTrace();
         }
     }
 
@@ -98,9 +133,17 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
      * @return
      */
     public TriangleMeasurement createMeasurement(int triangleID) {
-        TriangleMeasurement tm = new TriangleMeasurement(times, triangleID, numberOfMaterials);
-        this.measurements[triangleID] = tm;
-        return tm;
+
+        synchronized (measurements) {
+            if (this.measurements[triangleID] != null) {
+                return this.measurements[triangleID];
+            } else {
+                TriangleMeasurement tm = new TriangleMeasurement(triangleID, times.getNumberOfTimes(), numberOfMaterials);
+                this.measurements[triangleID] = tm;
+                return tm;
+            }
+        }
+
     }
 
     @Override
@@ -142,6 +185,25 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     public int getNumberOfMaterials() {
         return numberOfMaterials;
+    }
+
+    @Override
+    public void breakAllLocks() {
+        if (measurements != null) {
+            for (int i = 0; i < measurements.length; i++) {
+                TriangleMeasurement measurement = measurements[i];
+                if (measurement == null) {
+                    continue;
+                }
+                if (measurement.lock != null) {
+                    continue;
+                }
+                if (measurement.lock.isLocked()) {
+                    System.out.println("Free lock on cell " + i + " , where " + measurement.lock.getHoldCount() + " threads are waiting.");
+                    measurement.lock.unlock();
+                }
+            }
+        }
     }
 
 }

@@ -315,6 +315,17 @@ public class GeoTools {
         }
     }
 
+    public void toGlobal(Coordinate geomUTM, Coordinate global, boolean longitudeFirst) throws TransformException {
+        JTS.transform(geomUTM, global, transform_utm2wgs);
+        if (longitudeFirst == globalLongitudeFirst) {
+            //Nothing to change
+        } else {
+            double x = global.x;
+            global.x = global.y;
+            global.y = x;
+        }
+    }
+
     /**
      * Coordinates Output from transformation and Input to Transformation shall
      * be x:longitude, y:latitude
