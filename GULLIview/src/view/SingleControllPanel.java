@@ -115,7 +115,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
-//    private JPopupMenu popupFiles;
 
     private JButton buttonShowRaingauge;
     private JButton buttonLoadAllPipeTimelines;
@@ -124,7 +123,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private ImageIcon iconError, iconLoading, iconPending;
 
-//    private boolean compactFileLoadingPanel = false;
     private JButton buttonFileStreetinlets;
     private JLabel labelCurrentAction;
 
@@ -155,7 +153,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         BoxLayout layoutSimulation = new BoxLayout(panelTabSimulation, BoxLayout.Y_AXIS);
         panelTabSimulation.setLayout(layoutSimulation);
         tabs.add("Simulation", panelTabSimulation);
-        
+
         //new BorderLayout());
         this.controler = controller;
         this.control = control;
@@ -191,25 +189,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         progressLoading = new JProgressBar();
 
         //Video
-//        this.buttonVideoFile = new JButton("o");
         this.panelVideo = new PanelVideoCapture(new GIFVideoCreator(mapViewer));
         this.panelVideo.setBorder(new TitledBorder("Video GIF"));
-//        this.panelVideo = new JPanel(new GridLayout(3, 1));
-//        this.panelVideo.setBorder(new TitledBorder("Video"));
-//        this.checkVideo = new JCheckBox("Aufnahme", false);
-//        panelVideo.add(checkVideo);
-//        JPanel panelVideoFPS = new JPanel(new BorderLayout());
-//        panelVideoFPS.add(new JLabel("Video FPS:"), BorderLayout.WEST);
-//        textFPS = new JTextField(/*controller.framerateGIF + */"No GIF Video Creator initialized");
-//        textFPS.setHorizontalAlignment(JTextField.RIGHT);
-//        panelVideoFPS.add(textFPS, BorderLayout.CENTER);
-//        panelVideo.add(panelVideoFPS);
-//        JPanel panelVideoFPL = new JPanel(new BorderLayout());
-//        panelVideoFPL.add(new JLabel("Sim FPLoop:"), BorderLayout.WEST);
-//        textFPL = new JTextField(controller.videoFrameInterval + "");
-//        textFPL.setHorizontalAlignment(JTextField.RIGHT);
-//        panelVideoFPL.add(textFPL, BorderLayout.CENTER);
-//        panelVideo.add(panelVideoFPL);
 
         //Simulation Control buttons        
         panelButtons = new JPanel(new GridLayout(2, 2));
@@ -221,11 +202,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         panelButtons.add(buttonPause, 2);
         panelButtons.add(buttonReset, 3);
-//        panelTabSimulation.add(panelButtons);
-                this.add(panelButtons);
+        this.add(panelButtons);
 
-this.add(tabs);
-                
+        this.add(tabs);
+
         //Loading buttons
         buildFilesLoadingPanel();
         panelTabLoading.add(panelLoading);
@@ -474,7 +454,7 @@ this.add(tabs);
 
                 int n = fc.showOpenDialog(SingleControllPanel.this);
                 if (n == fc.APPROVE_OPTION) {
-                    new Thread() {
+                    new Thread("Select File Surface geometry") {
 
                         @Override
                         public void run() {
@@ -515,7 +495,7 @@ this.add(tabs);
 
                 int n = fc.showOpenDialog(SingleControllPanel.this);
                 if (n == fc.APPROVE_OPTION) {
-                    new Thread() {
+                    new Thread("Select Streetinlets file") {
 
                         @Override
                         public void run() {
@@ -562,7 +542,7 @@ this.add(tabs);
 
                 int n = fc.showOpenDialog(SingleControllPanel.this);
                 if (n == fc.APPROVE_OPTION) {
-                    new Thread() {
+                    new Thread("Select waterlevel file") {
 
                         @Override
                         public void run() {
@@ -644,36 +624,40 @@ this.add(tabs);
                 buttonReset.setSelected(false);
             }
         });
-        new Thread() {
+
+        //Update thread to show information about running simulation. e.g. number of active particles
+        new Thread("GUI SimulationInformation Update") {
+            GregorianCalendar actual = new GregorianCalendar();
+            StringBuilder timeelapsed = new StringBuilder(30);
 
             @Override
             public void run() {
                 while (true) {
                     try {
-
-                        labelCalculationPerStep.setText(controller.getAverageCalculationTime() + "");
-                        labelCalculationTime.setText(controller.getElapsedCalculationTime() / 1000 + "");
-                        labelCalculationSteps.setText(controller.getSteps() + "");
-                        double seconds = ((controller.getSimulationTime() - controller.getSimulationStartTime()) / 1000L);
-                        double minutes = seconds / 60.;
-                        double hours = minutes / 60.;
-                        StringBuilder timeelapsed = new StringBuilder(30);
-                        if (hours > 0) {
-                            timeelapsed.append((int) hours).append("h ");
-                        }
-                        if (minutes > 0) {
-                            timeelapsed.append((int) minutes % 60).append("m ");
-                        }
-                        if (seconds > 0) {
-                            if ((int) seconds % 60 < 10) {
-                                timeelapsed.append("0");
+                        if (controller.isSimulating() || wasrunning) {
+                            labelCalculationPerStep.setText(controller.getAverageCalculationTime() + "");
+                            labelCalculationTime.setText(controller.getElapsedCalculationTime() / 1000 + "");
+                            labelCalculationSteps.setText(controller.getSteps() + "");
+                            double seconds = ((controller.getSimulationTime() - controller.getSimulationStartTime()) / 1000L);
+                            double minutes = seconds / 60.;
+                            double hours = minutes / 60.;
+                            timeelapsed.delete(0, timeelapsed.capacity());
+                            if (hours > 0) {
+                                timeelapsed.append((int) hours).append("h ");
                             }
-                            timeelapsed.append((int) seconds % 60).append("s ");
-                        }
-                        sliderTimeManual.setValue((int) (0.5 + sliderTimeManual.getMaximum() * (controller.getSimulationTime() - controller.getSimulationStartTime()) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))));
+                            if (minutes > 0) {
+                                timeelapsed.append((int) minutes % 60).append("m ");
+                            }
+                            if (seconds > 0) {
+                                if ((int) seconds % 60 < 10) {
+                                    timeelapsed.append("0");
+                                }
+                                timeelapsed.append((int) seconds % 60).append("s ");
+                            }
+                            sliderTimeManual.setValue((int) (0.5 + sliderTimeManual.getMaximum() * (controller.getSimulationTime() - controller.getSimulationStartTime()) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))));
+                            timeelapsed.append(" = ").append(seconds).append("s");
+                            labelSimulationTime.setText(timeelapsed.toString());
 
-                        labelSimulationTime.setText(timeelapsed.toString() + " = " + seconds + "s");
-                        if (controller.isSimulating()) {
                             if (!wasrunning && frame != null) {
                                 frame.setTitle("> Run Control");
                                 sliderTimeShape.setEnabled(false);
@@ -685,6 +669,10 @@ this.add(tabs);
                                 textDispersionSurface.setEditable(!controler.isSimulating());
                             }
                             frame.setTitle("> " + (int) (((controller.getSimulationTime() - controller.getSimulationStartTime()) * 100 + 0.5) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))) + "% Run Control");
+                            actual.setTimeInMillis(controller.getSimulationTime());
+                            labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
+
+                            wasrunning = controller.isSimulating();
                         } else {
                             if (wasrunning && frame != null) {
                                 buttonRun.setSelected(false);
@@ -696,17 +684,18 @@ this.add(tabs);
                                 textTimeStep.setEditable(!controler.isSimulating());
                                 textDispersionPipe.setEditable(!controler.isSimulating());
                                 textDispersionSurface.setEditable(!controler.isSimulating());
+
+                                actual.setTimeInMillis(controller.getSimulationTime());
+                                labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
+
+                                labelParticleActive.setText(controller.getNumberOfActiveParticles() + "");
+                                labelParticlesTotal.setText("/ " + controller.getNumberOfTotalParticles());
+
                             }
-
                         }
-                        GregorianCalendar actual = new GregorianCalendar();
-                        actual.setTimeInMillis(controller.getSimulationTime());
-                        labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
-
                         labelParticleActive.setText(controller.getNumberOfActiveParticles() + "");
                         labelParticlesTotal.setText("/ " + controller.getNumberOfTotalParticles());
-
-                        sleep(500);
+                        Thread.sleep(500);
                     } catch (InterruptedException ex) {
                         Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -830,17 +819,29 @@ this.add(tabs);
         JPanel panelView = new JPanel(new BorderLayout());
         panelView.setBorder(new TitledBorder("Draw Update"));
         checkUpdateIntervall = new JCheckBox("Update View 1/", controller.paintOnMap);
+        final JTextField textUpdateLoops = new JTextField(controller.paintingInterval + "");
         checkUpdateIntervall.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent ae) {
                 controller.paintOnMap = checkUpdateIntervall.isSelected();
+                if (checkUpdateIntervall.isSelected()) {
+                    try {
+                        int loops = Integer.parseInt(textUpdateLoops.getText());
+                        controller.paintingInterval = loops;
+                        paintManager.repaintPerLoops = loops;
+                    } catch (Exception exception) {
+                        textUpdateLoops.setText(controller.paintingInterval + "");
+                    }
+                } else {
+                    paintManager.repaintPerLoops = Integer.MAX_VALUE;
+                }
             }
         });
         panelView.setPreferredSize(new Dimension(220, 50));
         panelView.setMaximumSize(new Dimension(400, 50));
         panelView.add(checkUpdateIntervall, BorderLayout.WEST);
-        final JTextField textUpdateLoops = new JTextField(controller.paintingInterval + "");
+
         textUpdateLoops.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent ke) {
@@ -1398,12 +1399,11 @@ this.add(tabs);
     }
 
     private void startGUIUpdateThread() {
-        updateThread = new Thread() {
+        updateThread = new Thread("GUI Repaint SinglecontrolPanel") {
             @Override
             public void run() {
                 while (!isInterrupted()) {
                     try {
-
                         GregorianCalendar start = new GregorianCalendar();
                         start.setTimeInMillis(controler.getSimulationStartTime());
                         GregorianCalendar end = new GregorianCalendar();

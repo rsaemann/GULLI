@@ -124,7 +124,7 @@ public class SpacelinePanel extends JPanel {
             } catch (Exception e) {
             }
         }
-        this.t = new Thread() {
+        this.t = new Thread("SpacelinePanel") {
             @Override
             public void run() {
 

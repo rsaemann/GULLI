@@ -200,7 +200,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             } catch (Exception e) {
             }
         }
-        this.t = new Thread() {
+        this.t = new Thread("Capacity Timeline Panel") {
             @Override
             public void run() {
 
@@ -574,7 +574,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     }
 
-    private void buildTriangleMeasurementTimeline(TriangleMeasurement triM) {
+    private void buildTriangleMeasurementTimeline(TriangleMeasurement triM,Surface surface) {
 
         //Status timeline of triangle might have another timecontainer than measurements
         TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan, new AxisKey("h", "Waterlevel [m]")), "m", "Time");
@@ -591,15 +591,16 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             count[i] = new TimeSeries(new SeriesKey("Particles (" + i + ")", "N(" + i + ")", " ", Color.orange, new AxisKey("N", "Count")), " ", "Time");
             mass[i] = new TimeSeries(new SeriesKey("Mass (" + i + ")", "m(" + i + ")", "kg", Color.PINK, new AxisKey("m", "Mass")), "kg", "Time");
         }
+        TimeIndexContainer timecontainer = surface.getMeasurementRaster().getIndexContainer();
 
-        double timescale = ThreadController.getDeltaTime() / (triM.getTimes().getDeltaTimeMS() / 1000.);
+        double timescale = ThreadController.getDeltaTime() / (timecontainer.getDeltaTimeMS() / 1000.);
 
-        for (int i = 0; i < triM.getTimes().getNumberOfTimes(); i++) {
+        for (int i = 0; i < timecontainer.getNumberOfTimes(); i++) {
             Date d;
             if (showSimulationTime) {
-                d = new Date(calcSimulationTime(triM.getTimes().getTimeMilliseconds(i), triM.getTimes().getTimeMilliseconds(0)));
+                d = new Date(calcSimulationTime(timecontainer.getTimeMilliseconds(i), timecontainer.getTimeMilliseconds(0)));
             } else {
-                d = new Date(triM.getTimes().getTimeMilliseconds(i));
+                d = new Date(timecontainer.getTimeMilliseconds(i));
             }
             RegularTimePeriod time = new Millisecond(d);
             double mass_s = 0;
