@@ -365,7 +365,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 if (tl.hasMassflux_reference()) {
 //                        refConcentration.addOrUpdate(time, tl.getMassflux_reference(index) / tl.getWaterlevel(index));
                     refConcentration.addOrUpdate(time, tl.getConcentration_reference(i));
-                    refMassflux0.addOrUpdate(time, tl.getMassflux_reference(i));
+                    refMassflux0.addOrUpdate(time, Math.abs(tl.getMassflux_reference(i)));
                 }
 
                 try {
