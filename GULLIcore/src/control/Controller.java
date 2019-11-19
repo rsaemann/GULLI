@@ -81,15 +81,17 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     public Action currentAction = new Action("", null, false);
 
+    private boolean requestRecalculationOfInjections = false;
+
     /**
      * Every Xth particle becomes a HistoryParticle.
      */
     public int intervallHistoryParticles = 0;
 
     public Controller() throws Exception {
-        int numberOfCores=Runtime.getRuntime().availableProcessors();
+        int numberOfCores = Runtime.getRuntime().availableProcessors();
 //        numberOfCores=4;
-        threadController = new ThreadController(Math.max(1,numberOfCores), this);
+        threadController = new ThreadController(Math.max(1, numberOfCores), this);
 
         threadController.addSimulationListener(this);
         loadingCoordinator = new LoadingCoordinator(this);
@@ -393,19 +395,24 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
         if (surface != null) {
             surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
+            surface.reset();
         }
         currentAction.description = "Reset scenario, Clean Pipe Measurements";
         fireAction(currentAction);
         boolean informed = false;
-        for (Pipe pipe : network.getPipes()) {
-            if (pipe.getMeasurementTimeLine() != null) {
-                pipe.getMeasurementTimeLine().resetVisitedParticlesStorage();
-            } else {
-                if (!informed) {
-                    System.err.println("Pipes do not have an initialized Measurement Timeline.");
-                    informed = true;
+        if (network != null) {
+            for (Pipe pipe : network.getPipes()) {
+                if (pipe.getMeasurementTimeLine() != null) {
+                    pipe.getMeasurementTimeLine().resetVisitedParticlesStorage();
+                } else {
+                    if (!informed) {
+                        System.err.println("Pipes do not have an initialized Measurement Timeline.");
+                        informed = true;
+                    }
                 }
             }
+        } else {
+            System.err.println("Network is not yet loaded. Cannot reset MeasurementTimelines of Pipes.");
         }
 
         if (NamedPipe_IO.instance != null) {
@@ -467,6 +474,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario == null) {
             throw new NullPointerException("No Scenario loaded.");
         }
+        if (requestRecalculationOfInjections) {
+            recalculateInjections();
+        }
         threadController.start();
     }
 
@@ -475,6 +485,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * in the scenario.
      */
     public void recalculateInjections() {
+        if (threadController.isSimulating()) {
+            requestRecalculationOfInjections = true;
+            return;
+        }
+        requestRecalculationOfInjections = false;
+//        System.out.println("recalculateInjections");
         for (ParticleListener pl : particleListener) {
             pl.clearParticles(this);
         }
@@ -490,6 +506,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 for (InjectionInformation in : scenario.getInjections()) {
                     numberofParticles += in.getNumberOfParticles();
                 }
+                Particle.resetCounterID();
                 ArrayList<Particle> particles = new ArrayList<>(numberofParticles);
                 for (InjectionInformation in : scenario.getInjections()) {
 

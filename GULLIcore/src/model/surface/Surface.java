@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.GeoPosition2D;
@@ -1470,7 +1469,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
         sourcesForSpilloutParticles.clear();
     }
-
+    
     /**
      * Set number of different materials that are injected.
      *

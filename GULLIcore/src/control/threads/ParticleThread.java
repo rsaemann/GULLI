@@ -113,7 +113,13 @@ public class ParticleThread extends Thread {
     @Override
     public void run() {
         //is initialized now
-        barrier.initialized(this);
+        status = 10;
+        if (barrier.isinitialized) {
+            barrier.loopfinished(this);
+        } else {
+            barrier.initialized(this);
+            status = 20;
+        }
         //if woken up start the normal loop
         Particle p;
         int[] fromto = null;
@@ -121,16 +127,18 @@ public class ParticleThread extends Thread {
             try {
 //                activeCalculation = true;
 //                status = 0;
+                status = 30;
                 fromto = threadController.getNextParticlesToTreat(fromto);
-//                status = 1;
+                status = 31;
                 if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
 //                    particleID = -5;
 //                    activeCalculation = false;
-                    status = 20;
+                    status = 33;
                     barrier.loopfinished(this);
-                    status = 21;
+                    status = 34;
                 } else {
+                    status = 35;
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getSimulationtime();
                     this.surfcomp.setActualSimulationTime(simulationTime);
@@ -144,7 +152,14 @@ public class ParticleThread extends Thread {
                     this.surfcomp.setRandomNumberGenerator(random);
 //                    status = 2;
                     for (int i = from; i < toExcld; i++) {
-                        p = threadController.particles[i];
+                        try {
+                            p = threadController.particles[i];
+                        } catch (Exception e) {
+                            System.err.println("tc:"+threadController);
+                            System.err.println("tc.particles:"+threadController.particles);
+                            e.printStackTrace();
+                            continue;
+                        }
 //                        this.particleID = p.getId();
                         if (p.isWaiting()) {
                             if (p.getInsertionTime() > this.simulationTime) {
@@ -192,6 +207,7 @@ public class ParticleThread extends Thread {
 //                    this.allParticlesReachedOutlet = false;
 //                    activeCalculation = false;
                 }
+                status = 50;
             } catch (Exception ex) {
                 activeCalculation = false;
                 this.allParticlesReachedOutlet = false;

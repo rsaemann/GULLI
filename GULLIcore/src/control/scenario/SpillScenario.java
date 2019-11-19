@@ -27,12 +27,11 @@ import control.scenario.injection.InjectionInformation;
 import control.Controller;
 import java.util.ArrayList;
 import java.util.Date;
-import model.timeline.array.ArrayTimeLinePipeContainer;
-import model.timeline.sparse.SparseTimeLinePipeContainer;
 import model.timeline.array.TimeContainer;
 
 /**
  * Informtion about the time and spill sources of one simulation
+ *
  * @author saemann
  */
 public class SpillScenario extends Scenario {
@@ -41,13 +40,17 @@ public class SpillScenario extends Scenario {
 
     public SpillScenario(TimeContainer container, ArrayList<InjectionInformation> injections) {
         super();
-        this.injections = injections;
-
-        if (container instanceof ArrayTimeLinePipeContainer) {
-            this.setTimesPipe(timesPipe);
-        }else if(container instanceof SparseTimeLinePipeContainer){
-            this.setTimesPipe(timesPipe);
+        if (injections == null) {
+            this.injections = new ArrayList<>(1);
+        } else {
+            this.injections = injections;
         }
+
+//        if (container instanceof ArrayTimeLinePipeContainer) {
+        this.setTimesPipe(timesPipe);
+//        }else if(container instanceof SparseTimeLinePipeContainer){
+//            this.setTimesPipe(timesPipe);
+//        }
     }
 
     @Override
@@ -65,7 +68,7 @@ public class SpillScenario extends Scenario {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName()+"{"+new Date(starttime)+", "+injections.size()+" injections}";
+        return getClass().getSimpleName() + "{" + new Date(starttime) + ", " + injections.size() + " injections}";
     }
-    
+
 }

@@ -848,35 +848,35 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                 str.append("\n lastfinishedBarrier: " + lastFinishedBarrier + "  :  " + controlThread.barrier + ",," + "\t control.status=" + controlThread.status + " (" + controlThread.getState() + ")  listener: " + controlThread.lastenvokenListener);
                                 int someoneblocked = -1;
                                 int someoneRunning = -1;
-                                if (calledObject instanceof MultiThreadBarrier) {
-                                    MultiThreadBarrier mtb = (MultiThreadBarrier) calledObject;
-                                    for (Object thread : mtb.getThreads()) {
-                                        if (thread instanceof ParticleThread) {
-                                            ParticleThread pt = (ParticleThread) thread;
-                                            str.append("\n ");
-                                            str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
-                                            if (pt.particle != null) {
-                                                str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
-                                            }
-                                            if (pt.pc != null) {
-                                                str.append("  PipeComp.status=" + pt.pc.status);
-                                            }
-                                            if (pt.getSurfaceComputing() != null) {
-                                                str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
 
-                                            }
-                                            if (pt.getState() == State.BLOCKED) {
-                                                someoneblocked = pt.threadIndex;
-                                            } else if (pt.getState() == State.RUNNABLE) {
-                                                someoneRunning = pt.threadIndex;
-                                            }
-                                        } else if (thread instanceof SynchronizationThread) {
-                                            SynchronizationThread st = (SynchronizationThread) thread;
-                                            str.append("\n ");
-                                            str.append(st.getClass().getSimpleName() + " " + st.getState() + ", status=" + st.status);
+                                for (Object thread : barrier_particle.getThreads()) {
+                                    if (thread instanceof ParticleThread) {
+                                        ParticleThread pt = (ParticleThread) thread;
+                                        str.append("\n ");
+                                        str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
+                                        if (pt.particle != null) {
+                                            str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
+                                        }
+                                        if (pt.pc != null) {
+                                            str.append("  PipeComp.status=" + pt.pc.status);
+                                        }
+                                        if (pt.getSurfaceComputing() != null) {
+                                            str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
+
+                                        }
+                                        if (pt.getState() == State.BLOCKED) {
+                                            someoneblocked = pt.threadIndex;
+                                        } else if (pt.getState() == State.RUNNABLE) {
+                                            someoneRunning = pt.threadIndex;
                                         }
                                     }
+
                                 }
+
+                                SynchronizationThread st = barrier_sync.getThread();
+                                str.append("\n ");
+                                str.append(st.getClass().getSimpleName()).append(" ").append(st.getState()).append(", status=").append(st.status);
+
                                 if (someoneRunning >= 0) {
                                     System.out.println("Slow simulation, but Thread " + someoneRunning + " is still working.");
                                 }

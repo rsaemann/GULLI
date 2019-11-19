@@ -68,21 +68,23 @@ public class SynchronizationThread extends Thread {
 
         try {
             ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
-            if (mcp.isTimespotmeasurement()) {
-                for (Pipe pipe : pipes) {
+            if (mcp != null) {
+                if (mcp.isTimespotmeasurement()) {
+                    for (Pipe pipe : pipes) {
 
-                    pipe.getMeasurementTimeLine().active = false;
+                        pipe.getMeasurementTimeLine().active = false;
 
-                }
-                this.openMeasurements = false;
-//                System.out.println("closed measurements");
-            } else {
-                for (Pipe pipe : pipes) {
-                    if (pipe.getMeasurementTimeLine() != null) {
-                        pipe.getMeasurementTimeLine().active = true;
                     }
-                }
+                    this.openMeasurements = false;
+//                System.out.println("closed measurements");
+                } else {
+                    for (Pipe pipe : pipes) {
+                        if (pipe.getMeasurementTimeLine() != null) {
+                            pipe.getMeasurementTimeLine().active = true;
+                        }
+                    }
 
+                }
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -97,79 +99,79 @@ public class SynchronizationThread extends Thread {
 
                     // Schreibe die Gesammelten Werte in die Mess-Zeitreihe der Rohre
                     ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
-
-                    if (mcp.isTimespotmeasurement()) {
-                        if (openMeasurements) {
-                            for (Pipe pipe : pipes) {
-                                ArrayTimeLineMeasurement tl = pipe.getMeasurementTimeLine();
-                                if (tl != null) {
-                                    if (tl.getNumberOfParticles() > 0) {
-                                        tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
+                    if (mcp != null) {
+                        if (mcp.isTimespotmeasurement()) {
+                            if (openMeasurements) {
+                                for (Pipe pipe : pipes) {
+                                    ArrayTimeLineMeasurement tl = pipe.getMeasurementTimeLine();
+                                    if (tl != null) {
+                                        if (tl.getNumberOfParticles() > 0) {
+                                            tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
+                                        }
+                                        tl.resetNumberOfParticles();
+                                        tl.active = false;
                                     }
-                                    tl.resetNumberOfParticles();
-                                    tl.active = false;
+                                }
+//                            System.out.println("closed tl");
+                                int timeindex = mcp.getIndexForTime(actualSimulationTime);
+                                if (timeindex >= mcp.getNumberOfTimes()) {
+                                    timeindex = mcp.getNumberOfTimes() - 1;
+                                }
+                                if (mcp.getNumberOfTimes() > timeindex + 1) {
+                                    if (mcp.getNumberOfTimes() == timeindex + 2) {
+                                        nextOpenTime = (long) (mcp.getEndTime() - ThreadController.getDeltaTime() * 2000);
+                                        writeindex = timeindex + 1;
+                                    } else {
+                                        nextOpenTime = mcp.getTimeMillisecondsAtIndex(timeindex + 1) - (int) (ThreadController.getDeltaTime() * 1000);
+                                        writeindex = timeindex + 1;
+                                    }
                                 }
                             }
-//                            System.out.println("closed tl");
+                            openMeasurements = false;
+                        } else if (pipes != null) {
                             int timeindex = mcp.getIndexForTime(actualSimulationTime);
                             if (timeindex >= mcp.getNumberOfTimes()) {
                                 timeindex = mcp.getNumberOfTimes() - 1;
                             }
-                            if (mcp.getNumberOfTimes() > timeindex + 1) {
-                                if (mcp.getNumberOfTimes() == timeindex + 2) {
-                                    nextOpenTime = (long) (mcp.getEndTime() - ThreadController.getDeltaTime() * 2000);
-                                    writeindex = timeindex + 1;
-                                } else {
-                                    nextOpenTime = mcp.getTimeMillisecondsAtIndex(timeindex + 1) - (int) (ThreadController.getDeltaTime() * 1000);
-                                    writeindex = timeindex + 1;
-                                }
-                            }
-                        }
-                        openMeasurements = false;
-                    } else if (pipes != null) {
-                        int timeindex = mcp.getIndexForTime(actualSimulationTime);
-                        if (timeindex >= mcp.getNumberOfTimes()) {
-                            timeindex = mcp.getNumberOfTimes() - 1;
-                        }
-                        if (lastMeasurementImeIndex != timeindex) {
-                            lastMeasurementImeIndex = timeindex;
+                            if (lastMeasurementImeIndex != timeindex) {
+                                lastMeasurementImeIndex = timeindex;
 //                            System.out.println("write pipe measurements for index " + timeindex + " at " + ((actualSimulationTime - mcp.getStartTime()) / 60000.) + " min.  Messungen pro zeitschritt:"+mcp.messungenProZeitschritt);
-                            for (Pipe pipe : pipes) {
-                                if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
-                                    pipe.getMeasurementTimeLine().addMeasurement(timeindex, (float) pipe.getFluidVolume());
-                                    pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                for (Pipe pipe : pipes) {
+                                    if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
+                                        pipe.getMeasurementTimeLine().addMeasurement(timeindex, (float) pipe.getFluidVolume());
+                                        pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                    }
                                 }
+
                             }
 
                         }
-
-                    }
 
 //                    status = 4;
-                    for (ParticleMeasurement pm : messung) {
-                        try {
-                            pm.writeCounter(actualSimulationTime);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                        for (ParticleMeasurement pm : messung) {
+                            try {
+                                pm.writeCounter(actualSimulationTime);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
 //                    status = 5;
-                    if (mcp.isTimespotmeasurement()) {
-                        //test if next timestep has to be used for value collection & writing
-                        if (actualSimulationTime >= nextOpenTime) {
-                            openMeasurements = true;
+                        if (mcp.isTimespotmeasurement()) {
+                            //test if next timestep has to be used for value collection & writing
+                            if (actualSimulationTime >= nextOpenTime) {
+                                openMeasurements = true;
 //                            System.out.println("open measurements");
-                            for (Pipe pipe : pipes) {
-                                if (pipe.getMeasurementTimeLine() != null) {
-                                    pipe.getMeasurementTimeLine().active = true;
-                                    if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 1000) {
+                                for (Pipe pipe : pipes) {
+                                    if (pipe.getMeasurementTimeLine() != null) {
+                                        pipe.getMeasurementTimeLine().active = true;
+                                        if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 1000) {
 //                                        int count = pipe.getMeasurementTimeLine().getNumberOfParticles();
-                                        pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                            pipe.getMeasurementTimeLine().resetNumberOfParticles();
 
 //                                        System.out.println("Particles in " + pipe.getName() + " are " + count + " before reset and " + pipe.getMeasurementTimeLine().getNumberOfParticles() + " afterwards");
-
-                                    } else {
-                                        pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                        } else {
+                                            pipe.getMeasurementTimeLine().resetNumberOfParticles();
+                                        }
                                     }
                                 }
                             }

@@ -26,6 +26,9 @@ package control.particlecontrol;
 import com.vividsolutions.jts.geom.Coordinate;
 import control.maths.RandomArray;
 import control.threads.ThreadController;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.particle.Particle;
@@ -97,6 +100,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double[] tempDiff = new double[2];
 
     private double posxalt, posyalt, posxneu, posyneu, totalvelocity;
+
+    private DecimalFormat df = new DecimalFormat("0.0000", DecimalFormatSymbols.getInstance(Locale.US));
 
     public ParticleSurfaceComputing2D(Surface surface, int threadIndex) {
         this.surface = surface;
@@ -177,11 +182,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         // get the particle velocity (most computation time used here)
         particlevelocity = surface.getParticleVelocity2D(p, p.surfaceCellID, particlevelocity, temp_barycentricWeights);
 
-        totalvelocity = (float) testVelocity(particlevelocity);
+        totalvelocity = testVelocity(particlevelocity);
         p.addMovingLength(totalvelocity * dt);
 
-        posxalt = (float) p.getPosition3d().x;
-        posyalt = (float) p.getPosition3d().y;
+        posxalt = p.getPosition3d().x;
+        posyalt = p.getPosition3d().y;
 
         if (!enableDiffusion) {
             posxneu = (posxalt + particlevelocity[0] * dt);// only advection
@@ -195,12 +200,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 double sqrt2dtDy = sqrt2dt * tempDiff[1];
 
                 // random walk simulation
-                float z2 = (float) nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-                float z1 = (float) nextRandomGaussian();
+                double z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+                double z1 = nextRandomGaussian();
 
                 // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
                 posxneu = (posxalt + particlevelocity[0] * dt + (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy));
                 posyneu = (posyalt + particlevelocity[1] * dt + (particlevelocity[1] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[0] / totalvelocity) * z2 * sqrt2dtDy));
+            } else {
+                posxneu = posxalt;
+                posyneu = posyalt;
+                return;
             }
         }
 

@@ -860,7 +860,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                     }
                 }
                 if (scenario != null) {
-                    surface.setTimeContainer(createSurfaceTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps()));
+                    surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps()));
                     scenario.setTimesSurface(surface);
                 } else {
                     System.err.println("No Scenario loaded, can not calculate timeintervalls for surface waterheight and velocities.");
@@ -1506,7 +1506,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         }
     }
 
-    private TimeIndexContainer createSurfaceTimeContainer(long start, long end, int numbertimesteps) {
+    public static TimeIndexContainer createTimeContainer(long start, long end, int numbertimesteps) {
         long dt = (end - start) / (numbertimesteps - 1);
         long[] times = new long[numbertimesteps];
         for (int i = 0; i < times.length; i++) {
@@ -1516,7 +1516,7 @@ public class LoadingCoordinator implements LoadingActionListener {
         return tc;
     }
 
-    public Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> sparseLoadTimelines(Network network, SparseTimeLineDataProvider dataprovider, Collection<Pipe> pipes, Collection<StorageVolume> manholes) throws Exception {
+    public static Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> sparseLoadTimelines(Network network, SparseTimeLineDataProvider dataprovider, Collection<Pipe> pipes, Collection<StorageVolume> manholes) throws Exception {
         SparseTimeLinePipeContainer container = new SparseTimeLinePipeContainer(dataprovider.loadTimeStepsNetwork());
         container.setDataprovider(dataprovider);
         //clear all old timelines

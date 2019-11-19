@@ -146,6 +146,10 @@ public class Particle {
         this(injectionSurrounding, injectionPosition1D, injectionTime);
         this.particleMass = mass_kg;
     }
+    
+    public static void resetCounterID(){
+        counterID=0;
+    }
 
     public boolean isInactive() {
         return status < 1;
