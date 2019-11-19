@@ -660,7 +660,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                             if (!wasrunning && frame != null) {
                                 frame.setTitle("> Run Control");
-                                sliderTimeShape.setEnabled(false);
+//                                sliderTimeShape.setEnabled(false);
                                 wasrunning = true;
                                 buttonRun.setSelected(true);
                                 buttonPause.setSelected(false);

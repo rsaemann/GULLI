@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JCheckBoxMenuItem;
@@ -68,7 +67,6 @@ import view.shapes.ArrowPainting;
 import view.shapes.LabelPainting;
 import view.shapes.Layer;
 import view.shapes.LinePainting;
-import view.shapes.LinkedLayer;
 import view.shapes.NodePainting;
 
 /**
@@ -2318,7 +2316,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             networkLayer.add(pnp);
                         } else {
                             //only change coordinate
-                            np.longLat=pos.lonLatCoordinate();
+                            np.longLat = pos.lonLatCoordinate();
 //                            geoToolsNetwork.toGlobal(pos.get3DCoordinate(), np.longLat, true);
                             np.setColor(chParticlesNetwork);
                             np.updateFromCoordinate();
@@ -3321,6 +3319,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             synchronized (repaintThread) {
                 //run garbage collector to prevent hanging on stopped Particlethreads. They are stopped by the GC and are sometimes not correctly reinitialized (locks on MeasurementRaster.TriangleMeasurements are not correctly released).
 //                System.gc();
+
                 repaintThread.notifyAll();
             }
         }
@@ -3364,6 +3363,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     @Override
     public void setParticles(Collection<Particle> particles, Object source) {
+        System.out.println("set new "+particles.size()+" particles.");
         mapViewer.clearLayer(this.layerParticle);
         mapViewer.clearLayer(this.layerParticleNetwork);
         mapViewer.clearLayer(this.layerParticleSurface);
@@ -3381,23 +3381,23 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     }
                 }
             }
-            Coordinate globalCoordinate;
-
-            if (p.isOnSurface()) {
-                try {
-                    globalCoordinate = geoToolsSurface.toGlobal(p.getPosition3d(), true);
-
-                } catch (TransformException ex) {
-                    Logger.getLogger(PaintManager.class
-                            .getName()).log(Level.SEVERE, null, ex);
-                    globalCoordinate = null;
-                }
-            } else if (p.isInPipeNetwork()) {
-                globalCoordinate = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()).get3DCoordinate();
-
-            } else {
-                globalCoordinate = zeroCoordinate;
-            }
+//            Coordinate globalCoordinate;
+//
+//            if (p.isOnSurface()) {
+//                try {
+//                    globalCoordinate = geoToolsSurface.toGlobal(p.getPosition3d(), true);
+//
+//                } catch (TransformException ex) {
+//                    Logger.getLogger(PaintManager.class
+//                            .getName()).log(Level.SEVERE, null, ex);
+//                    globalCoordinate = null;
+//                }
+//            } else if (p.isInPipeNetwork()) {
+//                globalCoordinate = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()).get3DCoordinate();
+//
+//            } else {
+//                globalCoordinate = zeroCoordinate;
+//            }
             ParticleNodePainting np;
 
             if (p.getClass().equals(HistoryParticle.class)) {
@@ -3467,6 +3467,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             this.particlePaintings[index] = np;
             index++;
         }
+        System.out.println("set " + index + " particles");
     }
 
     @Override
