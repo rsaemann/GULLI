@@ -338,4 +338,9 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     public void breakAllLocks() {
         throw new UnsupportedOperationException("RectangularRaster is working with 'synchronize' that cannot be unlocked"); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public void synchronizeMeasurements() {
+        return; //Not needed
+    }
 }

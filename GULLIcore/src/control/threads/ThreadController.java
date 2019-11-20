@@ -45,7 +45,6 @@ import javax.swing.JOptionPane;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
-import model.surface.measurement.SurfaceMeasurementRaster;
 import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Network;
@@ -60,7 +59,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     protected Controller control;
     public final MultiThreadBarrier<ParticleThread> barrier_particle;
 //    public final SingleThreadBarrier<LocationThread> barrier_positionUpdate;
-    public final SingleThreadBarrier<SynchronizationThread> barrier_sync;
+    public final MultiThreadBarrier<Thread> barrier_sync;
+    public final SynchronizationThreadPipe syncThread_pipes;
 
     private final ArrayList<SimulationActionListener> listener = new ArrayList<>(2);
 
@@ -159,10 +159,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //        barrier_positionUpdate.setThread(put);
 //
 //        barrier_positionUpdate.initialize();
-        barrier_sync = new SingleThreadBarrier<>("SyncBarrier", this);
-        barrier_sync.setThread(new SynchronizationThread("SyncThread", barrier_sync, control));
+        barrier_sync = new MultiThreadBarrier<>("SyncBarrier", this);
+        syncThread_pipes = new SynchronizationThreadPipe("SyncThread_Pipes", barrier_sync, control);
+        barrier_sync.addThread(syncThread_pipes);
+        barrier_sync.addThread(new SynchronizationThreadSurface("SyncThread_Surface", barrier_sync, control));
 //        for (int i = 0; i < numberParallelSyncThreads; i++) {
-//            SynchronizationThread syncThread = new SynchronizationThread("SyncThread[" + i + "]", barrier_sync, control);
+//            SynchronizationThreadPipe syncThread = new SynchronizationThreadPipe("SyncThread[" + i + "]", barrier_sync, control);
 //            barrier_sync.addThread(syncThread);
 //        }
 
@@ -185,11 +187,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         calculationFinished = false;
 
         Pipe[] fullarray = control.getNetwork().getPipes().toArray(new Pipe[control.getNetwork().getPipes().size()]);
-        barrier_sync.getThread().setPipes(fullarray);
+        syncThread_pipes.setPipes(fullarray);
 //        int fromIndex = 0;
 //        int numberofPipes = fullarray.length / barrier_sync.getThreads().size();
 //        for (int i = 0; i < barrier_sync.getThreads().size(); i++) {
-//            SynchronizationThread st = barrier_sync.getThreads().get(i);
+//            SynchronizationThreadPipe st = barrier_sync.getThreads().get(i);
 //            st.allFinished = false;
 //            st.setPipes(Arrays.copyOfRange(fullarray, fromIndex, Math.min(fullarray.length, fromIndex + numberofPipes)));
 //            fromIndex += numberofPipes + 1;
@@ -227,7 +229,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         if (randomNumberGenerators != null) {
 //            System.out.println("resetRandom Seeds");
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomArray newField = new RandomArray(new Random(seed + i), treatblocksize + 5);
+                RandomArray newField = new RandomArray(new Random(seed + i), (int) (treatblocksize * 20 + 1));
                 if (randomNumberGenerators[i] != null) {
                     newField.testEquals(randomNumberGenerators[i]);
                 }
@@ -873,7 +875,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                                 }
 
-                                SynchronizationThread st = barrier_sync.getThread();
+                                SynchronizationThreadPipe st = syncThread_pipes;
                                 str.append("\n ");
                                 str.append(st.getClass().getSimpleName()).append(" ").append(st.getState()).append(", status=").append(st.status);
 

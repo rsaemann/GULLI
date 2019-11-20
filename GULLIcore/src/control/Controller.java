@@ -44,6 +44,7 @@ import model.particle.HistoryParticle;
 import model.particle.Material;
 import model.particle.Particle;
 import model.surface.Surface;
+import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Capacity;
@@ -357,7 +358,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (ParticleThread pt : threadController.barrier_particle.getThreads()) {
             pt.addParticlemeasurement(pms);
         }
-        threadController.barrier_sync.getThread().addParticlemeasurement(pms);
+        threadController.syncThread_pipes.addParticlemeasurement(pms);
     }
 
     public void addParticleSectionMeasurement(Pipe p, double positionAbsolute) {
@@ -365,7 +366,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (ParticleThread pt : threadController.barrier_particle.getThreads()) {
             pt.addParticlemeasurement(pms);
         }
-        threadController.barrier_sync.getThread().addParticlemeasurement(pms);
+        threadController.syncThread_pipes.addParticlemeasurement(pms);
     }
 
     public Network getNetwork() {
@@ -648,6 +649,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     @Override
     public void loadSurface(Surface surface, Object caller) {
         this.surface = surface;
+        if (surface != null) {
+            if (surface.getMeasurementRaster() == null) {
+                surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getParticleThreads().length));
+            }
+        }
         for (LoadingActionListener ll : actionListener) {
             currentAction.description = "contrl. loadsurface inform " + ll;
             currentAction.progress = 0f;

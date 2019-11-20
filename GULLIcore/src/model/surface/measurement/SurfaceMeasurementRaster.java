@@ -65,4 +65,11 @@ public abstract class SurfaceMeasurementRaster {
      * This is called, when a Thread blocks the simulation.
      */
     public abstract void breakAllLocks();
+
+    /**
+     * CAlls the raster to count and store its measurements at the end of each
+     * loop. Some Rasters might need a synchronization step at the end of each
+     * simulation loop.
+     */
+    public abstract void synchronizeMeasurements();
 }

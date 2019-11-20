@@ -35,21 +35,28 @@ public class RandomArray {
 
     private final double[] gaussians, uniform;
     private int index = 0;
+    private int indexU = 0;
     private Random r;
 
     public RandomArray(Random randomNumberGenerator, int numberOfValues) {
+//        System.out.println("new random array size "+numberOfValues);
         this.r = randomNumberGenerator;
         gaussians = new double[numberOfValues];
         uniform = new double[numberOfValues];
         for (int i = 0; i < gaussians.length; i++) {
             gaussians[i] = randomNumberGenerator.nextGaussian();
+        }
+        for (int i = 0; i < uniform.length; i++) {
             uniform[i] = randomNumberGenerator.nextDouble();
         }
         index = 0;
+        indexU = 0;
     }
 
     public double nextGaussian() {
-//        if(true)return r.nextGaussian();
+//        if (true) {
+//            return r.nextGaussian();
+//        }
         index++;
         if (index >= gaussians.length) {
             index = 0;
@@ -60,17 +67,24 @@ public class RandomArray {
 
     public double nextDouble() {
 //        if(true)return r.nextDouble();
-        index++;
-        if (index >= uniform.length) {
-            index = 0;
+        indexU++;
+        if (indexU >= uniform.length) {
+            indexU = 0;
         }
 
-        return uniform[index];
+        return uniform[indexU];
     }
 
     public void resetIndex() {
         this.index = 0;
+        this.indexU = 0;
     }
+
+    public int getIndex() {
+        return index;
+    }
+    
+    
 
     public void testEquals(RandomArray other) {
         boolean equal = true;

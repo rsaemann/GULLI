@@ -188,10 +188,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         posxalt = p.getPosition3d().x;
         posyalt = p.getPosition3d().y;
 
-        if (!enableDiffusion) {
-            posxneu = (posxalt + particlevelocity[0] * dt);// only advection
-            posyneu = (posyalt + particlevelocity[1] * dt);// only advection
-        } else {
+        if (enableDiffusion) {
             // calculate diffusion
             if (totalvelocity > 0.0000001f) {
                 //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
@@ -202,6 +199,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 // random walk simulation
                 double z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
                 double z1 = nextRandomGaussian();
+//                if(p.getId()==0){
+//                    System.out.println(p.getId()+":  "+getRandomIndex());
+//                }
 
                 // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
                 posxneu = (posxalt + particlevelocity[0] * dt + (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy));
@@ -211,6 +211,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 posyneu = posyalt;
                 return;
             }
+        } else {
+            posxneu = (posxalt + particlevelocity[0] * dt);// only advection
+            posyneu = (posyalt + particlevelocity[1] * dt);// only advection
         }
 
         // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
@@ -220,12 +223,13 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     }
 
     private void checkSurrounding(Particle p) {
-        int triangleID = p.surfaceCellID;
-        Coordinate pos = p.getPosition3d();
-        if (pos != null && triangleID >= 0) {
+
+        if (p.getPosition3d() != null && p.surfaceCellID >= 0) {
             //Everything ok.
             return;
         } else {
+            int triangleID = p.surfaceCellID;
+            Coordinate pos = p.getPosition3d();
             System.err.println("particle lost on surface");
             if (p.getSurrounding_actual() instanceof Surface) {
                 p.setOnSurface();
@@ -339,6 +343,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     private double nextRandomGaussian() {
         return random.nextGaussian();
+    }
+    
+    private int getRandomIndex(){
+        return random.getIndex();
     }
 
     public String getDiffusionString() {

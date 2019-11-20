@@ -254,14 +254,26 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 System.out.println("Copied file to " + f.getAbsolutePath() + " from " + databaseFile.getAbsolutePath());
                             }
                             successCopy = true;
-//                            System.out.println("Copied file in " + ((System.currentTimeMillis() - start) / 1000) + "s.");
                         } catch (Exception exception) {
-                            exception.printStackTrace();
+//                            exception.printStackTrace();
+                            System.out.println("cannot access temporal file '" + f.toPath() + "'  readable:" + f.canRead() + ", writable:" + f.canWrite() + ", deletable:" + f.delete());
                             successCopy = false;
                         }
 //                        }
                         if (!successCopy) {
-                            f = new File(f.getParentFile(), f.getName() + "_1." + f.getName().substring(f.getName().length() - 4));
+                            for (int i = 1; i < 10; i++) {
+                                File testf = new File(f.getParentFile(), f.getName() + "_" + i + "." + f.getName().substring(f.getName().length() - 4));
+                                if (!testf.exists()) {
+                                    f = testf;
+                                    break;
+                                } else {
+                                    if (testf.delete()) {
+                                        f = testf;
+                                        break;
+                                    }
+                                }
+                            }
+
                             System.err.println("Need to create new temporary file: " + f);
                             try {
                                 Files.copy(databaseFile.toPath(), f.toPath(), new CopyOption[]{StandardCopyOption.REPLACE_EXISTING});
@@ -270,6 +282,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 }
                                 successCopy = true;
                             } catch (Exception exception) {
+
                                 exception.printStackTrace();
                                 successCopy = false;
                             }
@@ -350,8 +363,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public void close() throws SQLException {
         if (con != null && !con.isClosed()) {
+//            System.out.println("close main connection");
             con.close();
             con = null;
+        }
+        for (ThreadConnection threadConnection : threadConnections) {
+            if (threadConnection != null && !threadConnection.con.isClosed()) {
+//                System.out.println("close threadconnection");
+                threadConnection.con.close();
+                threadConnection.con = null;
+            }
         }
     }
 

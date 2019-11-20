@@ -43,6 +43,8 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     protected int numberOfMaterials = 1;
 
+    protected int numberOfParticleThreads;
+
     /**
      * store the time index for one timestep so it does not need the calculation
      * of the timecontainer each time.
@@ -52,12 +54,15 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     private boolean used = false;
 
+    public static boolean synchronizeOnlyAtEnd = true;
+
 //    private final Object monitort = new String("Monitor");
-    public SurfaceMeasurementTriangleRaster(Surface surf, int numberOfMaterials, TimeIndexContainer time) {
+    public SurfaceMeasurementTriangleRaster(Surface surf, int numberOfMaterials, TimeIndexContainer time, int numberOfParticleThreads) {
         this.surf = surf;
         this.times = time;
         this.numberOfMaterials = numberOfMaterials;
         this.measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
+        this.numberOfParticleThreads = numberOfParticleThreads;
     }
 
     @Override
@@ -95,7 +100,14 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             if (m == null) {
                 m = createMeasurement(id);
             }
-            if (synchronizeMeasures) {
+            if (synchronizeOnlyAtEnd) {
+                m.mass[materialIndex][threadIndex] += particle.getParticleMass();
+                m.particlecounter[materialIndex][threadIndex]++;
+                if (!m.used) {
+                    m.used = true;
+                }
+
+            } else if (synchronizeMeasures) {
                 if (m == null) {
                     System.err.println("monitor object is null for cell triangle " + id);
                 } else {
@@ -138,12 +150,25 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             if (this.measurements[triangleID] != null) {
                 return this.measurements[triangleID];
             } else {
-                TriangleMeasurement tm = new TriangleMeasurement(triangleID, times.getNumberOfTimes(), numberOfMaterials);
+                TriangleMeasurement tm = new TriangleMeasurement(triangleID, times.getNumberOfTimes(), numberOfMaterials, numberOfParticleThreads);
                 this.measurements[triangleID] = tm;
                 return tm;
             }
         }
 
+    }
+
+    @Override
+    public void synchronizeMeasurements() {
+        if (!synchronizeOnlyAtEnd) {
+            return;
+        }
+        for (TriangleMeasurement measurement : measurements) {
+            if (measurement == null) {
+                continue;
+            }
+            measurement.synchronizeMeasurements(timeindex);
+        }
     }
 
     @Override

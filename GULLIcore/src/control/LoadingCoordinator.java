@@ -897,6 +897,8 @@ public class LoadingCoordinator implements LoadingActionListener {
             } catch (IOException ex) {
                 Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
             }
+        } else {
+            System.err.println("Cannot apply manholes. File not set.");
         }
 
         if (manhRefs != null) {

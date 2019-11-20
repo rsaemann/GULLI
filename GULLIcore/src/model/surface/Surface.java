@@ -226,7 +226,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
 //        this.triangleCapacity = new HashMap<>(100);
 //        
-        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
+//        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
 
         this.paths = new HashMap<>(100);
     }
@@ -1769,6 +1769,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         return manholes[triangleID];
     }
 
+    public Manhole[] getManholes() {
+        return manholes;
+    }
+    
+    
+
     /**
      * Finds smallest triangle area of all triangles.
      *
@@ -2154,6 +2160,13 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             tofillBarycentric = new double[3];
         }
         getBarycentricWeighing_FillArray(vertices[t0][0], vertices[t1][0], vertices[t2][0], vertices[t0][1], vertices[t1][1], vertices[t2][1], p.getPosition3d().x, p.getPosition3d().y, tofillBarycentric);
+//        for (int i = 0; i < tofillBarycentric.length; i++) {
+//           if(tofillBarycentric[i]<0){
+//               System.out.println("weight is "+tofillBarycentric[i]);
+//           }
+//            
+//        }
+        
         double[] w = tofillBarycentric;
         if (calculateWeighted && velocityNodes != null) {
             if (velocityNodes[t0] == null) {

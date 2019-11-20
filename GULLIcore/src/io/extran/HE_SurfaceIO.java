@@ -848,18 +848,17 @@ public class HE_SurfaceIO {
             String line = br.readLine();
             int numberOfTriangles = Integer.parseInt(line);
             neumann = new int[numberOfTriangles][];
-            NumberConverter nc = new NumberConverter(br);
+//            NumberConverter nc = new NumberConverter(br);
             char c;
 //        boolean lastWasSplitter = true;
-            int linelength = -1;
+            int linelength ;
             char splitID = ',';
             char splitNeighbours = ' ';
-            int indexComma = -1;
-            int neighbours = 0;
-            int index = 0;
+            int indexComma ;
+            int neighbours ;
+            int index;
             char[] buffer = new char[256];
             while (br.ready()) {
-                index = 0;
                 neighbours = 0;
                 indexComma = -1;
                 linelength = -1;

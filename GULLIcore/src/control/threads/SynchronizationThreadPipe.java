@@ -35,9 +35,9 @@ import model.topology.measurement.ParticleMeasurement;
  *
  * @author saemann
  */
-public class SynchronizationThread extends Thread {
+public class SynchronizationThreadPipe extends Thread {
 
-    private final ThreadBarrier<SynchronizationThread> barrier;
+    private final ThreadBarrier<Thread> barrier;
     boolean runendless = true;
     public boolean allFinished = false;
     public long actualSimulationTime = 0;
@@ -55,7 +55,7 @@ public class SynchronizationThread extends Thread {
 
     private Pipe[] pipes;
 
-    public SynchronizationThread(String string, ThreadBarrier<SynchronizationThread> barrier, Controller control) {
+    public SynchronizationThreadPipe(String string, ThreadBarrier<Thread> barrier, Controller control) {
         super(string);
         this.barrier = barrier;
         this.control = control;
@@ -164,14 +164,14 @@ public class SynchronizationThread extends Thread {
                                 for (Pipe pipe : pipes) {
                                     if (pipe.getMeasurementTimeLine() != null) {
                                         pipe.getMeasurementTimeLine().active = true;
-                                        if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 1000) {
-//                                        int count = pipe.getMeasurementTimeLine().getNumberOfParticles();
+//                                        if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 1000) {
+////                                        int count = pipe.getMeasurementTimeLine().getNumberOfParticles();
+//                                            pipe.getMeasurementTimeLine().resetNumberOfParticles();
+//
+////                                        System.out.println("Particles in " + pipe.getName() + " are " + count + " before reset and " + pipe.getMeasurementTimeLine().getNumberOfParticles() + " afterwards");
+//                                        } else {
                                             pipe.getMeasurementTimeLine().resetNumberOfParticles();
-
-//                                        System.out.println("Particles in " + pipe.getName() + " are " + count + " before reset and " + pipe.getMeasurementTimeLine().getNumberOfParticles() + " afterwards");
-                                        } else {
-                                            pipe.getMeasurementTimeLine().resetNumberOfParticles();
-                                        }
+//                                        }
                                     }
                                 }
                             }
@@ -181,13 +181,11 @@ public class SynchronizationThread extends Thread {
                     e.printStackTrace();
                 }
             }
-            status = 6;
             /**
              * Synchronization finished, give control back to the
              * Threadcontroller via the barrier
              */
             barrier.loopfinished(this);
-            status = 7;
         }
     }
 
