@@ -300,16 +300,20 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             @Override
             public void run() {
                 while (true) {
-                    orderParticlesPainting();
-                    mapViewer.recalculateShapes();
-                    updateLabel();
-                    mapViewer.repaint();
-                    synchronized (this) {
-                        try {
-                            this.wait(60000);
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                    try {
+                        orderParticlesPainting();
+                        mapViewer.recalculateShapes();
+                        updateLabel();
+                        mapViewer.repaint();
+                        synchronized (this) {
+                            try {
+                                this.wait(60000);
+                            } catch (InterruptedException ex) {
+                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                            }
                         }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
                 }
             }
@@ -3363,7 +3367,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     @Override
     public void setParticles(Collection<Particle> particles, Object source) {
-        System.out.println("set new "+particles.size()+" particles.");
         mapViewer.clearLayer(this.layerParticle);
         mapViewer.clearLayer(this.layerParticleNetwork);
         mapViewer.clearLayer(this.layerParticleSurface);
@@ -3467,7 +3470,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             this.particlePaintings[index] = np;
             index++;
         }
-        System.out.println("set " + index + " particles");
     }
 
     @Override
