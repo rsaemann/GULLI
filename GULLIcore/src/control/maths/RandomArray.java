@@ -86,14 +86,15 @@ public class RandomArray {
     
     
 
-    public void testEquals(RandomArray other) {
+    public boolean hasEqualValues(RandomArray other) {
         boolean equal = true;
         for (int i = 0; i < uniform.length; i++) {
             if (uniform[i] != other.uniform[i]) {
                 equal = false;
-                System.out.println("Entry uniform[" + i + "] is not equal :" + this.uniform[i] + " != " + other.uniform[i]);
+//                System.out.println("Entry uniform[" + i + "] is not equal :" + this.uniform[i] + " != " + other.uniform[i]);
             }
         }
+        return equal;
 //        if (equal) {
 //            System.out.println("Entries are equal");
 //        }

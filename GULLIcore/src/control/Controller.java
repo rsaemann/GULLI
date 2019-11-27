@@ -91,7 +91,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     public Controller() throws Exception {
         int numberOfCores = Runtime.getRuntime().availableProcessors();
-//        numberOfCores=4;
+//        numberOfCores=1;
         threadController = new ThreadController(Math.max(1, numberOfCores), this);
 
         threadController.addSimulationListener(this);
@@ -530,15 +530,19 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                                 }
                             }
                         }
-
-                        ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
-                        for (Particle p1 : p) {
-                            p1.setInjectionCellID(in.getTriangleID());
-                            p1.setSurrounding_actual(null);
+                        try {
+                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
+                            for (Particle p1 : p) {
+                                p1.setInjectionCellID(in.getTriangleID());
+                                p1.setSurrounding_actual(null);
 //                            p1.setOnSurface();
 //                            System.out.println("cellid: " + p1.surfaceCellID + "  injection " + p1.getInjectionCellID());
+                            }
+                            particles.addAll(p);
+                        } catch (Exception ex) {
+                            System.err.println("Problem when creating particles for spill on surface triangle: " + in.getTriangleID() + " : " + ex.getLocalizedMessage());
                         }
-                        particles.addAll(p);
+
                     } else {
                         try {
                             Capacity c = null;

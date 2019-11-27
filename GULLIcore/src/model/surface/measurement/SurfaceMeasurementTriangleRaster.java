@@ -52,9 +52,15 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
     protected int timeindex = 0;
     protected long lastIndexTime = 0;
 
-    private boolean used = false;
+    private boolean usedInCurrentStep = false;
 
-    public static boolean synchronizeOnlyAtEnd = true;
+//    /**
+//     * if true the counting of each particle thread is done in seperate counters
+//     * for each thread. at the end a synchronization call is needed to store the
+//     * total value. if false each thread is blocked on writing the particle
+//     * count directly. this is slower due to the blocking.
+//     */
+//    public static boolean synchronizeOnlyAtEnd = false;
 
 //    private final Object monitort = new String("Monitor");
     public SurfaceMeasurementTriangleRaster(Surface surf, int numberOfMaterials, TimeIndexContainer time, int numberOfParticleThreads) {
@@ -94,20 +100,24 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             this.timeindex = times.getTimeIndex(time);
             this.lastIndexTime = time;
         }
+        if (!usedInCurrentStep) {
+            usedInCurrentStep = true;
+        }
         try {
             int materialIndex = particle.getMaterial().materialIndex;
             TriangleMeasurement m = measurements[id];
             if (m == null) {
                 m = createMeasurement(id);
             }
-            if (synchronizeOnlyAtEnd) {
-                m.mass[materialIndex][threadIndex] += particle.getParticleMass();
-                m.particlecounter[materialIndex][threadIndex]++;
-                if (!m.used) {
-                    m.used = true;
-                }
-
-            } else if (synchronizeMeasures) {
+//            if (synchronizeOnlyAtEnd) {
+//                m.mass[materialIndex][threadIndex] += particle.getParticleMass();
+//                m.particlecounter[materialIndex][threadIndex]++;
+//                if (!m.used) {
+//                    m.used = true;
+//                }
+//
+//            } else 
+             if (synchronizeMeasures) {
                 if (m == null) {
                     System.err.println("monitor object is null for cell triangle " + id);
                 } else {
@@ -160,8 +170,11 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     @Override
     public void synchronizeMeasurements() {
-        if (!synchronizeOnlyAtEnd) {
+        if (/*!synchronizeOnlyAtEnd*/true) {
             return;
+        }
+        if (!usedInCurrentStep) {
+            return;//no need to go through the whole list.
         }
         for (TriangleMeasurement measurement : measurements) {
             if (measurement == null) {
@@ -169,6 +182,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             }
             measurement.synchronizeMeasurements(timeindex);
         }
+        usedInCurrentStep=false;
     }
 
     @Override
@@ -201,6 +215,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     @Override
     public void reset() {
+        usedInCurrentStep=false;
         measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
     }
 

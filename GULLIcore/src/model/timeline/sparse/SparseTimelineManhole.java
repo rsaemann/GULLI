@@ -64,8 +64,8 @@ public class SparseTimelineManhole implements TimeLineManhole {
         this.manholeName=manhole.getName();
     }
 
-    public SparseTimelineManhole(SparseTimeLineManholeContainer container, long pipeManualID, String manholeName, float soleHeight) {
-        this.manholeManualID = pipeManualID;
+    public SparseTimelineManhole(SparseTimeLineManholeContainer container, long manholeManualID, String manholeName, float soleHeight) {
+        this.manholeManualID = manholeManualID;
         this.manholeName = manholeName;
         this.container = container;
         this.soleheight = soleHeight;
@@ -76,8 +76,8 @@ public class SparseTimelineManhole implements TimeLineManhole {
         initialized = flux != null && waterheight != null;
     }
 
-    public void setWaterHeight(float[] waterlevel) {
-        this.waterheight = waterlevel;
+    public void setWaterHeight(float[] waterheight) {
+        this.waterheight = waterheight;
         initialized = flux != null && waterheight != null;
     }
 

@@ -695,6 +695,100 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 }
                 res.close();
                 // ende Schacht abfrage
+                //Begin Speicherschacht Storagevolume
+                if (isSQLite) {
+                    try {
+                        res = st.executeQuery("SELECT name,geometry,TYP,gelaendehoehe,scheitelhoehe,sohlhoehe,ID,ART from SPEICHERSCHACHT ORDER BY ID;");
+                    } catch (SQLException sqlex) {
+//                        res = st.executeQuery("SELECT name,geometry,Oberflaeche,gelaendehoehe,scheitelhoehe,sohlhoehe,ID,KANALART from SPEICHERSCHACHT ORDER BY ID;");
+                        sqlex.printStackTrace();
+                    }
+                    if (!res.isBeforeFirst()) {
+                        System.err.println("Database has no Manhole elements.");
+                    }
+
+                    while (res.next()) {
+                        String name = res.getString(1);
+                        byte[] buffer = res.getBytes(2);
+                        Coordinate coordDB = decodeCoordinate(buffer);
+                        Coordinate coordUTM;
+                        try {
+                            coordUTM = SHP_IO_GULLI.transform(coordDB, transformDB_UTM); //gt.toGlobal(coord);
+
+                            Coordinate coordWGS = SHP_IO_GULLI.transform(coordDB, transformDB_WGS); //gt.toGlobal(coord);
+
+                            Position position = new Position(coordWGS.x, coordWGS.y, coordUTM.x, coordUTM.y);
+
+                            Profile p = schachtprofile.get(1);
+                            if (p == null) {
+                                p = new CircularProfile(1);
+                                schachtprofile.put(1, p);
+                            }
+                            Manhole m = new Manhole(position, name, p);
+                            m.setSurface_height(res.getFloat(4));
+                            m.setTop_height(res.getFloat(5));
+                            m.setSole_height(res.getFloat(6));
+                            m.setManualID(res.getInt(7));
+                            int raintype = res.getInt(8);
+                            if (raintype == 0) {
+                                m.setWaterType(Capacity.SEWER_TYPE.MIX);
+                            } else if (raintype == 1) {
+                                m.setWaterType(Capacity.SEWER_TYPE.DRAIN);
+                            } else if (raintype == 2) {
+                                m.setWaterType(Capacity.SEWER_TYPE.SEWER);
+                            }
+                            smap.put(name, m);
+                        } catch (MismatchedDimensionException ex) {
+                            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (TransformException ex) {
+                            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+
+                } else {
+                    try {
+                        res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,gelaendehoehe,Scheitelhoehe,sohlhoehe,ID from SPEICHERSCHACHT ORDER BY ID;");
+                    } catch (SQLException sQLException) {
+                        System.err.println("Networkmodel has no information about manhole diameter.");
+                    }
+//                    c = res.getMetaData().getColumnCount();
+
+                    while (res.next()) {
+                        try {
+                            String name = res.getString(1);
+
+                            double x = res.getDouble(2);
+                            double y = res.getDouble(3);
+                            Coordinate coordDB = new Coordinate(x, y);
+
+                            Coordinate coordUTM = SHP_IO_GULLI.transform(coordDB, transformDB_UTM); //gt.toGlobal(coord);
+                            Coordinate coordWGS = SHP_IO_GULLI.transform(coordDB, transformDB_WGS); //gt.toGlobal(coord);
+
+                            Position position = new Position(coordWGS.x, coordWGS.y, coordUTM.x, coordUTM.y);
+
+                            Profile p;
+                            //standarddiameter 1m
+                            p = schachtprofile.get(1);
+                            if (p == null) {
+                                p = new CircularProfile(1);
+                                schachtprofile.put(1, p);
+                            }
+
+                            Manhole m = new Manhole(position, name, p);
+                            m.setSurface_height(res.getFloat(5));
+                            m.setTop_height(res.getFloat(6));
+                            m.setSole_height(res.getFloat(7));
+                            m.setManualID(res.getInt(8));
+                            smap.put(name, m);
+                        } catch (SQLException | MismatchedDimensionException | TransformException exception) {
+                            System.err.println("Fehler bei SQL Abfrage.Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5));
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+                res.close();
+                // ende SpeicherSchacht abfrage
                 // starte Schacuhtauslass Suche
                 if (isSQLite) {
 
@@ -847,6 +941,70 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     pipe.setLength(res.getFloat(6));
                     pipe.setRoughness_k(res.getFloat(10));
                     pipe.setManualID(res.getInt(11));
+
+                    pipes_sewer.add(pipe);
+                }
+                res.close();
+
+                ////   Pumps
+                ////
+                res = st.executeQuery("SELECT name,schachtoben,schachtunten,typ,ID from PUMPE;");
+//                c = res.getMetaData().getColumnCount();
+                while (res.next()) {
+                    String name = res.getString(1);
+                    String nameoben = res.getString(2);
+                    String nameunten = res.getString(3);
+                    Manhole mhoben = smap.get(nameoben);
+                    Manhole mhunten = smap.get(nameunten);
+
+                    if (mhoben == null) {
+                        System.err.println(HE_Database.class
+                                + "::Can not find upper manhole '" + nameoben + "' for pipe " + name);
+
+                        continue;
+                    }
+                    if (mhunten == null) {
+                        System.err.println("Can not find lower manhole '" + nameunten + "' for pipe " + name);
+                        continue;
+                    }
+
+                  
+                    Profile p = schachtprofile.get(1);
+                    if (p == null) {
+                        p = new CircularProfile(1);
+                        schachtprofile.put(1, p);
+                    }
+                    //Verbindungen anlegen
+                    //Define the Position of Connections
+                    model.topology.Connection_Manhole_Pipe upper, lower;
+                    //Do not change the direction of Pipes, also not if they are pointed against gravity flow.
+                    upper = new model.topology.Connection_Manhole_Pipe(mhoben.getPosition(), mhoben.getSole_height());
+                    lower = new model.topology.Connection_Manhole_Pipe(mhunten.getPosition(),  mhunten.getSole_height());
+
+                    Pipe pipe = new Pipe(upper, lower, p);
+                    pipe.setName(name);
+
+                    mhoben.addConnection(upper);
+                    mhunten.addConnection(lower);
+
+                    // fertig Connections zwischen Schacht und haltung eingefügt
+                    String watertype = res.getString(4);
+                    Capacity.SEWER_TYPE type = Capacity.SEWER_TYPE.UNKNOWN;
+                    if (watertype.equals("0") || watertype.equals("KM")) {
+                        type = Capacity.SEWER_TYPE.MIX;
+                    } else if (watertype.equals("1") || watertype.equals("R")) {
+                        type = Capacity.SEWER_TYPE.DRAIN;
+
+                    } else if (watertype.equals("2") || watertype.equals("S")) {
+                        type = Capacity.SEWER_TYPE.SEWER;
+
+                    } else {
+                        System.out.println("Kanalart '" + watertype + "' ist noch icht bekannt. in " + this.getClass()
+                                .getName());
+                    }
+                    pipe.setWaterType(type);
+                    pipe.setLength((float) upper.getPosition().distance(lower.getPosition()));
+                    pipe.setManualID(res.getInt(5));
 
                     pipes_sewer.add(pipe);
                 }

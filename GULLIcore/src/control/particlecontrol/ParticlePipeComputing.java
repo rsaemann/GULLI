@@ -1466,9 +1466,6 @@ public class ParticlePipeComputing {
                 }
             }
         }
-//        status = 11;
-
-//        status = 12;
         /**
          * if ds is positive : advective dominant else diffusiv has higher
          * negative influence

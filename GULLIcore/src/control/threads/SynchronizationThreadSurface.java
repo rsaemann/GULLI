@@ -26,6 +26,10 @@ package control.threads;
 import control.Controller;
 
 /**
+ * @deprecated This is no longer used as the surfase asmple rasters are counting
+ * their amount of particles directl in each time step. no synchronization
+ * needed. 
+ * 
  * This Thread creates measurements for the actual timestep.
  *
  * @author saemann

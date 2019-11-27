@@ -59,7 +59,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     protected Controller control;
     public final MultiThreadBarrier<ParticleThread> barrier_particle;
 //    public final SingleThreadBarrier<LocationThread> barrier_positionUpdate;
-    public final MultiThreadBarrier<Thread> barrier_sync;
+    public final SingleThreadBarrier<SynchronizationThreadPipe> barrier_sync;
     public final SynchronizationThreadPipe syncThread_pipes;
 
     private final ArrayList<SimulationActionListener> listener = new ArrayList<>(2);
@@ -159,10 +159,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //        barrier_positionUpdate.setThread(put);
 //
 //        barrier_positionUpdate.initialize();
-        barrier_sync = new MultiThreadBarrier<>("SyncBarrier", this);
+        barrier_sync = new SingleThreadBarrier<>("SyncBarrier", this);
         syncThread_pipes = new SynchronizationThreadPipe("SyncThread_Pipes", barrier_sync, control);
-        barrier_sync.addThread(syncThread_pipes);
-        barrier_sync.addThread(new SynchronizationThreadSurface("SyncThread_Surface", barrier_sync, control));
+        barrier_sync.setThread(syncThread_pipes);
+//        barrier_sync.addThread(syncThread_pipes);
+//        barrier_sync.addThread(new SynchronizationThreadSurface("SyncThread_Surface", barrier_sync, control));
 //        for (int i = 0; i < numberParallelSyncThreads; i++) {
 //            SynchronizationThreadPipe syncThread = new SynchronizationThreadPipe("SyncThread[" + i + "]", barrier_sync, control);
 //            barrier_sync.addThread(syncThread);
@@ -230,9 +231,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //            System.out.println("resetRandom Seeds");
             for (int i = 0; i < randomNumberGenerators.length; i++) {
                 RandomArray newField = new RandomArray(new Random(seed + i), (int) (treatblocksize * 20 + 1));
-                if (randomNumberGenerators[i] != null) {
-                    newField.testEquals(randomNumberGenerators[i]);
-                }
                 randomNumberGenerators[i] = newField;
             }
         }
@@ -738,7 +736,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     status = 31;
                     if (calculationFinished) {
                         run = false;
-                        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time.\telapsed calculation time=" + calculationTimeElapsed + "ms");
+                        System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time.\telapsed calculation time=" + calculationTimeElapsed + "ms,  loops:" + steps);
 
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
@@ -877,7 +875,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                                 SynchronizationThreadPipe st = syncThread_pipes;
                                 str.append("\n ");
-                                str.append(st.getClass().getSimpleName()).append(" ").append(st.getState()).append(", status=").append(st.status);
+                                str.append(st.getClass().getSimpleName()).append(" ").append(st.getState()).append(", status=").append(st.status).append(", Lock is ").append((barrier_sync.getLock().isLocked() ? "locked" : "free"));
 
                                 if (someoneRunning >= 0) {
                                     System.out.println("Slow simulation, but Thread " + someoneRunning + " is still working.");

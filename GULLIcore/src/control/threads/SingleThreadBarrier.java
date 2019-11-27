@@ -1,5 +1,6 @@
 package control.threads;
 
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,6 +13,8 @@ import java.util.logging.Logger;
 public class SingleThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     private T thread;
+
+    private ReentrantLock lock = new ReentrantLock();
 
     public SingleThreadBarrier(String name, ThreadController controller) {
         super(name, controller);
@@ -32,17 +35,26 @@ public class SingleThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public void loopfinished(T callingThread) {
-        synchronized (this) {
-            //  System.out.print("     " + itsMe + "finished ");
-            if (callingThread == thread) {
-                notifyWhenReady.finishedLoop(this);
-            }
-            try {
-                this.wait();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(SingleThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
-            }
+//        synchronized (this) {
+        lock.lock();
+        //  System.out.print("     " + itsMe + "finished ");
+        if (callingThread == thread) {
+            notifyWhenReady.finishedLoop(this);
         }
+        try {
+            synchronized (this) {
+                this.wait();
+            }
+        } catch (InterruptedException ex) {
+            Logger.getLogger(SingleThreadBarrier.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            lock.unlock();
+        }
+//        }
+    }
+
+    public ReentrantLock getLock() {
+        return lock;
     }
 
     @Override
@@ -77,8 +89,7 @@ public class SingleThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
 
     @Override
     public String toString() {
-        return getName()+":Thread:"+thread.getName()+":"+thread.getState();
+        return getName() + ":Thread:" + thread.getName() + ":" + thread.getState();
     }
-    
-    
+
 }

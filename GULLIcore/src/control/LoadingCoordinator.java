@@ -886,20 +886,24 @@ public class LoadingCoordinator implements LoadingActionListener {
     }
 
     public boolean mapManholes(Surface surface, Network network) {
-        if (manhRefs == null && fileSurfaceManholes != null) {
-            try {
-                action.description = "Load Manhole locations";
-                fireLoadingActionUpdate();
-                manhRefs = HE_SurfaceIO.loadManholeToTriangleReferences(fileSurfaceManholes);
-                if (verbose) {
-                    System.out.println("loaded " + manhRefs.size() + " manhole references");
+        if (manhRefs == null) {
+            if (fileSurfaceManholes != null) {
+                try {
+                    action.description = "Load Manhole locations";
+                    fireLoadingActionUpdate();
+                    manhRefs = HE_SurfaceIO.loadManholeToTriangleReferences(fileSurfaceManholes);
+                    if (verbose) {
+                        System.out.println("loaded " + manhRefs.size() + " manhole references");
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } catch (IOException ex) {
-                Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+            }else {
+            System.err.println("Cannot apply manholes. File not set. " + fileSurfaceManholes);
             }
-        } else {
-            System.err.println("Cannot apply manholes. File not set.");
-        }
+        }else{
+            System.out.println("manhole references already loaded: "+manhRefs.size());
+        } 
 
         if (manhRefs != null) {
             action.description = "Mapping manhole - surface links";
@@ -910,6 +914,8 @@ public class LoadingCoordinator implements LoadingActionListener {
                 System.out.println("Mapping Manholes to surface took " + ((System.currentTimeMillis() - startt)) + "ms");
             }
             return true;
+        } else {
+            System.err.println("Manhole references not loaded.");
         }
         return false;
     }

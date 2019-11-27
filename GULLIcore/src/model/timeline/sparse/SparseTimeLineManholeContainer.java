@@ -47,6 +47,11 @@ public class SparseTimeLineManholeContainer extends TimeIndexContainer {
         this.dataprovider = dataprovider;
     }
 
+    public SparseTimeLineManholeContainer(SparseTimeLineDataProvider dataprovider, TimeContainer timeC) {
+        super(timeC);
+        this.dataprovider = dataprovider;
+    }
+
     public SparseTimeLineManholeContainer(long[] times) {
         super(times);
     }
