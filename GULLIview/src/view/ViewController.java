@@ -41,9 +41,9 @@ public class ViewController {
 
         //TableFrame
         timeLineFrame = new EditorTableFrame("No pipe or manhole selected yet", control);
-        timeLineFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        timeLineFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         timelinePanel = timeLineFrame.getTimelinePanel();//new CapacityTimelinePanel("Nothing selected yet", c);// new TimelinePanel("Select Pipe or Manhole", false);
-      
+
         paintManager.addCapacitySelectionListener(timelinePanel);
 
         //Order Frames

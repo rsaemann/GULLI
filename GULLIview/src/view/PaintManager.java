@@ -50,6 +50,7 @@ import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.ArrayTimeLinePipe;
 import model.timeline.array.TimeIndexContainer;
+import model.timeline.sparse.SparseTimelineManhole;
 import model.timeline.sparse.SparseTimelinePipe;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole_Pipe;
@@ -2277,63 +2278,66 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         arrayListSurface.clear();
 
 //        Iterator<NodePainting> it = particlePaintings.iterator();
-        int surface = 0;
-        int network = 0;
+        int nb_surface = 0;
+        int nB_network = 0;
         int positionnull = 0;
-        for (int i = 0; i < particlePaintings.length; i++) {
-            ParticleNodePainting np = particlePaintings[i];
-            Particle p = control.getThreadController().getParticles()[i];
+        Particle[] ps = control.getThreadController().getParticles();
+        if (ps != null) {
+            for (int i = 0; i < particlePaintings.length; i++) {
+                ParticleNodePainting np = particlePaintings[i];
+                Particle p = ps[i];
 //            NodePainting np = it.next();
 //            if (i % 10000 == 0) {
 //                System.out.println("particle " + i);
 //            }
-            // TODO: only update the shapes position instead of creaing alwas a new version.
-            if (p.isActive()) {
+                // TODO: only update the shapes position instead of creaing alwas a new version.
+                if (p.isActive()) {
 //                System.out.println("First surface particle " + p.isActive() + "   where?" + p.getSurrounding_actual() + "  surface?" + p.isOnSurface() + "  id:" + p.surfaceCellID+"  position:"+ p.getPosition3d());
 
-                if (p.getPosition3d() == null || Double.isNaN(p.getPosition3d().x)) {
-                    positionnull++;
-                    continue;
-                }
-                if (p.isOnSurface()) {
-                    try {
-                        if (np == null) {
-                            ParticleNodePainting pnp = new ParticleNodePainting(i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
-                            particlePaintings[i] = pnp;
-                            surfaceLayer.add(pnp);
-                        } else {
-                            geoToolsSurface.toGlobal(p.getPosition3d(), np.longLat, true);
-                            np.setColor(chParticlesSurface);
-                            np.updateFromCoordinate();
-                            arrayListSurface.add(np);
-                        }
-                        surface++;
-                    } catch (Exception ex) {
+                    if (p.getPosition3d() == null || Double.isNaN(p.getPosition3d().x)) {
+                        positionnull++;
+                        continue;
+                    }
+                    if (p.isOnSurface()) {
+                        try {
+                            if (np == null) {
+                                ParticleNodePainting pnp = new ParticleNodePainting(i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
+                                particlePaintings[i] = pnp;
+                                surfaceLayer.add(pnp);
+                            } else {
+                                geoToolsSurface.toGlobal(p.getPosition3d(), np.longLat, true);
+                                np.setColor(chParticlesSurface);
+                                np.updateFromCoordinate();
+                                arrayListSurface.add(np);
+                            }
+                            nb_surface++;
+                        } catch (Exception ex) {
 //                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    } else {
+                        try {
+                            Position3D pos = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual());
+                            if (np == null) {
+                                ParticleNodePainting pnp = new ParticleNodePainting(i, pos.lonLatCoordinate(), chParticlesNetwork);
+                                particlePaintings[i] = pnp;
+                                networkLayer.add(pnp);
+                            } else {
+                                //only change coordinate
+                                np.longLat = pos.lonLatCoordinate();
+//                            geoToolsNetwork.toGlobal(pos.get3DCoordinate(), np.longLat, true);
+                                np.setColor(chParticlesNetwork);
+                                np.updateFromCoordinate();
+                                arrayListNetwork.add(np);
+                            }
+
+                            nB_network++;
+                        } catch (Exception ex) {
+//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 } else {
-                    try {
-                        Position3D pos = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual());
-                        if (np == null) {
-                            ParticleNodePainting pnp = new ParticleNodePainting(i, pos.lonLatCoordinate(), chParticlesNetwork);
-                            particlePaintings[i] = pnp;
-                            networkLayer.add(pnp);
-                        } else {
-                            //only change coordinate
-                            np.longLat = pos.lonLatCoordinate();
-//                            geoToolsNetwork.toGlobal(pos.get3DCoordinate(), np.longLat, true);
-                            np.setColor(chParticlesNetwork);
-                            np.updateFromCoordinate();
-                            arrayListNetwork.add(np);
-                        }
-
-                        network++;
-                    } catch (Exception ex) {
-//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                    np.setColor(null);
                 }
-            } else {
-                np.setColor(null);
             }
         }
 
@@ -2682,10 +2686,13 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         if (mh.isSetAsOutlet()) {
             str += " Outlet;";
         }
+        str+="Triangle: "+mh.getSurfaceTriangleID()+";";
+//        str+="Timeline: "+((SparseTimelineManhole)mh.getStatusTimeLine()).isInitialized()+";";
+        
         str += "Top   " + df3.format(mh.getTop_height()) + " m üNN;"
                 + "Tiefe   " + df3.format(mh.getTop_height() - mh.getSole_height()) + " m;"
                 + "Sohle " + df3.format(mh.getSole_height()) + " m üNN; ;"
-                + "Waterlvl " + df3.format((mh.getWaterHeight() - mh.getSole_height())) + "m;"
+                + "Waterlvl " + df3.format(mh.getWaterlevel()) + "m;"
                 + "Water h  " + df3.format(mh.getWaterHeight()) + "m üNN;";
 
         for (int j = mh.getConnections().length - 1; j >= 0; j--) {
@@ -2694,9 +2701,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             str += j + " : " + df3.format(mh.getWaterHeight() - connection.getHeight()) + "m ";
             try {
                 if (connection.isFlowInletToPipe()) {
-                    str += " out - " + connection.getPipe().getAutoID() + ";";
+                    str += " out - to " + connection.getPipe().getAutoID() + ";";
                 } else if (connection.isFlowOutletFromPipe()) {
-                    str += " in  - " + connection.getPipe().getAutoID() + ";";
+                    str += " in- from " + connection.getPipe().getAutoID() + ";";
                 } else {
                     str += "  =  - " + connection.getPipe().getAutoID() + ";";
                 }
