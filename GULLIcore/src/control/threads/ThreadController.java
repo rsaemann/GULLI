@@ -484,15 +484,36 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public void breakBarrierLocks() {
         int actualLoop = steps;
+        //check if the synchronization thread is blocked
+        if (barrier_sync.getLock().isLocked()) {
+            System.out.println("try to unlock barriersync");
+            try {
+                barrier_sync.getLock().unlock();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            if (actualLoop != steps) {
+                System.out.println("Continue simulation after SynchronizationBarrier lock was released.");
+            }
+        }
+
         //Go through all triangle measurements and free locks
         Surface surf = control.getSurface();
-        if (surf != null && surf.getMeasurementRaster() != null) {
+        if (surf
+                != null && surf.getMeasurementRaster()
+                != null) {
             try {
                 surf.getMeasurementRaster().breakAllLocks();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+
         try {
             //wait until hopefully all threads have finished their simulation
             Thread.sleep(500);
@@ -501,10 +522,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
         if (actualLoop != steps) {
             //that was enough. simulation is running again. 
+            System.out.println("Continue Simulation after Surface Measurements were unlocked.");
             return;
         }
         //that was not enough. threads are still blocking
-        for (int i = 0; i < barrier_particle.getThreads().size(); i++) {
+        for (int i = 0;
+                i < barrier_particle.getThreads()
+                .size(); i++) {
             ParticleThread pt = barrier_particle.getThreads().get(i);
             if (pt.getState() == Thread.State.BLOCKED) {
                 System.out.println("Replace blocked Thread " + i);
@@ -875,7 +899,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                                 SynchronizationThreadPipe st = syncThread_pipes;
                                 str.append("\n ");
-                                str.append(st.getClass().getSimpleName()).append(" ").append(st.getState()).append(", status=").append(st.status).append(", Lock is ").append((barrier_sync.getLock().isLocked() ? "locked" : "free"));
+                                str.append(st.getClass().getSimpleName()).append(" ").append(st.getState()).append(", status=").append(st.status).append(", Lock is ").append((barrier_sync.getLock().isLocked() ? ("locked, waiting:" + barrier_sync.getLock().getQueueLength()) : "free"));
 
                                 if (someoneRunning >= 0) {
                                     System.out.println("Slow simulation, but Thread " + someoneRunning + " is still working.");
