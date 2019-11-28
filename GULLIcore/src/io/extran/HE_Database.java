@@ -1557,7 +1557,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         Statement st = con.createStatement();
 
         // Finde die richtige Anfangszeit
-        ResultSet rs = st.executeQuery("SELECT BERICHTANFANG from EXTRANPARAMETERSATZ;");
+        ResultSet rs = st.executeQuery("SELECT BERICHTANFANG,BERICHTENDE from EXTRANPARAMETERSATZ;");
         if (!rs.isBeforeFirst()) {
             //Resultset is empty
             rs.close();
@@ -1567,12 +1567,21 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         rs.next();
         GregorianCalendar gcdaystart = new GregorianCalendar();
+        GregorianCalendar simulationStart = new GregorianCalendar();
+        GregorianCalendar simulationEnde = new GregorianCalendar();
         if (isSQLite) {
 //            System.out.println(rs.getString(1));
-            gcdaystart.setTimeInMillis(sqliteDateTimeFormat.parse(rs.getString(1)).getTime());
+            long time = sqliteDateTimeFormat.parse(rs.getString(1)).getTime();
+            gcdaystart.setTimeInMillis(time);
+            simulationStart.setTimeInMillis(time);
+            time = sqliteDateTimeFormat.parse(rs.getString(2)).getTime();
+            simulationEnde.setTimeInMillis(time);
         } else {
-            Timestamp simulationStart = rs.getTimestamp(1);
-            gcdaystart.setTimeInMillis(simulationStart.getTime());
+            Timestamp time = rs.getTimestamp(1);
+            gcdaystart.setTimeInMillis(time.getTime());
+            simulationStart.setTimeInMillis(time.getTime());
+            time = rs.getTimestamp(2);
+            simulationEnde.setTimeInMillis(time.getTime());
         }
         gcdaystart.set(GregorianCalendar.HOUR_OF_DAY, 0);
         gcdaystart.set(GregorianCalendar.MINUTE, 0);
@@ -1597,7 +1606,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             while (rs.next()) {
                 EinzelStoffeinleiter eze = new EinzelStoffeinleiter();
                 eze.pipename = rs.getString("ROHR");
-                eze.discharge = rs.getDouble("ZUFLUSSDIREKT");
+                eze.discharge = rs.getDouble("ZUFLUSS");
                 eze.concentration = rs.getDouble("KONZENTRATION");
                 eze.name = rs.getString("STOFF");
                 eze.refIDTimelineVolume = rs.getInt("EINZELMUSTERREF");
@@ -1610,8 +1619,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 double[] volumefactor = new double[24];
                 double[] solutefactor = new double[24];
 
+                boolean hasTimeFactors = false;
                 boolean writtenVolumes = false;
-                if (ele.refIDTimelineVolume >= 0) {
+                if (ele.refIDTimelineVolume > 0) {
                     qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineVolume + " ORDER BY REIHENFOLGE";
                     rs = st.executeQuery(qstring);
                     int index = 0;
@@ -1620,8 +1630,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             volumefactor[index] = rs.getDouble("WERT");
                             index++;
                             writtenVolumes = true;
+                            hasTimeFactors = true;
                         }
                     }
+                } else {
+//                    System.out.println(" ohne TimelineVolume");
                 }
                 if (!writtenVolumes) {
                     for (int i = 0; i < volumefactor.length; i++) {
@@ -1629,7 +1642,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     }
                 }
                 boolean writtenSolute = false;
-                if (ele.refIDTimelineSolute >= 0) {
+                if (ele.refIDTimelineSolute > 0) {
                     qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineSolute + " ORDER BY REIHENFOLGE";
                     rs = st.executeQuery(qstring);
                     int index = 0;
@@ -1638,47 +1651,74 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             solutefactor[index] = rs.getDouble("WERT");
                             index++;
                             writtenSolute = true;
+                            hasTimeFactors = true;
                         }
+                    } else {
+//                        System.out.println("zeitreihe stoff " + ele.refIDTimelineSolute + " is empty");
                     }
+                } else {
+//                    System.out.println("ohne Zeitreihe Stoff");
                 }
                 if (!writtenSolute) {
                     for (int i = 0; i < solutefactor.length; i++) {
                         solutefactor[i] = 1.;
                     }
                 }
-                int start = -1;
-                int duration = -1;
-                double intensity = -1;
-                //Search for the right starttime
-                for (int i = 0; i < solutefactor.length; i++) {
-                    double factor = solutefactor[i] * volumefactor[i];
-                    if (factor > 0) {
-                        if (intensity <= 0) {
-                            //this is the first interval with information
-                            start = i;
-                            duration = 1;
-                            intensity = factor;
-                        } else {
-                            //this is an ongoing interval
-                            if (Math.abs(intensity - factor) < 0.001) {
-                                //Ongoing injection
-                                duration++;
-                            } else {
-                                //TODO: terminate the old spill and start a new one
-                                duration++;
+
+                if (hasTimeFactors) {
+                    int start = -1;
+                    int duration = -1;
+                    double intensity = -1;
+                    //Search for the right starttime
+                    for (int i = 0; i < solutefactor.length; i++) {
+                        double factor = solutefactor[i] * volumefactor[i];
+                        if (factor > 0) {
+                            if (intensity <= 0) {
+                                //this is the first interval with information
+                                start = i;
+                                duration = 1;
                                 intensity = factor;
+                            } else {
+                                //this is an ongoing interval
+                                if (Math.abs(intensity - factor) < 0.001) {
+                                    //Ongoing injection
+                                    duration++;
+                                } else {
+                                    //TODO: terminate the old spill and start a new one
+                                    duration++;
+                                    intensity = factor;
+                                }
                             }
                         }
                     }
-                }
-                //Create a injection information
-                if (start >= 0 && intensity > 0) {
-                    long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000);
-                    long endtime = starttime + (long) ((duration) * 60 * 60 * 1000);
-                    double injectionTimeSeconds = (endtime - starttime) / 1000;
-                    double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
+                    //Create a injection information
+                    if (start >= 0 && intensity > 0) {
+                        long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000);
+                        long endtime = starttime + (long) ((duration) * 60 * 60 * 1000);
+                        double injectionTimeSeconds = (endtime - starttime) / 1000;
+                        double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
 
-                    System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
+                        System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", start:" + start + " (index), duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
+
+                        try {
+                            HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                            particles.add(info);
+                        } catch (Exception exception) {
+                            System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
+                            exception.printStackTrace();
+                        }
+                    }
+                } else {
+                    //has no timefactory: constant discharge.
+                    //Create a injection information
+
+                    long starttime = simulationStart.getTimeInMillis();
+                    long duration = simulationEnde.getTimeInMillis() - simulationStart.getTimeInMillis();//length of simulation
+                    long endtime = starttime + duration;
+                    double injectionTimeSeconds = (endtime - starttime) / 1000;
+                    double wert = ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
+
+                    System.out.println("Scenario constant injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
 
                     try {
                         HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
@@ -1687,6 +1727,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
                         exception.printStackTrace();
                     }
+
                 }
 
                 rs.close();
@@ -3059,12 +3100,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         velocity[index] = rs.getFloat(1);
                         flux[index] = rs.getFloat(2);
                         waterlevel[index] = rs.getFloat(3);
-                        
-                        if(velocity[index]==0&&flux[index]!=0){
+
+                        if (velocity[index] == 0 && flux[index] != 0) {
                             //This seems to be a pump
-                            velocity[index]=3;
+                            velocity[index] = 3;
                         }
-                        
+
                         index++;
                     }
 
