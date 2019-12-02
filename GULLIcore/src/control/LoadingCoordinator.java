@@ -30,6 +30,7 @@ import control.scenario.SpillScenario;
 import control.scenario.injection.InjectionInformation;
 import control.scenario.Setup;
 import control.scenario.injection.HEInjectionInformation;
+import control.scenario.injection.HE_MessdatenInjection;
 import io.extran.CSV_IO;
 import io.extran.HE_Database;
 import io.SHP_IO_GULLI;
@@ -579,7 +580,21 @@ public class LoadingCoordinator implements LoadingActionListener {
                                 }
                                 double start = (in.stattime - timeContainerPipe.getFirstTime()) / 1000;
                                 double duration = (in.endtime - timeContainerPipe.getFirstTime()) / 1000 - start;
-                                InjectionInformation info = new InjectionInformation(c, 0, in.mass, 20000, new Material("Schmutz " + materialnumber++, 1000, true), start, duration);
+                                Material mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                                int particlenumber = 20000;
+                                InjectionInformation info;
+                                if (in instanceof HE_MessdatenInjection) {
+                                    HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
+
+                                    info = new InjectionInformation(c, timeContainerPipe.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
+
+                                } else {
+                                    info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
+                                }
+                                if (c instanceof Pipe) {
+                                    info.setPosition1D(((Pipe) c).getLength() * 0.5f);
+//                                    System.out.println("loadc set position to " + info.getPosition1D());
+                                }
                                 if (injections.contains(info)) {
                                     injections.remove(info);
                                 }
@@ -625,9 +640,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                         control.getMultiInputData().add(0, data);
                         control.getThreadController().cleanFromParticles();
                         //Scenario laden only as mainresult
-                        ArrayList<HEInjectionInformation> injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
+                        ArrayList<HEInjectionInformation> he_injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
                         int materialnumber = 0;
-                        for (HEInjectionInformation in : injection) {
+                        for (HEInjectionInformation in : he_injection) {
                             Capacity c = null;
                             if (network == null) {
                                 System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
@@ -640,7 +655,21 @@ public class LoadingCoordinator implements LoadingActionListener {
                             }
                             double start = (in.stattime - p.first.getFirstTime()) / 1000;
                             double duration = (in.endtime - p.first.getFirstTime()) / 1000 - start;
-                            InjectionInformation info = new InjectionInformation(c, 0, in.mass, 20000, new Material("Schmutz " + materialnumber++, 1000, true), start, duration);
+                            Material mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                            int particlenumber = 20000;
+                            InjectionInformation info;
+                            if (in instanceof HE_MessdatenInjection) {
+                                HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
+
+                                info = new InjectionInformation(c, p.first.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
+
+                            } else {
+                                info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
+                            }
+                            if (c instanceof Pipe) {
+                                info.setPosition1D(((Pipe) c).getLength() * 0.5f);
+//                                System.out.println("loadc set position to " + info.getPosition1D());
+                            }
                             if (injections.contains(info)) {
                                 injections.remove(info);
                             }
@@ -898,12 +927,12 @@ public class LoadingCoordinator implements LoadingActionListener {
                 } catch (IOException ex) {
                     Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            }else {
-            System.err.println("Cannot apply manholes. File not set. " + fileSurfaceManholes);
+            } else {
+                System.err.println("Cannot apply manholes. File not set. " + fileSurfaceManholes);
             }
-        }else{
-            System.out.println("manhole references already loaded: "+manhRefs.size());
-        } 
+        } else {
+            System.out.println("manhole references already loaded: " + manhRefs.size());
+        }
 
         if (manhRefs != null) {
             action.description = "Mapping manhole - surface links";

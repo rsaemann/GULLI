@@ -41,7 +41,6 @@ import java.util.Random;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
@@ -486,8 +485,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         int actualLoop = steps;
         //check if the synchronization thread is blocked
         if (barrier_sync.getLock().isLocked()) {
-            System.out.println("try to unlock barriersync");
+            System.out.println("try to unlock barriersync queued by synchread_pipes " + barrier_sync.getLock().hasQueuedThread(syncThread_pipes));
+            System.out.println("call awake on the sync barrier");
             try {
+                synchronized (barrier_sync) {
+                    barrier_sync.notifyAll();
+                } 
                 barrier_sync.getLock().unlock();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -499,6 +502,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             }
             if (actualLoop != steps) {
                 System.out.println("Continue simulation after SynchronizationBarrier lock was released.");
+            } else {
+                System.out.println("try to reinitialize Synchronization thread");
             }
         }
 
@@ -526,9 +531,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             return;
         }
         //that was not enough. threads are still blocking
-        for (int i = 0;
-                i < barrier_particle.getThreads()
-                .size(); i++) {
+        for (int i = 0; i < barrier_particle.getThreads().size(); i++) {
             ParticleThread pt = barrier_particle.getThreads().get(i);
             if (pt.getState() == Thread.State.BLOCKED) {
                 System.out.println("Replace blocked Thread " + i);
@@ -908,8 +911,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                 System.out.println(str.toString());
                                 int actualloop = steps;
                                 if (someoneblocked >= 0 && someoneRunning < 0 && !informed) {
-                                    JOptionPane.showMessageDialog(null, "Blocked Thread " + someoneblocked, "Blovked Thread", JOptionPane.INFORMATION_MESSAGE);// str.append(" Restart Thread "+pt.threadIndex);
-                                    informed = true;
+//                                    JOptionPane.showMessageDialog(null, "Blocked Thread " + someoneblocked, "Blovked Thread", JOptionPane.INFORMATION_MESSAGE);// str.append(" Restart Thread "+pt.threadIndex);
+//                                    informed = true;
                                 }
                                 if (someoneRunning < 0 && steps == actualloop) {
                                     if (lockbreaker == null || lockbreaker.getState() == State.TERMINATED) {

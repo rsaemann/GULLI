@@ -49,7 +49,38 @@ public interface InjectionInfo {
 
     /**
      * May be NULL!
-     * @return 
+     *
+     * @return
      */
     public Capacity getCapacity();
+
+    int getNumberOfIntervals();
+
+    /**
+     * Start of interval in seconds after event start.
+     *
+     * @param interval
+     * @return
+     */
+    double getIntervalStart(int interval);
+
+    /**
+     * End of interval in seconds after event start.
+     *
+     * @param interval
+     * @return
+     */
+    double getIntervalEnd(int interval);
+
+    /**
+     * Duration of interval in seconds
+     *
+     * @param interval
+     * @return
+     */
+    double getIntervalDuration(int interval);
+
+    double massInInterval(int interval);
+
+    int particlesInInterval(int interval);
 }

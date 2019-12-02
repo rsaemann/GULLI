@@ -23,6 +23,7 @@
  */
 package control;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import control.listener.SimulationActionListener;
 import control.particlecontrol.ParticlePipeComputing;
 import control.Action.Action;
@@ -54,6 +55,7 @@ import model.topology.Manhole;
 import model.topology.Network;
 import model.topology.measurement.ParticleMeasurementSegment;
 import model.topology.Pipe;
+import model.topology.Position;
 import model.topology.graph.GraphSearch;
 import model.topology.graph.Pair;
 import model.topology.measurement.ParticleMeasurementSection;
@@ -496,87 +498,219 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             pl.clearParticles(this);
         }
 
-        if (network == null) {
-            System.err.println("No network loaded yet. Can not find capacities to inject particles.");
-        } else {
-            if (scenario == null) {
-                return;
-            }
-            if (scenario.getInjections() != null) {
-                int numberofParticles = 0;
-                for (InjectionInformation in : scenario.getInjections()) {
-                    numberofParticles += in.getNumberOfParticles();
+        currentAction.description = "Injection spill";
+        currentAction.hasProgress = true;
+        currentAction.progress = 0f;
+        fireAction(currentAction);
+
+//        if (network == null) {
+//            System.err.println("No network loaded yet. Can not find capacities to inject particles.");
+//        } else {
+        if (scenario == null || scenario.getInjections() == null) {
+            return;
+        }
+
+        int totalNumberParticles = 0;
+        int maxMaterialID = -1;
+        for (InjectionInformation injection : scenario.getInjections()) {
+            totalNumberParticles += injection.getNumberOfParticles();
+            maxMaterialID = Math.max(maxMaterialID, injection.getMaterial().materialIndex);
+        }
+        ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
+        int counter = 0;
+        for (InjectionInformation injection : scenario.getInjections()) {
+            counter++;
+            currentAction.description = "Injection spill " + counter + "/" + scenario.getInjections().size();
+            currentAction.hasProgress = true;
+            currentAction.progress = counter / (float) scenario.getInjections().size();
+            fireAction(currentAction);
+
+            //find capacity
+            Capacity c = null;
+            int surfaceCell = -1;
+            Position position = null;
+            double pipeposition = 0;
+            if (injection.spillOnSurface()) {
+                if (getSurface() == null) {
+                    continue;
                 }
-                Particle.resetCounterID();
-                ArrayList<Particle> particles = new ArrayList<>(numberofParticles);
-                for (InjectionInformation in : scenario.getInjections()) {
+                c = getSurface();
+                if (injection.getPosition() != null) {
+                    Coordinate utm;
+                    try {
+                        utm = getSurface().getGeotools().toUTM(injection.getPosition());
+                        position = new Position(injection.getPosition().getLongitude(), injection.getPosition().getLatitude(), utm.x, utm.y);
+                    } catch (TransformException ex) {
+                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                    }
 
-                    if (in.spillOnSurface()) {
-                        if (in.getTriangleID() < 0) {
+                }
 
-                            if (in.getPosition() != null) //search for correct triangle
-                            {
-                                int triangleID = -1;
-                                try {
-                                    triangleID = surface.triangleIDNear(in.getPosition());
-                                } catch (TransformException ex) {
-                                    Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                if (injection.getTriangleID() >= 0) {
+                    surfaceCell = injection.getTriangleID();
+                } else if (injection.getCapacityName() != null) {
+                    if (network != null) {
+                        Capacity tempC = network.getCapacityByName(injection.getCapacityName());
+                        if (tempC != null) {
+                            if (tempC instanceof Manhole) {
+                                Manhole mh = (Manhole) tempC;
+                                if (mh.getSurfaceTriangleID() >= 0) {
+                                    surfaceCell = mh.getSurfaceTriangleID();
                                 }
-                                if (triangleID >= 0) {
-                                    in.setTriangleID(triangleID);
-                                    System.out.println("Found triangle " + triangleID + " for injection @" + in.getPosition());
-                                } else {
-                                    System.out.println("Could NOT find a triangle for injection @" + in.getPosition());
-                                }
                             }
-                        }
-                        try {
-                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
-                            for (Particle p1 : p) {
-                                p1.setInjectionCellID(in.getTriangleID());
-                                p1.setSurrounding_actual(null);
-//                            p1.setOnSurface();
-//                            System.out.println("cellid: " + p1.surfaceCellID + "  injection " + p1.getInjectionCellID());
-                            }
-                            particles.addAll(p);
-                        } catch (Exception ex) {
-                            System.err.println("Problem when creating particles for spill on surface triangle: " + in.getTriangleID() + " : " + ex.getLocalizedMessage());
-                        }
-
-                    } else {
-                        try {
-                            Capacity c = null;
-
-                            c = in.getCapacity();
-
-                            if (c == null && in.getPosition() != null) {
-                                //Search by Position
-                                c = network.getManholeNearPositionLatLon(in.getPosition().getLatitude(), in.getPosition().getLongitude());
-                            }
-
-                            if (c == null && in.getCapacityName() != null) {
-                                //Search by Name
-                                c = network.getCapacityByName(in.getCapacityName());
-                            }
-
-                            if (c == null) {
-                                System.err.println("Could not find capacity '" + in.getCapacity() + "' to inject particles.");
-                                continue;
-                            }
-                            in.setChanged(false);//Everything was set.
-                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), c, in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
-                            particles.addAll(p);
-                        } catch (Exception exception) {
-                            exception.printStackTrace();
                         }
                     }
                 }
-                this.setParticles(particles);
+                if (surfaceCell < 0) {
+                    if (position != null) {
+                        //Try to find correct triangle at existing coordinates
+                        int id = getSurface().findContainingTriangle(position.x, position.y, 50);
+                        if (id >= 0) {
+                            surfaceCell = id;
+                        }
+                    }
+                }
+                if (position == null || surfaceCell >= 0) {
+                    try {
+                        double[] utm = getSurface().getTriangleMids()[surfaceCell];
+                        Coordinate wgs84 = getSurface().getGeotools().toGlobal(new Coordinate(utm[0], utm[1]), true);
+                        position = new Position(wgs84.x, wgs84.y, utm[0], utm[1]);
+                    } catch (TransformException ex) {
+                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                if (c == null) {
+                    System.err.println("Cannot find surface for injection " + injection);
+                    continue;
+                }
+                if (position == null) {
+                    System.err.println("Cannot find position for injection " + injection);
+                    continue;
+                }
+                if (surfaceCell < 0) {
+                    System.err.println("Cannot find surface cell for injection " + injection);
+                    continue;
+                }
+            } else {
+                //Spill to pipesystem
+                if (getNetwork() == null) {
+                    continue;
+                }
+                pipeposition = injection.getPosition1D();
+                if (injection.getCapacity() != null) {
+                    c = injection.getCapacity();
+
+                } else {
+
+                    //Need to find capacity 
+                    // by name
+                    if (injection.getCapacityName() != null) {
+                        c = getNetwork().getCapacityByName(injection.getCapacityName());
+                        if (c == null) {
+                            System.err.println("Cannot find Capacity with name '" + injection.getCapacityName() + "' for injection " + injection);
+                        }
+                    }
+                    if (c == null || injection.getPosition() != null) {
+                        c = getNetwork().getManholeNearPositionLatLon(injection.getPosition());
+                    }
+                }
+                if (c == null) {
+                    System.err.println("Cannot find Capacity for injection " + injection);
+                    continue;
+                }
             }
+            //Create particles over time
+            for (int i = 0; i < injection.getNumberOfIntervals(); i++) {
+                ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
+                for (Particle p : ps) {
+                    if (injection.spillOnSurface()) {
+                        p.setInjectionCellID(surfaceCell);
+                    } else {
+                        p.injectionPosition1D = (float) injection.getPosition1D();
+//                        System.out.println("set injectionposition1d to "+p.injectionPosition1D);
+                    }
+                }
+                injection.resetChanged();
+                allParticles.addAll(ps);
+            }
+
         }
+//            if (scenario.getInjections() != null) {
+//                int numberofParticles = 0;
+//                for (InjectionInformation in : scenario.getInjections()) {
+//                    numberofParticles += in.getNumberOfParticles();
+//                }
+//                Particle.resetCounterID();
+//                ArrayList<Particle> particles = new ArrayList<>(numberofParticles);
+//                for (InjectionInformation in : scenario.getInjections()) {
+//
+//                    if (in.spillOnSurface()) {
+//                        if (in.getTriangleID() < 0) {
+//
+//                            if (in.getPosition() != null) //search for correct triangle
+//                            {
+//                                int triangleID = -1;
+//                                try {
+//                                    triangleID = surface.triangleIDNear(in.getPosition());
+//                                } catch (TransformException ex) {
+//                                    Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+//                                }
+//                                if (triangleID >= 0) {
+//                                    in.setTriangleID(triangleID);
+//                                    System.out.println("Found triangle " + triangleID + " for injection @" + in.getPosition());
+//                                } else {
+//                                    System.out.println("Could NOT find a triangle for injection @" + in.getPosition());
+//                                }
+//                            }
+//                        }
+//                        try {
+//                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
+//                            for (Particle p1 : p) {
+//                                p1.setInjectionCellID(in.getTriangleID());
+//                                p1.setSurrounding_actual(null);
+////                            p1.setOnSurface();
+////                            System.out.println("cellid: " + p1.surfaceCellID + "  injection " + p1.getInjectionCellID());
+//                            }
+//                            particles.addAll(p);
+//                        } catch (Exception ex) {
+//                            System.err.println("Problem when creating particles for spill on surface triangle: " + in.getTriangleID() + " : " + ex.getLocalizedMessage());
+//                        }
+//
+//                    } else {
+//                        try {
+//                            Capacity c = null;
+//
+//                            c = in.getCapacity();
+//
+//                            if (c == null && in.getPosition() != null) {
+//                                //Search by Position
+//                                c = network.getManholeNearPositionLatLon(in.getPosition().getLatitude(), in.getPosition().getLongitude());
+//                            }
+//
+//                            if (c == null && in.getCapacityName() != null) {
+//                                //Search by Name
+//                                c = network.getCapacityByName(in.getCapacityName());
+//                            }
+//
+//                            if (c == null) {
+//                                System.err.println("Could not find capacity '" + in.getCapacity() + "' to inject particles.");
+//                                continue;
+//                            }
+//                            in.setChanged(false);//Everything was set.
+//                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), c, in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
+//                            particles.addAll(p);
+//                        } catch (Exception exception) {
+//                            exception.printStackTrace();
+//                        }
+//                    }
+//                }
+//                this.setParticles(particles);
+//            }
+//        }
         if (surface != null) {
-            surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
+            surface.setNumberOfMaterials(maxMaterialID + 1);
         }
+        this.setParticles(allParticles);
     }
 
     @Override

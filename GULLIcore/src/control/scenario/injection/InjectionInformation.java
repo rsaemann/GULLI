@@ -25,6 +25,7 @@ package control.scenario.injection;
 
 import model.GeoPosition2D;
 import model.particle.Material;
+import model.timeline.TimedValue;
 import model.topology.Capacity;
 import model.topology.Manhole;
 import model.topology.Pipe;
@@ -39,20 +40,38 @@ import model.topology.Pipe;
  */
 public class InjectionInformation implements InjectionInfo {
 
-//    private String pipename;
-    private Capacity capacity;
-    private double mass;
-    private int numberOfParticles;
-    private Material material;
-    private double start, duration;//Seconds
-    private double position1D;
-    private boolean spillPipesystem;
-    private GeoPosition2D position;
-    private int triangleID = -1;
+    public boolean spillOnSurface = false;
 
-    private boolean changed = false;
+    /**
+     * number of particles released in each interval.
+     */
+    protected int[] number_particles;
 
-    private String capacityName = null;
+    /**
+     * Start seconds of each interval after event start.
+     */
+    protected double[] timesteps;
+    /**
+     * Spilled mass of each interval [kg]
+     */
+    protected double[] spillMass;
+
+    /**
+     * m³
+     */
+    protected double totalmass;
+    /**
+     * kg
+     */
+    protected double totalVolume;
+
+    protected Material material;
+    protected String capacityName;
+    protected Capacity capacity;
+    protected GeoPosition2D position;
+    protected int triangleID = -1;
+    protected double position1D;
+    protected boolean changed = false;
 
     /**
      * Injection after X seconds after Scenario (rain) start
@@ -67,13 +86,17 @@ public class InjectionInformation implements InjectionInfo {
      * @param duration [sec] duration of spilling at this location
      */
     public InjectionInformation(GeoPosition2D position, boolean pipesystem, double mass, int numberofParticles, Material material, double startoffsetSeconds, double duration) {
+        this(startoffsetSeconds, duration, mass, numberofParticles);
         this.position = position;
-        this.mass = mass;
         this.material = material;
-        this.start = startoffsetSeconds;
-        this.duration = duration;
-        this.numberOfParticles = numberofParticles;
-        this.spillPipesystem = pipesystem;
+        this.spillOnSurface = !pipesystem;
+    }
+
+    public InjectionInformation(double startoffsetSeconds, double duration, double mass, int numberOfParticles) {
+        this.totalmass = mass;
+        this.timesteps = new double[]{startoffsetSeconds, startoffsetSeconds + duration};
+        this.spillMass = new double[]{mass, 0};
+        this.number_particles = new int[]{numberOfParticles, 0};
     }
 
     /**
@@ -104,13 +127,11 @@ public class InjectionInformation implements InjectionInfo {
      * @param duration
      */
     public InjectionInformation(String capacityName, double position1D, double mass, int numberOfParticles, Material material, double startoffsetSeconds, double duration) {
-        this.mass = mass;
-        this.numberOfParticles = numberOfParticles;
+        this(startoffsetSeconds, duration, mass, numberOfParticles);
+        this.position1D = position1D;
         this.material = material;
-        this.spillPipesystem = true;
+        this.spillOnSurface = false;
         this.capacityName = capacityName;
-        this.start = startoffsetSeconds;
-        this.duration = duration;
         this.position1D = position1D;
     }
 
@@ -122,89 +143,110 @@ public class InjectionInformation implements InjectionInfo {
             this.capacityName = c.toString();
             this.position = capacity.getPosition3D(0);
             if (capacity instanceof Manhole || capacity instanceof Pipe) {
-                spillPipesystem = true;
+                this.spillOnSurface = false;
             }
         }
     }
 
     public InjectionInformation(int triangleID, double mass, int numberOfParticles, Material material, double startOffsetSeconds, double duration) {
-        this.mass = mass;
-        this.duration = duration;
+        this(startOffsetSeconds, duration, mass, numberOfParticles);
         this.material = material;
-        this.numberOfParticles = numberOfParticles;
-        this.spillPipesystem = false;
-        this.start = startOffsetSeconds;
+        this.spillOnSurface = true;
         this.triangleID = triangleID;
     }
 
     public InjectionInformation(InjectionInfo info, double offsetSeconds) {
+        this(info.getStarttimeSimulationsAfterSimulationStart() + offsetSeconds, info.getDurationSeconds(), info.getMass(), ((InjectionInformation) info).getNumberOfParticles());
+
         this.capacity = info.getCapacity();
-        this.duration = info.getDurationSeconds();
-        this.mass = info.getMass();
         this.material = info.getMaterial();
         position = info.getPosition();
-        this.spillPipesystem = info.spillInManhole();
-        this.start = info.getStarttimeSimulationsAfterSimulationStart() + offsetSeconds;
+        this.spillOnSurface = info.spillOnSurface();
 
         if (info instanceof InjectionInformation) {
             InjectionInformation ii = (InjectionInformation) info;
             this.triangleID = ii.triangleID;
             this.position1D = ii.position1D;
-            this.numberOfParticles = ii.numberOfParticles;
             this.capacityName = ii.capacityName;
         }
     }
 
-    @Override
-    public double getMass() {
-        return mass;
+    /**
+     *
+     * @param capacity
+     * @param eventStart
+     * @param material
+     * @param timedValues
+     * @param numberOfParticles
+     * @param concentration kg/m³
+     */
+    public InjectionInformation(Capacity capacity, long eventStart, TimedValue[] timedValues, Material material, double concentration, int numberOfParticles) {
+        this.material = material;
+        this.capacity = capacity;
+        calculateMass(timedValues, eventStart, concentration);
+        calculateNumberOfIntervalParticles(numberOfParticles);
+    }
+
+    private void calculateMass(TimedValue[] timedValues, long eventStart, double density) {
+        this.timesteps = new double[timedValues.length + 1];
+        this.spillMass = new double[timesteps.length];
+//        this.number_particles = new int[timesteps.length];
+
+        double volume = 0;
+        double lastInterval = 0;
+        for (int i = 1; i < timedValues.length; i++) {
+            TimedValue start = timedValues[i - 1];
+            timesteps[i - 1] = (start.time - eventStart) / 1000.;
+            TimedValue end = timedValues[i];
+
+            double seconds = (end.time - start.time) / 1000.;
+            if (start.value < 0) {
+                continue;
+            }
+            double dV = start.value * seconds;
+            spillMass[i - 1] = dV * density;
+            lastInterval = seconds;
+            volume += dV;
+        }
+        //last calue for the duration of the last interval
+        double d = timedValues[timedValues.length - 1].value;
+        if (d > 0) {
+            volume += d * lastInterval;
+        }
+        this.totalVolume = volume;
+        this.totalmass = totalVolume * density;
+    }
+
+    private void calculateNumberOfIntervalParticles(int particles) {
+        double particlesPerMass = particles / totalmass;
+        for (int i = 0; i < this.number_particles.length; i++) {
+            number_particles[i] = (int) (spillMass[i] * particlesPerMass);
+        }
+        int count = 0;
+        for (int i = 0; i < number_particles.length; i++) {
+            count += number_particles[i];
+        }
+        System.out.println(count + "/" + particles + " angeforderte particel in Messdaten Spill.");
     }
 
     @Override
-    public Material getMaterial() {
-        return material;
+    public double getStarttimeSimulationsAfterSimulationStart() {
+        return timesteps[0];
     }
 
-//    public long getStart() {
-//        return start;
+    @Override
+    public double getDurationSeconds() {
+        return (timesteps[timesteps.length - 1] - timesteps[0]) / 1000.;
+    }
+
+//    public void setMaterial(Material material) {
+//        this.material = material;
+//        this.changed = true;
 //    }
 //
-//    public long getEnd() {
-//        return end;
+//    public int getTriangleID() {
+//        return triangleID;
 //    }
-//    public double getPosition1D() {
-//        return position1D;
-//    }
-    public int getNumberOfParticles() {
-        return numberOfParticles;
-    }
-
-    public void setNumberOfParticles(int numberOfParticles) {
-        this.numberOfParticles = numberOfParticles;
-        changed=true;
-    }
-
-    public void setMaterial(Material material) {
-        this.material = material;
-        this.changed=true;
-    }
-    
-    
-    
-
-    public int getTriangleID() {
-        return triangleID;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 79 * hash + (int) (Double.doubleToLongBits(this.mass) ^ (Double.doubleToLongBits(this.mass) >>> 32));
-        hash = 79 * hash + (int) (Double.doubleToLongBits(this.start) ^ (Double.doubleToLongBits(this.start) >>> 32));
-//        hash = 79 * hash + (int) (Double.doubleToLongBits(this.position1D) ^ (Double.doubleToLongBits(this.position1D) >>> 32));
-        return hash;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -214,10 +256,10 @@ public class InjectionInformation implements InjectionInfo {
             return false;
         }
         final InjectionInformation other = (InjectionInformation) obj;
-        if (Double.doubleToLongBits(this.mass) != Double.doubleToLongBits(other.mass)) {
+        if (Double.doubleToLongBits(this.totalmass) != Double.doubleToLongBits(other.totalmass)) {
             return false;
         }
-        if (Double.doubleToLongBits(this.start) != Double.doubleToLongBits(other.start)) {
+        if (Double.doubleToLongBits(this.timesteps[0]) != Double.doubleToLongBits(other.timesteps[0])) {
             return false;
         }
         if (this.triangleID != other.triangleID) {
@@ -242,23 +284,15 @@ public class InjectionInformation implements InjectionInfo {
     }
 
     @Override
-    public double getStarttimeSimulationsAfterSimulationStart() {
-        return start;
-    }
-
-    @Override
-    public double getDurationSeconds() {
-        return duration;
-    }
-
-    @Override
-    public boolean spillOnSurface() {
-        return !this.spillPipesystem;
+    public int hashCode() {
+        int hash = 5;
+        hash = 41 * hash + this.triangleID;
+        return hash;
     }
 
     @Override
     public boolean spillInManhole() {
-        return this.spillPipesystem;
+        return !spillOnSurface;
     }
 
     @Override
@@ -285,25 +319,127 @@ public class InjectionInformation implements InjectionInfo {
         return capacityName;
     }
 
+//    public void setStart(double start) {
+//        if (this.start == start) {
+//            return;
+//        }
+////        System.out.println("Change starttime from "+this.start+"\tto "+start+" s after start.");
+//        this.start = start;
+//        this.changed = true;
+//    }
+//    public void setDuration(double duration) {
+//        if (this.duration == duration) {
+//            return;
+//        }
+//        this.duration = duration;
+//        this.changed = true;
+//    }
+    /**
+     * Position along pipe axis in meter
+     *
+     * @return
+     */
+    public double getPosition1D() {
+        return position1D;
+    }
+
+    public void setPosition1D(double position1D) {
+        this.position1D = position1D;
+    }
+    
+    
+
+    public void setChanged(boolean changed) {
+        this.changed = changed;
+    }
+
+    @Override
+    public double getMass() {
+        return totalmass;
+    }
+
+    @Override
+    public Material getMaterial() {
+        return material;
+    }
+
+    @Override
+    public boolean spillOnSurface() {
+        return spillOnSurface;
+    }
+
+    @Override
+    public int getNumberOfIntervals() {
+        return timesteps.length - 1;
+    }
+
+    @Override
+    public double getIntervalStart(int interval) {
+        return timesteps[interval];
+    }
+
+    @Override
+    public double getIntervalEnd(int interval) {
+        return timesteps[interval + 1];
+    }
+
+    @Override
+    public double massInInterval(int interval) {
+        return spillMass[interval];
+    }
+
+    @Override
+    public int particlesInInterval(int interval) {
+        return number_particles[interval];
+    }
+
+    public int getNumberOfParticles() {
+        int counter = 0;
+        for (int i = 0; i < number_particles.length; i++) {
+            counter += number_particles[i];
+        }
+        return counter;
+    }
+
+    public void setNumberOfParticles(int numberOfParticles) {
+        calculateNumberOfIntervalParticles(numberOfParticles);
+        changed = true;
+    }
+
     public void setStart(double start) {
-        if (this.start == start) {
+        if (timesteps[0] == start) {
             return;
         }
 //        System.out.println("Change starttime from "+this.start+"\tto "+start+" s after start.");
-        this.start = start;
+        double duration = getDurationSeconds();
+        this.timesteps[0] = start;
+        this.timesteps[1] = start + duration;
         this.changed = true;
     }
 
     public void setDuration(double duration) {
-        if (this.duration == duration) {
+        if (this.timesteps[1] == timesteps[0] + duration) {
             return;
         }
-        this.duration = duration;
+        this.timesteps[1] = timesteps[0] + duration;
         this.changed = true;
     }
 
     public void setSpillPipesystem(boolean spillPipesystem) {
-        this.spillPipesystem = spillPipesystem;
+        this.spillOnSurface = !spillPipesystem;
+        this.changed = true;
+    }
+
+    public int getTriangleID() {
+        return triangleID;
+    }
+
+    public void setTriangleID(int triangleID) {
+        if (this.triangleID == triangleID) {
+            return;
+        }
+        this.triangleID = triangleID;
+        spillOnSurface = triangleID >= 0;
         this.changed = true;
     }
 
@@ -321,22 +457,8 @@ public class InjectionInformation implements InjectionInfo {
         this.changed = false;
     }
 
-    /**
-     * Position along pipe axis in meter
-     *
-     * @return
-     */
-    public double getPosition1D() {
-        return position1D;
+    @Override
+    public double getIntervalDuration(int interval) {
+        return timesteps[interval + 1] - timesteps[interval];
     }
-
-    public void setTriangleID(int triangleID) {
-        this.triangleID = triangleID;
-        changed = true;
-    }
-
-    public void setChanged(boolean changed) {
-        this.changed = changed;
-    }
-
 }

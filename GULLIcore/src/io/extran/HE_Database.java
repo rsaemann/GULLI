@@ -2,6 +2,7 @@ package io.extran;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import control.scenario.injection.HEInjectionInformation;
+import control.scenario.injection.HE_MessdatenInjection;
 import io.SHP_IO_GULLI;
 import io.SparseTimeLineDataProvider;
 import java.io.BufferedWriter;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +41,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.particle.Material;
+import model.timeline.TimedValue;
 import model.timeline.array.ArrayTimeLineManhole;
 import model.timeline.array.ArrayTimeLineManholeContainer;
 import model.timeline.array.ArrayTimeLinePipe;
@@ -1595,7 +1598,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //        System.out.println("Load injections from Database . sql?"+isSQLite);
         if (isSQLite) {
             //get joins of substance and injectionlocation
-            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFF,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id";
+            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFF,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id";
             rs = st.executeQuery(qstring);
             if (!rs.isBeforeFirst()) {
 //                System.out.println("Database has no soluteSpill elements defined");
@@ -1607,98 +1610,131 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 EinzelStoffeinleiter eze = new EinzelStoffeinleiter();
                 eze.pipename = rs.getString("ROHR");
                 eze.discharge = rs.getDouble("ZUFLUSS");
-                eze.concentration = rs.getDouble("KONZENTRATION");
+                eze.concentration = rs.getDouble("KONZENTRATION"); //mg/L
                 eze.name = rs.getString("STOFF");
                 eze.refIDTimelineVolume = rs.getInt("EINZELMUSTERREF");
                 eze.refIDTimelineSolute = rs.getInt("STOFFMUSTERREF");
+                eze.refIDMessdaten = rs.getInt("MESSDATENREF");
                 einleiter.add(eze);
             }
             rs.close();
             //Request the time lines for volume and solute injection intensity
             for (EinzelStoffeinleiter ele : einleiter) {
-                double[] volumefactor = new double[24];
-                double[] solutefactor = new double[24];
 
-                boolean hasTimeFactors = false;
-                boolean writtenVolumes = false;
-                if (ele.refIDTimelineVolume > 0) {
-                    qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineVolume + " ORDER BY REIHENFOLGE";
-                    rs = st.executeQuery(qstring);
-                    int index = 0;
-                    if (rs.isBeforeFirst()) {
-                        while (rs.next()) {
-                            volumefactor[index] = rs.getDouble("WERT");
-                            index++;
-                            writtenVolumes = true;
-                            hasTimeFactors = true;
-                        }
-                    }
+                if (ele.refIDMessdaten > 0) {
+                    TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
+                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, simulationStart.getTimeInMillis(), tv, ele.concentration*0.001);
+                    System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = "+heinj.getTotalVolume() + "m³ in "+heinj.getNumberOfIntervals()+" intervals");
+
+                    particles.add(heinj);
                 } else {
-//                    System.out.println(" ohne TimelineVolume");
-                }
-                if (!writtenVolumes) {
-                    for (int i = 0; i < volumefactor.length; i++) {
-                        volumefactor[i] = 1.;
-                    }
-                }
-                boolean writtenSolute = false;
-                if (ele.refIDTimelineSolute > 0) {
-                    qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineSolute + " ORDER BY REIHENFOLGE";
-                    rs = st.executeQuery(qstring);
-                    int index = 0;
-                    if (rs.isBeforeFirst()) {
-                        while (rs.next()) {
-                            solutefactor[index] = rs.getDouble("WERT");
-                            index++;
-                            writtenSolute = true;
-                            hasTimeFactors = true;
+
+                    double[] volumefactor = new double[24];
+                    double[] solutefactor = new double[24];
+
+                    boolean hasTimeFactors = false;
+                    boolean writtenVolumes = false;
+                    if (ele.refIDTimelineVolume > 0) {
+                        qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineVolume + " ORDER BY REIHENFOLGE";
+                        rs = st.executeQuery(qstring);
+                        int index = 0;
+                        if (rs.isBeforeFirst()) {
+                            while (rs.next()) {
+                                volumefactor[index] = rs.getDouble("WERT");
+                                index++;
+                                writtenVolumes = true;
+                                hasTimeFactors = true;
+                            }
                         }
+                        rs.close();
                     } else {
+//                    System.out.println(" ohne TimelineVolume");
+                    }
+                    if (!writtenVolumes) {
+                        for (int i = 0; i < volumefactor.length; i++) {
+                            volumefactor[i] = 1.;
+                        }
+                    }
+                    boolean writtenSolute = false;
+                    if (ele.refIDTimelineSolute > 0) {
+                        qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineSolute + " ORDER BY REIHENFOLGE";
+                        rs = st.executeQuery(qstring);
+                        int index = 0;
+                        if (rs.isBeforeFirst()) {
+                            while (rs.next()) {
+                                solutefactor[index] = rs.getDouble("WERT");
+                                index++;
+                                writtenSolute = true;
+                                hasTimeFactors = true;
+                            }
+                        } else {
 //                        System.out.println("zeitreihe stoff " + ele.refIDTimelineSolute + " is empty");
-                    }
-                } else {
+                        }
+                        rs.close();
+                    } else {
 //                    System.out.println("ohne Zeitreihe Stoff");
-                }
-                if (!writtenSolute) {
-                    for (int i = 0; i < solutefactor.length; i++) {
-                        solutefactor[i] = 1.;
                     }
-                }
+                    if (!writtenSolute) {
+                        for (int i = 0; i < solutefactor.length; i++) {
+                            solutefactor[i] = 1.;
+                        }
+                    }
 
-                if (hasTimeFactors) {
-                    int start = -1;
-                    int duration = -1;
-                    double intensity = -1;
-                    //Search for the right starttime
-                    for (int i = 0; i < solutefactor.length; i++) {
-                        double factor = solutefactor[i] * volumefactor[i];
-                        if (factor > 0) {
-                            if (intensity <= 0) {
-                                //this is the first interval with information
-                                start = i;
-                                duration = 1;
-                                intensity = factor;
-                            } else {
-                                //this is an ongoing interval
-                                if (Math.abs(intensity - factor) < 0.001) {
-                                    //Ongoing injection
-                                    duration++;
-                                } else {
-                                    //TODO: terminate the old spill and start a new one
-                                    duration++;
+                    if (hasTimeFactors) {
+                        int start = -1;
+                        int duration = -1;
+                        double intensity = -1;
+                        //Search for the right starttime
+                        for (int i = 0; i < solutefactor.length; i++) {
+                            double factor = solutefactor[i] * volumefactor[i];
+                            if (factor > 0) {
+                                if (intensity <= 0) {
+                                    //this is the first interval with information
+                                    start = i;
+                                    duration = 1;
                                     intensity = factor;
+                                } else {
+                                    //this is an ongoing interval
+                                    if (Math.abs(intensity - factor) < 0.001) {
+                                        //Ongoing injection
+                                        duration++;
+                                    } else {
+                                        //TODO: terminate the old spill and start a new one
+                                        duration++;
+                                        intensity = factor;
+                                    }
                                 }
                             }
                         }
-                    }
-                    //Create a injection information
-                    if (start >= 0 && intensity > 0) {
-                        long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000);
-                        long endtime = starttime + (long) ((duration) * 60 * 60 * 1000);
-                        double injectionTimeSeconds = (endtime - starttime) / 1000;
-                        double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
+                        //Create a injection information
+                        if (start >= 0 && intensity > 0) {
+                            long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000);
+                            long endtime = starttime + (long) ((duration) * 60 * 60 * 1000);
+                            double injectionTimeSeconds = (endtime - starttime) / 1000;
+                            double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
 
-                        System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", start:" + start + " (index), duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
+                            System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", start:" + start + " (index), duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
+
+                            try {
+                                HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                               
+                                particles.add(info);
+                            } catch (Exception exception) {
+                                System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
+                                exception.printStackTrace();
+                            }
+                        }
+                    } else {
+                        //has no timefactory: constant discharge.
+                        //Create a injection information
+
+                        long starttime = simulationStart.getTimeInMillis();
+                        long duration = simulationEnde.getTimeInMillis() - simulationStart.getTimeInMillis();//length of simulation
+                        long endtime = starttime + duration;
+                        double injectionTimeSeconds = duration / 1000;
+                        double wert = ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
+
+                        System.out.println("Scenario constant injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
 
                         try {
                             HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
@@ -1707,30 +1743,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
                             exception.printStackTrace();
                         }
-                    }
-                } else {
-                    //has no timefactory: constant discharge.
-                    //Create a injection information
 
-                    long starttime = simulationStart.getTimeInMillis();
-                    long duration = simulationEnde.getTimeInMillis() - simulationStart.getTimeInMillis();//length of simulation
-                    long endtime = starttime + duration;
-                    double injectionTimeSeconds = (endtime - starttime) / 1000;
-                    double wert = ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
-
-                    System.out.println("Scenario constant injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
-
-                    try {
-                        HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
-                        particles.add(info);
-                    } catch (Exception exception) {
-                        System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
-                        exception.printStackTrace();
                     }
 
                 }
 
-                rs.close();
             }
 
         } else {
@@ -3232,6 +3249,152 @@ public class HE_Database implements SparseTimeLineDataProvider {
         public String name;
         public int refIDTimelineVolume;
         public int refIDTimelineSolute;
+        public int refIDMessdaten;
     }
 
+    public static long[] decodeTimestamps(byte[] byteBlob) {
+        ByteBuffer bb = ByteBuffer.wrap(byteBlob);
+        bb = bb.order(ByteOrder.LITTLE_ENDIAN);
+        int number = bb.getInt(0);
+        long[] time = new long[number];
+//        System.out.println("number=" + number);
+
+//         for (int i = 0; i < bb.limit(); i++) {
+//             System.out.println(i+": "+bb.getLong(i));
+//        }
+        int l = (byteBlob.length - 4) / 16;
+        for (int i = 0; i < l; i++) {
+            int start = 4 + i * 16;
+//            System.out.println(bb.getInt(start)+", +1:"+bb.getInt(start+1)+", +2:"+bb.getInt(start+2)+", +3:"+bb.getInt(start+3)+",\t -1:"+bb.getInt(start-1)+", -2:"+bb.getInt(start-2));
+            long byteLong = bb.getLong(start);
+            if (byteLong < 0) {
+                System.err.println("Timeindex " + i + " of Messdaten seems not to be correctly formatted. Cannot decode Timevalue from bytelong " + byteLong + ". Check the HE entry for the Timestamp and save it without second and millisecond information.");
+            }
+            long dateTime = byteToDate(byteLong);
+            time[i] = dateTime;
+
+        }
+        return time;
+    }
+
+    /**
+     * Decodes the Information of a DATEN field in the Extran.idbf result
+     * database.
+     *
+     * @param byteBlob
+     * @return
+     */
+    public static double[] decodeValues(byte[] byteBlob) {
+        ByteBuffer bb = ByteBuffer.wrap(byteBlob);
+        bb = bb.order(ByteOrder.LITTLE_ENDIAN);
+        int number = bb.getInt(0);
+        double[] niederschlagshoehe = new double[number];
+        int l = (byteBlob.length - 4) / 16;
+        for (int i = 0; i < l; i++) {
+            int start = 4 + i * 16;
+            double wert = bb.getDouble(start + 8);
+            niederschlagshoehe[i] = wert;
+        }
+        return niederschlagshoehe;
+    }
+
+    public TimedValue[] readMessdaten(String name, Connection con) throws SQLException, IOException {
+        if (con == null || con.isClosed()) {
+            con = getConnection();
+        }
+        ResultSet rs = con.createStatement().executeQuery("SELECT DATEN,NAME FROM MESSDATEN WHERE NAME='" + name + "'");
+        if (!rs.isBeforeFirst()) {
+            System.err.println("No Values for Messdaten '" + name + "'");
+            rs.close();
+            return null;
+        }
+        rs.next();
+        byte[] blob = rs.getBytes(1);
+        rs.close();
+        long[] times = decodeTimestamps(blob);
+        double[] values = decodeValues(blob);
+        if (times.length != values.length) {
+            System.err.println("Number of values of Messdaten '" + name + "' are not at same length " + times.length + " / " + values.length);
+            return null;
+        }
+        TimedValue[] tv = new TimedValue[times.length];
+        for (int i = 0; i < tv.length; i++) {
+            tv[i] = new TimedValue(times[i], values[i]);
+        }
+        return tv;
+    }
+
+    /**
+     * Pairs of time and value. if discharge or injection values are calculated
+     * as [cbm/s]. If it is a waterheight, then in [m aSl].
+     *
+     * @param id
+     * @param con
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
+    public TimedValue[] readMessdaten(int id, Connection con) throws SQLException, IOException {
+        if (con == null || con.isClosed()) {
+            con = getConnection();
+        }
+        ResultSet rs = con.createStatement().executeQuery("SELECT DATEN,ID,Typ FROM MESSDATEN WHERE ID=" + id);
+        //typ:0= Waterheight [m aSl], 1 = Zufluss [L/s], 2: Discharge [cbm/s]
+        if (!rs.isBeforeFirst()) {
+            System.err.println("No Values for Messdaten '" + id + "'");
+            rs.close();
+            return null;
+        }
+        rs.next();
+        byte[] blob = rs.getBytes(1);
+        int type = rs.getInt(3);
+        rs.close();
+        long[] times = decodeTimestamps(blob);
+        double[] values = decodeValues(blob);
+        if (times.length != values.length) {
+            System.err.println("Number of values of Messdaten '" + id + "' are not at same length " + times.length + " / " + values.length);
+            return null;
+        }
+        if (type == 1) {
+            //L/s -> cbm/s
+            for (int i = 0; i < values.length; i++) {
+                values[i] *= 0.001;
+            }
+        }
+        TimedValue[] tv = new TimedValue[times.length];
+        for (int i = 0; i < tv.length; i++) {
+            tv[i] = new TimedValue(times[i], values[i]);
+        }
+        return tv;
+    }
+
+    public static long byteToDate(long t) {
+        long time = t - 621355968000000000L;
+        return time / 10000L;
+    }
+
+    public static void main(String[] args) {
+        try {
+            HE_Database he = new HE_Database(new File("C:\\Users\\saemann\\Documents\\Hystem-Extran 8.1\\Hystem-Extran\\test_zeitmuster.idbm"), true);
+            Connection c = he.getConnection();
+            ResultSet rs = c.createStatement().executeQuery("SELECT * FROM MESSDATEN");
+            rs.next();
+            for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+                System.out.println(i + ": " + rs.getString(i));
+            }
+            byte[] data = rs.getBytes("Daten");
+            System.out.println("DAten: " + data.length + " bytes");
+            long[] times = decodeTimestamps(data);
+            double[] values = decodeValues(data);
+            System.out.println("times:" + times.length + ",    values:" + values.length);
+            for (int i = 0; i < values.length; i++) {
+                System.out.println(i + ": " + new Date(times[i]).toGMTString() + " , " + values[i]);
+
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }

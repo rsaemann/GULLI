@@ -30,8 +30,8 @@ import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.TimeIndexCalculator;
 
 /**
- * Information about the time of Simulation.
- * Scenarios handle the input velocity/waterlevel and output pipe measurements.
+ * Information about the time of Simulation. Scenarios handle the input
+ * velocity/waterlevel and output pipe measurements.
  *
  * @author saemann
  */

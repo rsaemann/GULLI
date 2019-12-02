@@ -102,9 +102,9 @@ public class Particle {
     /**
      * Pipe/Manhole/SurfaceTriangle this particle is injected at spilltime.
      */
-    public final Capacity injectionSurrounding;
+    public Capacity injectionSurrounding;
 
-    public final float injectionPosition1D;
+    public float injectionPosition1D;
 
     public Capacity toSurface, toPipenetwork, toSoil;
 
@@ -146,17 +146,17 @@ public class Particle {
         this(injectionSurrounding, injectionPosition1D, injectionTime);
         this.particleMass = mass_kg;
     }
-    
-    public static void resetCounterID(){
-        counterID=0;
+
+    public static void resetCounterID() {
+        counterID = 0;
     }
 
     public boolean isInactive() {
         return status < 1;
     }
 
-    public boolean hasLeftSimulation(){
-        return status==-10;
+    public boolean hasLeftSimulation() {
+        return status == -10;
     }
 
     /**
@@ -204,8 +204,8 @@ public class Particle {
         this.status = -1;
     }
 
-    public void setLeftSimulation(){
-        this.status=-10;
+    public void setLeftSimulation() {
+        this.status = -10;
     }
 
     public float getPosition1d_actual() {
