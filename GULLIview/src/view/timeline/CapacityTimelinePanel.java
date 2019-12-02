@@ -145,7 +145,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries m_c = new TimeSeries(new SeriesKey("Konzentration Messung", "c_measure", "kg/m³", Color.lightGray, keyConcentration), "Time", "");
     private final TimeSeries m_m = new TimeSeries(new SeriesKey("Mass", "m_mess", "kg", Color.red, new AxisKey("Mass")), "Time", "");
     private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 Mass ", "m_mess", "kg", Color.orange, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan), "Time", "");
+    private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan,new AxisKey("Vol", "vol")), "Time", "m³");
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V"), 0), "Time", "m/s");
     private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.blue, new AxisKey("Q"), 0), "Time", "m³/s");

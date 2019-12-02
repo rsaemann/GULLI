@@ -50,7 +50,6 @@ import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.ArrayTimeLinePipe;
 import model.timeline.array.TimeIndexContainer;
-import model.timeline.sparse.SparseTimelineManhole;
 import model.timeline.sparse.SparseTimelinePipe;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole_Pipe;

@@ -273,17 +273,22 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             String text = model.getValueAt(row, column).toString();
             AxisKey oldKey = ((SeriesKey) collection.getSeries(row).getKey()).axis;
             AxisKey newKey = null;
-            if (text.contains(",")) {
-                String[] splits = text.split(",", 2);
-                newKey = new AxisKey(splits[0], splits[1]);
-            } else {
-                if (oldKey.name.equals(text) && oldKey.label == null) {
-                    //Nothing to do. the existing Key is identical to the new text
-                } else {
-                    newKey = new AxisKey(text);
-                }
-            }
             try {
+                if (text.contains(",")) {
+                    String[] splits = text.split(",", 2);
+                    newKey = new AxisKey(splits[0], splits[1]);
+                } else {
+                    try {
+                        if (oldKey.name.equals(text) && oldKey.label == null) {
+                            //Nothing to do. the existing Key is identical to the new text
+                        } else {
+                            newKey = new AxisKey(text);
+                        }
+                    } catch (Exception e) {
+                        newKey = new AxisKey(text);
+                    }
+                }
+
                 if (text.contains("(")) {
                     String value = text.substring(text.indexOf("(") + 1);
                     value = value.substring(0, value.indexOf(")"));

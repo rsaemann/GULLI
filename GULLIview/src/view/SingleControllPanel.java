@@ -1545,24 +1545,27 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 } else {
                                     BoxLayout layout = new BoxLayout(panelInjections, BoxLayout.Y_AXIS);
                                     panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
-                                    for (final InjectionInformation inj : injections) {
-                                        InjectionPanel ip = new InjectionPanel(inj, mapViewer);
-                                        panelInjections.add(ip);
+                                    try {
+                                        for (final InjectionInformation inj : injections) {
+                                            InjectionPanel ip = new InjectionPanel(inj, mapViewer);
+                                            panelInjections.add(ip);
 
-                                        //Create popup to delete this injection 
-                                        JPopupMenu popup = new JPopupMenu();
-                                        JMenuItem itemdelete = new JMenuItem("Delete from list");
-                                        popup.add(itemdelete);
-                                        itemdelete.addActionListener(new ActionListener() {
+                                            //Create popup to delete this injection 
+                                            JPopupMenu popup = new JPopupMenu();
+                                            JMenuItem itemdelete = new JMenuItem("Delete from list");
+                                            popup.add(itemdelete);
+                                            itemdelete.addActionListener(new ActionListener() {
 
-                                            @Override
-                                            public void actionPerformed(ActionEvent ae) {
-                                                control.getLoadingCoordinator().getInjections().remove(inj);
-                                                control.recalculateInjections();
-                                                SingleControllPanel.this.updateGUI();
-                                            }
-                                        });
-                                        ip.setComponentPopupMenu(popup);
+                                                @Override
+                                                public void actionPerformed(ActionEvent ae) {
+                                                    control.getLoadingCoordinator().getInjections().remove(inj);
+                                                    control.recalculateInjections();
+                                                    SingleControllPanel.this.updateGUI();
+                                                }
+                                            });
+                                            ip.setComponentPopupMenu(popup);
+                                        }
+                                    } catch (Exception e) {
                                     }
 
                                 }
