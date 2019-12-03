@@ -3121,6 +3121,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         if (velocity[index] == 0 && flux[index] != 0) {
                             //This seems to be a pump
                             velocity[index] = 3;
+                            waterlevel[index]=0.1f;
                         }
 
                         index++;
