@@ -236,7 +236,7 @@ public class InjectionInformation implements InjectionInfo {
 
     @Override
     public double getDurationSeconds() {
-        return (timesteps[timesteps.length - 1] - timesteps[0]) / 1000.;
+        return (timesteps[timesteps.length - 1] - timesteps[0]);
     }
 
 //    public void setMaterial(Material material) {
