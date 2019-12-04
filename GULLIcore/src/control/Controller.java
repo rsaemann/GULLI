@@ -604,7 +604,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
                     //Need to find capacity 
                     // by name
-                    if (injection.getCapacityName() != null) {
+                    if (injection.getCapacityName() != null&&!injection.getCapacityName().isEmpty()) {
                         c = getNetwork().getCapacityByName(injection.getCapacityName());
                         if (c == null) {
                             System.err.println("Cannot find Capacity with name '" + injection.getCapacityName() + "' for injection " + injection);

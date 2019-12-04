@@ -366,6 +366,35 @@ public class SHP_IO_GULLI {
 
     }
 
+    public static Geometry readSHP_asSingleGeometry(File file, boolean switchCoordinates) throws MalformedURLException, IOException, FactoryException {
+        ArrayList<Geometry> list = readSHP(file, switchCoordinates);
+        if (list.isEmpty()) {
+            return null;
+        }
+        if (list.size() == 1) {
+            return list.get(0);
+        }
+        ArrayList<Geometry> simpleElements = new ArrayList<>(list.size());
+        //Go thorugh all elements and put primitive elements into the list
+        for (Geometry lg : list) {
+            for (int i = 0; i < lg.getNumGeometries(); i++) {
+                Geometry g = lg.getGeometryN(i);
+                if (g.getNumGeometries() == 1) {
+                    simpleElements.add(g);
+                } else {
+                    for (int j = 0; j < g.getNumGeometries(); j++) {
+                        simpleElements.add(g.getGeometryN(j));
+                    }
+                }
+            }
+        }
+        if (simpleElements.isEmpty()) {
+            return null;
+        }
+        GeometryFactory gf = simpleElements.get(0).getFactory();
+        return gf.buildGeometry(simpleElements);
+    }
+
     /**
      *
      * @param file
@@ -382,8 +411,7 @@ public class SHP_IO_GULLI {
         ContentFeatureSource fs = s.getFeatureSource();
         org.geotools.data.store.ContentFeatureCollection fc = fs.getFeatures();
 
-        CoordinateReferenceSystem shpCRS = fs.getSchema().getCoordinateReferenceSystem();
-
+//        CoordinateReferenceSystem shpCRS = fs.getSchema().getCoordinateReferenceSystem();
         // Process shapefile
         FeatureIterator iterator = fc.features();
         String filename = file.getName();
@@ -763,7 +791,7 @@ public class SHP_IO_GULLI {
 
                     } finally {
                         createtransaction.close();
-                  
+
                     }
                 } else {
                     System.out.println(typeName + " does not support read/write access: " + featureSource);

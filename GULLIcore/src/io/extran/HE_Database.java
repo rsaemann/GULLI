@@ -365,17 +365,22 @@ public class HE_Database implements SparseTimeLineDataProvider {
     }
 
     public void close() throws SQLException {
-        if (con != null && !con.isClosed()) {
+        try {
+            if (con != null && !con.isClosed()) {
 //            System.out.println("close main connection");
-            con.close();
-            con = null;
-        }
-        for (ThreadConnection threadConnection : threadConnections) {
-            if (threadConnection != null && !threadConnection.con.isClosed()) {
-//                System.out.println("close threadconnection");
-                threadConnection.con.close();
-                threadConnection.con = null;
+                con.close();
+                con = null;
             }
+            for (ThreadConnection threadConnection : threadConnections) {
+                if (threadConnection != null && threadConnection.con != null && !threadConnection.con.isClosed()) {
+//                System.out.println("close threadconnection");
+                    threadConnection.con.close();
+                    threadConnection.con = null;
+                }
+            }
+            threadConnections.clear();
+        } catch (Exception exception) {
+            exception.printStackTrace();
         }
     }
 
@@ -439,6 +444,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public ThreadConnection getUnusedConnection(long idToLoad) throws SQLException, IOException {
 //        synchronized (serializer) {
         for (ThreadConnection threadConnection : threadConnections) {
+//            if (threadConnection.con == null) {
+//                continue;
+//            }
             if (threadConnection.id == idToLoad) {
 //                    System.out.println(" return inuse connection for "+idToLoad);
                 threadConnection.lock.lock();
@@ -446,6 +454,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
         }
         for (ThreadConnection threadConnection : threadConnections) {
+//            if (threadConnection.con == null) {
+//                continue;
+//            }
             if (threadConnection.lock.tryLock()) {
                 threadConnection.id = idToLoad;
 //                    System.out.println(" return free connection for "+idToLoad);
@@ -459,7 +470,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
             SQLiteConfig config = new SQLiteConfig();
             config.setEncoding(SQLiteConfig.Encoding.UTF8);
             config.setReadOnly(true);
-            toAdd = new ThreadConnection(DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties()));
+            Connection c = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
+            if (c == null) {
+//                System.err.println("Problem with connection to " + databaseFile.getAbsolutePath());
+                throw new NullPointerException("Cannot create Connection to 'jdbc:sqlite:" + databaseFile.getAbsolutePath() + "'");
+            } else {
+                toAdd = new ThreadConnection(c);
+            }
         } else {
             //Firebird
             try {
@@ -1598,7 +1615,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //        System.out.println("Load injections from Database . sql?"+isSQLite);
         if (isSQLite) {
             //get joins of substance and injectionlocation
-            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFF,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id";
+            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFF,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id WHERE KONZENTRATION>0";
             rs = st.executeQuery(qstring);
             if (!rs.isBeforeFirst()) {
 //                System.out.println("Database has no soluteSpill elements defined");
@@ -1623,8 +1640,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                 if (ele.refIDMessdaten > 0) {
                     TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
-                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, simulationStart.getTimeInMillis(), tv, ele.concentration*0.001);
-                    System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = "+heinj.getTotalVolume() + "m³ in "+heinj.getNumberOfIntervals()+" intervals");
+                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
+                    System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = " + heinj.getTotalVolume() + "m³ in " + heinj.getNumberOfIntervals() + " intervals");
 
                     particles.add(heinj);
                 } else {
@@ -1717,7 +1734,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                             try {
                                 HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
-                               
+
                                 particles.add(info);
                             } catch (Exception exception) {
                                 System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
@@ -2473,7 +2490,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         + "FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL \n"
                         + "ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE \n"
                         + "AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT \n"
-                        + "AND KANTESTOFFLAUFEND.ID=" + pipeMaualID + " ORDER BY KANTESTOFFLAUFEND.KANTE,KANTESTOFFLAUFEND.ZEITPUNKT");
+                        + "AND KANTESTOFFLAUFEND.ID=" + pipeMaualID + " "
+                        + "WHERE KONZENTRATION>0 ORDER BY KANTESTOFFLAUFEND.KANTE,KANTESTOFFLAUFEND.ZEITPUNKT");
 //           
                 if (!rs.isBeforeFirst()) {
                     //No Data
@@ -3105,7 +3123,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
             try {
 
                 try ( //in HE Database only use Pipe ID.
-                        Statement st = c.createStatement(); ResultSet rs = st.executeQuery("SELECT GESCHWINDIGKEIT,DURCHFLUSS,WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_EL WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ")) {
+                        Statement st = c.createStatement();
+                        ResultSet rs = st.executeQuery("SELECT GESCHWINDIGKEIT,DURCHFLUSS,WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_EL WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ")) {
                     int times = timeline.getNumberOfTimes();
                     float[] velocity, flux, waterlevel, volume;
                     velocity = new float[times];
@@ -3121,7 +3140,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         if (velocity[index] == 0 && flux[index] != 0) {
                             //This seems to be a pump
                             velocity[index] = 3;
-                            waterlevel[index]=0.1f;
+                            waterlevel[index] = 0.1f;
                         }
 
                         index++;
@@ -3198,7 +3217,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             synchronized (c) {
                 //in HE Database only use Pipe ID.
                 Statement st = c.createStatement();
-                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ASC");
+                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " AND KONZENTRATION>0 ORDER BY ZEITPUNKT ASC");
 //comes in [mg/l]
                 if (!rs.isBeforeFirst()) {
                     //Result set is empty, there are no concentrations set
@@ -3209,8 +3228,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                 int index = 0;
                 while (rs.next()) {
-                    concentration[index] = rs.getFloat(1) * 0.001f;
+                    if (index < concentration.length) {
+                        concentration[index] = rs.getFloat(1) * 0.001f;
+                    }
                     index++;
+                }
+                if (index > concentration.length) {
+                    System.out.println("Konzentration information for " + index + " timesteps. but numberofTimes is only " + numberOfTimes);
                 }
                 st.close();
 //                uc.inUse = false;

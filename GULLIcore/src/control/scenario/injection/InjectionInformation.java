@@ -23,6 +23,8 @@
  */
 package control.scenario.injection;
 
+import java.util.Arrays;
+import java.util.Objects;
 import model.GeoPosition2D;
 import model.particle.Material;
 import model.timeline.TimedValue;
@@ -247,6 +249,42 @@ public class InjectionInformation implements InjectionInfo {
 //    public int getTriangleID() {
 //        return triangleID;
 //    }
+//    @Override
+//    public boolean equals(Object obj) {
+//        if (obj == null) {
+//            return false;
+//        }
+//        if (getClass() != obj.getClass()) {
+//            return false;
+//        }
+//        final InjectionInformation other = (InjectionInformation) obj;
+//        if (Double.doubleToLongBits(this.totalmass) != Double.doubleToLongBits(other.totalmass)) {
+//            return false;
+//        }
+//        if (Double.doubleToLongBits(this.timesteps[0]) != Double.doubleToLongBits(other.timesteps[0])) {
+//            return false;
+//        }
+//        if (this.triangleID != other.triangleID) {
+//            return false;
+//        }
+//
+//        if (this.capacityName != null && other.capacityName != null) {
+//            if (!this.capacityName.equals(other.capacityName)) {
+//                return false;
+//            }
+//        }
+//        if (this.material != null && other.material != null) {
+//            if (!this.material.equals(other.material)) {
+//                return false;
+//            }
+//        }
+//
+////        if (Double.doubleToLongBits(this.position1D) != Double.doubleToLongBits(other.position1D)) {
+////            return false;
+////        }
+//        return true;
+//    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -256,32 +294,35 @@ public class InjectionInformation implements InjectionInfo {
             return false;
         }
         final InjectionInformation other = (InjectionInformation) obj;
-        if (Double.doubleToLongBits(this.totalmass) != Double.doubleToLongBits(other.totalmass)) {
+        if (this.spillOnSurface != other.spillOnSurface) {
             return false;
         }
-        if (Double.doubleToLongBits(this.timesteps[0]) != Double.doubleToLongBits(other.timesteps[0])) {
+        if (!Arrays.equals(this.timesteps, other.timesteps)) {
+            return false;
+        }
+        if (!Arrays.equals(this.spillMass, other.spillMass)) {
+            return false;
+        }
+        if (!Objects.equals(this.material, other.material)) {
+            return false;
+        }
+        if (!Objects.equals(this.capacityName, other.capacityName)) {
+            return false;
+        }
+        if (!Objects.equals(this.position, other.position)) {
             return false;
         }
         if (this.triangleID != other.triangleID) {
             return false;
         }
-
-        if (this.capacityName != null && other.capacityName != null) {
-            if (!this.capacityName.equals(other.capacityName)) {
-                return false;
-            }
-        }
-        if (this.material != null && other.material != null) {
-            if (!this.material.equals(other.material)) {
-                return false;
-            }
-        }
-
-//        if (Double.doubleToLongBits(this.position1D) != Double.doubleToLongBits(other.position1D)) {
-//            return false;
-//        }
         return true;
     }
+
+   
+    
+    
+    
+    
 
     @Override
     public int hashCode() {

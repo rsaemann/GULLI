@@ -1054,6 +1054,10 @@ public class LoadingCoordinator implements LoadingActionListener {
         if (this.loadingpipeNetwork != LOADINGSTATUS.NOT_REQUESTED) {
             loadingpipeNetwork = LOADINGSTATUS.REQUESTED;
         }
+        this.scenario=null;
+        this.surface=null;
+        this.network=null;
+        this.injections.clear();
         this.startLoadingRequestedFiles(asThread);
     }
 
