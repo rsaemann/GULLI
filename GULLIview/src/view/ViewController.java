@@ -47,8 +47,8 @@ public class ViewController {
         paintManager.addCapacitySelectionListener(timelinePanel);
 
         //Order Frames
-        controlFrame.setBounds(50, 50, 250, 900);
-        mapFrame.setBounds(320, 50, 1200, 900);
+        controlFrame.setBounds(40, 50, 260, 1000);
+        mapFrame.setBounds(320, 50, 1200, 800);
         timeLineFrame.setBounds(1200, 200, 700, 400);
         mapFrame.requestFocus();
     }

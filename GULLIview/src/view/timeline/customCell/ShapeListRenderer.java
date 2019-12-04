@@ -10,7 +10,7 @@ import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import javax.swing.BorderFactory;
-import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.ListCellRenderer;
@@ -27,7 +27,7 @@ import view.timeline.customCell.ShapeEditor.SHAPES;
  *
  * @author David Gilbert
  */
-public class ShapeListRenderer extends JComponent implements ListCellRenderer, TableCellRenderer {
+public class ShapeListRenderer extends JLabel implements ListCellRenderer, TableCellRenderer {
 
     /**
      * The stroke being displayed (may be null).
@@ -117,15 +117,17 @@ public class ShapeListRenderer extends JComponent implements ListCellRenderer, T
         final double ww = size.getWidth() - insets.left - insets.right;
         final double hh = size.getHeight() - insets.top - insets.bottom;
 //        System.out.println("width: "+this.getWidth()+" \t insets.width="+(insets.right-insets.left));
+//        if (isSelected) {
+        g2.setColor(Color.white);
         if (isSelected) {
-            g2.setColor(Color.white);
-            g2.fill(new Rectangle2D.Double(xx, yy, ww, hh));
+            g2.setColor(Color.lightGray);
         }
-        g2.setColor(Color.black);
-
-        final Point2D mid = new Point2D.Double(xx + ww / 3, yy + hh / 2);
+        g2.fill(new Rectangle2D.Double(xx, yy, ww, hh));
+//        }
 
         if (this.shape != null) {
+            g2.setColor(Color.black);
+            final Point2D mid = new Point2D.Double(xx + shape.getBounds().width * 0.5 + 2, yy + hh / 2);
             g2.translate(mid.getX(), mid.getY());
             g2.draw(shape);
         }
@@ -159,7 +161,7 @@ public class ShapeListRenderer extends JComponent implements ListCellRenderer, T
         if (shape instanceof Shape) {
             this.shape = (Shape) shape;
             handleEnum = false;
-        } else if(shape instanceof SHAPES){
+        } else if (shape instanceof SHAPES) {
             this.shape = ((SHAPES) shape).getShape();
             handleEnum = true;
         }

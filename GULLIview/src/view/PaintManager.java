@@ -3214,8 +3214,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     }
 
     public void addInjectionLocation(Collection<InjectionInformation> injections) throws Exception {
-        if (injections.size() > 20) {
-            throw new Exception("Will not display more than 20 injection locations.");
+        if (injections.size() > 50) {
+            throw new Exception("Will not display more than 50 injection locations.");
         }
         int id = 0;
         for (InjectionInformation in : injections) {

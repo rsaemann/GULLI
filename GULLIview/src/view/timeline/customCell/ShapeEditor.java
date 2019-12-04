@@ -93,17 +93,21 @@ public class ShapeEditor extends AbstractCellEditor
             boolean isSelected,
             int row,
             int column) {
+        System.out.println("selected shape: "+value);
+        boolean foundIndex=false;
         if (value instanceof Shape) {
             currentShape = (Shape) value;
             for (int i = 0; i < availableShapes.length; i++) {
                 if (availableShapes[i] == null) {
                     if (value == null) {
                         combobox.setSelectedIndex(i);
+                        foundIndex=true;
                         break;
                     }
                 } else {
                     if (availableShapes[i].equals(value)) {
                         combobox.setSelectedIndex(i);
+                        foundIndex=true;
                         break;
                     }
                 }
@@ -114,16 +118,19 @@ public class ShapeEditor extends AbstractCellEditor
                 if (available_SHAPES[i] == null) {
                     if (value == null) {
                         combobox.setSelectedIndex(i);
+                        foundIndex=true;
                         break;
                     }
                 } else {
                     if (available_SHAPES[i].equals(value)) {
                         combobox.setSelectedIndex(i);
+                        foundIndex=true;
                         break;
                     }
                 }
             }
         }
+        if(!foundIndex)combobox.setSelectedIndex(0);
         this.row = row;
         return combobox;
     }

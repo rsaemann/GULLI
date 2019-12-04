@@ -56,15 +56,15 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
 
         //tab multi controll
         multiControl = new MultiControllPanel(controller);
-        JScrollPane scrollMulti = new JScrollPane(multiControl);
+//        JScrollPane scrollMulti = new JScrollPane(multiControl);
 //        tabs.add("Multiple Events", scrollMulti);
 
         /// Bottom Buttons
-        panelBottomButtons = new JPanel(new GridLayout(2, 1));
+        panelBottomButtons = new JPanel(new GridLayout(1, 1));
         checkAlwaysOnTop = new JCheckBox("Always on top", this.isAlwaysOnTop());
         buttonHighlightVisualization = new JButton("Go to Visualization");
         panelBottomButtons.add(checkAlwaysOnTop);
-        panelBottomButtons.add(buttonHighlightVisualization);
+//        panelBottomButtons.add(buttonHighlightVisualization);
         this.add(panelBottomButtons, BorderLayout.SOUTH);
         checkAlwaysOnTop.addActionListener(this);
         buttonHighlightVisualization.addActionListener(this);
@@ -76,10 +76,10 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
             this.setAlwaysOnTop(checkAlwaysOnTop.isSelected());
             return;
         }
-        if (ae.getSource().equals(buttonHighlightVisualization)) {
+//        if (ae.getSource().equals(buttonHighlightVisualization)) {
 //           controller.getMapFrame().requestFocus();
-            return;
-        }
+//            return;
+//        }
     }
 
     public SingleControllPanel getSingleControl() {
