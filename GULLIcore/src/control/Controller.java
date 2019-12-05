@@ -48,6 +48,7 @@ import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
+import model.timeline.sparse.SparseTimeLinePipeContainer;
 import model.topology.Capacity;
 import model.topology.Connection;
 import model.topology.Connection_Manhole_Pipe;
@@ -503,19 +504,25 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         currentAction.progress = 0f;
         fireAction(currentAction);
 
-//        if (network == null) {
-//            System.err.println("No network loaded yet. Can not find capacities to inject particles.");
-//        } else {
         if (scenario == null || scenario.getInjections() == null) {
             return;
         }
 
         int totalNumberParticles = 0;
         int maxMaterialID = -1;
+        ArrayList<Material> indexedMaterials = new ArrayList<>();
         for (InjectionInformation injection : scenario.getInjections()) {
             totalNumberParticles += injection.getNumberOfParticles();
             maxMaterialID = Math.max(maxMaterialID, injection.getMaterial().materialIndex);
+            if (!indexedMaterials.contains(injection.getMaterial())) {
+                indexedMaterials.add(injection.getMaterial());
+            }
         }
+        for (int i = 0; i < indexedMaterials.size(); i++) {
+            indexedMaterials.get(i).materialIndex = i;
+        }
+        maxMaterialID = indexedMaterials.size() - 1;
+
         ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
         int counter = 0;
         for (InjectionInformation injection : scenario.getInjections()) {
@@ -543,7 +550,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     } catch (TransformException ex) {
                         Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                     }
-
                 }
 
                 if (injection.getTriangleID() >= 0) {
@@ -599,12 +605,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 pipeposition = injection.getPosition1D();
                 if (injection.getCapacity() != null) {
                     c = injection.getCapacity();
-
                 } else {
-
                     //Need to find capacity 
                     // by name
-                    if (injection.getCapacityName() != null&&!injection.getCapacityName().isEmpty()) {
+                    if (injection.getCapacityName() != null && !injection.getCapacityName().isEmpty()) {
                         c = getNetwork().getCapacityByName(injection.getCapacityName());
                         if (c == null) {
                             System.err.println("Cannot find Capacity with name '" + injection.getCapacityName() + "' for injection " + injection);
@@ -633,83 +637,17 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 injection.resetChanged();
                 allParticles.addAll(ps);
             }
-
         }
-//            if (scenario.getInjections() != null) {
-//                int numberofParticles = 0;
-//                for (InjectionInformation in : scenario.getInjections()) {
-//                    numberofParticles += in.getNumberOfParticles();
-//                }
-//                Particle.resetCounterID();
-//                ArrayList<Particle> particles = new ArrayList<>(numberofParticles);
-//                for (InjectionInformation in : scenario.getInjections()) {
-//
-//                    if (in.spillOnSurface()) {
-//                        if (in.getTriangleID() < 0) {
-//
-//                            if (in.getPosition() != null) //search for correct triangle
-//                            {
-//                                int triangleID = -1;
-//                                try {
-//                                    triangleID = surface.triangleIDNear(in.getPosition());
-//                                } catch (TransformException ex) {
-//                                    Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-//                                }
-//                                if (triangleID >= 0) {
-//                                    in.setTriangleID(triangleID);
-//                                    System.out.println("Found triangle " + triangleID + " for injection @" + in.getPosition());
-//                                } else {
-//                                    System.out.println("Could NOT find a triangle for injection @" + in.getPosition());
-//                                }
-//                            }
-//                        }
-//                        try {
-//                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), getSurface(), in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
-//                            for (Particle p1 : p) {
-//                                p1.setInjectionCellID(in.getTriangleID());
-//                                p1.setSurrounding_actual(null);
-////                            p1.setOnSurface();
-////                            System.out.println("cellid: " + p1.surfaceCellID + "  injection " + p1.getInjectionCellID());
-//                            }
-//                            particles.addAll(p);
-//                        } catch (Exception ex) {
-//                            System.err.println("Problem when creating particles for spill on surface triangle: " + in.getTriangleID() + " : " + ex.getLocalizedMessage());
-//                        }
-//
-//                    } else {
-//                        try {
-//                            Capacity c = null;
-//
-//                            c = in.getCapacity();
-//
-//                            if (c == null && in.getPosition() != null) {
-//                                //Search by Position
-//                                c = network.getManholeNearPositionLatLon(in.getPosition().getLatitude(), in.getPosition().getLongitude());
-//                            }
-//
-//                            if (c == null && in.getCapacityName() != null) {
-//                                //Search by Name
-//                                c = network.getCapacityByName(in.getCapacityName());
-//                            }
-//
-//                            if (c == null) {
-//                                System.err.println("Could not find capacity '" + in.getCapacity() + "' to inject particles.");
-//                                continue;
-//                            }
-//                            in.setChanged(false);//Everything was set.
-//                            ArrayList<Particle> p = this.createParticlesOverTimespan(in.getNumberOfParticles(), in.getMass() / (double) in.getNumberOfParticles(), c, in.getMaterial(), in.getStarttimeSimulationsAfterSimulationStart(), in.getDurationSeconds());
-//                            particles.addAll(p);
-//                        } catch (Exception exception) {
-//                            exception.printStackTrace();
-//                        }
-//                    }
-//                }
-//                this.setParticles(particles);
-//            }
-//        }
         if (surface != null) {
             surface.setNumberOfMaterials(maxMaterialID + 1);
         }
+        if (scenario != null && scenario.getMeasurementsPipe() != null) {
+            scenario.getMeasurementsPipe().setNumberOfMaterials(maxMaterialID + 1);
+            if (scenario.getTimesPipe() != null && scenario.getTimesPipe() instanceof SparseTimeLinePipeContainer) {
+                ((SparseTimeLinePipeContainer) scenario.getTimesPipe()).numberOfMaterials = maxMaterialID + 1;
+            }
+        }
+
         this.setParticles(allParticles);
     }
 

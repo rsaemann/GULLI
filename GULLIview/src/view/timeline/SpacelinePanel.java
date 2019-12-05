@@ -220,7 +220,7 @@ public class SpacelinePanel extends JPanel {
         int ind = indexTimePipe;
         float[] vs = instance.getVelocityForTimeIndex(ind);
         float[] hs = instance.getWaterlevelsForTimeIndex(ind);
-        float[] ms = instance.getMassFluxForTimeIndex(ind);
+        float[] ms = instance.getMassFluxForTimeIndex(ind,0);
 //        System.out.println("timeindex: " + ind);
         System.out.println(getClass()+":: ArrayTimeLinePipeContainer.distance="+instance.distance);
         if (instance.distance != null) {

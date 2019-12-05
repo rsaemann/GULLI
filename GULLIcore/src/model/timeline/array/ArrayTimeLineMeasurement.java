@@ -47,6 +47,8 @@ public class ArrayTimeLineMeasurement {
      */
     private double particleMassInTimestep = 0;
 
+    private double[] particleMassPerTypeinTimestep;
+
     /**
      * if not active, then no information is collected and stored.
      */
@@ -80,9 +82,21 @@ public class ArrayTimeLineMeasurement {
          */
     }
 
+    /**
+     * get total mass of all materials
+     *
+     * @param temporalIndex
+     * @return
+     */
     public float getMass(int temporalIndex) {
         int index = getIndex(temporalIndex);
         return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] / (container.samplesPerTimeinterval));
+
+    }
+
+    public float getMass(int temporalIndex, int materialIndex) {
+        int index = getIndex(temporalIndex);
+        return (float) (container.mass_type[index][materialIndex] / (container.samplesPerTimeinterval));
 
     }
 
@@ -115,6 +129,13 @@ public class ArrayTimeLineMeasurement {
             }
             container.volumes[index] += volumeValue;
             container.mass_total[index] += particleMassInTimestep;
+
+            if (particleMassPerTypeinTimestep != null) {
+                for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
+                    container.mass_type[index][i] += (float) (particleMassPerTypeinTimestep[i]);
+                }
+            }
+
             container.counts[index]++;
             double tempmass = (particleMassInTimestep / (container.samplesPerTimeinterval));
             if (tempmass > maxMass) {
@@ -160,6 +181,13 @@ public class ArrayTimeLineMeasurement {
         return particles.size();
     }
 
+    private void addParticleMassperMaterial(int materialID, double mass) {
+        if (particleMassPerTypeinTimestep == null || particleMassPerTypeinTimestep.length != container.getNumberOfContaminants()) {
+            particleMassPerTypeinTimestep = new double[container.getNumberOfContaminants()];
+        }
+        particleMassPerTypeinTimestep[materialID] += mass;
+    }
+
     public void addParticle(Particle particleToCount) {
         if (!active) {
             return;
@@ -172,6 +200,7 @@ public class ArrayTimeLineMeasurement {
                         synchronized (this) {
                             this.particleMassInTimestep += particleToCount.particleMass;
                             this.numberOfParticlesInTimestep++;
+                            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass());
                         }
                     }
                 }
@@ -181,6 +210,7 @@ public class ArrayTimeLineMeasurement {
                 try {
                     this.particleMassInTimestep += particleToCount.particleMass;
                     this.numberOfParticlesInTimestep++;
+                    addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass());
                 } finally {
                     lock.unlock();
                 }
@@ -196,12 +226,18 @@ public class ArrayTimeLineMeasurement {
             }
             this.particleMassInTimestep += particleToCount.particleMass;
             this.numberOfParticlesInTimestep++;
+            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass());
         }
     }
 
     public void resetNumberOfParticles() {
         this.numberOfParticlesInTimestep = 0;
         this.particleMassInTimestep = 0.;
+        if (particleMassPerTypeinTimestep != null) {
+            for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
+                particleMassPerTypeinTimestep[i] = 0;
+            }
+        }
     }
 
     public void resetVisitedParticlesStorage() {

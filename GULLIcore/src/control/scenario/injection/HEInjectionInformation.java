@@ -23,6 +23,8 @@
  */
 package control.scenario.injection;
 
+import model.particle.Material;
+
 /**
  * This is a preObject that contains Injection information from a HYSTEM EXTRAN
  * SCENARIO. As it only contains the Name of a Pipe/Manhole and the Simulation
@@ -35,13 +37,14 @@ public class HEInjectionInformation {
     public final String capacityName;
     public final long stattime, endtime;
     public final double mass;
+    public final Material material;
 
-    public HEInjectionInformation(String capacityName, long stattime, long endtime, double mass) {
+    public HEInjectionInformation(String capacityName, Material mat, long stattime, long endtime, double mass) {
         this.capacityName = capacityName;
         this.stattime = stattime;
         this.endtime = endtime;
-        this.mass=mass;
+        this.mass = mass;
+        this.material = mat;
     }
-    
-    
+
 }

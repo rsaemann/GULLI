@@ -61,9 +61,9 @@ public class SparseTimelinePipe implements TimeLinePipe {
      */
     private float[] flux;
     /**
-     * Reference mass if given in scenario. May be null
+     * Reference mass if given in scenario. May be null [times][materialtypes]
      */
-    private float[] mass_reference;
+    private float[][] mass_reference;
 
     /**
      * Reference concentration if given in scenario. May be null
@@ -119,11 +119,11 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getMassflux_reference(int temporalIndex) {
+    public float getMassflux_reference(int temporalIndex, int material) {
         if (mass_reference == null) {
             this.container.loadTimelineMass(this, pipeManualID, pipeName);
         }
-        return mass_reference[temporalIndex];
+        return mass_reference[temporalIndex][material];
     }
 
     @Override
@@ -223,7 +223,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
         this.flux = flux;
     }
 
-    public void setMass_reference(float[] mass_reference) {
+    public void setMass_reference(float[][] mass_reference) {
         this.mass_reference = mass_reference;
     }
 
@@ -269,6 +269,11 @@ public class SparseTimelinePipe implements TimeLinePipe {
      */
     public boolean isInitialized() {
         return velocity != null && flux != null && waterlevel != null;
+    }
+
+    @Override
+    public String[] getMaterialNames() {
+        return container.namesMaterials;
     }
 
 }

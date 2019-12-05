@@ -9,6 +9,7 @@ import control.particlecontrol.FlowCalculator;
 import control.particlecontrol.FlowCalculatorMixed;
 import control.GlobalParameter;
 import control.particlecontrol.FlowCalculator_Heterogene;
+import java.util.Objects;
 
 /**
  * Material of physical information to be attached to a particle.
@@ -45,7 +46,7 @@ public class Material {
      * Index to identify the material. Index for storing in measurement
      * timelines for counting particles of this material.
      */
-    public int materialIndex = 0;
+    public int materialIndex = -1;
 
     /**
      *
@@ -97,4 +98,40 @@ public class Material {
         return flowCalculator;
     }
 
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 17 * hash + Objects.hashCode(this.name);
+        hash = 17 * hash + this.materialIndex;
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Material other = (Material) obj;
+        if (!Objects.equals(this.name, other.name)) {
+            return false;
+        }
+        if (Double.doubleToLongBits(this.density) != Double.doubleToLongBits(other.density)) {
+            return false;
+        }
+        if (Double.doubleToLongBits(this.weight) != Double.doubleToLongBits(other.weight)) {
+            return false;
+        }
+        if (this.solute != other.solute) {
+            return false;
+        }
+        if (!Objects.equals(this.flowCalculator, other.flowCalculator)) {
+            return false;
+        }
+        return true;
+    }
+
+    
 }

@@ -580,7 +580,10 @@ public class LoadingCoordinator implements LoadingActionListener {
                                 }
                                 double start = (in.stattime - timeContainerPipe.getFirstTime()) / 1000;
                                 double duration = (in.endtime - timeContainerPipe.getFirstTime()) / 1000 - start;
-                                Material mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                                Material mat = in.material;
+                                if (mat == null) {
+                                    mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                                }
                                 int particlenumber = 20000;
                                 InjectionInformation info;
                                 if (in instanceof HE_MessdatenInjection) {
@@ -655,7 +658,10 @@ public class LoadingCoordinator implements LoadingActionListener {
                             }
                             double start = (in.stattime - p.first.getFirstTime()) / 1000;
                             double duration = (in.endtime - p.first.getFirstTime()) / 1000 - start;
-                            Material mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                            Material mat = in.material;
+                            if (mat == null) {
+                                mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                            }
                             int particlenumber = 20000;
                             InjectionInformation info;
                             if (in instanceof HE_MessdatenInjection) {
@@ -1054,9 +1060,9 @@ public class LoadingCoordinator implements LoadingActionListener {
         if (this.loadingpipeNetwork != LOADINGSTATUS.NOT_REQUESTED) {
             loadingpipeNetwork = LOADINGSTATUS.REQUESTED;
         }
-        this.scenario=null;
-        this.surface=null;
-        this.network=null;
+        this.scenario = null;
+        this.surface = null;
+        this.network = null;
         this.injections.clear();
         this.startLoadingRequestedFiles(asThread);
     }

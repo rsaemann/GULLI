@@ -23,6 +23,7 @@
  */
 package control.scenario.injection;
 
+import model.particle.Material;
 import model.timeline.TimedValue;
 
 /**
@@ -49,20 +50,21 @@ public class HE_MessdatenInjection extends HEInjectionInformation {
      * kg
      */
     private double totalVolume;
-    
+
     private double concentration;
 
     /**
      *
      * @param capacityName
+     * @param mat
      * @param eventStart
      * @param timedValues
      * @param concentration kg/m³
      */
-    public HE_MessdatenInjection(String capacityName, long eventStart, TimedValue[] timedValues, double concentration) {
-        super(null, eventStart, timedValues[timedValues.length - 1].time, 0);
+    public HE_MessdatenInjection(String capacityName, Material mat, long eventStart, TimedValue[] timedValues, double concentration) {
+        super(null, mat, eventStart, timedValues[timedValues.length - 1].time, 0);
         this.timedValues = timedValues;
-        this.concentration=concentration;
+        this.concentration = concentration;
         calculateMass(timedValues, eventStart, concentration);
 //        calculateNumberOfIntervalParticles(numberOfParticles);
     }
@@ -112,10 +114,8 @@ public class HE_MessdatenInjection extends HEInjectionInformation {
     public double getTotalVolume() {
         return totalVolume;
     }
-    
-    
-    
-    public double getConcentration(){
+
+    public double getConcentration() {
         return concentration;
     }
 

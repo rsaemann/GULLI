@@ -3,7 +3,6 @@ package view;
 import control.scenario.injection.InjectionInformation;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -64,7 +63,7 @@ public class InjectionPanel extends JPanel {
         this.map = map;
         //Name
         textname = new JTextField(info.getMaterial().getName());
-        this.add(new JLabel("Material:"));
+        this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:"));
         this.add(textname);
         //Datespinners
 //        JPanel panelSouthDate = new JPanel(new GridLayout(2, 1));
@@ -93,7 +92,7 @@ public class InjectionPanel extends JPanel {
         checkSurface = new JCheckBox("Surface");
         buttonSetPosition = new JButton("Set Position");
         buttonSetPosition.setToolTipText("Click here to select position on map.");
-        
+
         this.add(checkSurface);
         this.add(buttonSetPosition);
         if (info != null) {
@@ -102,11 +101,11 @@ public class InjectionPanel extends JPanel {
             if (info.spillInManhole()) {
                 if (info.getCapacity() != null) {
                     buttonSetPosition.setText(info.getCapacity().toString());
-                    buttonSetPosition.setToolTipText(info.getCapacity().toString() +" found; Click here to select position on map.");
+                    buttonSetPosition.setToolTipText(info.getCapacity().toString() + " found; Click here to select position on map.");
                 } else {
                     if (info.getCapacityName() != null) {
                         buttonSetPosition.setText("?>" + info.getCapacityName());
-                        buttonSetPosition.setToolTipText("search for "+info.getCapacity().toString() +"; Click here to select position on map.");
+                        buttonSetPosition.setToolTipText("search for " + info.getCapacity().toString() + "; Click here to select position on map.");
                     }
                 }
             } else {

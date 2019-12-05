@@ -33,13 +33,13 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
     /**
      * Reference massflux [kg/s] if given in scenario. May be null
      */
-    public float[] massflux_reference;
+    public float[][] massflux_reference;
     /**
      * Reference concentration [kg/m³] if given in scenario. May be null
      */
     public float[] concentration_reference;
 
-    private int numberOfPipes;
+    private int numberOfPipes,numberOfMaterials;
 
     public float[] moment1, moment2;
     public float[] distance;
@@ -88,13 +88,13 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         return r;
     }
 
-    public float[] getMassFluxForTimeIndex(int timeIndex) {
+    public float[] getMassFluxForTimeIndex(int timeIndex,int materialIndex) {
         if (massflux_reference == null) {
             throw new NullPointerException("No reference mass in scenario applied to " + this.getClass());
         }
         float[] r = new float[numberOfPipes];
         for (int i = 0; i < numberOfPipes; i++) {
-            r[i] = massflux_reference[i * getNumberOfTimes() + timeIndex];
+            r[i] = massflux_reference[i * getNumberOfTimes() + timeIndex][materialIndex];
         }
         return r;
     }
@@ -118,7 +118,7 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         double nenner = 0;
         double c = 0;
         for (int i = 0; i < distance.length; i++) {
-            c = massflux_reference[i * getNumberOfTimes() + timeIndex];
+            c = massflux_reference[i * getNumberOfTimes() + timeIndex][0];
             zaehler += distance[i] * c;
             nenner += c;
         }
@@ -140,7 +140,7 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
     }
 
     void initMass_Reference() {
-        this.massflux_reference = new float[velocity.length];
+        this.massflux_reference = new float[velocity.length][numberOfMaterials];
     }
 
     void initConcentration_Reference() {

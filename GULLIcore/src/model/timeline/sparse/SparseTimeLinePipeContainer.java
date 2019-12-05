@@ -47,10 +47,18 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     private boolean hasReferencePollution = false;
 
+    public int numberOfMaterials = 1;
+
+    public String[] namesMaterials;
+
     public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider) {
         super(dataprovider.loadTimeStepsNetwork());
         this.dataprovider = dataprovider;
         hasReferencePollution = dataprovider.hasTimeLineMass();
+        namesMaterials = dataprovider.loadNamesMaterials();
+        if (namesMaterials != null) {
+            numberOfMaterials = namesMaterials.length;
+        }
     }
 
     public SparseTimeLinePipeContainer(long[] times) {
@@ -65,6 +73,10 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
         this.dataprovider = dataprovider;
         if (dataprovider != null) {
             hasReferencePollution = dataprovider.hasTimeLineMass();
+            namesMaterials = dataprovider.loadNamesMaterials();
+            if (namesMaterials != null) {
+                numberOfMaterials = namesMaterials.length;
+            }
         }
     }
 

@@ -214,14 +214,14 @@ public class MatlabIO {
 //                tl.setDischarge(vs.get(1, i), 0);
                 tl.setVelocity(vs.get(1, i), 0);
                 tl.setWaterlevel(hs.get(1, i), 0);
-                tl.setMassflux_reference(phis.get(1, i) * hs.get(1, i), 0);
+                tl.setMassflux_reference(phis.get(1, i) * hs.get(1, i), 0,0);
                 for (int t = 1; t < t2.getSize(); t++) {
 //                    tl.setDischarge(vs.get(t, i), t);
                     tl.setVelocity(vs.get(t, i), t);
                     tl.setWaterlevel(hs.get(t, i), t);
                     tl.setWaterlevel((float) (p.getProfile().getFlowArea(hs.get(t, i)) * p.getLength()), t);
                     tl.setDischarge(vs.get(t, i), t);
-                    tl.setMassflux_reference(phis.get(t, i) * hs.get(t, i), t);
+                    tl.setMassflux_reference(phis.get(t, i) * hs.get(t, i), t,0);
                 }
 //                float volumen = (float) ( p.getProfile().getFlowArea(hs.get(2, i)) * p.getLength());
                 double particlemass = phis.get(1, i) * hs.get(1, i) * dx;

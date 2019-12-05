@@ -67,6 +67,7 @@ import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.ui.RectangleInsets;
+import view.timeline.customCell.StrokeEditor;
 
 /**
  *
@@ -142,20 +143,23 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries m_p_sum = new TimeSeries(new SeriesKey("Sum Particles", "Sum(n)", "-", Color.red, new AxisKey("Particle")), "Time", "");
     private final TimeSeries m_p_l = new TimeSeries(new SeriesKey("Particles/Length", "n/L", "1/m", Color.orange, new AxisKey("Particle per Length")), "Time", "");
     private final TimeSeries m_p_l_sum = new TimeSeries(new SeriesKey("\u03a3Particles/Length", "\u03a3n/L", "1/m", Color.orange), "Time", "");
-    private final TimeSeries m_c = new TimeSeries(new SeriesKey("Konzentration Messung", "c_measure", "kg/m³", Color.lightGray, keyConcentration), "Time", "");
-    private final TimeSeries m_m = new TimeSeries(new SeriesKey("Mass", "m_mess", "kg", Color.red, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 Mass ", "m_mess", "kg", Color.orange, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan,new AxisKey("Vol", "vol")), "Time", "m³");
+    private final TimeSeries m_m = new TimeSeries(new SeriesKey("p. Mass", "m_p", "kg", Color.red, new AxisKey("Mass")), "Time", "");
+    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 p. Mass ", "m_p", "kg", Color.orange, new AxisKey("Mass")), "Time", "");
+    private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan, new AxisKey("Vol", "vol")), "Time", "m³");
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V"), 0), "Time", "m/s");
     private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.blue, new AxisKey("Q"), 0), "Time", "m³/s");
-    private final TimeSeries massflux = new TimeSeries(new SeriesKey("mes. Massflux", "mf_mes", "kg/s", Color.orange.darker(), keymassFlux, 0), "Time", "");
 
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.green, new AxisKey("lvl"), 0), "Time", "m");
 
-    private final TimeSeries refMassflux0 = new TimeSeries(new SeriesKey("ref. Massflux", "mf_ref", "kg/s", Color.orange, keymassFlux, 0), "Time", "");
+    private final TimeSeries refMassflux0 = new TimeSeries(new SeriesKey("ref. Massflux", "mf_ref", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
+    private final TimeSeries massflux = new TimeSeries(new SeriesKey("p. Massflux total", "mf_p_tot", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
 
-    private final TimeSeries refConcentration = new TimeSeries(new SeriesKey("ref. Concentration", "c_ref", "kg/m³", Color.darkGray, keyConcentration, 0), "Time", "");
+    private final TimeSeries refConcentration = new TimeSeries(new SeriesKey("ref. Concentration", "c_ref", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
+    private final TimeSeries m_c = new TimeSeries(new SeriesKey("p. Concentration", "c_p", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
+
+    private final ArrayList<TimeSeries> ref_massFlux_Type = new ArrayList<>(2);
+    private final ArrayList<TimeSeries> massFlux_Type = new ArrayList<>(2);
 
     public CapacityTimelinePanel(String title, Controller c/*, PipeResultData... input*/) {
         super(new BorderLayout());
@@ -327,6 +331,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         m_p_sum.clear();
         m_p_l_sum.clear();
         massflux.clear();
+        for (TimeSeries massFlux_Type1 : ref_massFlux_Type) {
+            massFlux_Type1.clear();
+        }
+        for (TimeSeries massFlux_Type1 : massFlux_Type) {
+            massFlux_Type1.clear();
+        }
 
         TimeSeries v, q;
         TimeSeries hpipe;
@@ -341,6 +351,17 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         // other TimeLinePipe implementation
         if (tl != null && tl.getTimeContainer() != null) {
+            String[] materialnames = tl.getMaterialNames();
+            if (materialnames != null) {
+                for (int j = 0; j < materialnames.length; j++) {
+                    if (ref_massFlux_Type.size() < j + 1) {
+                        //TODO: read name of contaminant
+                        ref_massFlux_Type.add(new TimeSeries(new SeriesKey("ref Massflux " + materialnames[j], "msfx_ref_" + j, "kg/s", Color.orange.darker().darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/s"));
+                    }
+                }
+            } else {
+                ref_massFlux_Type.clear();
+            }
             for (int i = 0; i < tl.getTimeContainer().getNumberOfTimes(); i++) {
                 Date d;
                 long timeMilliseconds = tl.getTimeContainer().getTimeMilliseconds(i);
@@ -365,7 +386,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 if (tl.hasMassflux_reference()) {
 //                        refConcentration.addOrUpdate(time, tl.getMassflux_reference(index) / tl.getWaterlevel(index));
                     refConcentration.addOrUpdate(time, tl.getConcentration_reference(i));
-                    refMassflux0.addOrUpdate(time, Math.abs(tl.getMassflux_reference(i)));
+                    refMassflux0.addOrUpdate(time, Math.abs(tl.getMassflux_reference(i, 0)));
                 }
 
                 try {
@@ -373,25 +394,29 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     moment2_ref.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment2[i]);
                 } catch (Exception e) {
                 }
+
+                for (int j = 0; j < ref_massFlux_Type.size(); j++) {
+                    ref_massFlux_Type.get(j).addOrUpdate(time, tl.getMassflux_reference(i, j));
+                }
             }
+
         }
 
         this.collection.addSeries(v);
         this.collection.addSeries(q);
         this.collection.addSeries(hpipe);
 
-        if (refMassflux0.getMaxY() > 0) {
-            this.collection.addSeries(refMassflux0);
-        }
-
-        if (refConcentration.getMaxY() > 0) {
-            this.collection.addSeries(refConcentration);
-//                    this.collection.addSeries(createMovingaverageCentral(refMass, 100, "100 mean Mass ref", Color.gray, isStepTimeSeries));
-        }
-
         if (tlm != null && tlm.getContainer() != null) {
             float mass_sum = 0;
             double offset = -1;
+
+            for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
+                if (massFlux_Type.size() < j + 1) {
+                    //TODO: read name of contaminant
+                    massFlux_Type.add(new TimeSeries(new SeriesKey("p. Massflux " + j, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", ""));
+                }
+            }
+
             for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
                 Date d;
                 if (showSimulationTime) {
@@ -401,14 +426,16 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     d = new Date(tlm.getContainer().getTimeMillisecondsAtIndex(i));
                 }
                 RegularTimePeriod time = new Millisecond(d);
+                int refTimeIndex = i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / tlm.getContainer().getNumberOfTimes();
 //                System.out.println(getClass()+".container.distance="+tlm.getContainer().distance+"\t Timeline:"+tl.getClass());
                 if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
                     ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
+
                     double m1 = tlm.getContainer().getMomentum1_xc(i);
 //                    System.out.println("Moment1 (t="+i+")= "+m);
                     if (!Double.isNaN(m1) && m1 > 0) {
                         moment1_messung.addOrUpdate(time, m1);
-                        int refTimeIndex = i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / tlm.getContainer().getNumberOfTimes();
+
 //                        System.out.println(i + "/" + tlm.getContainer().getNumberOfTimes() + "    measurem: " + refTimeIndex + "/" + tl.getTimeContainer().getNumberOfTimes());
                         double mref = cont.moment1[refTimeIndex];
                         if (i > 0) {
@@ -431,6 +458,21 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     m_vol.addOrUpdate(time, vol);
                 }
 
+                double discharge = Math.abs(tl.getVelocity(tl.getTimeContainer().getTimeIndex(tlm.getContainer().getTimeMillisecondsAtIndex(i)))) / pipeLength;
+                float mass = tlm.getMass(i);
+                if (Double.isNaN(mass)) {
+                    m_m.addOrUpdate(time, 0);
+                    massflux.addOrUpdate(time, 0);
+                } else {
+                    m_m.addOrUpdate(time, mass);
+                    massflux.add(time, mass * discharge);
+                    mass_sum += mass;
+                }
+
+                for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
+                    massFlux_Type.get(j).addOrUpdate(time, tlm.getMass(i, j) * discharge);
+                }
+
                 float c = tlm.getConcentration(i);
                 if (Double.isNaN(c)) {
                     m_c.addOrUpdate(time, 0);
@@ -438,15 +480,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     m_c.addOrUpdate(time, c);
                 }
 
-                float mass = tlm.getMass(i);
-                if (Double.isNaN(mass)) {
-                    m_m.addOrUpdate(time, 0);
-                    massflux.addOrUpdate(time, 0);
-                } else {
-                    m_m.addOrUpdate(time, mass);
-                    massflux.add(time, mass * Math.abs(tl.getVelocity(tl.getTimeContainer().getTimeIndex(tlm.getContainer().getTimeMillisecondsAtIndex(i)))) / pipeLength);
-                    mass_sum += mass;
-                }
                 m_m_sum.addOrUpdate(time, mass_sum);
 
                 float p = tlm.getParticles(i);
@@ -473,11 +506,32 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } else {
 //            System.out.println("Timeline is initialized?" + ArrayTimeLineMeasurementContainer.isInitialized());
         }
-        
-         if (massflux.getMaxY() > 0) {
+
+        if (refMassflux0.getMaxY() > 0) {
+            this.collection.addSeries(refMassflux0);
+        }
+        for (int i = 0; i < ref_massFlux_Type.size(); i++) {
+            TimeSeries ts = ref_massFlux_Type.get(i);
+            if (ts != null && ts.getMaxY() > 0) {
+                this.collection.addSeries(ts);
+            }
+        }
+
+        if (massflux.getMaxY() > 0) {
             this.collection.addSeries(massflux);
         }
-         if (m_c.getMaxY() > 0) {
+        for (int i = 0; i < massFlux_Type.size(); i++) {
+            TimeSeries ts = massFlux_Type.get(i);
+            if (ts != null && ts.getMaxY() > 0) {
+                this.collection.addSeries(ts);
+            }
+        }
+
+        if (refConcentration.getMaxY() > 0) {
+            this.collection.addSeries(refConcentration);
+        }
+
+        if (m_c.getMaxY() > 0) {
             this.collection.addSeries(m_c);
         }
 
@@ -536,14 +590,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             this.collection.addSeries(m_vol);
         }
 
-       
         if (m_m.getMaxY() > 0) {
             this.collection.addSeries(m_m);
         }
 
-       
 //        beforeWasNull = false;
-
     }
 
     private void buildManholeTimeline(StorageVolume vol) {
@@ -574,7 +625,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     }
 
-    private void buildTriangleMeasurementTimeline(TriangleMeasurement triM,Surface surface) {
+    private void buildTriangleMeasurementTimeline(TriangleMeasurement triM, Surface surface) {
 
         //Status timeline of triangle might have another timecontainer than measurements
         TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan, new AxisKey("h", "Waterlevel [m]")), "m", "Time");

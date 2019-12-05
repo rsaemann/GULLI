@@ -52,6 +52,17 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         return (v0 + (v1 - v0) * ratio);
     }
 
+    private double getValue_DoubleIndex(float[][] array, double temporalIndexDouble, int secondIndex) {
+        double i = getIndexDouble(temporalIndexDouble);
+        if (((int) i) >= array.length - 1) {
+            return array[array.length - 1][secondIndex];
+        }
+        double v0 = array[(int) i][secondIndex];
+        double v1 = array[(int) i + 1][secondIndex];
+        double ratio = i % 1;
+        return (v0 + (v1 - v0) * ratio);
+    }
+
     public float getVelocity_DoubleIndex(double temporalIndex) {
         return (float) getValue_DoubleIndex(container.velocity, temporalIndex);
     }
@@ -68,8 +79,8 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         return (float) getValue_DoubleIndex(container.discharge, temporalIndex);
     }
 
-    public float getMassFlux_reference_DoubleIndex(double temporalIndex) {
-        return (float) getValue_DoubleIndex(container.massflux_reference, temporalIndex);
+    public float getMassFlux_reference_DoubleIndex(double temporalIndex, int materialIndex) {
+        return (float) getValue_DoubleIndex(container.massflux_reference, temporalIndex, materialIndex);
     }
 
     public float getConcentration_reference_DoubleIndex(double temporalIndex) {
@@ -109,11 +120,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getMassflux_reference(int temporalIndex) {
-        return container.massflux_reference[getIndex(temporalIndex)];
+    public float getMassflux_reference(int temporalIndex, int materialIndex) {
+        return container.massflux_reference[getIndex(temporalIndex)][materialIndex];
     }
 
-    public void setMassflux_reference(float value, int temporalIndex) {
+    public void setMassflux_reference(float value, int temporalIndex, int materialIndex) {
 
         if (container.massflux_reference == null) {
             synchronized (container) {
@@ -122,7 +133,7 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
                 }
             }
         }
-        container.massflux_reference[getIndex(temporalIndex)] = value;
+        container.massflux_reference[getIndex(temporalIndex)][materialIndex] = value;
     }
 
     @Override
@@ -162,7 +173,7 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
                 h_sum += lvl;
                 h_max = Math.max(h_max, lvl);
                 if (seemass) {
-                    float mass = container.massflux_reference[i + startIndex];
+                    float mass = container.massflux_reference[i + startIndex][0];
                     m_sum += mass;
                     mf_max = Math.max(mf_max, mass);
                 }
@@ -299,6 +310,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 //    }
     @Override
     public double getVolume() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public String[] getMaterialNames() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

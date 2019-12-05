@@ -122,6 +122,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     protected boolean isSQLite = false;
 
+    protected int numberOfMaterials = -1;
+
 //    private final String synchronizationObject = "sync";
     /**
      * Can parse text based timestamps in sqlite format.
@@ -1433,17 +1435,19 @@ public class HE_Database implements SparseTimeLineDataProvider {
             ///////////////FERTIG ROHRE
             //******************************BEGIN Schmutzfracht******************
 //        res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,STOFF,KONZENTRATION from KANTESTOFFLAUFEND ORDER BY ID, ZEITPUNKT;");
-            res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION, AUSLASTUNG"
+            res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION, AUSLASTUNG, STOFF"
                     + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
-                    + " ORDER BY KANTESTOFFLAUFEND.KANTE,LAU_GL_EL.ZEITPUNKT");
+                    + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
             // Konzentration mg/l = g/m^3
             // Frachtrate  kg/s
             id = Integer.MIN_VALUE;
-
-            System.out.println("Lses schmutzfracht ein");
+            int indexMaterial = 0;
+            String materialName = "";
+//            System.out.println("Leses schmutzfracht ein");
             while (res.next()) {
                 int heID = res.getInt(1);
                 String heName = res.getString(2);
+                String stoffName = res.getString(7);
                 long time = 0;
                 if (isSQLite) {
                     try {
@@ -1459,9 +1463,16 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (id != heID) {
                     pipe = net.getPipeByName(heName);
                     id = heID;
+                    indexMaterial = 0;
+                    materialName = stoffName;
                 }
+                if (!stoffName.equals(materialName)) {
+                    indexMaterial++;
+                    materialName = stoffName;
+                }
+
                 timeIndex = ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).container.getTimeIndex(time);
-                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setMassflux_reference((float) frachtrate, timeIndex);
+                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setMassflux_reference((float) frachtrate, timeIndex, indexMaterial);
                 ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setConcentration_Reference((float) concentration, timeIndex);
             }
         }
@@ -1611,11 +1622,23 @@ public class HE_Database implements SparseTimeLineDataProvider {
         rs.close();
 
         ArrayList<HEInjectionInformation> particles = new ArrayList<>();
-
+        HashMap<Integer, Material> materialMap = new HashMap<>();
 //        System.out.println("Load injections from Database . sql?"+isSQLite);
         if (isSQLite) {
+            rs = st.executeQuery("SELECT ID,NAME,ABSETZWIRKUNG FROM STOFFGROESSE");
+            if (!rs.isBeforeFirst()) {
+                //Is empty
+                return particles;
+            }
+
+            while (rs.next()) {
+                Material m = new Material(rs.getString(2), 1000, true);
+                materialMap.put(rs.getInt(1), m);
+            }
+            rs.close();
+
             //get joins of substance and injectionlocation
-            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFF,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id WHERE KONZENTRATION>0";
+            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFFRef,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id WHERE KONZENTRATION>0";
             rs = st.executeQuery(qstring);
             if (!rs.isBeforeFirst()) {
 //                System.out.println("Database has no soluteSpill elements defined");
@@ -1628,7 +1651,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 eze.pipename = rs.getString("ROHR");
                 eze.discharge = rs.getDouble("ZUFLUSS");
                 eze.concentration = rs.getDouble("KONZENTRATION"); //mg/L
-                eze.name = rs.getString("STOFF");
+                int stoffHEID = rs.getInt("STOFFRef");
+                eze.material = materialMap.get(stoffHEID);
                 eze.refIDTimelineVolume = rs.getInt("EINZELMUSTERREF");
                 eze.refIDTimelineSolute = rs.getInt("STOFFMUSTERREF");
                 eze.refIDMessdaten = rs.getInt("MESSDATENREF");
@@ -1640,7 +1664,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                 if (ele.refIDMessdaten > 0) {
                     TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
-                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
+                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, ele.material, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
                     System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = " + heinj.getTotalVolume() + "m³ in " + heinj.getNumberOfIntervals() + " intervals");
 
                     particles.add(heinj);
@@ -1733,11 +1757,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", start:" + start + " (index), duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
 
                             try {
-                                HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                                HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
 
                                 particles.add(info);
                             } catch (Exception exception) {
-                                System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
+                                System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.material.getName());
                                 exception.printStackTrace();
                             }
                         }
@@ -1754,10 +1778,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         System.out.println("Scenario constant injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
 
                         try {
-                            HEInjectionInformation info = new HEInjectionInformation(ele.pipename, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                            HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
                             particles.add(info);
                         } catch (Exception exception) {
-                            System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.name);
+                            System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.material);
                             exception.printStackTrace();
                         }
 
@@ -1768,10 +1792,23 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
 
         } else {
+            rs = st.executeQuery("SELECT ID,NAME,ABSETZWIRKUNG FROM STOFFGROESSE");
+            if (!rs.isBeforeFirst()) {
+                //Is empty
+                return particles;
+            }
+
+            while (rs.next()) {
+                Material m = new Material(rs.getString(2), 1000, true);
+                materialMap.put(rs.getInt(1), m);
+            }
+            rs.close();
+
             String qstring = "SELECT ROHR, ROHRREF,ZUFLUSSDIREKT AS ZUFLUSSDIREKT_LperS,"
                     + "FAKTOR AS FAKTOR_von1,KONZENTRATION AS KONZENTRATION_MGperL,"
                     + "EINZELMUSTER.Wert AS EINZELWERT_von24,STOFFMUSTER.WERT AS STOFFWERT_von24,"
                     + "STOFFMUSTER.KEYWERT AS STARTZEIT, EINZELEINLEITER.NAME,"
+                    + "STOFFREF,"
                     + "EINZELEINLEITER.ZEITMUSTER AS EINZELEINLEITERZEITMUSTER,"
                     + "Stoffeinzeleinleiter.Zeitmuster AS STOFFEINLEITERZEITMUSTER "
                     + "FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON STOFFEINZELEINLEITER.EINZELEINLEITERREF=EINZELEINLEITER.ID\n"
@@ -1786,6 +1823,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 System.out.println("no injections in database");
             }
             while (rs.next()) {
+                Material mat = materialMap.get(rs.getInt("STOFFREF"));
                 double tfactor = rs.getDouble("EINZELWERT_von24") * rs.getDouble("STOFFWERT_von24");
                 double lps = rs.getDouble("ZUFLUSSDIREKT_LperS");
                 double c = rs.getDouble("KONZENTRATION_MGperL");
@@ -1799,7 +1837,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 System.out.println("Scenario injection: c=" + c + "mg/l,  q=" + lps + "L/s, timevariation:" + tfactor + ", duration:" + injectionTime + "s = total: " + wert + "kg");
 
                 try {
-                    HEInjectionInformation info = new HEInjectionInformation(rs.getString("ROHR"), starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                    HEInjectionInformation info = new HEInjectionInformation(rs.getString("ROHR"), mat, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
                     particles.add(info);
                 } catch (Exception exception) {
                     System.err.println("Could not find Pipe '" + rs.getString("ROHR") + "'.");
@@ -2473,11 +2511,19 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return loadTimeLineValuesPipe(pipeMaualID, pipeName, numberOfTimes, "DURCHFLUSS");
     }
 
+    /**
+     *
+     * @param pipeMaualID
+     * @param pipeName
+     * @param numberOfTimes
+     * @param numberOfMaterials
+     * @return
+     */
     @Override
-    public float[] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes) {
+    public float[][] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes) {
         //TODO: calculate the mass from the concentration.
-        float[] values = new float[numberOfTimes];
-
+        float[][] values = new float[numberOfTimes][getNumberOfMaterials()];
+//        System.out.println("load timeline mass to float[" + numberOfTimes + "][" + getNumberOfMaterials() + "]");
         try {
 //            ThreadConnection uc = getUnusedConnection();
 
@@ -2486,12 +2532,19 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Statement st = c.createStatement();
                 //in HE Database only use Pipe ID.
 
-                ResultSet rs = st.executeQuery("SELECT (KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.ZEITPUNKT \n"
-                        + "FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL \n"
-                        + "ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE \n"
-                        + "AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT \n"
-                        + "AND KANTESTOFFLAUFEND.ID=" + pipeMaualID + " "
-                        + "WHERE KONZENTRATION>0 ORDER BY KANTESTOFFLAUFEND.KANTE,KANTESTOFFLAUFEND.ZEITPUNKT");
+//                ResultSet rs = st.executeQuery("SELECT (KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.ZEITPUNKT "
+//                        + "FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL "
+//                        + "ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE "
+//                        + "AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT "
+//                        + "AND KANTESTOFFLAUFEND.ID=" + pipeMaualID + " "
+//                        + "ORDER BY KANTESTOFFLAUFEND.KANTE,KANTESTOFFLAUFEND.ZEITPUNKT");
+                String query = "SELECT (KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,STOFF,KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.ZEITPUNKT "
+                        + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL "
+                        + " ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE "
+                        + " AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT "
+                        + " AND KANTESTOFFLAUFEND.ID=" + pipeMaualID + " "
+                        + " ORDER BY STOFF,KANTESTOFFLAUFEND.ZEITPUNKT";
+                ResultSet rs = st.executeQuery(query);
 //           
                 if (!rs.isBeforeFirst()) {
                     //No Data
@@ -2499,10 +2552,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //                uc.inUse = false;
                     return values;
                 }
-                int index = 0;
+//                System.out.println(query);
+                int stoffindex = 0;
+                int timeindex = 0;
+//                float[] stoffmass = new float[numberOfTimes];
                 while (rs.next()) {
-                    values[index] = rs.getFloat(1);
-                    index++;
+                    values[timeindex][stoffindex] = rs.getFloat(1);
+//                    System.out.println("   [" + timeindex + "][" + stoffindex + "]=" + rs.getFloat(1));
+                    timeindex++;
+                    if (timeindex >= numberOfTimes) {
+                        timeindex = 0;
+                        stoffindex++;
+                    }
                 }
                 st.close();
 //            uc.inUse = false;
@@ -3217,7 +3278,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             synchronized (c) {
                 //in HE Database only use Pipe ID.
                 Statement st = c.createStatement();
-                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " AND KONZENTRATION>0 ORDER BY ZEITPUNKT ASC");
+                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT,STOFF FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " AND KONZENTRATION>0 ORDER BY STOFF,ZEITPUNKT ASC");
 //comes in [mg/l]
                 if (!rs.isBeforeFirst()) {
                     //Result set is empty, there are no concentrations set
@@ -3271,7 +3332,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         public String pipename;
         public double discharge;
         public double concentration;
-        public String name;
+        public Material material;
         public int refIDTimelineVolume;
         public int refIDTimelineSolute;
         public int refIDMessdaten;
@@ -3408,7 +3469,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 System.out.println(i + ": " + rs.getString(i));
             }
             byte[] data = rs.getBytes("Daten");
-            System.out.println("DAten: " + data.length + " bytes");
+            System.out.println("Daten: " + data.length + " bytes");
             long[] times = decodeTimestamps(data);
             double[] values = decodeValues(data);
             System.out.println("times:" + times.length + ",    values:" + values.length);
@@ -3422,4 +3483,43 @@ public class HE_Database implements SparseTimeLineDataProvider {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+    public int getNumberOfMaterials() {
+        if (numberOfMaterials < 0) {
+            try {
+                ResultSet rs = getConnection().createStatement().executeQuery("SELECT COUNT(*) FROM STOFFGROESSE");
+                rs.next();
+                numberOfMaterials = rs.getInt(1);
+            } catch (SQLException | IOException ex) {
+                Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+                numberOfMaterials = 0;
+            }
+        }
+
+        return numberOfMaterials;
+    }
+
+    @Override
+    public String[] loadNamesMaterials() {
+        try {
+            ResultSet rs = getConnection().createStatement().executeQuery("SELECT COUNT(*) FROM STOFFGROESSE");
+            rs.next();
+            numberOfMaterials = rs.getInt(1);
+            String[] names = new String[numberOfMaterials];
+            rs.close();
+            rs = getConnection().createStatement().executeQuery("SELECT NAME FROM STOFFGROESSE");
+            int index = 0;
+            while (rs.next()) {
+                names[index] = rs.getString(1);
+                index++;
+            }
+            return names;
+        } catch (SQLException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+
 }

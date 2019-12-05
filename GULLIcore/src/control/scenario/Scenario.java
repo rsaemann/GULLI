@@ -26,6 +26,7 @@ package control.scenario;
 import control.scenario.injection.InjectionInformation;
 import control.Controller;
 import java.util.ArrayList;
+import model.particle.Material;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.TimeIndexCalculator;
 
@@ -59,6 +60,8 @@ public abstract class Scenario {
     protected TimeIndexCalculator timesSoil;
 
     protected ArrayTimeLineMeasurementContainer measurementsPipe;
+
+    protected ArrayList<Material> materials;
 
     protected long starttime;
 

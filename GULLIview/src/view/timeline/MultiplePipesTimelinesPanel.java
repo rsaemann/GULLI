@@ -400,7 +400,7 @@ public class MultiplePipesTimelinesPanel extends CapacityTimelinePanel implement
             hpipe.addOrUpdate(time, tl.getWaterlevel(i));
 //            dispersion.addOrUpdate(time, s.getValues().getDispersion());
 //            concentration.set(time, s.getValues().getSchmutz());
-            particles.addOrUpdate(time, tl.getMassflux_reference(i));
+            particles.addOrUpdate(time, tl.getMassflux_reference(i,0));
 //            Collection<Value> add = s.getValues().getAdditionalValuesCollection();
 //            if (add != null && !add.isEmpty()) {
 //                for (Value value : add) {

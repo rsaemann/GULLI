@@ -70,6 +70,12 @@ public class ArrayTimeLineMeasurementContainer {
 
         this.mass_type = new float[numberOfPipes * times.getNumberOfTimes()][numberOfContaminantTypes];
     }
+    
+    public void setNumberOfMaterials(int number){
+        if(this.numberOfContaminants==number)return;
+        this.numberOfContaminants=number;
+        this.mass_type = new float[numberOfCapacities * times.getNumberOfTimes()][number];
+    }
 
     public void setActualTime(long time) {
         int neuerIndex = getIndexForTime(time);
@@ -232,5 +238,11 @@ public class ArrayTimeLineMeasurementContainer {
     public boolean isTimespotmeasurement() {
         return timespotmeasurement;
     }
+
+    public int getNumberOfContaminants() {
+        return numberOfContaminants;
+    }
+    
+    
 
 }

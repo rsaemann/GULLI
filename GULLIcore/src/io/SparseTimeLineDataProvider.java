@@ -48,9 +48,11 @@ public interface SparseTimeLineDataProvider {
 
     public float[] loadTimeLineSpilloutFlux(long ManholeID, String manholeName, int numberOfTimes);
 
-    public float[] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes);
+    public float[][] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes);
 
     public float[] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes);
+    
+    public String[] loadNamesMaterials();
 
    /**
      * Used for filling existing empty timelines on demand.

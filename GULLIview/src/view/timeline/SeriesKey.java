@@ -61,6 +61,11 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
         this(name, symbol, unit, lineColor, yaxis, 0);
     }
 
+    public SeriesKey(String name, String symbol, String unit, Color lineColor, AxisKey yaxis, BasicStroke stroke) {
+        this(name, symbol, unit, lineColor, yaxis, 0);
+        this.stroke = stroke;
+    }
+
     public SeriesKey(String name, String symbol, String unit, Color lineColor, AxisKey yaxis, int containerIndex) {
         this(name, symbol, unit, lineColor, yaxis, containerIndex, "");
     }
