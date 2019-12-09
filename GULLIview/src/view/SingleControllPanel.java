@@ -1547,7 +1547,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                     panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
                                     try {
                                         for (final InjectionInformation inj : injections) {
-                                            InjectionPanel ip = new InjectionPanel(inj, mapViewer);
+                                            InjectionPanel ip = new InjectionPanel(inj, mapViewer, paintManager);
                                             panelInjections.add(ip);
 
                                             //Create popup to delete this injection 
@@ -1583,7 +1583,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             @Override
                             public void actionPerformed(ActionEvent ae) {
                                 InjectionInformation ininfo = new InjectionInformation(0, 1, 1000, new Material("neu", 1000, true), 0, 1);
-                                control.getLoadingCoordinator().addInjectionInformation(ininfo);
+                                control.getLoadingCoordinator().addManualInjection(ininfo);
                                 control.recalculateInjections();
                                 SingleControllPanel.this.updateGUI();
                             }

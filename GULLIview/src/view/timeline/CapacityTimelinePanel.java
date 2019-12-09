@@ -152,11 +152,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.green, new AxisKey("lvl"), 0), "Time", "m");
 
-    private final TimeSeries refMassflux0 = new TimeSeries(new SeriesKey("ref. Massflux", "mf_ref", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
+    private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "msfx_ref_tot", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
     private final TimeSeries massflux = new TimeSeries(new SeriesKey("p. Massflux total", "mf_p_tot", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
 
-    private final TimeSeries refConcentration = new TimeSeries(new SeriesKey("ref. Concentration", "c_ref", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
-    private final TimeSeries m_c = new TimeSeries(new SeriesKey("p. Concentration", "c_p", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
+    private final TimeSeries refConcentration = new TimeSeries(new SeriesKey("ref Concentration", "c_ref_0", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
+    private final TimeSeries m_c = new TimeSeries(new SeriesKey("p. Concentration", "c_p_0", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
 
     private final ArrayList<TimeSeries> ref_massFlux_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> massFlux_Type = new ArrayList<>(2);
@@ -346,7 +346,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         q.clear();
         hpipe = hpipe0;
         hpipe.clear();
-        refMassflux0.clear();
+        refMassfluxTotal.clear();
         refConcentration.clear();
 
         // other TimeLinePipe implementation
@@ -383,11 +383,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
                 q.addOrUpdate(time, tl.getDischarge(i));
                 hpipe.addOrUpdate(time, tl.getWaterlevel(i));
-                if (tl.hasMassflux_reference()) {
-//                        refConcentration.addOrUpdate(time, tl.getMassflux_reference(index) / tl.getWaterlevel(index));
-                    refConcentration.addOrUpdate(time, tl.getConcentration_reference(i));
-                    refMassflux0.addOrUpdate(time, Math.abs(tl.getMassflux_reference(i, 0)));
-                }
 
                 try {
                     moment1_refvorgabe.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment1[i]);
@@ -395,8 +390,16 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 } catch (Exception e) {
                 }
 
+                double massflux_total = 0;
                 for (int j = 0; j < ref_massFlux_Type.size(); j++) {
                     ref_massFlux_Type.get(j).addOrUpdate(time, tl.getMassflux_reference(i, j));
+                    massflux_total += Math.abs(tl.getMassflux_reference(i, j));
+                }
+                if (tl.hasMassflux_reference()) {
+//                        refConcentration.addOrUpdate(time, tl.getMassflux_reference(index) / tl.getWaterlevel(index));
+                    refConcentration.addOrUpdate(time, tl.getConcentration_reference(i));
+                    refMassfluxTotal.addOrUpdate(time, massflux_total);
+                    
                 }
             }
 
@@ -507,8 +510,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //            System.out.println("Timeline is initialized?" + ArrayTimeLineMeasurementContainer.isInitialized());
         }
 
-        if (refMassflux0.getMaxY() > 0) {
-            this.collection.addSeries(refMassflux0);
+        if (refMassfluxTotal.getMaxY() > 0) {
+            this.collection.addSeries(refMassfluxTotal);
         }
         for (int i = 0; i < ref_massFlux_Type.size(); i++) {
             TimeSeries ts = ref_massFlux_Type.get(i);

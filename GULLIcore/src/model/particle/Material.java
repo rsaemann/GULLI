@@ -127,11 +127,14 @@ public class Material {
         if (this.solute != other.solute) {
             return false;
         }
-        if (!Objects.equals(this.flowCalculator, other.flowCalculator)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.flowCalculator, other.flowCalculator);
     }
 
+    @Override
+    public String toString() {
+        return "Material{["+materialIndex + "] '" + name + "', " + density + "kg/m³, " + (solute?"dissolved":"non-solute") +'}';
+    }
+
+    
     
 }

@@ -556,7 +556,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     surfaceCell = injection.getTriangleID();
                 } else if (injection.getCapacityName() != null) {
                     if (network != null) {
-                        Capacity tempC = network.getCapacityByName(injection.getCapacityName());
+                        Capacity tempC = network.getPipeByName(injection.getCapacityName());
+                        if (tempC == null) {
+                            tempC = network.getCapacityByName(injection.getCapacityName());
+                        }
                         if (tempC != null) {
                             if (tempC instanceof Manhole) {
                                 Manhole mh = (Manhole) tempC;

@@ -62,7 +62,7 @@ public class HE_MessdatenInjection extends HEInjectionInformation {
      * @param concentration kg/m³
      */
     public HE_MessdatenInjection(String capacityName, Material mat, long eventStart, TimedValue[] timedValues, double concentration) {
-        super(null, mat, eventStart, timedValues[timedValues.length - 1].time, 0);
+        super(capacityName, mat, eventStart, timedValues[timedValues.length - 1].time, 0);
         this.timedValues = timedValues;
         this.concentration = concentration;
         calculateMass(timedValues, eventStart, concentration);

@@ -42,6 +42,9 @@ import model.topology.Pipe;
  */
 public class InjectionInformation implements InjectionInfo {
 
+//    private static int runningID = 0;
+    private int id = -1;
+
     public boolean spillOnSurface = false;
 
     /**
@@ -66,6 +69,8 @@ public class InjectionInformation implements InjectionInfo {
      * kg
      */
     protected double totalVolume;
+
+    protected int totalNumberParticles;
 
     protected Material material;
     protected String capacityName;
@@ -99,12 +104,12 @@ public class InjectionInformation implements InjectionInfo {
         this.timesteps = new double[]{startoffsetSeconds, startoffsetSeconds + duration};
         this.spillMass = new double[]{mass, 0};
         this.number_particles = new int[]{numberOfParticles, 0};
+        this.totalNumberParticles = numberOfParticles;
     }
 
     /**
      * Instantan injection at seconds
      *
-     * @param pipename
      * @param pipesystem
      * @param position
      * @param intensity
@@ -196,6 +201,7 @@ public class InjectionInformation implements InjectionInfo {
 
         double volume = 0;
         double lastInterval = 0;
+        totalmass=0;
         for (int i = 1; i < timedValues.length; i++) {
             TimedValue start = timedValues[i - 1];
             timesteps[i - 1] = (start.time - eventStart) / 1000.;
@@ -207,6 +213,7 @@ public class InjectionInformation implements InjectionInfo {
             }
             double dV = start.value * seconds;
             spillMass[i - 1] = dV * density;
+            totalmass+=dV*density;
             lastInterval = seconds;
             volume += dV;
         }
@@ -216,19 +223,27 @@ public class InjectionInformation implements InjectionInfo {
             volume += d * lastInterval;
         }
         this.totalVolume = volume;
-        this.totalmass = totalVolume * density;
     }
 
     private void calculateNumberOfIntervalParticles(int particles) {
-        double particlesPerMass = particles / totalmass;
+//        double particlesPerMass = particles / totalmass;
+        this.number_particles=new int[spillMass.length];
+        double mass=0;
+        int particlesSoFar=0;
         for (int i = 0; i < this.number_particles.length; i++) {
-            number_particles[i] = (int) (spillMass[i] * particlesPerMass);
+            mass+=spillMass[i];
+            double fraction=mass/totalmass;
+            int particlesthisInterval=(int) (particles*fraction)-particlesSoFar;
+            number_particles[i] = particlesthisInterval;
+//            System.out.println(i+": mass:"+spillMass[i]+", frac:"+fraction+" -> particles: "+particlesSoFar+" + "+particlesthisInterval+"="+number_particles[i]+"  should be "+fraction*particles);
+            particlesSoFar+=particlesthisInterval;
         }
         int count = 0;
         for (int i = 0; i < number_particles.length; i++) {
             count += number_particles[i];
         }
-        System.out.println(count + "/" + particles + " angeforderte particel in Messdaten Spill.");
+//        System.out.println(count + "/" + particles + " angeforderte particel in Messdaten Spill.");
+        this.totalNumberParticles = count;
     }
 
     @Override
@@ -284,7 +299,6 @@ public class InjectionInformation implements InjectionInfo {
 ////        }
 //        return true;
 //    }
-
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {
@@ -312,17 +326,8 @@ public class InjectionInformation implements InjectionInfo {
         if (!Objects.equals(this.position, other.position)) {
             return false;
         }
-        if (this.triangleID != other.triangleID) {
-            return false;
-        }
-        return true;
+        return this.triangleID == other.triangleID;
     }
-
-   
-    
-    
-    
-    
 
     @Override
     public int hashCode() {
@@ -387,8 +392,6 @@ public class InjectionInformation implements InjectionInfo {
     public void setPosition1D(double position1D) {
         this.position1D = position1D;
     }
-    
-    
 
     public void setChanged(boolean changed) {
         this.changed = changed;
@@ -502,4 +505,18 @@ public class InjectionInformation implements InjectionInfo {
     public double getIntervalDuration(int interval) {
         return timesteps[interval + 1] - timesteps[interval];
     }
+
+    @Override
+    public String toString() {
+        return "InjectionInformation{" + id + ", OnSurface=" + spillOnSurface + ", #particles=" + totalNumberParticles + ", totalmass=" + totalmass + ", totalVolume=" + totalVolume + ", material=" + material + (spillOnSurface ? ", SurfaceTriangle=" + triangleID : ", capacityName=" + capacityName) + '}';
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int getId() {
+        return id;
+    }
+
 }

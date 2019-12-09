@@ -51,7 +51,6 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JOptionPane;
 import model.particle.Material;
 import model.surface.Surface;
 import model.surface.SurfaceVelocityLoader;
@@ -104,12 +103,6 @@ public class LoadingCoordinator implements LoadingActionListener {
      */
     public static boolean verbose = false;
 
-    /**
-     * Add Injections from the scenario (e.g. HE Schmutzfrachteinleitung) as
-     * Injectionspills of this scenario.
-     */
-    public boolean loadInputInjections = true;
-
     private boolean isLoading = false;
 
     public final Action action = new Action("LoadingCoordinator", null, false);
@@ -158,7 +151,23 @@ public class LoadingCoordinator implements LoadingActionListener {
 
     private String resultName = "";
 
-    private final ArrayList<InjectionInformation> injections = new ArrayList<>();
+    /**
+     * Contains definition of injections that are added manually by the user to
+     * be part of the simulation
+     */
+    private final ArrayList<InjectionInformation> manualInjections = new ArrayList<>();
+
+    /**
+     * Add Injections from read from the result (e.g. HE
+     * Schmutzfrachteinleitung) as Injectionspills of this scenario.
+     */
+    public boolean loadResultInjections = true;
+
+    /**
+     * List contains manual and scenario injection, loaded from result files.
+     * This list will be used in the scenario.
+     */
+    private final ArrayList<InjectionInformation> totalInjections = new ArrayList<>();
 
     public final ArrayList<Runnable> loadingFinishedListener = new ArrayList<>(2);
 
@@ -397,6 +406,15 @@ public class LoadingCoordinator implements LoadingActionListener {
             if (verbose) {
                 System.out.println("Loaded Network from file '" + fileNetwork + "'");
             }
+
+            //Reset capacity reference from Injections because the object only exist in the old network and has to be found again in the new one
+            for (InjectionInformation injection : manualInjections) {
+                injection.setCapacity(null);
+            }
+            for (InjectionInformation injection : totalInjections) {
+                injection.setCapacity(null);
+            }
+
             loadingpipeNetwork = LOADINGSTATUS.LOADED;
             return nw;
         } catch (Exception ex) {
@@ -412,308 +430,371 @@ public class LoadingCoordinator implements LoadingActionListener {
         action.progress = 0;
         fireLoadingActionUpdate();
 
-        if (loadOnlyMainFile) {
-            //Main File
-            if (nw == null) {
-                loadingPipeResult = LOADINGSTATUS.ERROR;
-            } else {
-                boolean loaded = false;
-                try { //clear other results
-                    if (clearOtherResults) {
-                        control.getMultiInputData().clear();
-                        control.getThreadController().cleanFromParticles();
-                    }
-
-                    TimeIndexContainer timeContainerPipe = null;
-                    TimeIndexContainer timeContainerManholes = null;
-                    //Load injections. Neede to calculate transport paths.
-                    ArrayList<HEInjectionInformation> injection = null;
-                    if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-                        action.description = "Open Database";
-                        if (resultDatabase == null || !resultDatabase.getDatabaseFile().getAbsolutePath().equals(fileMainPipeResult.getAbsolutePath())) {
-                            if (tempFBDB != null && tempFBDB.getDatabaseFile().equals(fileMainPipeResult)) {
-                                resultDatabase = tempFBDB;
-                            } else {
-                                resultDatabase = new HE_Database(fileMainPipeResult, true);
-                            }
-                        }
-                        resultName = resultDatabase.readResultname();
-                        action.description = "Load spill events";
-                        if (this.loadInputInjections) {
-                            injection = resultDatabase.readInjectionInformation();
-                        } else {
-                            injection = new ArrayList<>(0);
-                        }
-
-                        long starttime = System.currentTimeMillis();
-                        //Find injection manholes
-                        ArrayList<Capacity> injManholes = new ArrayList<>(injection.size());
-                        if (verbose) {
-                            System.out.println("Injections: " + injections.size());
-                        }
-                        for (InjectionInformation inj : injections) {
-                            if (inj.getCapacity() == null && inj.spillInManhole() && inj.getCapacityName() != null && nw != null) {
-                                //Search for injection reference
-                                Capacity c = network.getCapacityByName(inj.getCapacityName());
-                                inj.setCapacity(c);
-                            }
-                            if (inj.getCapacity() != null) {
-                                Capacity c = inj.getCapacity();
-                                if (c != null && !injManholes.contains(c)) {
-                                    injManholes.add(c);
-                                }
-                            }
-                            if (inj.getCapacity() == null && inj.spillInManhole() && inj.getPosition() != null) {
-                                if (verbose) {
-                                    System.out.println("Search for Manhole near position " + inj.getPosition());
-                                }
-                                inj.setCapacity(network.getManholeNearPositionLatLon(inj.getPosition()));
-                                if (verbose) {
-                                    System.out.println("found " + inj.getCapacity());
-                                }
-                            }
-                        }
-                        if (sparsePipeLoading) {
-                            //load minmax velocity
-                            action.description = "Load Maximum velocity";
-                            float[][] minmax = resultDatabase.getMinMaxVelocity();
-                            LinkedList<Pipe> pipesToLoad = new LinkedList<>();
-                            LinkedList<StorageVolume> manholesToLoad = new LinkedList<>();
-                            action.description = "Calculate downstream graph";
-                            //Search downstream pipes
-                            for (Capacity cap : injManholes) {
-                                StorageVolume mh;
-                                if (cap instanceof StorageVolume) {
-                                    mh = (Manhole) cap;
-                                } else if (cap instanceof Pipe) {
-                                    mh = ((Pipe) cap).getStartConnection().getManhole();
-                                } else {
-                                    System.out.println(getClass() + ": Can not find downstream transport paths for " + cap);
-                                    continue;
-                                }
-                                Pipe[] path = GraphSearch.findDownstreamPipes(nw, mh, minmax);
-                                for (Pipe p : path) {
-                                    if (!pipesToLoad.contains(p)) {
-                                        pipesToLoad.add(p);
-                                        if (!manholesToLoad.contains(p.getStartConnection().getManhole())) {
-                                            manholesToLoad.add(p.getStartConnection().getManhole());
-                                        }
-                                        if (!manholesToLoad.contains(p.getEndConnection().getManhole())) {
-                                            manholesToLoad.add(p.getEndConnection().getManhole());
-                                        }
-                                    }
-                                }
-                            }
-
-                            StringBuilder str = new StringBuilder();
-                            ArrayList<Pipe> list = new ArrayList<>(pipesToLoad);
-                            Collections.sort(list, new Comparator<Pipe>() {
-                                @Override
-                                public int compare(Pipe t, Pipe t1) {
-                                    if (t.getManualID() == t1.getManualID()) {
-                                        return 0;
-                                    }
-                                    if (t.getManualID() < t1.getManualID()) {
-                                        return -1;
-                                    }
-                                    return 1;
-                                }
-                            });
-                            if (verbose) {
-                                System.out.println("Request Pipes for SparseTimeline: " + pipesToLoad.size() + "/" + nw.getPipes().size() + " : " + str.toString());
-                            }
-                            if (verbose) {
-                                System.out.println("Request Manholes  SparseTimeline: " + manholesToLoad.size() + "/" + nw.getManholes().size());
-                            }
-                            action.description = "Load downstream pipe velocities";
-                            //Request Timelines for pipes and manholes & Create Timeindex container
-                            Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(nw, resultDatabase, pipesToLoad, manholesToLoad);
-                            if (verbose) {
-                                System.out.println(getClass() + ": Loaded sparsecontainer " + ((System.currentTimeMillis() - starttime) + "ms."));
-                            }
-                            timeContainerPipe = cs.first;
-                            timeContainerManholes = cs.second;
-                            loaded = true;
-                            resultDatabase.close();
-                        }
-                    }
-
-                    if (!loaded) {
-                        //Load all values for all pipes/manholes.
-                        Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p;
-                        action.description = "Load all pipe velocities";
-                        if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-
-                            p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
-                        } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
-                            p = SWMM_IO.readTimeLines(fileMainPipeResult, nw);
-                        } else {
-                            throw new Exception("Not known filetype '" + fileMainPipeResult.getName() + "'");
-                        }
-                        timeContainerPipe = p.first;
-                        timeContainerManholes = p.second;
-                        PipeResultData data = new PipeResultData(fileMainPipeResult, fileMainPipeResult.getName(), p.first, p.second);
-                        //Add only this result information
-                        control.getMultiInputData().add(0, data);
-                    }
-
-                    if (cancelLoading) {
-                        loadingPipeResult = LOADINGSTATUS.REQUESTED;
-                        return false;
-                    }
-
-                    if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-                        //Load spill events from database
-                        if (injection != null && !injection.isEmpty()) {
-                            action.description = "Apply spill events";
-                            int materialnumber = 0;
-                            for (HEInjectionInformation in : injection) {
-                                Capacity c = null;
-                                if (network == null) {
-                                    System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
-                                    continue;
-                                }
-                                c = network.getCapacityByName(in.capacityName);
-                                if (c == null) {
-                                    System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
-                                    continue;
-                                }
-                                double start = (in.stattime - timeContainerPipe.getFirstTime()) / 1000;
-                                double duration = (in.endtime - timeContainerPipe.getFirstTime()) / 1000 - start;
-                                Material mat = in.material;
-                                if (mat == null) {
-                                    mat = new Material("Schmutz " + materialnumber++, 1000, true);
-                                }
-                                int particlenumber = 20000;
-                                InjectionInformation info;
-                                if (in instanceof HE_MessdatenInjection) {
-                                    HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
-
-                                    info = new InjectionInformation(c, timeContainerPipe.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
-
-                                } else {
-                                    info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
-                                }
-                                if (c instanceof Pipe) {
-                                    info.setPosition1D(((Pipe) c).getLength() * 0.5f);
-//                                    System.out.println("loadc set position to " + info.getPosition1D());
-                                }
-                                if (injections.contains(info)) {
-                                    injections.remove(info);
-                                }
-                                if (verbose) {
-                                    System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
-                                }
-
-                                injections.add(info);
-                            }
-                        }
-                    }
-                    action.description = "Load create scenario";
-                    if (scenario == null) {
-                        scenario = new SpillScenario(timeContainerPipe, injections);
-                    }
-                    scenario.setTimesPipe(timeContainerPipe);
-                    scenario.setTimesManhole(timeContainerManholes);
-                    loadingPipeResult = LOADINGSTATUS.LOADED;
-                } catch (Exception ex) {
-                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-                    loadingPipeResult = LOADINGSTATUS.ERROR;
-                }
-            }
+//        if (loadOnlyMainFile) {
+        //Main File
+        if (nw == null) {
+            loadingPipeResult = LOADINGSTATUS.ERROR;
         } else {
-            while (!list_loadingPipeResults.isEmpty()) {
+            boolean loaded = false;
+            try { //clear other results
+                if (clearOtherResults) {
+                    control.getMultiInputData().clear();
+                    control.getThreadController().cleanFromParticles();
+                }
+
+                TimeIndexContainer timeContainerPipe = null;
+                TimeIndexContainer timeContainerManholes = null;
+                //Load manualInjections. Neede to calculate transport paths.
+                ArrayList<HEInjectionInformation> he_injection = null;
+                if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
+                    action.description = "Open Database";
+                    if (resultDatabase == null || !resultDatabase.getDatabaseFile().getAbsolutePath().equals(fileMainPipeResult.getAbsolutePath())) {
+                        if (tempFBDB != null && tempFBDB.getDatabaseFile().equals(fileMainPipeResult)) {
+                            resultDatabase = tempFBDB;
+                        } else {
+                            resultDatabase = new HE_Database(fileMainPipeResult, true);
+                        }
+                    }
+                    resultName = resultDatabase.readResultname();
+                    action.description = "Load spill events";
+                    if (this.loadResultInjections) {
+                        he_injection = resultDatabase.readInjectionInformation();
+                    } else {
+                        he_injection = new ArrayList<>(0);
+                    }
+//                    System.out.println("loaded " + he_injection.size() + " from database");
+                    long scenariostart = resultDatabase.loadTimeStepsNetwork()[0];
+                    long starttime = System.currentTimeMillis();
+                    int materialnumber = 0;
+                    for (HEInjectionInformation in : he_injection) {
+                        Capacity c = null;
+                        if (network == null) {
+                            System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
+                            continue;
+                        }
+                        c = network.getCapacityByName(in.capacityName);
+                        if (c == null) {
+                            System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
+                            continue;
+                        }
+                        double start = (in.stattime - scenariostart) / 1000;
+                        double duration = (in.endtime - scenariostart) / 1000 - start;
+                        Material mat = in.material;
+                        if (mat == null) {
+                            mat = new Material("Schmutz " + materialnumber++, 1000, true);
+                        }
+                        int particlenumber = 20000;
+                        InjectionInformation info;
+                        if (in instanceof HE_MessdatenInjection) {
+                            HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
+
+                            info = new InjectionInformation(c, scenariostart, mess.timedValues, mat, mess.getConcentration(), particlenumber);
+
+                        } else {
+                            info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
+                        }
+                        if (c instanceof Pipe) {
+                            info.setPosition1D(((Pipe) c).getLength() * 0.5f);
+                            info.setPosition(c.getPosition3D(info.getPosition1D()));
+//                                System.out.println("loadc set position to " + info.getPosition1D());
+                        }
+                        if (totalInjections.contains(info)) {
+                            totalInjections.remove(info);
+                        }
+                        if (verbose) {
+                            System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
+                        }
+
+                        totalInjections.add(info);
+                    }
+
+                    //Find injection manholes
+                    ArrayList<Capacity> injManholes = new ArrayList<>(he_injection.size());
+                    if (verbose) {
+                        System.out.println("Injections: " + manualInjections.size());
+                    }
+                    for (InjectionInformation inj : manualInjections) {
+                        if (inj.getCapacity() == null && inj.spillInManhole() && inj.getCapacityName() != null && nw != null) {
+                            //Search for injection reference
+                            Capacity c = network.getCapacityByName(inj.getCapacityName());
+                            inj.setCapacity(c);
+                        }
+                        if (inj.getCapacity() != null) {
+                            Capacity c = inj.getCapacity();
+                            if (c != null && !injManholes.contains(c)) {
+                                injManholes.add(c);
+                            }
+                        }
+                        if (inj.getCapacity() == null && inj.spillInManhole() && inj.getPosition() != null) {
+                            if (verbose) {
+                                System.out.println("Search for Manhole near position " + inj.getPosition());
+                            }
+                            inj.setCapacity(network.getManholeNearPositionLatLon(inj.getPosition()));
+                            if (verbose) {
+                                System.out.println("found " + inj.getCapacity());
+                            }
+                        }
+                        if (totalInjections.contains(inj)) {
+                            totalInjections.remove(inj);
+                        }
+                        if (verbose) {
+                            System.out.println("Add injection: " + inj.getMass() + "kg @" + inj.getCapacityName() + "  start:" + inj.getStarttimeSimulationsAfterSimulationStart() + "s  last " + inj.getDurationSeconds() + "s");
+                        }
+                        totalInjections.add(inj);
+                    }
+                    if (sparsePipeLoading) {
+                        //load minmax velocity
+                        action.description = "Load Maximum velocity";
+                        float[][] minmax = resultDatabase.getMinMaxVelocity();
+                        LinkedList<Pipe> pipesToLoad = new LinkedList<>();
+                        LinkedList<StorageVolume> manholesToLoad = new LinkedList<>();
+                        action.description = "Calculate downstream graph";
+                        //Search downstream pipes
+                        for (Capacity cap : injManholes) {
+                            StorageVolume mh;
+                            if (cap instanceof StorageVolume) {
+                                mh = (Manhole) cap;
+                            } else if (cap instanceof Pipe) {
+                                mh = ((Pipe) cap).getStartConnection().getManhole();
+                            } else {
+                                System.out.println(getClass() + ": Can not find downstream transport paths for " + cap);
+                                continue;
+                            }
+                            Pipe[] path = GraphSearch.findDownstreamPipes(nw, mh, minmax);
+                            for (Pipe p : path) {
+                                if (!pipesToLoad.contains(p)) {
+                                    pipesToLoad.add(p);
+                                    if (!manholesToLoad.contains(p.getStartConnection().getManhole())) {
+                                        manholesToLoad.add(p.getStartConnection().getManhole());
+                                    }
+                                    if (!manholesToLoad.contains(p.getEndConnection().getManhole())) {
+                                        manholesToLoad.add(p.getEndConnection().getManhole());
+                                    }
+                                }
+                            }
+                        }
+
+                        StringBuilder str = new StringBuilder();
+                        ArrayList<Pipe> list = new ArrayList<>(pipesToLoad);
+                        Collections.sort(list, new Comparator<Pipe>() {
+                            @Override
+                            public int compare(Pipe t, Pipe t1) {
+                                if (t.getManualID() == t1.getManualID()) {
+                                    return 0;
+                                }
+                                if (t.getManualID() < t1.getManualID()) {
+                                    return -1;
+                                }
+                                return 1;
+                            }
+                        });
+                        if (verbose) {
+                            System.out.println("Request Pipes for SparseTimeline: " + pipesToLoad.size() + "/" + nw.getPipes().size() + " : " + str.toString());
+                        }
+                        if (verbose) {
+                            System.out.println("Request Manholes  SparseTimeline: " + manholesToLoad.size() + "/" + nw.getManholes().size());
+                        }
+                        action.description = "Load downstream pipe velocities";
+                        //Request Timelines for pipes and manholes & Create Timeindex container
+                        Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(nw, resultDatabase, pipesToLoad, manholesToLoad);
+                        if (verbose) {
+                            System.out.println(getClass() + ": Loaded sparsecontainer " + ((System.currentTimeMillis() - starttime) + "ms."));
+                        }
+                        timeContainerPipe = cs.first;
+                        timeContainerManholes = cs.second;
+                        loaded = true;
+                        resultDatabase.close();
+                    }
+                }
+
+                if (!loaded) {
+                    //Load all values for all pipes/manholes.
+                    Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p;
+                    action.description = "Load all pipe velocities";
+                    if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
+
+                        p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
+                    } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
+                        p = SWMM_IO.readTimeLines(fileMainPipeResult, nw);
+                    } else {
+                        throw new Exception("Not known filetype '" + fileMainPipeResult.getName() + "'");
+                    }
+                    timeContainerPipe = p.first;
+                    timeContainerManholes = p.second;
+                    PipeResultData data = new PipeResultData(fileMainPipeResult, fileMainPipeResult.getName(), p.first, p.second);
+                    //Add only this result information
+                    control.getMultiInputData().add(0, data);
+                }
+
                 if (cancelLoading) {
-                    System.out.println("   LoadingThread is interrupted -> break");
+                    loadingPipeResult = LOADINGSTATUS.REQUESTED;
                     return false;
                 }
-                Pair<File, Boolean> file = null;
-                try {
-                    file = list_loadingPipeResults.removeFirst();
-                    if (verbose) {
-                        System.out.println("try load " + file.first);
-                    }
-                    Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(file.first, control.getNetwork());
-                    PipeResultData data = new PipeResultData(file.first, file.first.getName(), p.first, p.second);
 
-                    if (file.second) {
-                        if (clearOtherResults) {
-                            //Remove all other timelines
-                        }
-                        control.getMultiInputData().add(0, data);
-                        control.getThreadController().cleanFromParticles();
-                        //Scenario laden only as mainresult
-                        ArrayList<HEInjectionInformation> he_injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
-                        int materialnumber = 0;
-                        for (HEInjectionInformation in : he_injection) {
-                            Capacity c = null;
-                            if (network == null) {
-                                System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
-                                continue;
-                            }
-                            c = network.getCapacityByName(in.capacityName);
-                            if (c == null) {
-                                System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
-                                continue;
-                            }
-                            double start = (in.stattime - p.first.getFirstTime()) / 1000;
-                            double duration = (in.endtime - p.first.getFirstTime()) / 1000 - start;
-                            Material mat = in.material;
-                            if (mat == null) {
-                                mat = new Material("Schmutz " + materialnumber++, 1000, true);
-                            }
-                            int particlenumber = 20000;
-                            InjectionInformation info;
-                            if (in instanceof HE_MessdatenInjection) {
-                                HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
-
-                                info = new InjectionInformation(c, p.first.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
-
-                            } else {
-                                info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
-                            }
-                            if (c instanceof Pipe) {
-                                info.setPosition1D(((Pipe) c).getLength() * 0.5f);
-//                                System.out.println("loadc set position to " + info.getPosition1D());
-                            }
-                            if (injections.contains(info)) {
-                                injections.remove(info);
-                            }
-                            if (verbose) {
-                                System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
-                            }
-
-                            injections.add(info);
-                        }
-                        if (scenario == null) {
-                            scenario = new SpillScenario(p.first, injections);
-                            scenario.setTimesPipe(p.first);
-                            scenario.setTimesManhole(p.second);
-                        }
-                    } else {
-                        control.getMultiInputData().add(data);
-                    }
-
-                    loadingPipeResult = LOADINGSTATUS.LOADED;
-                    return true;
-                } catch (Exception ex) {
-                    if (file != null && file.first != null) {
-                        System.err.println("Problem with File " + file.first + "   main? " + file.second);
-                    }
-                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-                    int n = JOptionPane.showConfirmDialog(null, "Load Pipenetwork with topological\ninformation of the result file?", "Network and Result not consistent.", JOptionPane.YES_NO_CANCEL_OPTION);
-                    if (n == JOptionPane.YES_OPTION) {
-                        requestLoading = true;
-                        setPipeNetworkFile(file.first);
-                        list_loadingPipeResults.addFirst(file);
-                        loadingPipeResult = LOADINGSTATUS.REQUESTED;
-                        fireLoadingActionUpdate();
-                        break;
-                    }
-                    loadingPipeResult = LOADINGSTATUS.ERROR;
+//                if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
+//                    //Load spill events from database
+//                    if (he_injection != null && !he_injection.isEmpty()) {
+//                        action.description = "Apply spill events";
+//                        int materialnumber = 0;
+//                        int id = totalInjections.size();
+//                        for (HEInjectionInformation in : he_injection) {
+//                            Capacity c = null;
+//                            if (network == null) {
+//                                System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
+//                                continue;
+//                            }
+//                            c = network.getPipeByName(in.capacityName);
+//                            if (c == null) {
+//                                c = network.getCapacityByName(in.capacityName);
+//                            }
+//                            if (c == null) {
+//                                System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
+//                                continue;
+//                            }
+//                            double start = (in.stattime - timeContainerPipe.getFirstTime()) / 1000;
+//                            double duration = (in.endtime - timeContainerPipe.getFirstTime()) / 1000 - start;
+//                            Material mat = in.material;
+//                            if (mat == null) {
+//                                mat = new Material("Schmutz " + materialnumber++, 1000, true);
+//                            }
+//                            int particlenumber = 20000;
+//                            InjectionInformation info;
+//                            if (in instanceof HE_MessdatenInjection) {
+//                                HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
+//
+//                                info = new InjectionInformation(c, timeContainerPipe.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
+//
+//                            } else {
+//                                info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
+//                            }
+////                            System.out.println("Capacity is " + c);
+//                            if (c instanceof Pipe) {
+//                                info.setPosition1D(((Pipe) c).getLength() * 0.5f);
+//                                info.setPosition(c.getPosition3D(info.getPosition1D()));
+////                                    System.out.println("loadc set position to " + info.getPosition1D());
+//                            }
+//                            if (totalInjections.contains(info)) {
+//                                totalInjections.remove(info);
+//                            }
+//                            info.setId(id++);
+//                            if (verbose) {
+//                                System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
+//                            }
+//
+//                            totalInjections.add(info);
+//                        }
+//                    }
+//                }
+                for (int i = 0; i < totalInjections.size(); i++) {
+                    totalInjections.get(i).setId(i);
                 }
+
+                action.description = "Load create scenario";
+                if (scenario == null) {
+                    scenario = new SpillScenario(timeContainerPipe, totalInjections);
+                }
+                scenario.setTimesPipe(timeContainerPipe);
+                scenario.setTimesManhole(timeContainerManholes);
+                loadingPipeResult = LOADINGSTATUS.LOADED;
+            } catch (Exception ex) {
+                Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+                loadingPipeResult = LOADINGSTATUS.ERROR;
             }
         }
+//        } 
+//        else {
+//            while (!list_loadingPipeResults.isEmpty()) {
+//                if (cancelLoading) {
+//                    System.out.println("   LoadingThread is interrupted -> break");
+//                    return false;
+//                }
+//                Pair<File, Boolean> file = null;
+//                try {
+//                    file = list_loadingPipeResults.removeFirst();
+//                    if (verbose) {
+//                        System.out.println("try load " + file.first);
+//                    }
+//                    Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(file.first, control.getNetwork());
+//                    PipeResultData data = new PipeResultData(file.first, file.first.getName(), p.first, p.second);
+//
+//                    if (file.second) {
+//                        if (clearOtherResults) {
+//                            //Remove all other timelines
+//                        }
+//                        control.getMultiInputData().add(0, data);
+//                        control.getThreadController().cleanFromParticles();
+//                        //Scenario laden only as mainresult
+//                        ArrayList<HEInjectionInformation> he_injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
+//                        int materialnumber = 0;
+//                        for (HEInjectionInformation in : he_injection) {
+//                            Capacity c = null;
+//                            if (network == null) {
+//                                System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
+//                                continue;
+//                            }
+//                            c = network.getCapacityByName(in.capacityName);
+//                            if (c == null) {
+//                                System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
+//                                continue;
+//                            }
+//                            double start = (in.stattime - p.first.getFirstTime()) / 1000;
+//                            double duration = (in.endtime - p.first.getFirstTime()) / 1000 - start;
+//                            Material mat = in.material;
+//                            if (mat == null) {
+//                                mat = new Material("Schmutz " + materialnumber++, 1000, true);
+//                            }
+//                            int particlenumber = 20000;
+//                            InjectionInformation info;
+//                            if (in instanceof HE_MessdatenInjection) {
+//                                HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
+//
+//                                info = new InjectionInformation(c, p.first.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
+//
+//                            } else {
+//                                info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
+//                            }
+//                            if (c instanceof Pipe) {
+//                                info.setPosition1D(((Pipe) c).getLength() * 0.5f);
+////                                System.out.println("loadc set position to " + info.getPosition1D());
+//                            }
+//                            if (manualInjections.contains(info)) {
+//                                manualInjections.remove(info);
+//                            }
+//                            if (verbose) {
+//                                System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
+//                            }
+//
+//                            manualInjections.add(info);
+//                        }
+//                        if (scenario == null) {
+//                            scenario = new SpillScenario(p.first, manualInjections);
+//                            scenario.setTimesPipe(p.first);
+//                            scenario.setTimesManhole(p.second);
+//                        }
+//                    } else {
+//                        control.getMultiInputData().add(data);
+//                    }
+//
+//                    loadingPipeResult = LOADINGSTATUS.LOADED;
+//                    return true;
+//                } catch (Exception ex) {
+//                    if (file != null && file.first != null) {
+//                        System.err.println("Problem with File " + file.first + "   main? " + file.second);
+//                    }
+//                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+//                    int n = JOptionPane.showConfirmDialog(null, "Load Pipenetwork with topological\ninformation of the result file?", "Network and Result not consistent.", JOptionPane.YES_NO_CANCEL_OPTION);
+//                    if (n == JOptionPane.YES_OPTION) {
+//                        requestLoading = true;
+//                        setPipeNetworkFile(file.first);
+//                        list_loadingPipeResults.addFirst(file);
+//                        loadingPipeResult = LOADINGSTATUS.REQUESTED;
+//                        fireLoadingActionUpdate();
+//                        break;
+//                    }
+//                    loadingPipeResult = LOADINGSTATUS.ERROR;
+//                }
+//            }
+//        }
         return false;
     }
 
@@ -761,7 +842,11 @@ public class LoadingCoordinator implements LoadingActionListener {
                 }
             }
             //Reset triangle IDs from Injections because the coordinate might have changed
-            for (InjectionInformation injection : injections) {
+            for (InjectionInformation injection : manualInjections) {
+                injection.setTriangleID(-1);
+            }
+            //Reset triangle IDs from Injections because the coordinate might have changed
+            for (InjectionInformation injection : totalInjections) {
                 injection.setTriangleID(-1);
             }
 
@@ -1063,32 +1148,36 @@ public class LoadingCoordinator implements LoadingActionListener {
         this.scenario = null;
         this.surface = null;
         this.network = null;
-        this.injections.clear();
+        this.manualInjections.clear();
         this.startLoadingRequestedFiles(asThread);
     }
 
-    public boolean addInjectionInformation(InjectionInformation inj) {
-        if (injections.contains(inj)) {
+    public boolean addManualInjection(InjectionInformation inj) {
+        if (manualInjections.contains(inj)) {
             if (verbose) {
                 System.out.println("Loadingcoordinator already contains injection @" + inj.getPosition());
             }
-            injections.remove(inj);
-            injections.add(inj);
+            manualInjections.remove(inj);
+            manualInjections.add(inj);
             if (control.getScenario() != null) {
                 control.getScenario().getInjections().remove(inj);
                 control.getScenario().getInjections().add(inj);
             }
             return false;
         }
-        return injections.add(inj);
+        return manualInjections.add(inj);
     }
 
     public ArrayList<InjectionInformation> getInjections() {
-        return injections;
+        return totalInjections;
+    }
+
+    public void clearManualInjections() {
+        this.manualInjections.clear();
     }
 
     public void clearInjections() {
-        this.injections.clear();
+        this.totalInjections.clear();
     }
 
     public void setPipeNetworkFile(File networkFile) {
@@ -1641,7 +1730,7 @@ public class LoadingCoordinator implements LoadingActionListener {
 
     /**
      * Prepare everything for loading a setup with information about files and
-     * injections.
+     * manualInjections.
      *
      * @param setup
      */
@@ -1654,10 +1743,10 @@ public class LoadingCoordinator implements LoadingActionListener {
         } catch (IOException ex) {
             Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
-        this.injections.clear();
+        this.manualInjections.clear();
         if (setup.injections != null && setup.injections.length > 0) {
             for (InjectionInformation in : setup.injections) {
-                this.injections.add(in);
+                this.manualInjections.add(in);
             }
         }
     }

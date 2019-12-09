@@ -54,13 +54,15 @@ public class InjectionPanel extends JPanel {
 
     protected static GregorianCalendar localCalendar = new GregorianCalendar();
     protected MapViewer map;
+    protected PaintManager paintManager;
     protected JButton buttonSetPosition;
 
-    protected InjectionPanel(final InjectionInformation info, final MapViewer map) {
+    protected InjectionPanel(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super(new GridLayout(5, 2));
         this.setBorder(new LineBorder(Color.darkGray, 1, true));
         this.info = info;
         this.map = map;
+        this.paintManager = paintManager;
         //Name
         textname = new JTextField(info.getMaterial().getName());
         this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:"));
@@ -211,10 +213,14 @@ public class InjectionPanel extends JPanel {
         });
         this.setPreferredSize(new Dimension(160, 95));
         this.setMinimumSize(new Dimension(160, 90));
+
+        if (this.paintManager != null) {
+            initLocationSelector();
+        }
     }
 
     public InjectionPanel(MapViewer map) {
-        this(null, map);
+        this(null, map, null);
 
     }
 
@@ -224,5 +230,18 @@ public class InjectionPanel extends JPanel {
 
     public long gmtToLocal(long gmt) {
         return gmt - localCalendar.get(GregorianCalendar.ZONE_OFFSET);
+    }
+
+    private void initLocationSelector() {
+        this.addMouseMotionListener(new MouseAdapter() {
+
+            @Override
+            public void mouseMoved(MouseEvent me) {
+                if (paintManager != null) {
+//                     System.out.println("call "+info.getId()+" of "+PaintManager.layerInjectionLocation);
+                    paintManager.selectLocationID(InjectionPanel.this, PaintManager.layerInjectionLocation, info.getId());
+                }
+            }
+        });
     }
 }

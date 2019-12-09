@@ -1665,11 +1665,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (ele.refIDMessdaten > 0) {
                     TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
                     HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, ele.material, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
-                    System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = " + heinj.getTotalVolume() + "m³ in " + heinj.getNumberOfIntervals() + " intervals");
+                    if(verbose)System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = " + heinj.getTotalVolume() + "m³ in " + heinj.getNumberOfIntervals() + " intervals, " + ele.material + " in " + ele.pipename);
 
                     particles.add(heinj);
-                } else {
 
+                } else {
+//                    if(true) continue;
                     double[] volumefactor = new double[24];
                     double[] solutefactor = new double[24];
 
@@ -1754,7 +1755,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             double injectionTimeSeconds = (endtime - starttime) / 1000;
                             double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
 
-                            System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", start:" + start + " (index), duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
+                            if(verbose)System.out.println("Scenario injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, timevariation:" + intensity + ", start:" + start + " (index), duration:" + injectionTimeSeconds + "s = total: " + wert + "kg" + " in " + ele.pipename);
 
                             try {
                                 HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
@@ -1775,7 +1776,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         double injectionTimeSeconds = duration / 1000;
                         double wert = ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
 
-                        System.out.println("Scenario constant injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + injectionTimeSeconds + "s = total: " + wert + "kg");
+                        if(verbose)System.out.println("Scenario constant injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + injectionTimeSeconds + "s = total: " + wert + "kg, " + ele.material + " in " + ele.pipename);
 
                         try {
                             HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
@@ -3278,7 +3279,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             synchronized (c) {
                 //in HE Database only use Pipe ID.
                 Statement st = c.createStatement();
-                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT,STOFF FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " AND KONZENTRATION>0 ORDER BY STOFF,ZEITPUNKT ASC");
+                ResultSet rs = st.executeQuery("SELECT KONZENTRATION,ID,ZEITPUNKT,STOFF FROM KANTESTOFFLAUFEND WHERE ID=" + pipeManualID + " ORDER BY STOFF,ZEITPUNKT ASC");
 //comes in [mg/l]
                 if (!rs.isBeforeFirst()) {
                     //Result set is empty, there are no concentrations set
@@ -3295,7 +3296,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     index++;
                 }
                 if (index > concentration.length) {
-                    System.out.println("Konzentration information for " + index + " timesteps. but numberofTimes is only " + numberOfTimes);
+                    System.out.println("Konzentration information for " + index + " timesteps. but numberofTimes is only " + numberOfTimes + " can only load concnetration for the first material so far. " + this.getClass().getSimpleName());
                 }
                 st.close();
 //                uc.inUse = false;

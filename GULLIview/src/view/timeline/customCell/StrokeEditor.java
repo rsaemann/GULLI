@@ -26,7 +26,8 @@ public class StrokeEditor extends AbstractCellEditor
 
     public static BasicStroke dash2 = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{5, 3}, 0);
     public static BasicStroke dotline2 = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{2, 4, 8, 4}, 0);
-    public static BasicStroke dots3 = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 0, new float[]{0, 7}, 0);
+    public static BasicStroke dots3 = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 0, new float[]{0, 6}, 0);
+public static BasicStroke dots4 = new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_BEVEL, 0, new float[]{0, 8}, 0);
 
     BasicStroke currentStroke;
     JComboBox<BasicStroke> combobox;
@@ -107,7 +108,7 @@ public class StrokeEditor extends AbstractCellEditor
             stroke1, stroke2, stroke4,
             dash1, dash2,
             dotline2,
-            dots3};
+            dots3,dots4};
 //            new BasicStroke(1, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
 //            new BasicStroke(2, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),
 //            new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND),

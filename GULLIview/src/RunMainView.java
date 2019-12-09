@@ -24,7 +24,6 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.UIManager;
-import javax.swing.UIManager.LookAndFeelInfo;
 import model.GeoPosition;
 import model.particle.Material;
 import model.topology.Manhole;
@@ -99,7 +98,7 @@ public class RunMainView {
         final LoadingCoordinator lc = control.getLoadingCoordinator();
 
         //If set to yes, injection spills from the input scenario (e.g. HYSTEM EXTRAN Schmtzfracht eInzeleinleiter) is listed as contamination source.
-        lc.loadInputInjections = true;
+        lc.loadResultInjections = true;
         //Automatisches Suchen und einlesen der Inputfiles, die mit dem HE-Result verknüpft sind.
         //Start file can be set in the GULLI.ini after first start in the main folder.
         // Give the path to the HYSTEM EXTRAN RESULT FILE under the Key "StartFile=".
@@ -110,7 +109,7 @@ public class RunMainView {
 //            startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
 //        startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Model-Ex_E2DiT50_Schadstoff_EXT.idbr");
 //        startFile = new File("L:\\ViktorPaper\\Ricklingen_Referenzloesung_Mai18\\Petristrasse_Obs_79_noGW.result\\Ergebnis.idbf");
-        startFile = new File("C:\\Users\\saemann\\Documents\\Hystem-Extran 8.1\\Hystem-Extran\\he81-Beispiel-Schmutzfracht-ungleichmäßig-E.idbr");
+//        startFile = new File("C:\\Users\\saemann\\Documents\\Hystem-Extran 8.1\\Hystem-Extran\\he81-Beispiel-Schmutzfracht-ungleichmäßig-E.idbr");
 //        startFile = new File("Y:\\EVUS\\Modelle\\Hannover\\EVUS_Hannover_gesamt2DAB\\HE2D_20190620_RobertDach.result\\Ergebnis.idbr");
 //        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
 //        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
@@ -134,7 +133,7 @@ public class RunMainView {
             @Override
             public void run() {
                 try {
-                    control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+//                    control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -154,10 +153,10 @@ public class RunMainView {
                         Manhole mh = control.getNetwork().getManholeByName("RI09S515");
                         System.out.println("add 3 Injection at " + mh);
                         try {
-//                            lc.addInjectionInformation(new InjectionInformation(226429, 10, 100000, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
+//                            lc.addManualInjection(new InjectionInformation(226429, 10, 100000, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
 //                            for (InjectionInformation injection : lc.getInjections()) {
 //                                injection.setSpillPipesystem(false);
 //                            }
@@ -182,8 +181,8 @@ public class RunMainView {
                         mh = control.getNetwork().getManholeByName("MU08S561");
                         System.out.println("add 1 Injection at " + mh);
                         try {
-                            lc.addInjectionInformation(new InjectionInformation(new GeoPosition(52.341954, 9.697130), false, 10, anzahl, new Material("Viktor_+20m_" + anzahl, 1000, true, 0), 20 * 60));
-//                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Viktor_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
+                            lc.addManualInjection(new InjectionInformation(new GeoPosition(52.341954, 9.697130), false, 10, anzahl, new Material("Viktor_+20m_" + anzahl, 1000, true, 0), 20 * 60));
+//                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Viktor_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
 
                         } catch (NullPointerException nullPointerException) {
                             System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
@@ -197,9 +196,9 @@ public class RunMainView {
                         Manhole mh = control.getNetwork().getManholeByName("MU04S503");
                         System.out.println(getClass() + ". add 3 Injections");
                         try {
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+10", 1000, true, 1), 9 * 60, 7 * 60));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+20", 1000, true, 2), 19 * 60, 7 * 60));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+10", 1000, true, 1), 9 * 60, 7 * 60));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+20", 1000, true, 2), 19 * 60, 7 * 60));
 
                         } catch (NullPointerException nullPointerException) {
                             System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
@@ -213,9 +212,9 @@ public class RunMainView {
                         Manhole mh = control.getNetwork().getManholeByName("RI09S515");
                         System.out.println("add 3 Injection at " + mh);
                         try {
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0 * 60, 1));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 1));
-                            lc.addInjectionInformation(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 1));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0 * 60, 1));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 1));
+                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 1));
 
                         } catch (NullPointerException nullPointerException) {
                             System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
