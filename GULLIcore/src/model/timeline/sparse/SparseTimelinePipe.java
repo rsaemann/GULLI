@@ -68,7 +68,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     /**
      * Reference concentration if given in scenario. May be null
      */
-    private float[] concentration_reference;
+    private float[][] concentration_reference;
 
     private float actualVelocity, actualWaterlevel, actualDischarge, actualVolume;
     private long actualTimestamp;
@@ -127,11 +127,11 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getConcentration_reference(int temporalIndex) {
+    public float getConcentration_reference(int temporalIndex,int material) {
         if (concentration_reference == null) {
             this.container.loadTimelineConcentration(this, pipeManualID, pipeName);
         }
-        return concentration_reference[temporalIndex];
+        return concentration_reference[temporalIndex][material];
     }
 
     @Override
@@ -227,7 +227,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
         this.mass_reference = mass_reference;
     }
 
-    public void setConcentration_reference(float[] concentration_reference) {
+    public void setConcentration_reference(float[][] concentration_reference) {
         this.concentration_reference = concentration_reference;
     }
 

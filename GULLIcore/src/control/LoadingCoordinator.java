@@ -463,7 +463,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                         he_injection = new ArrayList<>(0);
                     }
 //                    System.out.println("loaded " + he_injection.size() + " from database");
-                    long scenariostart = resultDatabase.loadTimeStepsNetwork()[0];
+                    long[] times = resultDatabase.loadTimeStepsNetwork();
+                    long scenariostart = times[0];
+                    long scenarioEnd = times[times.length - 1];
                     long starttime = System.currentTimeMillis();
                     int materialnumber = 0;
                     for (HEInjectionInformation in : he_injection) {
@@ -487,9 +489,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                         InjectionInformation info;
                         if (in instanceof HE_MessdatenInjection) {
                             HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
-
-                            info = new InjectionInformation(c, scenariostart, mess.timedValues, mat, mess.getConcentration(), particlenumber);
-
+                            info = new InjectionInformation(c, scenariostart, scenarioEnd, mess.timedValues, mat, mess.getConcentration(), particlenumber);
                         } else {
                             info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
                         }
@@ -1159,11 +1159,26 @@ public class LoadingCoordinator implements LoadingActionListener {
             }
             manualInjections.remove(inj);
             manualInjections.add(inj);
-            if (control.getScenario() != null) {
-                control.getScenario().getInjections().remove(inj);
-                control.getScenario().getInjections().add(inj);
+//            if (control.getScenario() != null) {
+//                control.getScenario().getInjections().remove(inj);
+//                control.getScenario().getInjections().add(inj);
+//            }
+//            return false;
+        }
+        if (totalInjections.contains(inj)) {
+            if (verbose) {
+                System.out.println("Loadingcoordinator already contains injection @" + inj.getPosition());
             }
+            totalInjections.remove(inj);
+            totalInjections.add(inj);
+
             return false;
+        } else {
+            totalInjections.add(inj);
+        }
+        if (control.getScenario() != null) {
+            control.getScenario().getInjections().remove(inj);
+            control.getScenario().getInjections().add(inj);
         }
         return manualInjections.add(inj);
     }

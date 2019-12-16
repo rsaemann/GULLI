@@ -66,9 +66,10 @@ public interface TimeLinePipe {
      * Reference Concentration [kg/m³] of pollution in pipe volume if given.
      *
      * @param temporalIndex
+     * @param materialIndex
      * @return
      */
-    public float getConcentration_reference(int temporalIndex);
+    public float getConcentration_reference(int temporalIndex, int materialIndex);
 
     /**
      * Does timeline contain information about mass reference;

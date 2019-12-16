@@ -3214,11 +3214,18 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public void setInjectionLocation(Collection<InjectionInformation> injections) throws Exception {
         this.injections.clear();
-        if (injections.size() > 50) {
-            throw new Exception("Will not display more than 50 injection locations.");
-        }
-//        int id = 0;
+//        if (injections.size() > 50) {
+//            throw new Exception("Will not display more than 50 injection locations. (" + injections.size() + ")");
+//        }
+        int counter = 0;
         for (InjectionInformation in : injections) {
+            counter++;
+            if (injections.size() > 100) {
+                this.injections.addAll(injections);
+                System.err.println("Will only display 100 injection locations.");
+                break;
+//                throw new Exception("Will not display more than 50 injection locations. (" + injections.size() + ")");
+            }
             try {
                 GeoPosition2D pos = null;
                 //Find position to display, if the coordinate is not explicitly given.

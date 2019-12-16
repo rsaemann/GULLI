@@ -61,8 +61,7 @@ public abstract class Scenario {
 
     protected ArrayTimeLineMeasurementContainer measurementsPipe;
 
-    protected ArrayList<Material> materials;
-
+//    protected ArrayList<Material> materials;
     protected long starttime;
 
     protected long endtime;
@@ -188,6 +187,16 @@ public abstract class Scenario {
             }
         }
         return max;
+    }
+
+    public Material getMaterialByIndex(int materialIndex) {
+        ArrayList<InjectionInformation> injs = getInjections();
+        for (InjectionInformation inj : injs) {
+            if (inj.getMaterial() != null && inj.getMaterial().materialIndex == materialIndex) {
+                return inj.getMaterial();
+            }
+        }
+        return null;
     }
 
 }

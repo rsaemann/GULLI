@@ -50,7 +50,7 @@ public interface SparseTimeLineDataProvider {
 
     public float[][] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes);
 
-    public float[] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes);
+    public float[][] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes);
     
     public String[] loadNamesMaterials();
 

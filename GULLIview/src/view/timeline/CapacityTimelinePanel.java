@@ -41,6 +41,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import model.particle.Material;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
 import model.surface.measurement.TriangleMeasurement;
@@ -155,11 +156,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "msfx_ref_tot", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
     private final TimeSeries massflux = new TimeSeries(new SeriesKey("p. Massflux total", "mf_p_tot", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
 
-    private final TimeSeries refConcentration = new TimeSeries(new SeriesKey("ref Concentration", "c_ref_0", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
+    private final TimeSeries refConcentrationTotal = new TimeSeries(new SeriesKey("ref Concentration total", "c_ref_tot", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
     private final TimeSeries m_c = new TimeSeries(new SeriesKey("p. Concentration", "c_p_0", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
 
     private final ArrayList<TimeSeries> ref_massFlux_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> massFlux_Type = new ArrayList<>(2);
+
+    private final ArrayList<TimeSeries> ref_Concentration_Type = new ArrayList<>(2);
+    private final ArrayList<TimeSeries> concentration_Type = new ArrayList<>(2);
 
     public CapacityTimelinePanel(String title, Controller c/*, PipeResultData... input*/) {
         super(new BorderLayout());
@@ -337,6 +341,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         for (TimeSeries massFlux_Type1 : massFlux_Type) {
             massFlux_Type1.clear();
         }
+        for (TimeSeries ts : ref_Concentration_Type) {
+            ts.clear();
+        }
+        for (TimeSeries ts : concentration_Type) {
+            ts.clear();
+        }
 
         TimeSeries v, q;
         TimeSeries hpipe;
@@ -347,7 +357,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         hpipe = hpipe0;
         hpipe.clear();
         refMassfluxTotal.clear();
-        refConcentration.clear();
+        refConcentrationTotal.clear();
 
         // other TimeLinePipe implementation
         if (tl != null && tl.getTimeContainer() != null) {
@@ -355,12 +365,15 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             if (materialnames != null) {
                 for (int j = 0; j < materialnames.length; j++) {
                     if (ref_massFlux_Type.size() < j + 1) {
-                        //TODO: read name of contaminant
                         ref_massFlux_Type.add(new TimeSeries(new SeriesKey("ref Massflux " + materialnames[j], "msfx_ref_" + j, "kg/s", Color.orange.darker().darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/s"));
+                    }
+                    if (ref_Concentration_Type.size() < j + 1) {
+                        ref_Concentration_Type.add(new TimeSeries(new SeriesKey("ref Concentration " + materialnames[j], "c_ref_" + j, "kg/m³", Color.black, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/m³"));
                     }
                 }
             } else {
                 ref_massFlux_Type.clear();
+                ref_Concentration_Type.clear();
             }
             for (int i = 0; i < tl.getTimeContainer().getNumberOfTimes(); i++) {
                 Date d;
@@ -392,14 +405,19 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 double massflux_total = 0;
                 for (int j = 0; j < ref_massFlux_Type.size(); j++) {
-                    ref_massFlux_Type.get(j).addOrUpdate(time, tl.getMassflux_reference(i, j));
+                    ref_massFlux_Type.get(j).addOrUpdate(time, Math.abs(tl.getMassflux_reference(i, j)));
                     massflux_total += Math.abs(tl.getMassflux_reference(i, j));
+                }
+                double concentration_total = 0;
+                for (int j = 0; j < ref_Concentration_Type.size(); j++) {
+                    ref_Concentration_Type.get(j).addOrUpdate(time, Math.abs(tl.getConcentration_reference(i, j)));
+                    concentration_total += Math.abs(tl.getConcentration_reference(i, j));
                 }
                 if (tl.hasMassflux_reference()) {
 //                        refConcentration.addOrUpdate(time, tl.getMassflux_reference(index) / tl.getWaterlevel(index));
-                    refConcentration.addOrUpdate(time, tl.getConcentration_reference(i));
+                    refConcentrationTotal.addOrUpdate(time, concentration_total);
                     refMassfluxTotal.addOrUpdate(time, massflux_total);
-                    
+
                 }
             }
 
@@ -414,9 +432,18 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             double offset = -1;
 
             for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
+                String name;
+                Material m = controller.getScenario().getMaterialByIndex(j);
+                if (m != null) {
+                    name = m.getName();
+                } else {
+                    name = "" + j;
+                }
                 if (massFlux_Type.size() < j + 1) {
-                    //TODO: read name of contaminant
-                    massFlux_Type.add(new TimeSeries(new SeriesKey("p. Massflux " + j, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", ""));
+                    massFlux_Type.add(new TimeSeries(new SeriesKey("p. Massflux " + name, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/s"));
+                }
+                if (concentration_Type.size() < j + 1) {
+                    concentration_Type.add(new TimeSeries(new SeriesKey("p. Concentration " + name, "c_p_" + j, "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]), "Time", "kg/m³"));
                 }
             }
 
@@ -474,6 +501,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
                     massFlux_Type.get(j).addOrUpdate(time, tlm.getMass(i, j) * discharge);
+                    concentration_Type.get(j).addOrUpdate(time, tlm.getConcentrationOfType(i, j));
                 }
 
                 float c = tlm.getConcentration(i);
@@ -530,12 +558,24 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
         }
 
-        if (refConcentration.getMaxY() > 0) {
-            this.collection.addSeries(refConcentration);
+        if (refConcentrationTotal.getMaxY() > 0) {
+            this.collection.addSeries(refConcentrationTotal);
+        }
+        for (int i = 0; i < ref_Concentration_Type.size(); i++) {
+            TimeSeries ts = ref_Concentration_Type.get(i);
+            if (ts != null && ts.getMaxY() > 0) {
+                this.collection.addSeries(ts);
+            }
         }
 
         if (m_c.getMaxY() > 0) {
             this.collection.addSeries(m_c);
+        }
+        for (int i = 0; i < concentration_Type.size(); i++) {
+            TimeSeries ts = concentration_Type.get(i);
+            if (ts != null && ts.getMaxY() > 0) {
+                this.collection.addSeries(ts);
+            }
         }
 
         if (moment1_refvorgabe.getMaxY() > 0) {

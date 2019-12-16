@@ -182,29 +182,51 @@ public class InjectionInformation implements InjectionInfo {
      *
      * @param capacity
      * @param eventStart
+     * @param eventEnd
      * @param material
      * @param timedValues
      * @param numberOfParticles
      * @param concentration kg/m³
      */
-    public InjectionInformation(Capacity capacity, long eventStart, TimedValue[] timedValues, Material material, double concentration, int numberOfParticles) {
+    public InjectionInformation(Capacity capacity, long eventStart, long eventEnd, TimedValue[] timedValues, Material material, double concentration, int numberOfParticles) {
         this.material = material;
         this.capacity = capacity;
-        calculateMass(timedValues, eventStart, concentration);
+        calculateMass(timedValues, eventStart, eventEnd, concentration);
         calculateNumberOfIntervalParticles(numberOfParticles);
     }
 
-    private void calculateMass(TimedValue[] timedValues, long eventStart, double density) {
-        this.timesteps = new double[timedValues.length + 1];
-        this.spillMass = new double[timesteps.length];
+    private void calculateMass(TimedValue[] timedValues, long eventStart, long eventend, double concentration) {
+        int timesInsimulationtime = 0;
+        for (int i = 0; i < timedValues.length; i++) {
+            TimedValue timedValue = timedValues[i];
+            if (timedValue.time < eventStart) {
+                continue;
+            }
+            timesInsimulationtime++;
+            if (timedValue.time > eventend) {
+                break;
+            }
+
+        }
+        this.timesteps = new double[timesInsimulationtime];
+        this.spillMass = new double[timesInsimulationtime];
 //        this.number_particles = new int[timesteps.length];
+        
+//        System.out.println("Messdaten injection only uses "+timesInsimulationtime+" of "+timedValues.length+" timesteps");
 
         double volume = 0;
         double lastInterval = 0;
-        totalmass=0;
+        totalmass = 0;
+        int index = 1;
         for (int i = 1; i < timedValues.length; i++) {
             TimedValue start = timedValues[i - 1];
-            timesteps[i - 1] = (start.time - eventStart) / 1000.;
+            if (start.time < eventStart) {
+                continue;
+            }
+            if (start.time > eventend) {
+                break;
+            }
+            timesteps[index - 1] = (start.time - eventStart) / 1000.;
             TimedValue end = timedValues[i];
 
             double seconds = (end.time - start.time) / 1000.;
@@ -212,31 +234,32 @@ public class InjectionInformation implements InjectionInfo {
                 continue;
             }
             double dV = start.value * seconds;
-            spillMass[i - 1] = dV * density;
-            totalmass+=dV*density;
+            spillMass[index - 1] = dV * concentration;
+            totalmass += dV * concentration;
             lastInterval = seconds;
             volume += dV;
+            index++;
         }
-        //last calue for the duration of the last interval
-        double d = timedValues[timedValues.length - 1].value;
-        if (d > 0) {
-            volume += d * lastInterval;
-        }
+        //last call for the duration of the last interval
+//        double d = timedValues[timedValues.length - 1].value;
+//        if (d > 0) {
+//            volume += d * lastInterval;
+//        }
         this.totalVolume = volume;
     }
 
     private void calculateNumberOfIntervalParticles(int particles) {
 //        double particlesPerMass = particles / totalmass;
-        this.number_particles=new int[spillMass.length];
-        double mass=0;
-        int particlesSoFar=0;
+        this.number_particles = new int[spillMass.length];
+        double mass = 0;
+        int particlesSoFar = 0;
         for (int i = 0; i < this.number_particles.length; i++) {
-            mass+=spillMass[i];
-            double fraction=mass/totalmass;
-            int particlesthisInterval=(int) (particles*fraction)-particlesSoFar;
+            mass += spillMass[i];
+            double fraction = mass / totalmass;
+            int particlesthisInterval = (int) (particles * fraction) - particlesSoFar;
             number_particles[i] = particlesthisInterval;
 //            System.out.println(i+": mass:"+spillMass[i]+", frac:"+fraction+" -> particles: "+particlesSoFar+" + "+particlesthisInterval+"="+number_particles[i]+"  should be "+fraction*particles);
-            particlesSoFar+=particlesthisInterval;
+            particlesSoFar += particlesthisInterval;
         }
         int count = 0;
         for (int i = 0; i < number_particles.length; i++) {

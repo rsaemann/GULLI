@@ -75,7 +75,17 @@ public class ArrayTimeLineMeasurement {
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (container.mass_total[index] / (float) (container.volumes[index] * container.samplesPerTimeinterval));
+        return (float) (container.mass_total[index] / (container.volumes[index] * container.samplesPerTimeinterval));
+        /*container.particles[index] * Particle.massPerParticle*/
+        /**
+         * container.counts[index]
+         */
+    }
+
+    public float getConcentrationOfType(int temporalIndex, int materialIndex) {
+        int index = getIndex(temporalIndex);
+
+        return (float) (container.mass_type[index][materialIndex] / (container.volumes[index] * container.samplesPerTimeinterval));
         /*container.particles[index] * Particle.massPerParticle*/
         /**
          * container.counts[index]

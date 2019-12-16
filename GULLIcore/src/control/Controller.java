@@ -628,17 +628,40 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             }
             //Create particles over time
             for (int i = 0; i < injection.getNumberOfIntervals(); i++) {
-                ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
-                for (Particle p : ps) {
-                    if (injection.spillOnSurface()) {
+                if (injection.spillOnSurface()) {
+                    ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
+                    for (Particle p : ps) {
                         p.setInjectionCellID(surfaceCell);
-                    } else {
-                        p.injectionPosition1D = (float) injection.getPosition1D();
-//                        System.out.println("set injectionposition1d to "+p.injectionPosition1D);
                     }
+                    allParticles.addAll(ps);
+                } else {
+//                    
+//                    if (c instanceof Pipe) {
+//                        Pipe pipe = (Pipe) c;
+//                        float pos1d=(float) (pipe.getLength()*0.5);
+//                        int numberOfParticlesFirst=injection.particlesInInterval(i);
+//                        ArrayList<Particle> ps = createParticlesOverTimespan(numberOfParticlesFirst, injection.massInInterval(i) / (double) (numberOfParticlesFirst ), pipe/*.getStartConnection().getManhole()*/, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
+//                        for (Particle p : ps) {
+//                            p.injectionPosition1D=pos1d;
+//                        }
+//                        allParticles.addAll(ps);
+////                        int numberOfParticlesSecond=injection.particlesInInterval(i)-numberOfParticlesFirst;
+////                        ArrayList<Particle> ps2 = createParticlesOverTimespan(numberOfParticlesSecond, injection.massInInterval(i) / (double) (numberOfParticlesSecond*2. ), pipe.getEndConnection().getManhole(), injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
+////                        allParticles.addAll(ps2);
+////                         System.out.println(injection.getId() + ":spill " + injection.getMass() + " to both manholes of " + injection.getCapacityName() + "  " + injection.getCapacity()+" with "+ps.size()+" and "+ps2.size()+" particles");
+//                       
+//                    } else {
+//                        System.out.println(injection.getId() + ":spill " + injection.getMass() + " to " + injection.getCapacityName() + "  " + injection.getCapacity());
+                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
+                        for (Particle p : ps) {
+                            p.injectionPosition1D = (float) injection.getPosition1D();
+                        }
+                        allParticles.addAll(ps);
+//                    }
+
                 }
                 injection.resetChanged();
-                allParticles.addAll(ps);
+
             }
         }
         if (surface != null) {

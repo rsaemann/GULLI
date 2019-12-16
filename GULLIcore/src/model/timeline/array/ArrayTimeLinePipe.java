@@ -83,8 +83,8 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
         return (float) getValue_DoubleIndex(container.massflux_reference, temporalIndex, materialIndex);
     }
 
-    public float getConcentration_reference_DoubleIndex(double temporalIndex) {
-        return (float) getValue_DoubleIndex(container.concentration_reference, temporalIndex);
+    public float getConcentration_reference_DoubleIndex(double temporalIndex, int materialIndex) {
+        return (float) getValue_DoubleIndex(container.concentration_reference, temporalIndex,materialIndex);
     }
 
     @Override
@@ -137,11 +137,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getConcentration_reference(int temporalIndex) {
-        return container.concentration_reference[getIndex(temporalIndex)];
+    public float getConcentration_reference(int temporalIndex, int materialIndex) {
+        return container.concentration_reference[getIndex(temporalIndex)][materialIndex];
     }
 
-    public void setConcentration_Reference(float value, int temporalIndex) {
+    public void setConcentration_Reference(float value, int temporalIndex, int materialIndex) {
 
         if (container.concentration_reference == null) {
             synchronized (container) {
@@ -150,7 +150,7 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
                 }
             }
         }
-        container.concentration_reference[getIndex(temporalIndex)] = value;
+        container.concentration_reference[getIndex(temporalIndex)][materialIndex] = value;
     }
 
     public void calculateMaxMeanValues() {

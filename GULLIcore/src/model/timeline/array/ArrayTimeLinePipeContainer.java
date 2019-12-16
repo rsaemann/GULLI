@@ -37,9 +37,9 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
     /**
      * Reference concentration [kg/m³] if given in scenario. May be null
      */
-    public float[] concentration_reference;
+    public float[][] concentration_reference;
 
-    private int numberOfPipes,numberOfMaterials;
+    private int numberOfPipes, numberOfMaterials;
 
     public float[] moment1, moment2;
     public float[] distance;
@@ -88,7 +88,7 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         return r;
     }
 
-    public float[] getMassFluxForTimeIndex(int timeIndex,int materialIndex) {
+    public float[] getMassFluxForTimeIndex(int timeIndex, int materialIndex) {
         if (massflux_reference == null) {
             throw new NullPointerException("No reference mass in scenario applied to " + this.getClass());
         }
@@ -99,13 +99,13 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         return r;
     }
 
-    public float[] getConcentrationForTimeIndex(int timeIndex) {
+    public float[] getConcentrationForTimeIndex(int timeIndex, int materialIndex) {
         if (concentration_reference == null) {
             throw new NullPointerException("No reference concentration in scenario applied to " + this.getClass());
         }
         float[] r = new float[numberOfPipes];
         for (int i = 0; i < numberOfPipes; i++) {
-            r[i] = concentration_reference[i * getNumberOfTimes() + timeIndex];
+            r[i] = concentration_reference[i * getNumberOfTimes() + timeIndex][materialIndex];
         }
         return r;
     }
@@ -144,7 +144,7 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
     }
 
     void initConcentration_Reference() {
-        this.concentration_reference = new float[velocity.length];
+        this.concentration_reference = new float[velocity.length][numberOfMaterials];
     }
 
 //    @Override

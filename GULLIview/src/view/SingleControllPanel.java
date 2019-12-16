@@ -629,12 +629,17 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         new Thread("GUI SimulationInformation Update") {
             GregorianCalendar actual = new GregorianCalendar();
             StringBuilder timeelapsed = new StringBuilder(30);
+            boolean juststopped = false;
 
             @Override
             public void run() {
                 while (true) {
                     try {
-                        if (controller.isSimulating() || wasrunning) {
+                        if (!controller.isSimulating() && wasrunning) {
+                            juststopped = true;
+                        }
+                        
+                        if (controller.isSimulating()||juststopped) {
                             labelCalculationPerStep.setText(controller.getAverageCalculationTime() + "");
                             labelCalculationTime.setText(controller.getElapsedCalculationTime() / 1000 + "");
                             labelCalculationSteps.setText(controller.getSteps() + "");
@@ -664,26 +669,30 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 wasrunning = true;
                                 buttonRun.setSelected(true);
                                 buttonPause.setSelected(false);
-                                textTimeStep.setEditable(!controler.isSimulating());
-                                textDispersionPipe.setEditable(!controler.isSimulating());
-                                textDispersionSurface.setEditable(!controler.isSimulating());
+                                textTimeStep.setEditable(false);
+                                textDispersionPipe.setEditable(false);
+                                textDispersionSurface.setEditable(false);
+                                textSeed.setEditable(false);
                             }
                             frame.setTitle("> " + (int) (((controller.getSimulationTime() - controller.getSimulationStartTime()) * 100 + 0.5) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))) + "% Run Control");
                             actual.setTimeInMillis(controller.getSimulationTime());
                             labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
 
-                            wasrunning = controller.isSimulating();
-                        } else {
-                            if (wasrunning && frame != null) {
+                        }
+                        if (juststopped) {
+                            if (frame != null) {
                                 buttonRun.setSelected(false);
                                 buttonPause.setSelected(true);
                                 frame.setTitle("|| Stop Control");
-                                sliderTimeShape.setEnabled(true);
+                                if (sliderTimeShape != null) {
+                                    sliderTimeShape.setEnabled(true);
+                                }
 //                                control.timelinePanel.removeMarker();
                                 wasrunning = false;
-                                textTimeStep.setEditable(!controler.isSimulating());
-                                textDispersionPipe.setEditable(!controler.isSimulating());
-                                textDispersionSurface.setEditable(!controler.isSimulating());
+                                textTimeStep.setEditable(true);//!controler.isSimulating());
+                                textDispersionPipe.setEditable(true);//!controler.isSimulating());
+                                textDispersionSurface.setEditable(true);//!controler.isSimulating());
+                                textSeed.setEditable(true);
 
                                 actual.setTimeInMillis(controller.getSimulationTime());
                                 labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
@@ -695,6 +704,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         }
                         labelParticleActive.setText(controller.getNumberOfActiveParticles() + "");
                         labelParticlesTotal.setText("/ " + controller.getNumberOfTotalParticles());
+                        juststopped = false;
+                        wasrunning = controller.isSimulating();
                         Thread.sleep(500);
                     } catch (InterruptedException ex) {
                         Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
@@ -1510,6 +1521,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                         textTimeStep.setEditable(!controler.isSimulating());
                         textDispersionPipe.setEditable(!controler.isSimulating());
+                        textDispersionSurface.setEditable(!controler.isSimulating());
 
                         //Information about shapes
                         if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
