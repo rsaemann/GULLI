@@ -180,6 +180,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         initChart(title);
         addPDFexport();
         addEMFexport();
+        addMatlabSeriesExport();
         addTimeSeriesExport();
     }
 
@@ -1157,6 +1158,61 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                         e.printStackTrace();
                                     }
                                     TimeSeries_IO.saveTimeSeriesCollection(output2, prefix, collection);
+                                } catch (FileNotFoundException ex) {
+                                    Logger.getLogger(CapacityTimelinePanel.class
+                                            .getName()).log(Level.SEVERE, null, ex);
+                                } catch (IOException ex) {
+                                    Logger.getLogger(CapacityTimelinePanel.class
+                                            .getName()).log(Level.SEVERE, null, ex);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    }
+
+    private void addMatlabSeriesExport() {
+        JPopupMenu menu = this.panelChart.getPopupMenu();
+        for (int i = 0; i < menu.getComponentCount(); i++) {
+            if (menu.getComponent(i) instanceof JMenu) {
+                JMenu m = (JMenu) menu.getComponent(i);
+                if (m.getActionCommand().equals("Save as")) {
+                    JMenuItem item = new JMenuItem("Matlab...");
+                    m.add(item, 0);
+                    item.addActionListener(new ActionListener() {
+
+                        @Override
+                        public void actionPerformed(ActionEvent ae) {
+                            JFileChooser fc = new JFileChooser(directoryPDFsave) {
+
+                                @Override
+                                public boolean accept(File file) {
+                                    if (file.isDirectory()) {
+                                        return true;
+                                    }
+                                    return false;
+                                }
+                            };
+                            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                            int n = fc.showSaveDialog(CapacityTimelinePanel.this);
+                            if (n == JFileChooser.APPROVE_OPTION) {
+                                File output = fc.getSelectedFile();
+                                directoryPDFsave = output.getAbsolutePath();
+                                File output2 = new File(output.getAbsolutePath());
+                                try {
+                                    String prefix = "";
+                                    String capacityname = null;
+                                    try {
+                                        if (actualShown instanceof Pipe) {
+                                            prefix += "Pipe_" + ((Pipe) actualShown).getName();
+                                            capacityname = ((Pipe) actualShown).getName();
+                                        }
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                    TimeSeries_IO.saveTimeSeriesCollectionAsMatlab(output2, prefix, collection, capacityname, true);
                                 } catch (FileNotFoundException ex) {
                                     Logger.getLogger(CapacityTimelinePanel.class
                                             .getName()).log(Level.SEVERE, null, ex);

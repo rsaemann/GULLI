@@ -227,4 +227,84 @@ public class TimeSeries_IO {
         key.file = tseFile.getName();
         return ts;
     }
+
+    public static void saveTimeSeriesAsMatlabFigure(TimeSeries series, File outputfile, String capacity_name) throws IOException {
+        if (!(series.getKey() instanceof SeriesKey)) {
+            throw new IllegalArgumentException("TimeSeries '" + series.getKey() + "' has no SeriesKey. Can not be saved to '" + outputfile.getAbsolutePath() + "'.");
+        }
+        SeriesKey key = (SeriesKey) series.getKey();
+        OutputStream os = new FileOutputStream(outputfile);
+        OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("ASCII"));
+        BufferedWriter bw = new BufferedWriter(osw);
+        if (capacity_name != null) {
+            bw.write("% Plot Timeseries '" + key.name + "' in '" + capacity_name + "'\n");
+        } else {
+            bw.write("% Plot Timeseries '" + key.name + "'\n");
+        }
+        bw.write("% Label '" + key.label + "'\n");
+        bw.write("% File '" + key.file + "'\n");
+        bw.write("% Created " + new Date().toLocaleString() + " with GULLI\n");
+
+        bw.write("figure(1)\n");
+
+        StringBuilder stbX = new StringBuilder("x=[");
+        StringBuilder stbY = new StringBuilder("y=[");
+        for (int i = 0; i < series.getItemCount(); i++) {
+            TimeSeriesDataItem item = series.getDataItem(i);
+            if (i > 0) {
+                stbX.append(",");
+                stbY.append(",");
+            }
+            stbX.append((item.getPeriod().getFirstMillisecond()-series.getDataItem(0).getPeriod().getFirstMillisecond()) / 60000.);
+            stbY.append(item.getValue().doubleValue());
+        }
+        stbX.append("];");
+        stbY.append("];");
+        bw.write(stbX + "\n");
+        bw.write(stbY + "\n");
+
+        bw.write("plot(x,y,'b-');\n");
+
+        bw.write("legend('" + key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "')\n");
+        bw.write("xlabel('Time [min]');\n");
+        bw.write("ylabel('" + key.unit.replaceAll("³", "^3") + "');\n");
+
+        if (capacity_name != null) {
+            bw.write("title('" + key.name + " in " + capacity_name + "');\n");
+        } else {
+            bw.write("title('" + key.name + "');\n");
+        }
+
+        bw.flush();
+        bw.close();
+        osw.close();
+        os.close();
+    }
+
+    public static void saveTimeSeriesCollectionAsMatlab(File directory, String nameprefix, TimeSeriesCollection collection, String capacityName, boolean onlyVisible) throws IOException {
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        String dir = directory.getAbsolutePath() + File.separator;
+        for (int i = 0; i < collection.getSeriesCount(); i++) {
+            try {
+                TimeSeries s = collection.getSeries(i);
+                SeriesKey key = (SeriesKey) s.getKey();
+                if (onlyVisible && !key.isVisible) {
+                    System.out.println("Skip export of non-visible series " + key.toString());
+                    continue;
+                }
+                File file;
+                if (key.file == null || key.file.isEmpty() || !key.file.endsWith(".m")) {
+                    file = new File(dir + (nameprefix + key.name.replaceAll("/", "").replaceAll("\\.", "").replaceAll(" ", "") + ".m").replaceAll("-", ""));
+                } else {
+                    file = new File(dir + key.file);
+                }
+
+                saveTimeSeriesAsMatlabFigure(s, file, capacityName);
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+    }
 }

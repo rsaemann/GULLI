@@ -1909,6 +1909,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             try {
 
                 double[] lvls = surface.getMaxWaterLevels();
+                if (lvls == null || lvls.length == 0) {
+                    this.surfaceShow = SURFACESHOW.NONE;
+                    return;
+                }
                 System.out.println("add Surface shapes max waterlevels: " + lvls.length);
                 for (int i = 0; i < lvls.length; i++) {
 
@@ -3380,7 +3384,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     @Override
     public void simulationRESET(Object caller) {
-        System.out.println("RESET paintmanager");
         resetSurfaceShapes();
         clearInjectionLocations();
         try {
@@ -3388,7 +3391,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 setInjectionLocation(control.getScenario().getInjections());
                 mapViewer.recomputeLegend();
                 mapViewer.recalculateShapes();
-
             }
         } catch (Exception ex) {
             Logger.getLogger(PaintManager.class

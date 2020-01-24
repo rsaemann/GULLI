@@ -67,9 +67,9 @@ public class RunMainView {
 //                }
 //            }
 //        } catch (Exception e) {
-            // If Nimbus is not available, you can set the GUI to another look and feel.
-            UIManager.setLookAndFeel(
-                    UIManager.getCrossPlatformLookAndFeelClassName());
+        // If Nimbus is not available, you can set the GUI to another look and feel.
+        UIManager.setLookAndFeel(
+                UIManager.getCrossPlatformLookAndFeelClassName());
 //            UIManager.getSystemLookAndFeelClassName());
 //        }
 
@@ -88,7 +88,7 @@ public class RunMainView {
 
         //Benutzeroberfläche Hintergrundkarte anpassen.
         //Set the Background map for the main frame.
-        MapViewer.verboseExceptions = true;
+        MapViewer.verboseExceptions = false;
         vcontroller.getMapViewer().setBaseLayer(MyOSMTileSource.BaseLayer.CARTO_LIGHT.getSource());
         vcontroller.getMapViewer().recomputeCopyright();
 
@@ -106,7 +106,9 @@ public class RunMainView {
 
 //        if (startFile == null || !startFile.exists()) {
         //Fallback, if nothing was set in the GULLi.ini
-//            startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
+//        startFile = new File("F:\\GULLI_Input\\Modell2018_HE81\\E2D1T50_mehrFlaechen.result\\Ergebnis.idbr");
+        startFile = new File("W:\\Hiwi-Homes\\Janina\\Hystem-Extran 8.2\\Hystem-Extran\\numDiff\\numDiff_4min_0amRand_Messwerte.idbr");
+//          startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
 //        startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Model-Ex_E2DiT50_Schadstoff_EXT.idbr");
 //        startFile = new File("L:\\ViktorPaper\\Ricklingen_Referenzloesung_Mai18\\Petristrasse_Obs_79_noGW.result\\Ergebnis.idbf");
 //        startFile = new File("C:\\Users\\saemann\\Documents\\Hystem-Extran 8.1\\Hystem-Extran\\he81-Beispiel-Schmutzfracht-ungleichmäßig-E.idbr");
@@ -114,6 +116,14 @@ public class RunMainView {
 //        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
 //        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
 //         startFile = new File("F:\\muster-modelldatenbank_janina-Janina_EXT.idbr");
+//        startFile=new File("W:\\EVUS\\ITWH_Rechnungen_neu_3\\0-120\\Ex2D_T10-D15-51_p10356_G3\\Ergebnis.idbf");
+//        lc.setSurfaceTopologyDirectory(new File("W:\\\\EVUS\\\\Modell2017MaiResultsBora\\\\2D_Model\\\\2DModell_10cm_3m2_Mit_BK.model"));
+//         Surface surf = HE_SurfaceIO.loadSurface(new File("W:\\EVUS\\Modell2017MaiResultsBora\\2D_Model\\2DModell_10cm_3m2_Mit_BK.model"));
+//        areagenerator.controller.getLoadingCoordinator().setSurfaceTopologyDirectory(new File("W:\\EVUS\\Modell2017MaiResultsBora\\2D_Model\\2DModell_10cm_3m2_Mit_BK.model"));
+//        areagenerator.controller.loadSurface(surf, filter);
+//        
+//        areagenerator.controller.getLoadingCoordinator().mapManholes(surf, areagenerator.network);
+//        areagenerator.controller.getLoadingCoordinator().mapStreetInlets(surf, areagenerator.network);
 //        }
         if (startFile.exists()) {
             //Try to crawl all dependent files from the information stored in the He result file.
@@ -138,8 +148,6 @@ public class RunMainView {
                     e.printStackTrace();
                 }
 
-//                control.getSurface().setMeasurementRaster(new SurfaceMeasurementTriangleRaster(control.getSurface(), 3, null, control.getThreadController().getParticleThreads().length));
-//                control.getSurface().setMeasurementRaster(SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(control.getSurface(), 40, 40, 3));
                 //Automatic start after loading loop has finished.   
                 if (true) {
                     //Test
@@ -257,7 +265,9 @@ public class RunMainView {
         });
 
         //Start loading the set files. 
-        lc.startLoadingRequestedFiles(true);
+        if (lc.getFileNetwork() != null || lc.getFilePipeResultIDBF() != null || lc.getFileSurfaceTriangleIndicesDAT() != null) {
+            lc.startLoadingRequestedFiles(true);
+        }
 
         //Write results after finishing
         //This function is called after a simulation has finished.
