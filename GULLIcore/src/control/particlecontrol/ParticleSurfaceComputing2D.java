@@ -155,16 +155,18 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             checkSurrounding(p);
 //            status = 10;
             moveParticle2(p);
+            
+            if (p.isOnSurface()) {
+//                status = 31;
+                surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
+            }
 //            status = 20;
             if (allowWashToPipesystem) {
 //                status = 21;
                 washToPipesystem(p, p.surfaceCellID);
             }
 //            status = 30;
-            if (p.isOnSurface()) {
-//                status = 31;
-                surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
-            }
+            
 //            status = 40;
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2018 saemann.
+ * Copyright 2020 saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,31 +21,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package control.scenario.injection;
+package io;
 
-import model.particle.Material;
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.geotools.data.store.ContentFeatureCollection;
+import org.geotools.feature.collection.AbstractFeatureCollection;
+import org.geotools.geopkg.FeatureEntry;
+import org.geotools.geopkg.GeoPackage;
 
 /**
- * This is a preObject that contains Injection information from a HYSTEM EXTRAN
- * SCENARIO. As it only contains the Name of a Pipe/Manhole and the Simulation
- * start time, it has to be converted to a usable Injection form
- *
+ * Read and write to *.gpkg databases
  * @author saemann
  */
-public class HEInjectionInformation {
-
-    public final String capacityName;
-    public final long stattime, endtime;
-    public final double mass;
-    public final Material material;
-    public double relativePosition;
-
-    public HEInjectionInformation(String capacityName, Material mat, long stattime, long endtime, double mass) {
-        this.capacityName = capacityName;
-        this.stattime = stattime;
-        this.endtime = endtime;
-        this.mass = mass;
-        this.material = mat;
+public class Geopackage_IO {
+    
+    public static void main(String[] args) {
+        try {
+            //Test creation of a single element
+            GeoPackage gp=new GeoPackage(new File("L:\\geppackageDatabase.db"));
+            gp.init();
+            gp.addCRS(4326);
+//            gp.add(new FeatureEntry(), new AbstractFeatureCollection);
+        } catch (IOException ex) {
+            Logger.getLogger(Geopackage_IO.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
-
+    
 }

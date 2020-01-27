@@ -38,6 +38,7 @@ import control.threads.ParticleThread;
 import control.threads.ThreadController;
 import io.NamedPipe_IO;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -651,12 +652,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 ////                         System.out.println(injection.getId() + ":spill " + injection.getMass() + " to both manholes of " + injection.getCapacityName() + "  " + injection.getCapacity()+" with "+ps.size()+" and "+ps2.size()+" particles");
 //                       
 //                    } else {
-//                        System.out.println(injection.getId() + ":spill " + injection.getMass() + " to " + injection.getCapacityName() + "  " + injection.getCapacity());
-                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
-                        for (Particle p : ps) {
-                            p.injectionPosition1D = (float) injection.getPosition1D();
-                        }
-                        allParticles.addAll(ps);
+//                    System.out.println(injection.getId() + ":spill " + injection.massInInterval(i) + "kg as "+injection.particlesInInterval(i)+" Particles to " + injection.getCapacityName() + "  " + injection.getCapacity() + " from \t" + injection.getIntervalStart(i) / 60 + " min to " + (injection.getIntervalStart(i) + injection.getIntervalDuration(i)) / 60 +"  class:"+injection.getClass());
+                    ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i));
+                    for (Particle p : ps) {
+                        p.injectionPosition1D = (float) injection.getPosition1D();
+                    }
+                    allParticles.addAll(ps);
 //                    }
 
                 }

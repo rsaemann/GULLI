@@ -366,12 +366,26 @@ public class SHP_IO_GULLI {
 
     }
 
+    /**
+     * Reads the easiest geometry or creates a multi-geometry containing all
+     * objects.
+     *
+     * @param file
+     * @param switchCoordinates
+     * @return
+     * @throws MalformedURLException
+     * @throws IOException
+     * @throws FactoryException
+     */
     public static Geometry readSHP_asSingleGeometry(File file, boolean switchCoordinates) throws MalformedURLException, IOException, FactoryException {
         ArrayList<Geometry> list = readSHP(file, switchCoordinates);
         if (list.isEmpty()) {
             return null;
         }
         if (list.size() == 1) {
+            if (list.get(0).getNumGeometries() == 1) {
+                return list.get(0).getGeometryN(0);
+            }
             return list.get(0);
         }
         ArrayList<Geometry> simpleElements = new ArrayList<>(list.size());
@@ -414,9 +428,9 @@ public class SHP_IO_GULLI {
 //        CoordinateReferenceSystem shpCRS = fs.getSchema().getCoordinateReferenceSystem();
         // Process shapefile
         FeatureIterator iterator = fc.features();
-        String filename = file.getName();
+//        String filename = file.getName();
         ArrayList<Geometry> geometries = new ArrayList<>(fc.size());
-        String name = "";
+//        String name = "";
         try {
             int count = 0;
             while (iterator.hasNext()) {
@@ -439,7 +453,7 @@ public class SHP_IO_GULLI {
 
                 }
                 if (geom == null) {
-                    System.out.println("No Geometry in element " + count + " of " + filename);
+                    System.out.println("No Geometry in element " + count + " of " + file.getName());
                     continue;
                 }
 //                System.out.println("Geometry of type: "+geom.getGeometryType());

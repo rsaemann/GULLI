@@ -384,8 +384,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                     }
                 } catch (Exception exception) {
                     System.err.println("Problem with Coordinate Reference System in Model file " + modelDatabase.getDatabaseFile().getAbsolutePath());
-                    exception.printStackTrace();
-
+//                    exception.printStackTrace();
                 }
                 if (crsCode == null) {
                     crsCode = "EPSG:25832";
@@ -493,10 +492,10 @@ public class LoadingCoordinator implements LoadingActionListener {
                         } else {
                             info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
                         }
+
                         if (c instanceof Pipe) {
-                            info.setPosition1D(((Pipe) c).getLength() * 0.5f);
+                            info.setPosition1D(in.relativePosition);
                             info.setPosition(c.getPosition3D(info.getPosition1D()));
-//                                System.out.println("loadc set position to " + info.getPosition1D());
                         }
                         if (totalInjections.contains(info)) {
                             totalInjections.remove(info);
@@ -504,7 +503,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                         if (verbose) {
                             System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
                         }
-
                         totalInjections.add(info);
                     }
 
@@ -830,7 +828,7 @@ public class LoadingCoordinator implements LoadingActionListener {
             if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
                 surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
             } else {
-                //Create neumann neighbours
+                //Create moore neighbours
                 action.description = "Create Moore Neighbours File MOORE.dat";
                 fireLoadingActionUpdate();
                 fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
@@ -1431,8 +1429,9 @@ public class LoadingCoordinator implements LoadingActionListener {
 
         if (requestSurface) {
             File sf = findCorrespondingSurfaceDirectory(pipeResult);
-            setSurfaceTopologyDirectory(sf);
-
+            if (sf != null && sf.exists()) {
+                setSurfaceTopologyDirectory(sf);
+            }
             File wlf = findCorrespondingWaterlevelFile(pipeResult);
             setSurfaceWaterlevelFile(wlf);
 
@@ -1529,8 +1528,12 @@ public class LoadingCoordinator implements LoadingActionListener {
         }
         String surfModelName = tempFBDB.readSurfaceModelname();
         if (surfModelName != null) {
-            String surfaceFiles = resultFile.getParentFile().getParent() + File.separator + surfModelName + ".model";//HE_Database.readSurfaceModelname(resultFile) + ".model";
+            String surfaceFiles = resultFile.getParentFile().getParent() + File.separator + surfModelName;//HE_Database.readSurfaceModelname(resultFile) + ".model";
             File directorySurfaceFiles = new File(surfaceFiles);
+            if (!directorySurfaceFiles.exists()) {
+                surfaceFiles = resultFile.getParentFile().getParent() + File.separator + surfModelName + ".model";
+                directorySurfaceFiles = new File(surfaceFiles);
+            }
             if (directorySurfaceFiles.exists()) {
                 //Find trimod.dat file containing information about triangle indices
                 File trimod2File = new File(directorySurfaceFiles.getAbsolutePath() + File.separator + "trimod2.dat");

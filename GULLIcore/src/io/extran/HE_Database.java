@@ -82,7 +82,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public static boolean orientPipesGravityFlown = true;
 
-    public static boolean keepSaemSizeFile = true;
+    public static boolean keepSaemSizeFile = false;
 
     public static boolean registeredFirebird = false;
 
@@ -118,8 +118,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     protected final ArrayList<ThreadConnection> threadConnections = new ArrayList<>(2);
 
-    private final HEConnectionSerializer serializer = new HEConnectionSerializer();
-
+//    private final HEConnectionSerializer serializer = new HEConnectionSerializer();
     protected boolean readOnly = false;
 
     private java.util.Properties connectionProperties;
@@ -132,7 +131,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
     /**
      * Can parse text based timestamps in sqlite format.
      */
-    protected DateFormat sqliteDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public final DateFormat sqliteDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public static boolean register() {
 
@@ -1056,8 +1055,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         type = Capacity.SEWER_TYPE.SEWER;
 
                     } else {
-                        System.out.println("Kanalart '" + watertype + "' ist noch icht bekannt. in " + this.getClass()
-                                .getName());
+                        System.out.println("Kanalart '" + watertype + "' ist noch icht bekannt. in " + this.getClass().getName() + " of pipe " + res.getString(1));
                     }
                     pipe.setWaterType(type);
                     pipe.setLength(res.getFloat(6));
@@ -1109,20 +1107,21 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     mhunten.addConnection(lower);
 
                     // fertig Connections zwischen Schacht und haltung eingefügt
-                    String watertype = res.getString(4);
+                    String controlType = res.getString(4);
                     Capacity.SEWER_TYPE type = Capacity.SEWER_TYPE.UNKNOWN;
-                    if (watertype.equals("0") || watertype.equals("KM")) {
-                        type = Capacity.SEWER_TYPE.MIX;
-                    } else if (watertype.equals("1") || watertype.equals("R")) {
-                        type = Capacity.SEWER_TYPE.DRAIN;
 
-                    } else if (watertype.equals("2") || watertype.equals("S")) {
-                        type = Capacity.SEWER_TYPE.SEWER;
-
-                    } else {
-                        System.out.println("Kanalart '" + watertype + "' ist noch icht bekannt. in " + this.getClass()
-                                .getName());
-                    }
+//                    if (controlType.equals("0") || controlType.equals("KM")) {
+//                        type = Capacity.SEWER_TYPE.MIX;
+//                    } else if (controlType.equals("1") || controlType.equals("R")) {
+//                        type = Capacity.SEWER_TYPE.DRAIN;
+//
+//                    } else if (controlType.equals("2") || controlType.equals("S")) {
+//                        type = Capacity.SEWER_TYPE.SEWER;
+//
+//                    } else {
+//                        System.out.println("Kanalart '" + controlType + "' ist noch icht bekannt. in " + this.getClass()
+//                                .getName());
+//                    }
                     pipe.setWaterType(type);
                     //Database does not give a length for a pump because there is almost no storage in such pipes.
                     pipe.setLength(1f);//(float) upper.getPosition().distance(lower.getPosition()));
@@ -1626,6 +1625,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
         Timestamp daystart = new Timestamp(gcdaystart.getTimeInMillis());
         rs.close();
 
+        //Fraction of updtream and downstream injected pollutant per pipe
+        rs = st.executeQuery("SELECT AnteilUntererSchacht from HYSTEMPARAMETER;");
+        if (!rs.isBeforeFirst()) {
+            //Resultset is empty
+            rs.close();
+            st.close();
+            con.close();
+        }
+        rs.next();
+        double relativeInjectionLocation =  rs.getDouble(1)/100.;
+        rs.close();
+
         ArrayList<HEInjectionInformation> particles = new ArrayList<>();
         HashMap<Integer, Material> materialMap = new HashMap<>();
 //        System.out.println("Load injections from Database . sql?"+isSQLite);
@@ -1670,10 +1681,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (ele.refIDMessdaten > 0) {
                     TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
                     HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, ele.material, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
-                    if (verbose) {
-                    System.out.println("Scenario messdata injection: c=" + ele.concentration + "mg/l,  q=" + ele.discharge + "L/s, duration:" + heinj.getDurationSeconds() + "s = total: " + heinj.getMass() + "kg = " + heinj.getTotalVolume() + "m³ in " + heinj.getNumberOfIntervals() + " intervals, " + ele.material + " in " + ele.pipename);
-                    }
-
+                    heinj.relativePosition = relativeInjectionLocation;
                     particles.add(heinj);
 
                 } else {
@@ -1768,7 +1776,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                             try {
                                 HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
-
+                                info.relativePosition = relativeInjectionLocation;
                                 particles.add(info);
                             } catch (Exception exception) {
                                 System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.material.getName());
@@ -1791,6 +1799,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                         try {
                             HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
+                            info.relativePosition=relativeInjectionLocation;
                             particles.add(info);
                         } catch (Exception exception) {
                             System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.material);
@@ -1888,7 +1897,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         rs.close();
 
         rs = st.executeQuery(qstring);
-        DecimalFormat df3=new DecimalFormat("0.000", DecimalFormatSymbols.getInstance(Locale.US));
+        DecimalFormat df3 = new DecimalFormat("0.000", DecimalFormatSymbols.getInstance(Locale.US));
         while (rs.next()) {
             int stoffgroesseref = rs.getInt(4);
             int piperef = rs.getInt(2);
@@ -3523,7 +3532,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public static long byteToDate(long t) {
         long time = t - 621355968000000000L;
-        return time / 10000L;
+        return time / 10000L - 3600000L;
     }
 
     public static void main(String[] args) {

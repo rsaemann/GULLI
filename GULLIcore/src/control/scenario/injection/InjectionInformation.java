@@ -24,6 +24,7 @@
 package control.scenario.injection;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Objects;
 import model.GeoPosition2D;
 import model.particle.Material;
@@ -215,36 +216,36 @@ public class InjectionInformation implements InjectionInfo {
 //        System.out.println("Messdaten injection only uses "+timesInsimulationtime+" of "+timedValues.length+" timesteps");
 
         double volume = 0;
-        double lastInterval = 0;
+//        double lastInterval = 0;
         totalmass = 0;
-        int index = 1;
-        for (int i = 1; i < timedValues.length; i++) {
-            TimedValue start = timedValues[i - 1];
+        int index = 0;
+        for (int i = 0; i < timedValues.length-1; i++) {
+            TimedValue start = timedValues[i];
             if (start.time < eventStart) {
                 continue;
             }
             if (start.time > eventend) {
                 break;
             }
-            timesteps[index - 1] = (start.time - eventStart) / 1000.;
-            TimedValue end = timedValues[i];
+            timesteps[index] = (start.time - eventStart) / 1000.;
+            TimedValue end = timedValues[i+1];
 
             double seconds = (end.time - start.time) / 1000.;
             if (start.value < 0) {
                 continue;
             }
-            double dV = start.value * seconds;
-            spillMass[index - 1] = dV * concentration;
+            timesteps[index+1] = timesteps[index]+seconds;
+            
+            double dV = (start.value+timedValues[i+1].value)*0.5 * seconds;
+//            System.out.println("\tspill "+dV+" between "+timesteps[index]/60+"min and "+(timesteps[index]+seconds)/60+"min");
+            spillMass[index] = dV * concentration;
             totalmass += dV * concentration;
-            lastInterval = seconds;
+//            lastInterval = seconds;
             volume += dV;
             index++;
         }
-        //last call for the duration of the last interval
-//        double d = timedValues[timedValues.length - 1].value;
-//        if (d > 0) {
-//            volume += d * lastInterval;
-//        }
+        
+
         this.totalVolume = volume;
     }
 

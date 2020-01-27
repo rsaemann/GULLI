@@ -483,35 +483,82 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public void breakBarrierLocks() {
         int actualLoop = steps;
+        System.out.println("call to break barrier locks in step " + steps);
+        stop();
+        
+        //that was not enough. threads are still blocking
+        for (int i = 0; i < barrier_particle.getThreads().size(); i++) {
+            ParticleThread pt = barrier_particle.getThreads().get(i);
+            if (pt.getState() == Thread.State.BLOCKED) {
+                System.out.println("Replace blocked Thread " + i);
+                ParticleThread ptnew = new ParticleThread(pt);
+                barrier_particle.getThreads().set(i, ptnew);
+                ptnew.start();
+
+                try {
+                    pt.stopThread();
+                    pt.interrupt();
+                    pt.stop();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else if (pt.getState() == Thread.State.RUNNABLE) {
+                TriangleMeasurement tm = control.getSurface().getMeasurementRaster().monitor[pt.threadIndex];
+                System.out.println("Break lock of " + pt + "  on " + tm);
+                if (tm != null) {
+                    tm.lock.unlock();
+                }
+            }
+        }
+        
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        System.out.println("restart simulation");
+        start();
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (actualLoop != steps) {
+            System.out.println("Stop & start solved the problem");
+            return;
+        }
+
         //check if the synchronization thread is blocked
         if (barrier_sync.getLock().isLocked()) {
             System.out.println("try to unlock barriersync queued by synchread_pipes " + barrier_sync.getLock().hasQueuedThread(syncThread_pipes));
             System.out.println("call awake on the sync barrier");
-            try {
-                synchronized (barrier_sync) {
-                    barrier_sync.notifyAll();
-                } 
-                barrier_sync.getLock().unlock();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+//            try {
+//                synchronized (barrier_sync) {
+//                    barrier_sync.notifyAll();
+//                }
+////                barrier_sync.getLock().unlock();
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+            stop();
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ex) {
                 Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
             }
+            start();
             if (actualLoop != steps) {
                 System.out.println("Continue simulation after SynchronizationBarrier lock was released.");
             } else {
                 System.out.println("try to reinitialize Synchronization thread");
             }
         }
-
+        System.out.println("irgendwas mit oberfläche");
         //Go through all triangle measurements and free locks
         Surface surf = control.getSurface();
-        if (surf
-                != null && surf.getMeasurementRaster()
-                != null) {
+        if (surf != null && surf.getMeasurementRaster() != null) {
+            System.out.println("try to break surface measurementRaster locks.");
             try {
                 surf.getMeasurementRaster().breakAllLocks();
             } catch (Exception e) {
@@ -888,8 +935,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                             str.append("  PipeComp.status=" + pt.pc.status);
                                         }
                                         if (pt.getSurfaceComputing() != null) {
-                                            str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
-
+                                            try {
+                                                str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
+                                            } catch (Exception e) {
+                                            }
                                         }
                                         if (pt.getState() == State.BLOCKED) {
                                             someoneblocked = pt.threadIndex;

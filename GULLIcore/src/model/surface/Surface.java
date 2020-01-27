@@ -20,7 +20,6 @@ import java.util.logging.Logger;
 import model.GeoPosition2D;
 import model.GeoTools;
 import model.particle.Particle;
-import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.TimeIndexCalculator;
 import model.timeline.array.TimeIndexContainer;

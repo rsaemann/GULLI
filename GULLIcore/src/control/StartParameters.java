@@ -43,6 +43,12 @@ public class StartParameters {
     private static String startFilePath;
     private static String pathUndergroundVTU;
 
+    private static String pictureExportPath;
+    private static double timelinepanelWidth = 500;
+    private static double timelinepanelHeight = 432;
+    private static double timelinepanelSplitposition = 0.7;
+    private static int timelinePanelLegendPosition = 1;
+
     public static boolean JTS_WGS84_LONGITUDE_FIRST = true;
 
     public static File fileStartParameter = new File(getProgramDirectory(), "GULLI.ini");
@@ -70,6 +76,32 @@ public class StartParameters {
                     startFilePath = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("subsurfaceVTU=")) {
                     pathUndergroundVTU = line.substring(line.indexOf("=") + 1);
+                } else if (line.startsWith("pictureExportPath")) {
+                    pictureExportPath = line.substring(line.indexOf("=") + 1);
+                } else if (line.startsWith("timelineplot.width")) {
+                    try {
+                        timelinepanelWidth = Double.parseDouble(line.substring(line.indexOf("=") + 1));
+                    } catch (Exception exception) {
+                        timelinepanelWidth = 200;
+                    }
+                } else if (line.startsWith("timelineplot.height")) {
+                    try {
+                        timelinepanelHeight = Double.parseDouble(line.substring(line.indexOf("=") + 1));
+                    } catch (Exception exception) {
+                        timelinepanelHeight = 200;
+                    }
+                } else if (line.startsWith("timelineplot.split")) {
+                    try {
+                        timelinepanelSplitposition = Double.parseDouble(line.substring(line.indexOf("=") + 1));
+                    } catch (Exception exception) {
+                        timelinepanelSplitposition = 200;
+                    }
+                } else if (line.startsWith("timelineplot.legend")) {
+                    try {
+                        timelinePanelLegendPosition = Integer.parseInt(line.substring(line.indexOf("=") + 1));
+                    } catch (Exception exception) {
+                        timelinepanelSplitposition = 200;
+                    }
                 }
 
             }
@@ -96,6 +128,19 @@ public class StartParameters {
             bw.write("streetInlets_ShapefilePath=" + (streetinletsPath != null ? streetinletsPath : ""));
             bw.newLine();
             bw.write("subsurfaceVTU=" + (pathUndergroundVTU != null ? pathUndergroundVTU : ""));
+            bw.flush();
+            bw.newLine();
+            bw.write("## Plot properties");
+            bw.newLine();
+            bw.write("pictureExportPath=" + pictureExportPath);
+            bw.newLine();
+            bw.write("timelineplot.width=" + timelinepanelWidth);
+            bw.newLine();
+            bw.write("timelineplot.height=" + timelinepanelHeight);
+            bw.newLine();
+            bw.write("timelineplot.split=" + timelinepanelSplitposition);
+            bw.newLine();
+            bw.write("timelineplot.legend=" + timelinePanelLegendPosition);
             bw.flush();
         }
     }
@@ -144,6 +189,71 @@ public class StartParameters {
             exception.printStackTrace();
         }
         return null;
+    }
+
+    public static String getPictureExportPath() {
+        return pictureExportPath;
+    }
+
+    public static void setPictureExportPath(String pictureExportPath) {
+        StartParameters.pictureExportPath = pictureExportPath;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static double getTimelinepanelWidth() {
+        return timelinepanelWidth;
+    }
+
+    public static void setTimelinepanelWidth(double timelinepanelWidth) {
+        StartParameters.timelinepanelWidth = timelinepanelWidth;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static double getTimelinepanelHeight() {
+        return timelinepanelHeight;
+    }
+
+    public static void setTimelinepanelHeight(double timelinepanelHeight) {
+        StartParameters.timelinepanelHeight = timelinepanelHeight;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static int getTimelinePanelLegendPosition() {
+        return timelinePanelLegendPosition;
+    }
+
+    public static void setTimelinePanelLegendPosition(int timelinePanelLegendPosition) {
+        StartParameters.timelinePanelLegendPosition = timelinePanelLegendPosition;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static double getTimelinepanelSplitposition() {
+        return timelinepanelSplitposition;
+    }
+
+    public static void setTimelinepanelSplitposition(double timelinepanelSplitposition) {
+        StartParameters.timelinepanelSplitposition = timelinepanelSplitposition;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
 }
