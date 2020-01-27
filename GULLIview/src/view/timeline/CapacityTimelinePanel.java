@@ -7,6 +7,7 @@ import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 import control.Controller;
+import control.StartParameters;
 import control.listener.CapacitySelectionListener;
 import control.multievents.PipeResultData;
 import control.threads.ThreadController;
@@ -22,6 +23,8 @@ import java.awt.Paint;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -35,12 +38,14 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JTextField;
 import model.particle.Material;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
@@ -58,6 +63,7 @@ import org.freehep.graphicsio.emf.EMFGraphics2D;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYTitleAnnotation;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.ValueMarker;
@@ -67,6 +73,8 @@ import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.ui.RectangleAnchor;
+import org.jfree.ui.RectangleEdge;
 import org.jfree.ui.RectangleInsets;
 import view.timeline.customCell.StrokeEditor;
 
@@ -84,6 +92,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected HashMap<String, Boolean> checks = new HashMap<>(20);
     public boolean showSimulationTime = true;
 
+    protected JPanel panelSouth;
+    protected JTextField textTitle;
+    protected JComboBox<LEGEND_POSITION> comboLegendPosition;
+
     public boolean showMarkerLabelTime = true;
     protected String title;
 
@@ -92,6 +104,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected DateAxis dateAxis;
     HashMap<String, Integer> yAxisMap = new HashMap<>(10);
     protected int numberUsedDataSetSlots = 0;
+
+    public enum LEGEND_POSITION {
+        HIDDEN, OUTER_BOTTOM, OUTER_RIGHT, INNER_TOP_RIGHT, INNER_BOTTOM_RIGHT
+    }
 
     /**
      * Try to make JFreechart look like a matlab plot.
@@ -167,13 +183,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     public CapacityTimelinePanel(String title, Controller c/*, PipeResultData... input*/) {
         super(new BorderLayout());
+        panelSouth = new JPanel(new BorderLayout());
         this.title = title;
         this.controller = c;
-
-//        this.container = new ArrayTimeLinePipeContainer[input.length];
-//        for (int i = 0; i < container.length; i++) {
-//            this.container[i]=input[i].getPipeTimeline();            
-//        }
         this.collection = new TimeSeriesCollection();
         initCheckboxpanel();
         setStorage(null, title);
@@ -182,6 +194,83 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         addEMFexport();
         addMatlabSeriesExport();
         addTimeSeriesExport();
+
+        ((SeriesKey) m_vol.getKey()).isVisible = false;
+        ((SeriesKey) m_m.getKey()).isVisible = false;
+        ((SeriesKey) m_p.getKey()).isVisible = false;
+        ((SeriesKey) m_p_l.getKey()).isVisible = false;
+        ((SeriesKey) refMassfluxTotal.getKey()).isVisible = false;
+        ((SeriesKey) massflux.getKey()).isVisible = false;
+        ((SeriesKey) refConcentrationTotal.getKey()).isVisible = false;
+        ((SeriesKey) m_c.getKey()).isVisible = false;
+
+        try {
+            if (StartParameters.getPictureExportPath() != null) {
+                directoryPDFsave = StartParameters.getPictureExportPath();
+            }
+        } catch (Exception e) {
+        }
+
+        textTitle = new JTextField();
+        textTitle.setToolTipText("Title to display in Chart.");
+
+        panelSouth.add(textTitle, BorderLayout.CENTER);
+        this.add(panelSouth, BorderLayout.SOUTH);
+        textTitle.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                if (panelChart != null) {
+                    panelChart.getChart().setTitle(textTitle.getText());
+                }
+            }
+        });
+        comboLegendPosition = new JComboBox<>(LEGEND_POSITION.values());
+        comboLegendPosition.setSelectedIndex(StartParameters.getTimelinePanelLegendPosition());
+        panelSouth.add(comboLegendPosition, BorderLayout.EAST);
+        comboLegendPosition.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setLegendPosition((LEGEND_POSITION) comboLegendPosition.getSelectedItem());
+            }
+        });
+        try {
+            setLegendPosition(LEGEND_POSITION.values()[StartParameters.getTimelinePanelLegendPosition()]);
+        } catch (Exception e) {
+        }
+        
+        this.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                panelChart.setMaximumDrawHeight(getHeight());
+                panelChart.setMaximumDrawWidth(getWidth());
+                
+            }
+
+        });
+    }
+
+    public void setLegendPosition(LEGEND_POSITION pos) {
+        panelChart.getChart().getXYPlot().clearAnnotations();
+        if (pos == LEGEND_POSITION.HIDDEN) {
+            panelChart.getChart().getLegend().setVisible(false);
+        } else if (pos == LEGEND_POSITION.OUTER_BOTTOM) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.BOTTOM);
+            panelChart.getChart().getLegend().setVisible(true);
+        } else if (pos == LEGEND_POSITION.OUTER_RIGHT) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(true);
+        } else if (pos == LEGEND_POSITION.INNER_TOP_RIGHT) {
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0.99, 0.99, panelChart.getChart().getLegend(), RectangleAnchor.TOP_RIGHT);
+            annotation.setMaxWidth(0.4);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        } else if (pos == LEGEND_POSITION.INNER_BOTTOM_RIGHT) {
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0.99, 0.01, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_RIGHT);
+             annotation.setMaxWidth(0.4);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        }
+        StartParameters.setTimelinePanelLegendPosition(pos.ordinal());
     }
 
     public void showCheckBoxPanel(boolean showPanel) {
@@ -1004,6 +1093,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 if (n == JFileChooser.APPROVE_OPTION) {
                                     File output = fc.getSelectedFile();
                                     directoryPDFsave = output.getParent();
+
+                                    StartParameters.setPictureExportPath(directoryPDFsave);
                                     if (!output.getName().endsWith(".pdf")) {
                                         output = new File(output.getAbsolutePath() + ".pdf");
                                     }
@@ -1074,6 +1165,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 if (n == JFileChooser.APPROVE_OPTION) {
                                     File output = fc.getSelectedFile();
                                     directoryPDFsave = output.getParent();
+                                    StartParameters.setPictureExportPath(directoryPDFsave);
                                     if (!output.getName().endsWith(".emf")) {
                                         output = new File(output.getAbsolutePath() + ".emf");
                                     }
@@ -1200,6 +1292,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             if (n == JFileChooser.APPROVE_OPTION) {
                                 File output = fc.getSelectedFile();
                                 directoryPDFsave = output.getAbsolutePath();
+
+                                StartParameters.setPictureExportPath(directoryPDFsave);
                                 File output2 = new File(output.getAbsolutePath());
                                 try {
                                     String prefix = "";

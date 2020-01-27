@@ -1,7 +1,7 @@
 package view.timeline;
 
 import control.Controller;
-import control.multievents.PipeResultData;
+import control.StartParameters;
 import io.timeline.TimeSeries_IO;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -11,6 +11,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -56,10 +58,10 @@ public class EditorTableFrame extends JFrame {
         tablePanel.setTimelinePanel(timelinePanel);
 
         splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, timelinePanel, tablePanel);
-        this.setBounds(200, 200, 600, 700);
+        this.setBounds(200, 200, (int) StartParameters.getTimelinepanelWidth(), (int) StartParameters.getTimelinepanelHeight());
         this.add(splitpane, BorderLayout.CENTER);
         this.setVisible(true);
-        splitpane.setDividerLocation(0.7);
+        splitpane.setDividerLocation((int)StartParameters.getTimelinepanelSplitposition());
         this.revalidate();
 //        System.out.println("Timelinepanel.collection="+timelinePanel.getCollection());
 //        System.out.println("Editorpanel  .collection=" + tablePanel.getTable().collection);
@@ -177,7 +179,6 @@ public class EditorTableFrame extends JFrame {
             }
         });
         this.setVisible(true);
-        splitpane.setDividerLocation(0.7);
 
         TransferHandler th = new TransferHandler() {
             @Override
@@ -224,6 +225,17 @@ public class EditorTableFrame extends JFrame {
 
         tablePanel.setTransferHandler(th);
         timelinePanel.setTransferHandler(th);
+
+        ComponentAdapter ca = new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                StartParameters.setTimelinepanelHeight(getHeight());
+                StartParameters.setTimelinepanelWidth(getWidth());
+                StartParameters.setTimelinepanelSplitposition(splitpane.getDividerLocation());
+            }
+        };
+        this.addComponentListener(ca);
+        timelinePanel.addComponentListener(ca);
     }
 
     public CapacityTimelinePanel getTimelinePanel() {

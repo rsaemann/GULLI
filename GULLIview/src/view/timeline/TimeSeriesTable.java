@@ -89,6 +89,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
     }
 
     public void setColumnSize() {
+        this.getColumnModel().getColumn(indexKey).setMaxWidth(0);
+        this.getColumnModel().getColumn(indexKey).setWidth(0);
+
         this.getColumnModel().getColumn(indexSort).setMaxWidth(50);
         this.getColumnModel().getColumn(indexSort).setMinWidth(30);
 
@@ -296,7 +299,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
                     String[] values;
                     if (value.contains(";")) {
                         values = value.split(";");
-                    }else{
+                    } else {
                         values = value.split(",");
                     }
                     AxisKey key = oldKey;

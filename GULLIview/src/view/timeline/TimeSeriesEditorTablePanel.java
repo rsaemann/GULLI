@@ -1,8 +1,11 @@
 package view.timeline;
 
+import control.StartParameters;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,7 +26,7 @@ public class TimeSeriesEditorTablePanel extends JPanel {
     private JScrollPane scrollPane;
     private JPanel panelButtons;
     private JButton buttonContainerindex2Label, buttonName2Label, buttonSymbol2Label;
-    final JTextField textTitle;
+    
     private CapacityTimelinePanel timelinePanel;
 
     public TimeSeriesEditorTablePanel() {
@@ -42,19 +45,10 @@ public class TimeSeriesEditorTablePanel extends JPanel {
         this.table = table;
         scrollPane = new JScrollPane(table);
         this.add(scrollPane, BorderLayout.CENTER);
-        textTitle = new JTextField();
-        textTitle.setToolTipText("Title to display in Chart.");
-        this.add(textTitle, BorderLayout.NORTH);
+        
         this.timelinePanel = table.panel;
 
-        textTitle.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                if (timelinePanel != null) {
-                    timelinePanel.panelChart.getChart().setTitle(textTitle.getText());
-                }
-            }
-        });
+        
 
         panelButtons = new JPanel(null);
 
@@ -119,7 +113,7 @@ public class TimeSeriesEditorTablePanel extends JPanel {
         });
         this.add(panelButtons, BorderLayout.SOUTH);
 
-       
+    
     }
 
     public TimeSeriesTable getTable() {

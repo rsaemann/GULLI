@@ -80,7 +80,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
         this.file = file;
         this.eventID = extractEventID(name);
 
-        this.label = symbol + " [" + unit + "]";
+        this.label = symbol + " " + name + " [" + unit + "]";
         if (containerIndex > 0) {
             label = symbol + " [" + unit + "](" + containerIndex + ")";
         }
@@ -133,7 +133,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
     @Override
     public String toString() {
 
-        return name;
+        return label;
     }
 
 }
