@@ -237,13 +237,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             setLegendPosition(LEGEND_POSITION.values()[StartParameters.getTimelinePanelLegendPosition()]);
         } catch (Exception e) {
         }
-        
+
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
                 panelChart.setMaximumDrawHeight(getHeight());
                 panelChart.setMaximumDrawWidth(getWidth());
-                
+
             }
 
         });
@@ -267,7 +267,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } else if (pos == LEGEND_POSITION.INNER_BOTTOM_RIGHT) {
             panelChart.getChart().getLegend().setVisible(false);
             XYTitleAnnotation annotation = new XYTitleAnnotation(0.99, 0.01, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_RIGHT);
-             annotation.setMaxWidth(0.4);
+            annotation.setMaxWidth(0.4);
             panelChart.getChart().getXYPlot().addAnnotation(annotation);
         }
         StartParameters.setTimelinePanelLegendPosition(pos.ordinal());
@@ -586,7 +586,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 } else {
                     m_m.addOrUpdate(time, mass);
                     massflux.add(time, mass * discharge);
-                    mass_sum += mass;
+                    if (i > 0) {
+                        mass_sum += mass * discharge * (tlm.getContainer().getTimeMillisecondsAtIndex(i) - tlm.getContainer().getTimeMillisecondsAtIndex(i - 1)) / 1000.;
+                    }
                 }
 
                 for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {

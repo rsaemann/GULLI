@@ -24,7 +24,6 @@
 package control.scenario.injection;
 
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Objects;
 import model.GeoPosition2D;
 import model.particle.Material;
@@ -63,6 +62,11 @@ public class InjectionInformation implements InjectionInfo {
     protected double[] spillMass;
 
     /**
+     * Intensity at begin of interval [kg/s]
+     */
+    protected double[] intensity;
+
+    /**
      * m³
      */
     protected double totalmass;
@@ -80,6 +84,8 @@ public class InjectionInformation implements InjectionInfo {
     protected int triangleID = -1;
     protected double position1D;
     protected boolean changed = false;
+    
+    protected boolean active=true;
 
     /**
      * Injection after X seconds after Scenario (rain) start
@@ -211,15 +217,15 @@ public class InjectionInformation implements InjectionInfo {
         }
         this.timesteps = new double[timesInsimulationtime];
         this.spillMass = new double[timesInsimulationtime];
+        this.intensity = new double[timesInsimulationtime];
 //        this.number_particles = new int[timesteps.length];
-        
-//        System.out.println("Messdaten injection only uses "+timesInsimulationtime+" of "+timedValues.length+" timesteps");
 
+//        System.out.println("Messdaten injection only uses "+timesInsimulationtime+" of "+timedValues.length+" timesteps");
         double volume = 0;
 //        double lastInterval = 0;
         totalmass = 0;
         int index = 0;
-        for (int i = 0; i < timedValues.length-1; i++) {
+        for (int i = 0; i < timedValues.length - 1; i++) {
             TimedValue start = timedValues[i];
             if (start.time < eventStart) {
                 continue;
@@ -228,15 +234,16 @@ public class InjectionInformation implements InjectionInfo {
                 break;
             }
             timesteps[index] = (start.time - eventStart) / 1000.;
-            TimedValue end = timedValues[i+1];
+            TimedValue end = timedValues[i + 1];
 
             double seconds = (end.time - start.time) / 1000.;
             if (start.value < 0) {
                 continue;
             }
-            timesteps[index+1] = timesteps[index]+seconds;
-            
-            double dV = (start.value+timedValues[i+1].value)*0.5 * seconds;
+            intensity[index] = timedValues[i].value;
+            timesteps[index + 1] = timesteps[index] + seconds;
+
+            double dV = (start.value + timedValues[i + 1].value) * 0.5 * seconds;
 //            System.out.println("\tspill "+dV+" between "+timesteps[index]/60+"min and "+(timesteps[index]+seconds)/60+"min");
             spillMass[index] = dV * concentration;
             totalmass += dV * concentration;
@@ -244,7 +251,6 @@ public class InjectionInformation implements InjectionInfo {
             volume += dV;
             index++;
         }
-        
 
         this.totalVolume = volume;
     }
@@ -542,5 +548,23 @@ public class InjectionInformation implements InjectionInfo {
     public int getId() {
         return id;
     }
+
+    @Override
+    public double getIntensity(int intervalIndex) {
+        return intensity[intervalIndex];
+    }
+
+    public void setActive(boolean active) {
+        if(this.active==active)return;
+        this.changed=true;
+        this.active = active;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+    
+    
+    
 
 }

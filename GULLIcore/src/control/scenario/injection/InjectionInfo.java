@@ -38,6 +38,8 @@ public interface InjectionInfo {
     public double getDurationSeconds();
 
     public double getMass();
+    
+    
 
     public Material getMaterial();
 
@@ -83,4 +85,6 @@ public interface InjectionInfo {
     double massInInterval(int interval);
 
     int particlesInInterval(int interval);
+    
+    public double getIntensity(int intervalIndex);
 }

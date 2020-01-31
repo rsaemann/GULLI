@@ -78,14 +78,14 @@ public class HE_MessdatenInjection extends HEInjectionInformation {
         double lastInterval = 0;
         for (int i = 1; i < timedValues.length; i++) {
             TimedValue start = timedValues[i - 1];
-            timesteps[i - 1] = (start.time - eventStart) / 1000.;
             TimedValue end = timedValues[i];
+            timesteps[i - 1] = (start.time - eventStart) / 1000.;
 
             double seconds = (end.time - start.time) / 1000.;
             if (start.value < 0) {
                 continue;
             }
-            double dV = start.value * seconds;
+            double dV = (start.value + end.value) * 0.5 * seconds;
             spillMass[i - 1] = dV * concentration;
             lastInterval = seconds;
             volume += dV;

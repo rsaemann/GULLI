@@ -1634,7 +1634,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             con.close();
         }
         rs.next();
-        double relativeInjectionLocation =  rs.getDouble(1)/100.;
+        double relativeInjectionLocation = rs.getDouble(1) / 100.;
         rs.close();
 
         ArrayList<HEInjectionInformation> particles = new ArrayList<>();
@@ -1654,7 +1654,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             rs.close();
 
             //get joins of substance and injectionlocation
-            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFFRef,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id WHERE KONZENTRATION>0";
+            String qstring = "SELECT ROHR, ROHRREF,ZUFLUSS,ZUFLUSSDIREKT,EINZELEINLEITER.ZEITMUSTERREF as EINZELMUSTERREF,STOFFRef,KONZENTRATION,STOFFEINZELEINLEITEr.ZEITMUSTERREF AS STOFFMUSTERREF, Messdaten, MessdatenRef,ZuflussObererSchacht FROM EINZELEINLEITER JOIN StoffEINZELEINLEITER ON Stoffeinzeleinleiter.EinzeleinleiterRef=Einzeleinleiter.id WHERE KONZENTRATION>0";
             rs = st.executeQuery(qstring);
             if (!rs.isBeforeFirst()) {
 //                System.out.println("Database has no soluteSpill elements defined");
@@ -1672,6 +1672,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 eze.refIDTimelineVolume = rs.getInt("EINZELMUSTERREF");
                 eze.refIDTimelineSolute = rs.getInt("STOFFMUSTERREF");
                 eze.refIDMessdaten = rs.getInt("MESSDATENREF");
+                eze.onlyUpstreamInjection = rs.getInt("ZUFLUSSOBERERSCHACHT") == 1;
                 einleiter.add(eze);
             }
             rs.close();
@@ -1679,19 +1680,24 @@ public class HE_Database implements SparseTimeLineDataProvider {
             for (EinzelStoffeinleiter ele : einleiter) {
 
                 if (ele.refIDMessdaten > 0) {
+                    //A messreihe is linked to this injection
                     TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
                     HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, ele.material, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
-                    heinj.relativePosition = relativeInjectionLocation;
+                    if (ele.onlyUpstreamInjection) {
+                        heinj.relativePosition = relativeInjectionLocation = 0;
+                    } else {
+                        heinj.relativePosition = relativeInjectionLocation;
+                    }
                     particles.add(heinj);
 
                 } else {
-//                    if(true) continue;
                     double[] volumefactor = new double[24];
                     double[] solutefactor = new double[24];
 
                     boolean hasTimeFactors = false;
                     boolean writtenVolumes = false;
                     if (ele.refIDTimelineVolume > 0) {
+                        // a timeline (hourly factors) is linked to this injection
                         qstring = "SELECT * FROM TABELLENINHALTe WHERE ID=" + ele.refIDTimelineVolume + " ORDER BY REIHENFOLGE";
                         rs = st.executeQuery(qstring);
                         int index = 0;
@@ -1705,6 +1711,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         }
                         rs.close();
                     } else {
+                        //a constant injection 
 //                    System.out.println(" ohne TimelineVolume");
                     }
                     if (!writtenVolumes) {
@@ -1776,7 +1783,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                             try {
                                 HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
-                                info.relativePosition = relativeInjectionLocation;
+                                if (ele.onlyUpstreamInjection) {
+                                    info.relativePosition = relativeInjectionLocation = 0;
+                                } else {
+                                    info.relativePosition = relativeInjectionLocation;
+                                }
                                 particles.add(info);
                             } catch (Exception exception) {
                                 System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.material.getName());
@@ -1799,7 +1810,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                         try {
                             HEInjectionInformation info = new HEInjectionInformation(ele.pipename, ele.material, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
-                            info.relativePosition=relativeInjectionLocation;
+                            if (ele.onlyUpstreamInjection) {
+                                info.relativePosition = relativeInjectionLocation = 0;
+                            } else {
+                                info.relativePosition = relativeInjectionLocation;
+                            }
                             particles.add(info);
                         } catch (Exception exception) {
                             System.err.println("Could not find Pipe '" + ele.pipename + "' to inject " + ele.material);
@@ -3412,6 +3427,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         public int refIDTimelineVolume;
         public int refIDTimelineSolute;
         public int refIDMessdaten;
+        public boolean onlyUpstreamInjection = false;
     }
 
     public static long[] decodeTimestamps(byte[] byteBlob) {
@@ -3511,6 +3527,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         byte[] blob = rs.getBytes(1);
         int type = rs.getInt(3);
         rs.close();
+        //decode the byteblob into timestamps and values
         long[] times = decodeTimestamps(blob);
         double[] values = decodeValues(blob);
         if (times.length != values.length) {
