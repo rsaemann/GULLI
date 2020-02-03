@@ -484,7 +484,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                         if (mat == null) {
                             mat = new Material("Schmutz " + materialnumber++, 1000, true);
                         }
-                        int particlenumber = 10000;
+                        int particlenumber = 200;
                         InjectionInformation info;
                         if (in instanceof HE_MessdatenInjection) {
                             HE_MessdatenInjection mess = (HE_MessdatenInjection) in;

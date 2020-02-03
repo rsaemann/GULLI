@@ -1189,7 +1189,6 @@ public class ParticlePipeComputing {
                             Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) connection;
 
                             Pipe pipe = con.getPipe();
-
                             c = pipe;
                             if (lengthtype == 0) {
                                 ds = Math.abs((float) (remaining_dt * (pipe.getVelocity())));
@@ -1204,6 +1203,7 @@ public class ParticlePipeComputing {
                                         ds -= pipe.getLength();
                                         remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
                                         c = pipe.getEndConnection().getManhole();
+                                        pipe.getMeasurementTimeLine().addParticle(p);
                                         ds_adv += Math.abs(pipe.getLength());
                                         if (p.getClass().equals(HistoryParticle.class)) {
                                             ((HistoryParticle) p).addToHistory(c);
@@ -1239,6 +1239,7 @@ public class ParticlePipeComputing {
                                         //Verbleibender Schritt ist größer als die Rohrlänge
                                         ds -= pipe.getLength();
                                         remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
+                                        pipe.getMeasurementTimeLine().addParticle(p);
                                         c = pipe.getStartConnection().getManhole();
                                         if (p.getClass().equals(HistoryParticle.class)) {
                                             ((HistoryParticle) p).addToHistory(c);
@@ -1311,6 +1312,7 @@ public class ParticlePipeComputing {
                                     ds += pipe.getLength();
                                     remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
                                     c = pipe.getEndConnection().getManhole();
+                                    pipe.getMeasurementTimeLine().addParticle(p);
                                     if (lengthtype == 0) {
                                         ds_adv += Math.abs(pipe.getLength());
                                     }
@@ -1341,6 +1343,7 @@ public class ParticlePipeComputing {
                                 }
                                 if (pipe.getLength() <= -ds) {
                                     c = pipe.getStartConnection().getManhole();
+                                    pipe.getMeasurementTimeLine().addParticle(p);
                                     remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
                                     ds += pipe.getLength();
                                     if (lengthtype == 0) {

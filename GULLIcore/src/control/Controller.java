@@ -332,7 +332,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             scenarioStarttime = scenario.getStartTime();
         }
         ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
-
+        if (duration < 0.01) {
+            return list;
+        }
         double s = (endIntensity - startIntensity) / duration;
         //if slope is 0 we can use the constant injection
         if (Math.abs(s) < 0.000001) {
@@ -342,13 +344,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             //increasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);
-            double maxQ = -numberOfParticles * 2. / massPerParticle / Math.abs(s);
+            double maxQ = -numberOfParticles * 2. *massPerParticle/ Math.abs(s);
             double maxT = (-p + Math.sqrt(p * p - maxQ));
             double factor = duration / maxT;
 //            System.out.println("factor:" + factor);
+//            System.out.println("q1-q0/dt = " + s + "\tp=" + p + "\tfactor:" + factor + "  mass per PArticle=" + massPerParticle);
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle particle;
-                double q = -i * 2. / (massPerParticle * s);
+                double q = -i * 2. *massPerParticle/ ( s);
                 double t = (-p + Math.sqrt(p * p - q)) * factor;
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
                     particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
@@ -365,13 +368,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             //decreasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);
-            double maxQ = -numberOfParticles * 2. / massPerParticle / Math.abs(s);
+            double maxQ = -numberOfParticles * 2. * massPerParticle / Math.abs(s);
             double maxT = (-p - Math.sqrt(p * p - maxQ));
             double factor = duration / maxT;
 //            System.out.println("factor:" + factor);
+//            System.out.println("q1-q0/dt = " + s + "\tp=" + p + "\tfactor:" + factor + "  mass per PArticle=" + massPerParticle);
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle particle;
-                double q = -(numberOfParticles - i) * 2. / (massPerParticle * Math.abs(s));
+                double q = -(numberOfParticles - i) * massPerParticle * 2. / (Math.abs(s));
                 double t = duration - (-p - Math.sqrt(p * p - q)) * factor;
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
                     particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
