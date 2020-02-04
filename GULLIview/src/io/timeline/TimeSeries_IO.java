@@ -52,7 +52,7 @@ public class TimeSeries_IO {
             bw.write("axis ;" + key.axis.name + ";" + key.axis.label + "\n");
         }
         bw.write("index;" + key.containerIndex + "\n");
-        bw.write("show ;" + key.isVisible + "\n");
+        bw.write("show ;" + key.isVisible() + "\n");
         bw.write("color;" + key.lineColor + ";" + key.lineColor.getRGB() + "\n");
         bw.write("strok;");
         if (key.stroke == null) {
@@ -151,7 +151,7 @@ public class TimeSeries_IO {
         }
 
         SeriesKey key = new SeriesKey(name, symbol, unit, Color.black, axisKey, index);
-        key.isVisible = visible;
+        key.setVisible(visible);
         key.label = label;
 
         TimeSeries ts = new TimeSeries(key);
@@ -290,7 +290,7 @@ public class TimeSeries_IO {
             try {
                 TimeSeries s = collection.getSeries(i);
                 SeriesKey key = (SeriesKey) s.getKey();
-                if (onlyVisible && !key.isVisible) {
+                if (onlyVisible && !key.isVisible()) {
                     System.out.println("Skip export of non-visible series " + key.toString());
                     continue;
                 }

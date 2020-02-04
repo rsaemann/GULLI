@@ -1484,7 +1484,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                 System.out.println("   does exist as new HE file with ending *.idbm");
                 return f;
             }
-            System.out.println("   does not exist. use result file to loa dnetwork");
+            System.out.println("Network file "+filePath+"   does not exist. use result file to load network");
             return resultFile; //information about the pipe network can also be found inside the result.
         } else if (resultFile.getName().endsWith("idbr")) {
             //SQLite Result file

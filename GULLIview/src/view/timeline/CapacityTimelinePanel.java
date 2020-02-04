@@ -195,14 +195,27 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         addMatlabSeriesExport();
         addTimeSeriesExport();
 
-        ((SeriesKey) m_vol.getKey()).isVisible = false;
-        ((SeriesKey) m_m.getKey()).isVisible = false;
-        ((SeriesKey) m_p.getKey()).isVisible = false;
-        ((SeriesKey) m_p_l.getKey()).isVisible = false;
-        ((SeriesKey) refMassfluxTotal.getKey()).isVisible = false;
-        ((SeriesKey) massflux.getKey()).isVisible = false;
-        ((SeriesKey) refConcentrationTotal.getKey()).isVisible = false;
-        ((SeriesKey) m_c.getKey()).isVisible = false;
+//        ((SeriesKey) m_vol.getKey()).visible = false;
+//        ((SeriesKey) m_m.getKey()).visible = false;
+//        ((SeriesKey) m_p.getKey()).visible = false;
+//        ((SeriesKey) m_p_l.getKey()).visible = false;
+//        ((SeriesKey) refMassfluxTotal.getKey()).visible = false;
+//        ((SeriesKey) massflux.getKey()).visible = false;
+//        ((SeriesKey) refConcentrationTotal.getKey()).visible = false;
+//        ((SeriesKey) m_c.getKey()).visible = false;
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_vol.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p_l.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_c.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refConcentrationTotal.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refMassfluxTotal.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) massflux.getKey()).name, false);
+
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_sum.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) hpipe0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
 
         try {
             if (StartParameters.getPictureExportPath() != null) {
@@ -455,10 +468,15 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             if (materialnames != null) {
                 for (int j = 0; j < materialnames.length; j++) {
                     if (ref_massFlux_Type.size() < j + 1) {
-                        ref_massFlux_Type.add(new TimeSeries(new SeriesKey("ref Massflux " + materialnames[j], "msfx_ref_" + j, "kg/s", Color.orange.darker().darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/s"));
+                        SeriesKey key = new SeriesKey("ref Massflux " + materialnames[j], "msfx_ref_" + j, "kg/s", Color.orange.darker().darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
+                        key.setVisible(((SeriesKey) refMassfluxTotal.getKey()).isVisible());
+                        ref_massFlux_Type.add(new TimeSeries(key, "Time", "kg/s"));
+
                     }
                     if (ref_Concentration_Type.size() < j + 1) {
-                        ref_Concentration_Type.add(new TimeSeries(new SeriesKey("ref Concentration " + materialnames[j], "c_ref_" + j, "kg/m³", Color.black, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/m³"));
+                        SeriesKey key = new SeriesKey("ref Concentration " + materialnames[j], "c_ref_" + j, "kg/m³", Color.black, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
+                        key.setVisible(((SeriesKey) refConcentrationTotal.getKey()).isVisible());
+                        ref_Concentration_Type.add(new TimeSeries(key, "Time", "kg/m³"));
                     }
                 }
             } else {
@@ -530,10 +548,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     name = "" + j;
                 }
                 if (massFlux_Type.size() < j + 1) {
-                    massFlux_Type.add(new TimeSeries(new SeriesKey("p. Massflux " + name, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]), "Time", "kg/s"));
+                    SeriesKey key = new SeriesKey("p. Massflux " + name, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
+                    key.setVisible(((SeriesKey) massflux.getKey()).isVisible());
+                    massFlux_Type.add(new TimeSeries(key, "Time", "kg/s"));
                 }
                 if (concentration_Type.size() < j + 1) {
-                    concentration_Type.add(new TimeSeries(new SeriesKey("p. Concentration " + name, "c_p_" + j, "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]), "Time", "kg/m³"));
+                    SeriesKey key = new SeriesKey("p. Concentration " + name, "c_p_" + j, "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]);
+                    key.setVisible(((SeriesKey) m_c.getKey()).isVisible());
+                    concentration_Type.add(new TimeSeries(key, "Time", "kg/m³"));
                 }
             }
 
@@ -736,7 +758,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         TimeSeries h = new TimeSeries(new SeriesKey("Waterheight", "h", "m", Color.BLUE, new AxisKey("h")), "m", "Time");
         TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan), "m", "Time");
         TimeSeries lflow = new TimeSeries(new SeriesKey("Flux to Surface", "spillout", "m³/s", Color.magenta), "m³/s", "Time");
-        TimeSeries topHeight = new TimeSeries(new SeriesKey("Top", "Top", "m", Color.BLACK, new AxisKey("h")), "m", "Time");
+        TimeSeries topHeight = new TimeSeries(new SeriesKey("Top", "z", "m", Color.BLACK, new AxisKey("h")), "m", "Time");
         TimeContainer cont = vol.getStatusTimeLine().getTimeContainer();
         for (int i = 0; i < cont.getNumberOfTimes(); i++) {
             Date d;
@@ -757,6 +779,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.collection.addSeries(lvl);
         this.collection.addSeries(lflow);
         this.collection.addSeries(topHeight);
+
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) h.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lvl.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lflow.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) topHeight.getKey()).name, false);
 
     }
 
@@ -876,7 +903,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 if (shallBeChecked == null) {
                     shallBeChecked = false;
                 }
-                if (((SeriesKey) this.collection.getSeriesKey(i)).isVisible) {
+                if (((SeriesKey) this.collection.getSeriesKey(i)).isVisible()) {
                     shallBeChecked = true;
                 }
                 checkboxes[i] = new JCheckBox(this.collection.getSeriesKey(i).toString(), shallBeChecked);
@@ -892,11 +919,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         updateShownTimeSeries();
                         JCheckBox c = (JCheckBox) ae.getSource();
                         checks.put(c.getText(), c.isSelected());
-                        ((SeriesKey) collection.getSeries(index).getKey()).isVisible = c.isSelected();
+                        ((SeriesKey) collection.getSeries(index).getKey()).setVisible(c.isSelected());
                     }
                 });
             } else {
-                checkboxes[i].setSelected(((SeriesKey) this.collection.getSeriesKey(i)).isVisible);
+                checkboxes[i].setSelected(((SeriesKey) this.collection.getSeriesKey(i)).isVisible());
             }
             panelChecks.add(checkboxes[i], i);
         }

@@ -1059,14 +1059,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 frame.setVisible(true);
 
                 //aktivate visibility of timeseries
-                for (Object series : timelinePanel.getCollection().getSeries()) {
-                    if (series instanceof TimeSeries) {
-                        TimeSeries ts = (TimeSeries) series;
-                        SeriesKey key = (SeriesKey) ts.getKey();
-                        key.isVisible = true;
-                        System.out.println("KEY" + ts.getKey());
-                    }
-                }
+//                for (Object series : timelinePanel.getCollection().getSeries()) {
+//                    if (series instanceof TimeSeries) {
+//                        TimeSeries ts = (TimeSeries) series;
+//                        SeriesKey key = (SeriesKey) ts.getKey();
+//                        key.visible = true;
+//                        System.out.println("KEY" + ts.getKey());
+//                    }
+//                }
                 panelTable.getTable().collectionChanged();
             }
         });

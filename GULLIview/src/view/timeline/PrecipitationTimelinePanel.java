@@ -125,7 +125,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
         int offset = new GregorianCalendar().getTimeZone().getOffset(raingauge.getTimes()[0]);
 //        System.out.println("  dateoffset:"+new GregorianCalendar().getTimeZone().getOffset(raingauge.getTimes()[0]));
 //        System.out.println("offset: "+offset);
-        key.isVisible = false;
+        key.setVisible(false);
         TimeSeries ts = new TimeSeries(key);
         final long timespan = raingauge.getIntervallMinutes() * 60000L;
         for (int i = 0; i < raingauge.getPrecipitation().length; i++) {
@@ -236,7 +236,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
 
         key.element = q;
         int offset = new GregorianCalendar().getTimeZone().getRawOffset();
-        key.isVisible = false;
+        key.setVisible(false);
         TimeSeries ts = new TimeSeries(key);
         for (int i = 0; i < precipitations.length; i++) {
             double niederschlagshoehe = precipitations[i];
@@ -294,11 +294,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
             }
             SeriesKey key = (SeriesKey) series.getKey();
             if (checkboxes != null) {
-                if (checkboxes[i].isSelected()) {
-                    key.isVisible = true;
-                } else {
-                    key.isVisible = false;
-                }
+                key.setVisible(checkboxes[i].isSelected());
             }
             /**
              * Baue neues Dataset wenn keine Wiederekennung zu finden ist

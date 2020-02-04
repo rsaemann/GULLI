@@ -200,7 +200,7 @@ public class TimelinePanel extends JPanel {
                 if (shallBeChecked == null) {
                     shallBeChecked = false;
                 }
-                if (((SeriesKey) this.collection.getSeriesKey(i)).isVisible) {
+                if (((SeriesKey) this.collection.getSeriesKey(i)).isVisible()) {
                     shallBeChecked = true;
                 }
                 checkboxes[i] = new JCheckBox(this.collection.getSeriesKey(i).toString(), shallBeChecked);
@@ -216,11 +216,11 @@ public class TimelinePanel extends JPanel {
                         updateShownTimeSeries();
                         JCheckBox c = (JCheckBox) ae.getSource();
                         checks.put(c.getText(), c.isSelected());
-                        ((SeriesKey) collection.getSeries(index).getKey()).isVisible = c.isSelected();
+                        ((SeriesKey) collection.getSeries(index).getKey()).setVisible(c.isSelected());
                     }
                 });
             } else {
-                checkboxes[i].setSelected(((SeriesKey) this.collection.getSeriesKey(i)).isVisible);
+                checkboxes[i].setSelected(((SeriesKey) this.collection.getSeriesKey(i)).isVisible());
             }
             panelChecks.add(checkboxes[i], i);
         }

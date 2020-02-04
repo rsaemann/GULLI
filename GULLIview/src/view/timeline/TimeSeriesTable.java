@@ -183,7 +183,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             model.setValueAt(key.toString(), i, indexKey);
             model.setValueAt(key.label, i, indexLabel);
             model.setValueAt(key.axis, i, 3);
-            model.setValueAt(key.isVisible, i, 4);
+            model.setValueAt(key.isVisible(), i, 4);
             model.setValueAt(key.lineColor, i, 5);
             model.setValueAt(key.stroke, i, 6);
             model.setValueAt(key.shape, i, indexShape);
@@ -324,7 +324,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             }
         } else if (column == 4) {
             //Visible?
-            ((SeriesKey) collection.getSeries(row).getKey()).isVisible = (Boolean) model.getValueAt(row, column);
+            ((SeriesKey) collection.getSeries(row).getKey()).setVisible((Boolean) model.getValueAt(row, column));
         } else if (column == 6) {
             //Stroke
             ((SeriesKey) collection.getSeries(row).getKey()).stroke = (BasicStroke) model.getValueAt(row, column);

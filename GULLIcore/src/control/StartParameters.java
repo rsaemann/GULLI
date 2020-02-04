@@ -23,6 +23,7 @@
  */
 package control;
 
+import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,6 +31,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,12 +47,18 @@ public class StartParameters {
     private static String pathUndergroundVTU;
 
     private static String pictureExportPath;
-    private static double timelinepanelWidth = 500;
-    private static double timelinepanelHeight = 432;
+    private static int controlFrameX = 40, controlFrameY = 50, controlFrameW = 270, controlFrameH = 1000;
+    private static int mapFrameX = 330, mapFrameY = 50, mapFrameW = 1100, mapFrameH = 800;
+    private static int timelinepanelX = 1200;
+    private static int timelinepanelY = 200;
+    private static int timelinepanelWidth = 500;
+    private static int timelinepanelHeight = 432;
     private static double timelinepanelSplitposition = 0.7;
     private static int timelinePanelLegendPosition = 1;
 
     public static boolean JTS_WGS84_LONGITUDE_FIRST = true;
+
+    public static HashMap<String, Boolean> timelineVisibility = new HashMap<>(10);
 
     public static File fileStartParameter = new File(getProgramDirectory(), "GULLI.ini");
     private static boolean isloaded = loadStartParameter();
@@ -76,17 +85,50 @@ public class StartParameters {
                     startFilePath = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("subsurfaceVTU=")) {
                     pathUndergroundVTU = line.substring(line.indexOf("=") + 1);
+                } else if (line.startsWith("mapFrame")) {
+                    try {
+                        String[] values = line.substring(line.indexOf("=") + 1).split(",");
+                        mapFrameX = Integer.parseInt(values[0]);
+                        mapFrameY = Integer.parseInt(values[1]);
+                        mapFrameW = Integer.parseInt(values[2]);
+                        mapFrameH = Integer.parseInt(values[3]);
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+
+                } else if (line.startsWith("controlFrame")) {
+                    try {
+                        String[] values = line.substring(line.indexOf("=") + 1).split(",");
+                        controlFrameX = Integer.parseInt(values[0]);
+                        controlFrameY = Integer.parseInt(values[1]);
+                        controlFrameW = Integer.parseInt(values[2]);
+                        controlFrameH = Integer.parseInt(values[3]);
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+
+                } else if (line.startsWith("plotFrame")) {
+                    try {
+                        String[] values = line.substring(line.indexOf("=") + 1).split(",");
+                        timelinepanelX = Integer.parseInt(values[0]);
+                        timelinepanelY = Integer.parseInt(values[1]);
+                        timelinepanelWidth = Integer.parseInt(values[2]);
+                        timelinepanelHeight = Integer.parseInt(values[3]);
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+
                 } else if (line.startsWith("pictureExportPath")) {
                     pictureExportPath = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("timelineplot.width")) {
                     try {
-                        timelinepanelWidth = Double.parseDouble(line.substring(line.indexOf("=") + 1));
+                        timelinepanelWidth = (int) Double.parseDouble(line.substring(line.indexOf("=") + 1));
                     } catch (Exception exception) {
                         timelinepanelWidth = 200;
                     }
                 } else if (line.startsWith("timelineplot.height")) {
                     try {
-                        timelinepanelHeight = Double.parseDouble(line.substring(line.indexOf("=") + 1));
+                        timelinepanelHeight = (int) Double.parseDouble(line.substring(line.indexOf("=") + 1));
                     } catch (Exception exception) {
                         timelinepanelHeight = 200;
                     }
@@ -99,6 +141,15 @@ public class StartParameters {
                 } else if (line.startsWith("timelineplot.legend")) {
                     try {
                         timelinePanelLegendPosition = Integer.parseInt(line.substring(line.indexOf("=") + 1));
+                    } catch (Exception exception) {
+                        timelinepanelSplitposition = 200;
+                    }
+                } else if (line.startsWith("timeline=")) {
+                    try {
+                        String text = line.substring(line.indexOf("=") + 1);
+                        String name = text.substring(2);
+                        boolean visible = text.charAt(0) == '1';
+                        timelineVisibility.put(name, visible);
                     } catch (Exception exception) {
                         timelinepanelSplitposition = 200;
                     }
@@ -130,18 +181,31 @@ public class StartParameters {
             bw.write("subsurfaceVTU=" + (pathUndergroundVTU != null ? pathUndergroundVTU : ""));
             bw.flush();
             bw.newLine();
+            bw.newLine();
+            bw.write("## Frame bounds");
+            bw.newLine();
+            bw.write("mapFrame=" + mapFrameX + "," + mapFrameY + "," + mapFrameW + "," + mapFrameH);
+            bw.newLine();
+            bw.write("controlFrame=" + controlFrameX + "," + controlFrameY + "," + controlFrameW + "," + controlFrameH);
+            bw.newLine();
+            bw.write("plotFrame=" + timelinepanelX + "," + timelinepanelY + "," + timelinepanelWidth + "," + timelinepanelHeight);
+            bw.newLine();
+            bw.newLine();
             bw.write("## Plot properties");
             bw.newLine();
             bw.write("pictureExportPath=" + pictureExportPath);
             bw.newLine();
-            bw.write("timelineplot.width=" + timelinepanelWidth);
-            bw.newLine();
-            bw.write("timelineplot.height=" + timelinepanelHeight);
-            bw.newLine();
             bw.write("timelineplot.split=" + timelinepanelSplitposition);
             bw.newLine();
             bw.write("timelineplot.legend=" + timelinePanelLegendPosition);
+            bw.newLine();
+            bw.write("## Timelines shown");
+            for (Map.Entry<String, Boolean> entry : timelineVisibility.entrySet()) {
+                bw.newLine();
+                bw.write("timeline=" + (entry.getValue() ? "1" : "0") + ":" + entry.getKey());
+            }
             bw.flush();
+
         }
     }
 
@@ -209,7 +273,7 @@ public class StartParameters {
     }
 
     public static void setTimelinepanelWidth(double timelinepanelWidth) {
-        StartParameters.timelinepanelWidth = timelinepanelWidth;
+        StartParameters.timelinepanelWidth = (int) timelinepanelWidth;
         try {
             saveParameter();
         } catch (IOException ex) {
@@ -222,7 +286,7 @@ public class StartParameters {
     }
 
     public static void setTimelinepanelHeight(double timelinepanelHeight) {
-        StartParameters.timelinepanelHeight = timelinepanelHeight;
+        StartParameters.timelinepanelHeight = (int) timelinepanelHeight;
         try {
             saveParameter();
         } catch (IOException ex) {
@@ -249,6 +313,92 @@ public class StartParameters {
 
     public static void setTimelinepanelSplitposition(double timelinepanelSplitposition) {
         StartParameters.timelinepanelSplitposition = timelinepanelSplitposition;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void setControlFrameBounds(int x, int y, int w, int h) {
+        controlFrameX = x;
+        controlFrameY = y;
+        controlFrameW = w;
+        controlFrameH = h;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void setMapFrameBounds(int x, int y, int w, int h) {
+        mapFrameX = x;
+        mapFrameY = y;
+        mapFrameW = w;
+        mapFrameH = h;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void setPlotFrameBounds(int x, int y, int w, int h) {
+        timelinepanelX = x;
+        timelinepanelY = y;
+        timelinepanelWidth = w;
+        timelinepanelHeight = h;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static Rectangle getMapFrameBounds() {
+        return new Rectangle(mapFrameX, mapFrameY, mapFrameW, mapFrameH);
+    }
+
+    public static Rectangle getControlFrameBounds() {
+        return new Rectangle(controlFrameX, controlFrameY, controlFrameW, controlFrameH);
+    }
+
+    public static Rectangle getPlotFrameBounds() {
+        return new Rectangle(timelinepanelX, timelinepanelY, timelinepanelWidth, timelinepanelHeight);
+    }
+
+    public static boolean containsTimelineVisibilityInfo(String timelineName) {
+        boolean found = timelineVisibility.containsKey(timelineName);
+        return found;
+    }
+
+    public static boolean isTimelineVisible(String timelineName) {
+        return timelineVisibility.get(timelineName);
+    }
+
+    /**
+     * Initializes the tracking of the given name if it is not already in the
+     * list.
+     *
+     * @param timelineName
+     * @param visible
+     * @return
+     */
+    public static boolean enableTimelineVisibilitySaving(String timelineName, boolean visible) {
+        if (timelineVisibility.containsKey(timelineName)) {
+            return false;
+        }
+        if(timelineName==null)return false;
+        timelineVisibility.put(timelineName, visible);
+        return true;
+    }
+
+    public static void setTimelineVisibility(String timelineName, boolean visible) {
+        if (!timelineVisibility.containsKey(timelineName)) {
+            return;
+        }
+        timelineVisibility.put(timelineName, visible);
         try {
             saveParameter();
         } catch (IOException ex) {

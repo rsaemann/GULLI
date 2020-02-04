@@ -6,6 +6,9 @@
 package view;
 
 import control.Controller;
+import control.StartParameters;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import javax.swing.JFrame;
 import view.timeline.CapacityTimelinePanel;
 import view.timeline.EditorTableFrame;
@@ -47,10 +50,46 @@ public class ViewController {
         paintManager.addCapacitySelectionListener(timelinePanel);
 
         //Order Frames
-        controlFrame.setBounds(40, 50, 260, 1000);
-        mapFrame.setBounds(320, 50, 1200, 800);
-        timeLineFrame.setLocation(1200, 200);//, 700, 400);
+        controlFrame.setBounds(StartParameters.getControlFrameBounds());
+        mapFrame.setBounds(StartParameters.getMapFrameBounds());
+        timeLineFrame.setBounds(StartParameters.getPlotFrameBounds());
         mapFrame.requestFocus();
+
+        mapFrame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                StartParameters.setMapFrameBounds(mapFrame.getX(), mapFrame.getY(), mapFrame.getWidth(), mapFrame.getHeight());
+            }
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+                StartParameters.setMapFrameBounds(mapFrame.getX(), mapFrame.getY(), mapFrame.getWidth(), mapFrame.getHeight());
+            }
+        });
+
+        controlFrame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                StartParameters.setControlFrameBounds(controlFrame.getX(), controlFrame.getY(), controlFrame.getWidth(), controlFrame.getHeight());
+            }
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+                StartParameters.setControlFrameBounds(controlFrame.getX(), controlFrame.getY(), controlFrame.getWidth(), controlFrame.getHeight());
+            }
+        });
+
+        timeLineFrame.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentMoved(ComponentEvent e) {
+                StartParameters.setPlotFrameBounds(timeLineFrame.getX(), timeLineFrame.getY(), timeLineFrame.getWidth(), timeLineFrame.getHeight());
+            }
+
+            @Override
+            public void componentResized(ComponentEvent e) {
+                StartParameters.setPlotFrameBounds(timeLineFrame.getX(), timeLineFrame.getY(), timeLineFrame.getWidth(), timeLineFrame.getHeight());
+            }
+        });
     }
 
     public Controller getControl() {

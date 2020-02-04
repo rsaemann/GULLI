@@ -1,5 +1,6 @@
 package view.timeline;
 
+import control.StartParameters;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Shape;
@@ -25,7 +26,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
     public Color lineColor;
     public AxisKey axis = null;
     public int containerIndex = 0;
-    public boolean isVisible = true;
+    private boolean visible = true;
     public String label;
     public String file;
     public final String eventID;
@@ -84,6 +85,10 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
         if (containerIndex > 0) {
             label = symbol + " [" + unit + "](" + containerIndex + ")";
         }
+
+        if (StartParameters.containsTimelineVisibilityInfo(name)) {
+            this.visible = StartParameters.isTimelineVisible(name);
+        }
     }
 
     public Shape getShape() {
@@ -91,6 +96,18 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
             return null;
         }
         return this.shape.getShape();
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        if (this.visible == visible) {
+            return;
+        }
+        this.visible = visible;
+        StartParameters.setTimelineVisibility(name, visible);
     }
 
     @Override
