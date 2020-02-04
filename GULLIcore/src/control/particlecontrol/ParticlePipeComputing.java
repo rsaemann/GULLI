@@ -47,6 +47,7 @@ public class ParticlePipeComputing {
     private static int autoIncrement = 0;
 
     protected int id = autoIncrement++;
+    public static int maxloopsPerParticle = 50;
 
     public enum COMPUTING {
 
@@ -186,7 +187,8 @@ public class ParticlePipeComputing {
     }
 
     public void moveParticle(Particle p) {
-        moveParticle4_transfersensitive(p);
+//        moveParticle4_transfersensitive(p);
+        moveParticle5_celltransmission(p);
     }
 
     /**
@@ -1203,7 +1205,7 @@ public class ParticlePipeComputing {
                                         ds -= pipe.getLength();
                                         remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
                                         c = pipe.getEndConnection().getManhole();
-                                        pipe.getMeasurementTimeLine().addParticle(p);
+//                                        pipe.getMeasurementTimeLine().addParticle(p);
                                         ds_adv += Math.abs(pipe.getLength());
                                         if (p.getClass().equals(HistoryParticle.class)) {
                                             ((HistoryParticle) p).addToHistory(c);
@@ -1239,7 +1241,7 @@ public class ParticlePipeComputing {
                                         //Verbleibender Schritt ist größer als die Rohrlänge
                                         ds -= pipe.getLength();
                                         remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
-                                        pipe.getMeasurementTimeLine().addParticle(p);
+//                                        pipe.getMeasurementTimeLine().addParticle(p);
                                         c = pipe.getStartConnection().getManhole();
                                         if (p.getClass().equals(HistoryParticle.class)) {
                                             ((HistoryParticle) p).addToHistory(c);
@@ -1312,7 +1314,7 @@ public class ParticlePipeComputing {
                                     ds += pipe.getLength();
                                     remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
                                     c = pipe.getEndConnection().getManhole();
-                                    pipe.getMeasurementTimeLine().addParticle(p);
+//                                    pipe.getMeasurementTimeLine().addParticle(p);
                                     if (lengthtype == 0) {
                                         ds_adv += Math.abs(pipe.getLength());
                                     }
@@ -1343,7 +1345,7 @@ public class ParticlePipeComputing {
                                 }
                                 if (pipe.getLength() <= -ds) {
                                     c = pipe.getStartConnection().getManhole();
-                                    pipe.getMeasurementTimeLine().addParticle(p);
+//                                    pipe.getMeasurementTimeLine().addParticle(p);
                                     remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
                                     ds += pipe.getLength();
                                     if (lengthtype == 0) {
@@ -1397,7 +1399,7 @@ public class ParticlePipeComputing {
      *
      * @param p
      */
-    private void moveParticle5_transfersensitive(Particle p) {
+    private void moveParticle5_celltransmission(Particle p) {
         float position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (Float.isNaN(position1d)) {
@@ -1445,73 +1447,61 @@ public class ParticlePipeComputing {
         float distance_total = 0;
         float resultVelocity = 0;
         boolean forward = true;
-//        status = 5;
-        if (c.getClass().equals(Pipe.class)) {
-//            status = 6;
-            float v = (float) ((Pipe) c).getVelocity();
-//            forward = v >= 0;
-            distance_adv = v * (dt);
-            p.setVelocity1d(v);
-            distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
-            distance_total = distance_adv + distance_diff;
-            resultVelocity = distance_total / dt;
-            forward = distance_total > 0;
-//            status = 7;
-        } else {
-//            status = 8;
-            if (c.getConnections().length > 0) {
-//                status = 9;
-//                System.out.println("water: "+c.getWaterHeight()+",   connection: "+c.getConnections()[0].getHeight());
-                if (c.getConnections()[0].getHeight() > c.getWaterHeight()) {
-//                    status = 10;
-                    //Nothing can flow out-> break
-                    return;
-                }
-            }
-        }
+
         /**
          * if ds is positive : advective dominant else diffusiv has higher
          * negative influence
          */
         float remaining_dt = dt;
-        float ds = distance_total;
+        float timespend = 0;
         float moved = 0;
         float neuePosition = position1d;
-        /**
-         * First step directing particle to next manhole
-         */
-        if (c.getClass().equals(Pipe.class)) {
-//                status = 14;
-            Pipe pipe = (Pipe) c;
 
-            neuePosition = position1d + ds;
-//                    status = 15;
+        // Move particles to the end of their pipe because it is easier to start them at a manhole
+        if (c.getClass().equals(Pipe.class)) {
+            Pipe pipe = ((Pipe) c);
+            float v = (float) pipe.getVelocity();
+            distance_adv = v * (dt);
+            p.setVelocity1d(v);
+            distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
+            distance_total = distance_adv + distance_diff;
+            resultVelocity = distance_total / dt;
+            forward = !(distance_total < 0 ^ v < 0);
+
+            neuePosition = position1d + distance_total;
             if (neuePosition < 0) {
-                // Particle flowed to the start of the pipe and reached the manhole
+                moved = position1d;
+                neuePosition -= position1d;
+                timespend = Math.abs(moved / resultVelocity);
+                remaining_dt -= timespend;
                 c = pipe.getStartConnection().getManhole();
-                remaining_dt -= Math.abs(position1d / resultVelocity);
-                moved += position1d;
-                position1d = 0;
-            } else if (neuePosition <= pipe.getLength()) {
-                // Nothing to do, if particle stays inside this Pipe
-                position1d = neuePosition;
-                moved += ds;
-                remaining_dt = 0;
-            } else {
-                //Über dieses Rohr hinaus geschossen.
-                // particle reached end of pipe
-                remaining_dt -= (pipe.getLength() - position1d) / resultVelocity;
-                moved += pipe.getLength() - position1d;
-                position1d = 0;
+                pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+            } else if (neuePosition > pipe.getLength()) {
+                moved = pipe.getLength() - position1d;
+                neuePosition -= pipe.getLength();
+                timespend = Math.abs(moved / resultVelocity);
+                remaining_dt -= timespend;
                 c = pipe.getEndConnection().getManhole();
-                if (p.getClass().equals(HistoryParticle.class)) {
-                    ((HistoryParticle) p).addToHistory(c);
-                }
+                pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+            } else {
+                moved = distance_total;
+                remaining_dt = 0;
+                c = pipe;
+
+                pipe.getMeasurementTimeLine().addParticle(p, 1f);
             }
 
+//            pipe.getMeasurementTimeLine().addParticle(p);
+            p.addMovingLength(moved);
+        } else {
+            if (c.getConnections().length > 0) {
+                if (c.getConnections()[0].getHeight() > c.getWaterHeight()) {
+                    //Nothing can flow out-> break
+                    return;
+                }
+            }
         }
 
-//            status = 40;
         /**
          * Start loop with particles, that start in a Manhole
          */
@@ -1519,15 +1509,16 @@ public class ParticlePipeComputing {
 
         if (c.getClass().equals(Manhole.class)) {
             position1d = 0;
-            while (remaining_dt > 0 && loops < 5) {
-
+            while (remaining_dt > 0) {
+                if (loops > maxloopsPerParticle) {
+                    System.out.println(p + " in " + c + " exceeded maximum number of " + maxloopsPerParticle + " loops per timestep");
+                }
                 loops++;
-                /**
-                 * 1. Case: particle is in a Manhole
-                 */
-
                 try {
                     Manhole mh = (Manhole) c;
+//                    if (mh.getName().contains("MW-501")) {
+//                        System.out.println("starting from MW 501");
+//                    }
                     if (c.isSetAsOutlet()) {
                         p.setLeftSimulation();
                         p.setPosition1d_actual(0);
@@ -1550,9 +1541,7 @@ public class ParticlePipeComputing {
                         p.surfaceCellID = mh.getSurfaceTriangleID();
                         p.setSurrounding_actual(surface);
                         c = surface;
-//                                double[] tripos = surface.getTriangleMids()[mh.getSurfaceTriangleID()];
                         p.setPosition3D(mh.getPosition3D(0));
-//                                p.setPosition3D(tripos[0], tripos[1]);
                         p.setOnSurface();
                         p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                         p.toSurface = mh;
@@ -1560,70 +1549,60 @@ public class ParticlePipeComputing {
                         if (p.getClass().equals(HistoryParticle.class)) {
                             ((HistoryParticle) p).addToHistory(surface);
                         }
-//                                            System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangleID());
                         break;
                     }
                     //else is going into a pipe.
                     Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) connection;
-
                     Pipe pipe = con.getPipe();
 
                     c = pipe;
-                    float v = (float) ((Pipe) c).getVelocity();
+                    float v = (float) pipe.getVelocity();
                     distance_adv = v * (remaining_dt);
                     p.setVelocity1d(v);
                     distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian()) * remaining_dt / dt;
                     distance_total = distance_adv + distance_diff;
                     resultVelocity = distance_total / remaining_dt;
-                    forward = distance_total > 0;
-//                    ds = distance_total;
-
+                    forward = !(distance_total < 0 ^ v < 0);
                     if (con.isStartOfPipe()) {
                         position1d = 0;
-
                     } else {
                         position1d = pipe.getLength();
                     }
                     neuePosition = position1d + distance_total;
-
+//                    if (pipe.getName().contains("MW-501")) {
+//                        System.out.println("on MW 501 forward");
+//                    }
                     //Downstream Pipe
                     if (neuePosition < 0) {
-//                                System.out.println("  # ds <0   = " + ds + "  v=" + pipe.getVelocity());
-                        ds = position1d;
-                        moved += ds;
-                        remaining_dt -= Math.abs(ds / resultVelocity);
-                        //Particle is washed back into the manhole it came from
-                        position1d = 0;
+                        moved = position1d;
+                        timespend = Math.abs(moved / resultVelocity);
+                        remaining_dt -= timespend;
                         neuePosition = 0;
                         c = pipe.getStartConnection().getManhole();
-                        p.setSurrounding_actual(c);
+                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
                     } else if (neuePosition > pipe.getLength()) {
                         //rushed through this pipe and is now inside the next manhole
-                        ds = pipe.getLength() - position1d;
-                        moved += ds;
-                        remaining_dt -= Math.abs(ds / resultVelocity);
+
+                        moved = pipe.getLength() - position1d;
+                        timespend = Math.abs(moved / resultVelocity);
+                        remaining_dt -= timespend;
                         c = pipe.getEndConnection().getManhole();
-                        position1d = 0;
+                        neuePosition = 0;
                         if (p.getClass().equals(HistoryParticle.class)) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
-                        continue;
+                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
                     } else {
                         // Particle will end this timestep in this pipe.
-//                        if (ds < 0) {
-//                            System.out.println("  downstream in " + c + " ds=" + ds + "   pos1d=" + position1d);
-//                        }
-                        ds = Math.abs(position1d - neuePosition);
-                        position1d = neuePosition;
-                        moved += ds;
+                        moved = Math.abs(position1d - neuePosition);
+                        timespend = Math.abs(moved / resultVelocity);
+                        //position1d = neuePosition;
                         remaining_dt = 0;
-                        ds = 0;
-                        if (position1d > pipe.getLength()) {
-                            System.out.println(" +toofar1 ");
-                        }
-                        break;
+                        pipe.getMeasurementTimeLine().addParticle(p,timespend/dt);
                     }
+                   
 
+                    p.addMovingLength(moved);
                 } catch (Exception e) {
                     System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual());
                     e.printStackTrace();
@@ -1634,12 +1613,11 @@ public class ParticlePipeComputing {
 
         p.setSurrounding_actual(c);
 
-        p.setPosition1d_actual(position1d);
+        p.setPosition1d_actual(neuePosition);
 
-        if (c.getClass().equals(Pipe.class)) {
-            Pipe pipe = (Pipe) c;
-            pipe.getMeasurementTimeLine().addParticle(p);
-        }
+//        if (c.getClass().equals(Pipe.class)) {
+//            Pipe pipe = (Pipe) c;
+//        }
     }
 
     public double getDeltaTime() {

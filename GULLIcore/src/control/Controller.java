@@ -333,6 +333,19 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
         ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
         if (duration < 0.01) {
+            //Instant injection
+            for (int i = 0; i < numberOfParticles; i++) {
+                Particle particle;
+                if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
+                    particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L), (float) massPerParticle);
+                } else {
+                    long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L);
+                    particle = new Particle(startCapacity, 0, injectiontime, (float) massPerParticle);
+                }
+                particle.setMaterial(material);
+                particle.setWaiting();
+                list.add(particle);
+            }
             return list;
         }
         double s = (endIntensity - startIntensity) / duration;

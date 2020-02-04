@@ -775,27 +775,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     if (ArrayTimeLineMeasurementContainer.instance != null) {
                         ArrayTimeLineMeasurementContainer.instance.setActualTime(simulationTimeMS);
                     }
-
-//                    particlesReachedOutlet = true;
-//                    for (ParticleThread thread : barrier_particle.getThreads()) {
-//                        if (!thread.allParticlesReachedOutlet) {
-//                            particlesReachedOutlet = false;
-//                            break;
-//                        }
-//                    }
-//                    if (particlesReachedOutlet) {
-//                        System.out.println("SYNC :: All particles reached outlet");
-//                        calculationFinished = true;
-//                    }
-                    status = 25;
-//                    if (paintOnMap && steps % paintingInterval == 0) {
-////                        barrier_positionUpdate.setSimulationtime(simulationTimeMS);
-////                        calledObject = barrier_positionUpdate;
-////                        status = 26;
-////                        barrier_positionUpdate.startover();
-//                        status = 27;
-//                        return;
-//                    }
                     status = 28;
                 case POSITION:
                     status = 30;

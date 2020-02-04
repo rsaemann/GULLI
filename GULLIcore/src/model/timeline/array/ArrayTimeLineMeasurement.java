@@ -202,15 +202,28 @@ public class ArrayTimeLineMeasurement {
         if (!active) {
             return;
         }
+        addParticle(particleToCount,1f);
+    }
+
+    /**
+     *
+     * @param particleToCount
+     * @param dtfactor fraction of time spend on this capacity in relation to
+     * the whole timestep.
+     */
+    public void addParticle(Particle particleToCount, float dtfactor) {
+        if (!active) {
+            return;
+        }
         if (synchronizeMeasures) {
             if (useIDsharpParticleCounting) {
                 synchronized (particles) {
                     if (!particles.contains(particleToCount)) {
                         particles.add(particleToCount);
                         synchronized (this) {
-                            this.particleMassInTimestep += particleToCount.particleMass;
+                            this.particleMassInTimestep += particleToCount.particleMass*dtfactor;
                             this.numberOfParticlesInTimestep++;
-                            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass());
+                            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass()*dtfactor);
                         }
                     }
                 }
@@ -218,9 +231,9 @@ public class ArrayTimeLineMeasurement {
 //                synchronized (this) {
                 lock.lock();
                 try {
-                    this.particleMassInTimestep += particleToCount.particleMass;
+                    this.particleMassInTimestep += particleToCount.particleMass*dtfactor;
                     this.numberOfParticlesInTimestep++;
-                    addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass());
+                    addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass()*dtfactor);
                 } finally {
                     lock.unlock();
                 }
@@ -234,9 +247,9 @@ public class ArrayTimeLineMeasurement {
                     }
                 }
             }
-            this.particleMassInTimestep += particleToCount.particleMass;
+            this.particleMassInTimestep += particleToCount.particleMass*dtfactor;
             this.numberOfParticlesInTimestep++;
-            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass());
+            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass()*dtfactor);
         }
     }
 

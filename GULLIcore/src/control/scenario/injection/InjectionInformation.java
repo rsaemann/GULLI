@@ -84,8 +84,8 @@ public class InjectionInformation implements InjectionInfo {
     protected int triangleID = -1;
     protected double position1D;
     protected boolean changed = false;
-    
-    protected boolean active=true;
+
+    protected boolean active = true;
 
     /**
      * Injection after X seconds after Scenario (rain) start
@@ -110,6 +110,7 @@ public class InjectionInformation implements InjectionInfo {
         this.totalmass = mass;
         this.timesteps = new double[]{startoffsetSeconds, startoffsetSeconds + duration};
         this.spillMass = new double[]{mass, 0};
+        this.intensity = new double[]{mass/duration, 0};
         this.number_particles = new int[]{numberOfParticles, 0};
         this.totalNumberParticles = numberOfParticles;
     }
@@ -555,16 +556,15 @@ public class InjectionInformation implements InjectionInfo {
     }
 
     public void setActive(boolean active) {
-        if(this.active==active)return;
-        this.changed=true;
+        if (this.active == active) {
+            return;
+        }
+        this.changed = true;
         this.active = active;
     }
 
     public boolean isActive() {
         return active;
     }
-    
-    
-    
 
 }
