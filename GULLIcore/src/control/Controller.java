@@ -714,7 +714,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                             System.err.println("Cannot find Capacity with name '" + injection.getCapacityName() + "' for injection " + injection);
                         }
                     }
-                    if (c == null || injection.getPosition() != null) {
+                    if (c == null && injection.getPosition() != null) {
                         c = getNetwork().getManholeNearPositionLatLon(injection.getPosition());
                     }
                 }

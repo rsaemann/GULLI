@@ -67,6 +67,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     private int[][] NodeNeighbours;
     public double[][] weight;
 
+    public boolean spatialInterpolationVelocity = true;
     public boolean calculateWeighted = false;
 
     private float[][] neighbourDistances;
@@ -1468,7 +1469,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
         sourcesForSpilloutParticles.clear();
     }
-    
+
     /**
      * Set number of different materials that are injected.
      *
@@ -1771,8 +1772,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public Manhole[] getManholes() {
         return manholes;
     }
-    
-    
 
     /**
      * Finds smallest triangle area of all triangles.
@@ -2135,6 +2134,22 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return
      */
     public double[] getParticleVelocity2D(Particle p, int triangleID, double[] tofillVelocity, double[] tofillBarycentric) {
+        if (!spatialInterpolationVelocity) {
+            if (tofillVelocity == null) {
+                tofillVelocity = new double[2];
+            }
+            if (timeInterpolatedValues) {
+                float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                tofillVelocity[0]=vt_t[0]*(timeinvFrac)+vt_tp[0]*timeFrac;
+                tofillVelocity[1]=vt_t[1]*(timeinvFrac)+vt_tp[1]*timeFrac;
+            }else{
+                float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);
+                tofillVelocity[0]=vt_t[0];
+                tofillVelocity[1]=vt_t[1];
+            }
+            return tofillVelocity;
+        }
 
         double[] velocityParticle = tofillVelocity;
         if (tofillVelocity == null) {
@@ -2165,7 +2180,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //           }
 //            
 //        }
-        
+
         double[] w = tofillBarycentric;
         if (calculateWeighted && velocityNodes != null) {
             if (velocityNodes[t0] == null) {

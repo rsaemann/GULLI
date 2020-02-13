@@ -629,60 +629,6 @@ public class LoadingCoordinator implements LoadingActionListener {
                     return false;
                 }
 
-//                if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-//                    //Load spill events from database
-//                    if (he_injection != null && !he_injection.isEmpty()) {
-//                        action.description = "Apply spill events";
-//                        int materialnumber = 0;
-//                        int id = totalInjections.size();
-//                        for (HEInjectionInformation in : he_injection) {
-//                            Capacity c = null;
-//                            if (network == null) {
-//                                System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
-//                                continue;
-//                            }
-//                            c = network.getPipeByName(in.capacityName);
-//                            if (c == null) {
-//                                c = network.getCapacityByName(in.capacityName);
-//                            }
-//                            if (c == null) {
-//                                System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
-//                                continue;
-//                            }
-//                            double start = (in.stattime - timeContainerPipe.getFirstTime()) / 1000;
-//                            double duration = (in.endtime - timeContainerPipe.getFirstTime()) / 1000 - start;
-//                            Material mat = in.material;
-//                            if (mat == null) {
-//                                mat = new Material("Schmutz " + materialnumber++, 1000, true);
-//                            }
-//                            int particlenumber = 20000;
-//                            InjectionInformation info;
-//                            if (in instanceof HE_MessdatenInjection) {
-//                                HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
-//
-//                                info = new InjectionInformation(c, timeContainerPipe.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
-//
-//                            } else {
-//                                info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
-//                            }
-////                            System.out.println("Capacity is " + c);
-//                            if (c instanceof Pipe) {
-//                                info.setPosition1D(((Pipe) c).getLength() * 0.5f);
-//                                info.setPosition(c.getPosition3D(info.getPosition1D()));
-////                                    System.out.println("loadc set position to " + info.getPosition1D());
-//                            }
-//                            if (totalInjections.contains(info)) {
-//                                totalInjections.remove(info);
-//                            }
-//                            info.setId(id++);
-//                            if (verbose) {
-//                                System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
-//                            }
-//
-//                            totalInjections.add(info);
-//                        }
-//                    }
-//                }
                 for (int i = 0; i < totalInjections.size(); i++) {
                     totalInjections.get(i).setId(i);
                 }
@@ -841,11 +787,15 @@ public class LoadingCoordinator implements LoadingActionListener {
             }
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInformation injection : manualInjections) {
-                injection.setTriangleID(-1);
+                if (injection.getPosition() != null) {
+                    injection.setTriangleID(-1);
+                }
             }
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInformation injection : totalInjections) {
-                injection.setTriangleID(-1);
+                if (injection.getPosition() != null) {
+                    injection.setTriangleID(-1);
+                }
             }
 
             if (cancelLoading) {
@@ -1484,7 +1434,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                 System.out.println("   does exist as new HE file with ending *.idbm");
                 return f;
             }
-            System.out.println("Network file "+filePath+"   does not exist. use result file to load network");
+            System.out.println("Network file " + filePath + "   does not exist. use result file to load network");
             return resultFile; //information about the pipe network can also be found inside the result.
         } else if (resultFile.getName().endsWith("idbr")) {
             //SQLite Result file

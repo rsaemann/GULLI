@@ -133,7 +133,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     protected RandomArray[] randomNumberGenerators;
     private ReentrantLock lock = new ReentrantLock();
     //number of particles to be treted by one thread
-    public int treatblocksize = 1000;
+    protected int treatblocksize = 1000;
     public int waitingParticleIndex = 0;//first waiting (for injection)  particle index
     public int nextParticleBlockStartIndex = 0;//Index for the tretstart for the next requesting Thread
     public int nextRandomNumberBlockStartIndex = 0;//Index for the random number for the next requesting Thread
@@ -227,9 +227,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     public void setSeed(long seed) {
         this.seed = seed;
         if (randomNumberGenerators != null) {
-//            System.out.println("resetRandom Seeds");
+//            System.out.println("resetRandom Seeds to length "+randomNumberGenerators.length);
+            Random r=new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomArray newField = new RandomArray(new Random(seed + i), (int) (treatblocksize * 20 + 1));
+                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize * 20 + 1));
                 randomNumberGenerators[i] = newField;
             }
         }
@@ -344,11 +345,17 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         Arrays.sort(this.particles, comp);
 
         //Generate random numbers
-        randomNumberGenerators = new RandomArray[this.particles.length / treatblocksize + 1];
+        recalculateRandomNumberGenerators();
         setSeed(seed);
         this.waitingParticleIndex = 0;
         this.nextParticleBlockStartIndex = 0;
         this.nextRandomNumberBlockStartIndex = 0;
+    }
+
+    private void recalculateRandomNumberGenerators() {
+        if (particles != null) {
+            randomNumberGenerators = new RandomArray[this.particles.length / treatblocksize + 1];
+        }
     }
 
     /**
@@ -485,7 +492,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         int actualLoop = steps;
         System.out.println("call to break barrier locks in step " + steps);
         stop();
-        
+
         //that was not enough. threads are still blocking
         for (int i = 0; i < barrier_particle.getThreads().size(); i++) {
             ParticleThread pt = barrier_particle.getThreads().get(i);
@@ -510,7 +517,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 }
             }
         }
-        
+
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
@@ -1093,6 +1100,29 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
     public Particle[] getParticles() {
         return particles;
+    }
+
+    /**
+     * Number of particles processed by a Particlethread before asking for the
+     * next block.
+     *
+     * @return
+     */
+    public int getParticleblocksize() {
+        return treatblocksize;
+    }
+
+    /**
+     * Set number of particles that are processed by a Thread in one call. This
+     * should be about 1/20 of the total particle number to allow effective
+     * multithreading without waiting for each other of the ParticleThreads.
+     *
+     * @param treatblocksize
+     */
+    public void setParticleblocksize(int treatblocksize) {
+        this.treatblocksize = treatblocksize;
+        recalculateRandomNumberGenerators();
+        setSeed(seed);
     }
 
 }

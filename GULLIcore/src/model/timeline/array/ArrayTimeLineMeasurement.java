@@ -141,8 +141,12 @@ public class ArrayTimeLineMeasurement {
             container.mass_total[index] += particleMassInTimestep;
 
             if (particleMassPerTypeinTimestep != null) {
-                for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
-                    container.mass_type[index][i] += (float) (particleMassPerTypeinTimestep[i]);
+                try {
+                    for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
+                        container.mass_type[index][i] += (float) (particleMassPerTypeinTimestep[i]);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Index problem with material "+(particleMassPerTypeinTimestep.length-1)+", length of array: "+container.mass_type[index].length);
                 }
             }
 
@@ -162,7 +166,7 @@ public class ArrayTimeLineMeasurement {
                 }
             }
         } catch (Exception e) {
-            System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getNumberOfTimes() + "), particles=" + numberOfParticlesInTimestep + ", volume=" + volumeValue + ")");
+            System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getNumberOfTimes() + ")=>"+index+", particles=" + numberOfParticlesInTimestep + ", volume=" + volumeValue + ")");
             e.printStackTrace();
         }
     }
