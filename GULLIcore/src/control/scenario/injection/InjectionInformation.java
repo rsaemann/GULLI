@@ -110,7 +110,7 @@ public class InjectionInformation implements InjectionInfo {
         this.totalmass = mass;
         this.timesteps = new double[]{startoffsetSeconds, startoffsetSeconds + duration};
         this.spillMass = new double[]{mass, 0};
-        this.intensity = new double[]{mass/duration, 0};
+        this.intensity = new double[]{mass / duration, 0};
         this.number_particles = new int[]{numberOfParticles, 0};
         this.totalNumberParticles = numberOfParticles;
     }
@@ -396,21 +396,11 @@ public class InjectionInformation implements InjectionInfo {
         return capacityName;
     }
 
-//    public void setStart(double start) {
-//        if (this.start == start) {
-//            return;
-//        }
-////        System.out.println("Change starttime from "+this.start+"\tto "+start+" s after start.");
-//        this.start = start;
-//        this.changed = true;
-//    }
-//    public void setDuration(double duration) {
-//        if (this.duration == duration) {
-//            return;
-//        }
-//        this.duration = duration;
-//        this.changed = true;
-//    }
+    public void setCapacityName(String capacityName) {
+        this.capacityName = capacityName;
+    }
+
+
     /**
      * Position along pipe axis in meter
      *

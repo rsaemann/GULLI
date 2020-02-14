@@ -5,11 +5,16 @@
  */
 package view;
 
+import control.Action.Action;
 import control.Controller;
 import control.StartParameters;
+import control.listener.LoadingActionListener;
+import control.scenario.Scenario;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import javax.swing.JFrame;
+import model.surface.Surface;
+import model.topology.Network;
 import view.timeline.CapacityTimelinePanel;
 import view.timeline.EditorTableFrame;
 
@@ -90,6 +95,35 @@ public class ViewController {
                 StartParameters.setPlotFrameBounds(timeLineFrame.getX(), timeLineFrame.getY(), timeLineFrame.getWidth(), timeLineFrame.getHeight());
             }
         });
+
+        control.getLoadingCoordinator().addActioListener(new LoadingActionListener() {
+            @Override
+            public void actionFired(Action action, Object source) {
+            }
+
+            @Override
+            public void loadNetwork(Network network, Object caller) {
+            }
+
+            @Override
+            public void loadSurface(Surface surface, Object caller) {
+            }
+
+            @Override
+            public void loadScenario(Scenario scenario, Object caller) {
+                if (scenario != null && scenario.getName() != null) {
+                    mapFrame.setTitle(scenario.getName() + " - GULLI");
+                }
+            }
+
+        });
+//            @Override
+//            public void s(Object caller) {
+//                System.out.println("Network name is "+control.getNetwork().getName());
+//                mapFrame.setTitle(control.getNetwork().getName()+" - GULLI");
+//            }
+//            
+//        });
     }
 
     public Controller getControl() {

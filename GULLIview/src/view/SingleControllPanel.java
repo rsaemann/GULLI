@@ -7,6 +7,7 @@ import control.listener.LoadingActionListener;
 import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing;
 import control.particlecontrol.ParticleSurfaceComputing2D;
+import control.scenario.Scenario;
 import control.scenario.injection.InjectionInformation;
 import control.threads.ThreadController;
 import io.extran.HE_Database;
@@ -116,6 +117,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
 
+    private JButton newInjectionButton;
     private JButton buttonShowRaingauge;
     private JButton buttonLoadAllPipeTimelines;
 
@@ -215,9 +217,24 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         JScrollPane scrollinjections = new JScrollPane(panelInjections);
         panelInjections.setBorder(new TitledBorder("Injections"));
+
+        //Add Injection via button
+        newInjectionButton = new JButton("New Injection");
+        panelInjections.add(newInjectionButton);
+        newInjectionButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                InjectionInformation ininfo = new InjectionInformation(0, 1, 1000, new Material("neu", 1000, true), 0, 1);
+                control.getLoadingCoordinator().addManualInjection(ininfo);
+                control.recalculateInjections();
+                SingleControllPanel.this.updateGUI();
+            }
+        });
+
 //        scrollinjections.setMaximumSize(new Dimension(100, 200));
         panelTabLoading.add(scrollinjections);
-
+        panelTabLoading.add(newInjectionButton);
         // SImulation Parameter
         JPanel panelParameter = new JPanel(new GridLayout(4, 1));
         panelParameter.setBorder(new TitledBorder("Parameter"));
@@ -638,8 +655,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         if (!controller.isSimulating() && wasrunning) {
                             juststopped = true;
                         }
-                        
-                        if (controller.isSimulating()||juststopped) {
+
+                        if (controller.isSimulating() || juststopped) {
                             labelCalculationPerStep.setText(controller.getAverageCalculationTime() + "");
                             labelCalculationTime.setText(controller.getElapsedCalculationTime() / 1000 + "");
                             labelCalculationSteps.setText(controller.getSteps() + "");
@@ -1409,6 +1426,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         updateGUI();
     }
 
+    @Override
+    public void loadScenario(Scenario scenario, Object caller) {
+        updateGUI();
+    }
+
     private void startGUIUpdateThread() {
         updateThread = new Thread("GUI Repaint SinglecontrolPanel") {
             @Override
@@ -1534,80 +1556,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 ((TitledBorder) panelShapesSurface.getBorder()).setTitle("Surface Shapes (" + control.getSurface().getTriangleMids().length + ")");
                             }
                         }
-
-                        //Update Injections Information
-                        if (control.getLoadingCoordinator() == null || control.getLoadingCoordinator().getInjections() == null) {
-                            System.out.println("remove Injections");
-                            panelInjections.removeAll();
-                        }
-
-                        if (control.getLoadingCoordinator() != null && control.getLoadingCoordinator().getInjections() != null) {
-
-                            if (control.getLoadingCoordinator().getInjections().size() != panelInjections.getComponentCount() - 1) {
-
-                                if (panelInjections.getBorder() != null && panelInjections.getBorder() instanceof TitledBorder) {
-                                    ((TitledBorder) panelInjections.getBorder()).setTitle(control.getLoadingCoordinator().getInjections().size() + " Injections");
-                                }
-//                                System.out.println("new size: injections: " + (control.getLoadingCoordinator().getInjections().size()) + "  componennts: " + panelInjections.getComponentCount());
-                                panelInjections.removeAll();
-                                ArrayList<InjectionInformation> injections = control.getLoadingCoordinator().getInjections();
-                                if (injections.isEmpty()) {
-                                    panelInjections.setLayout(new BorderLayout());
-                                    panelInjections.add(new JLabel("No Injections"), BorderLayout.NORTH);
-                                } else {
-                                    BoxLayout layout = new BoxLayout(panelInjections, BoxLayout.Y_AXIS);
-                                    panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
-                                    try {
-                                        for (final InjectionInformation inj : injections) {
-                                            InjectionPanel ip = new InjectionPanel(inj, mapViewer, paintManager);
-                                            panelInjections.add(ip);
-
-                                            //Create popup to delete this injection 
-                                            JPopupMenu popup = new JPopupMenu();
-                                            JMenuItem itemdelete = new JMenuItem("Delete from list");
-                                            popup.add(itemdelete);
-                                            itemdelete.addActionListener(new ActionListener() {
-
-                                                @Override
-                                                public void actionPerformed(ActionEvent ae) {
-                                                    control.getLoadingCoordinator().getInjections().remove(inj);
-                                                    control.recalculateInjections();
-                                                    SingleControllPanel.this.updateGUI();
-                                                }
-                                            });
-                                            ip.setComponentPopupMenu(popup);
-                                        }
-                                    } catch (Exception e) {
-                                    }
-
-                                }
-                            }
-                        } else {
-                            panelInjections.setLayout(new BorderLayout());
-                            panelInjections.add(new JLabel("Injections = null"));
-
-                        }
-                        //Add Injection via button
-                        JButton newInjectionButton = new JButton("New Injection");
-                        panelInjections.add(newInjectionButton);
-                        newInjectionButton.addActionListener(new ActionListener() {
-
-                            @Override
-                            public void actionPerformed(ActionEvent ae) {
-                                InjectionInformation ininfo = new InjectionInformation(0, 1, 1000, new Material("neu", 1000, true), 0, 1);
-                                control.getLoadingCoordinator().addManualInjection(ininfo);
-                                control.recalculateInjections();
-                                SingleControllPanel.this.updateGUI();
-                            }
-                        });
-
-                        panelInjections.revalidate();
-
 //                            System.out.println("stop is showing? " + panelLoadingStatusStop.isShowing() + "  visible? " + panelLoadingStatusStop.isVisible() + "  is valid? " + panelLoadingStatusStop.isValid());
                         if (!panelLoadingStatusStop.isShowing()) {
                             panelLoadingStatus.removeAll();
                             panelLoadingStatus.add(panelLoadingStatusStop);
                         }
+
+                        updatePanelInjectuions();
 
                         if (control.getLoadingCoordinator().isLoading()) {
                             if (currentAction != null) {
@@ -1642,6 +1597,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //                                System.out.println("update thread revoken");
                             }
                         }
+
                         panelLoadingStatusStart.revalidate();
                         panelLoadingStatusStop.revalidate();
                     } catch (Exception e) {
@@ -1652,6 +1608,63 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             }
         };
         updateThread.start();
+    }
+
+    private void updatePanelInjectuions() {
+        //Update Injections Information
+        if (control.getLoadingCoordinator() == null || control.getLoadingCoordinator().getInjections() == null) {
+//                            System.out.println("remove Injections");
+            panelInjections.removeAll();
+        }
+
+        if (control.getLoadingCoordinator() != null && control.getLoadingCoordinator().getInjections() != null) {
+
+            if (control.getLoadingCoordinator().getInjections().size() != panelInjections.getComponentCount() - 1) {
+
+                if (panelInjections.getBorder() != null && panelInjections.getBorder() instanceof TitledBorder) {
+                    ((TitledBorder) panelInjections.getBorder()).setTitle(control.getLoadingCoordinator().getInjections().size() + " Injections");
+                }
+//                                System.out.println("new size: injections: " + (control.getLoadingCoordinator().getInjections().size()) + "  componennts: " + panelInjections.getComponentCount());
+                panelInjections.removeAll();
+                ArrayList<InjectionInformation> injections = control.getLoadingCoordinator().getInjections();
+                if (injections.isEmpty()) {
+                    panelInjections.setLayout(new BorderLayout());
+                    panelInjections.add(new JLabel("No Injections"), BorderLayout.NORTH);
+                } else {
+                    BoxLayout layout = new BoxLayout(panelInjections, BoxLayout.Y_AXIS);
+                    panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
+                    try {
+                        for (final InjectionInformation inj : injections) {
+                            InjectionPanel ip = new InjectionPanel(inj, mapViewer, paintManager);
+                            panelInjections.add(ip);
+
+                            //Create popup to delete this injection 
+                            JPopupMenu popup = new JPopupMenu();
+                            JMenuItem itemdelete = new JMenuItem("Delete from list");
+                            popup.add(itemdelete);
+                            itemdelete.addActionListener(new ActionListener() {
+
+                                @Override
+                                public void actionPerformed(ActionEvent ae) {
+                                    control.getLoadingCoordinator().getInjections().remove(inj);
+                                    control.recalculateInjections();
+                                    SingleControllPanel.this.updateGUI();
+                                }
+                            });
+                            ip.setComponentPopupMenu(popup);
+                        }
+                    } catch (Exception e) {
+                    }
+
+                }
+            }
+        } else {
+            panelInjections.setLayout(new BorderLayout());
+            panelInjections.add(new JLabel("Injections = null"));
+
+        }
+
+        panelInjections.revalidate();
     }
 
 }

@@ -76,7 +76,7 @@ import org.opengis.referencing.operation.TransformException;
  *
  * @author saemann
  */
-public class LoadingCoordinator implements LoadingActionListener {
+public class LoadingCoordinator {
 
     private SpillScenario scenario;
     private boolean changedSurface;
@@ -306,8 +306,11 @@ public class LoadingCoordinator implements LoadingActionListener {
                         action.description = "Load Scenario";
                         action.progress = 0f;
                         fireLoadingActionUpdate();
-
-                        control.loadScenario(scenario);
+                        for (LoadingActionListener ll : listener) {
+                            
+                            ll.loadScenario(scenario, this);
+                        }
+//                        control.loadScenario(scenario);
                     }
                     //Inform controller about updated timecontainer.
 //                    action.description = "GC clean up";
@@ -423,12 +426,19 @@ public class LoadingCoordinator implements LoadingActionListener {
         return null;
     }
 
+    /**
+     * Decodes the result file for pipe velocities and fills the
+     * discharge/velocity/massflux values in the pipes' and manholes' timelines.
+     *
+     * returns true if all information has been loaded successfully.
+     * @param nw
+     */
     private boolean loadPipeVelocities(Network nw) {
         loadingPipeResult = LOADINGSTATUS.LOADING;
         action.description = "Load pipe velocities";
         action.progress = 0;
         fireLoadingActionUpdate();
-
+        String scenarioName = "";
 //        if (loadOnlyMainFile) {
         //Main File
         if (nw == null) {
@@ -455,6 +465,7 @@ public class LoadingCoordinator implements LoadingActionListener {
                         }
                     }
                     resultName = resultDatabase.readResultname();
+                    scenarioName = resultName;
                     action.description = "Load spill events";
                     if (this.loadResultInjections) {
                         he_injection = resultDatabase.readInjectionInformation();
@@ -612,7 +623,9 @@ public class LoadingCoordinator implements LoadingActionListener {
                     if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
 
                         p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
+                        scenarioName = resultDatabase.readResultname();
                     } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
+                        scenarioName = fileMainPipeResult.getName();
                         p = SWMM_IO.readTimeLines(fileMainPipeResult, nw);
                     } else {
                         throw new Exception("Not known filetype '" + fileMainPipeResult.getName() + "'");
@@ -639,106 +652,15 @@ public class LoadingCoordinator implements LoadingActionListener {
                 }
                 scenario.setTimesPipe(timeContainerPipe);
                 scenario.setTimesManhole(timeContainerManholes);
+                scenario.setName(scenarioName);
+                
                 loadingPipeResult = LOADINGSTATUS.LOADED;
+                return true;
             } catch (Exception ex) {
                 Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
                 loadingPipeResult = LOADINGSTATUS.ERROR;
             }
         }
-//        } 
-//        else {
-//            while (!list_loadingPipeResults.isEmpty()) {
-//                if (cancelLoading) {
-//                    System.out.println("   LoadingThread is interrupted -> break");
-//                    return false;
-//                }
-//                Pair<File, Boolean> file = null;
-//                try {
-//                    file = list_loadingPipeResults.removeFirst();
-//                    if (verbose) {
-//                        System.out.println("try load " + file.first);
-//                    }
-//                    Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(file.first, control.getNetwork());
-//                    PipeResultData data = new PipeResultData(file.first, file.first.getName(), p.first, p.second);
-//
-//                    if (file.second) {
-//                        if (clearOtherResults) {
-//                            //Remove all other timelines
-//                        }
-//                        control.getMultiInputData().add(0, data);
-//                        control.getThreadController().cleanFromParticles();
-//                        //Scenario laden only as mainresult
-//                        ArrayList<HEInjectionInformation> he_injection = resultDatabase.readInjectionInformation();//HE_Database.readInjectionInformation(file.first/*, 20000*/);
-//                        int materialnumber = 0;
-//                        for (HEInjectionInformation in : he_injection) {
-//                            Capacity c = null;
-//                            if (network == null) {
-//                                System.err.println("No network loaded. Can not apply Injection Information to Capacity '" + in.capacityName + "'.");
-//                                continue;
-//                            }
-//                            c = network.getCapacityByName(in.capacityName);
-//                            if (c == null) {
-//                                System.err.println("Could not find Capacity '" + in.capacityName + "' in Network.");
-//                                continue;
-//                            }
-//                            double start = (in.stattime - p.first.getFirstTime()) / 1000;
-//                            double duration = (in.endtime - p.first.getFirstTime()) / 1000 - start;
-//                            Material mat = in.material;
-//                            if (mat == null) {
-//                                mat = new Material("Schmutz " + materialnumber++, 1000, true);
-//                            }
-//                            int particlenumber = 20000;
-//                            InjectionInformation info;
-//                            if (in instanceof HE_MessdatenInjection) {
-//                                HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
-//
-//                                info = new InjectionInformation(c, p.first.getFirstTime(), mess.timedValues, mat, mess.getConcentration(), particlenumber);
-//
-//                            } else {
-//                                info = new InjectionInformation(c, 0, in.mass, particlenumber, mat, start, duration);
-//                            }
-//                            if (c instanceof Pipe) {
-//                                info.setPosition1D(((Pipe) c).getLength() * 0.5f);
-////                                System.out.println("loadc set position to " + info.getPosition1D());
-//                            }
-//                            if (manualInjections.contains(info)) {
-//                                manualInjections.remove(info);
-//                            }
-//                            if (verbose) {
-//                                System.out.println("Add injection: " + info.getMass() + "kg @" + in.capacityName + "  start:" + info.getStarttimeSimulationsAfterSimulationStart() + "s  last " + info.getDurationSeconds() + "s");
-//                            }
-//
-//                            manualInjections.add(info);
-//                        }
-//                        if (scenario == null) {
-//                            scenario = new SpillScenario(p.first, manualInjections);
-//                            scenario.setTimesPipe(p.first);
-//                            scenario.setTimesManhole(p.second);
-//                        }
-//                    } else {
-//                        control.getMultiInputData().add(data);
-//                    }
-//
-//                    loadingPipeResult = LOADINGSTATUS.LOADED;
-//                    return true;
-//                } catch (Exception ex) {
-//                    if (file != null && file.first != null) {
-//                        System.err.println("Problem with File " + file.first + "   main? " + file.second);
-//                    }
-//                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-//                    int n = JOptionPane.showConfirmDialog(null, "Load Pipenetwork with topological\ninformation of the result file?", "Network and Result not consistent.", JOptionPane.YES_NO_CANCEL_OPTION);
-//                    if (n == JOptionPane.YES_OPTION) {
-//                        requestLoading = true;
-//                        setPipeNetworkFile(file.first);
-//                        list_loadingPipeResults.addFirst(file);
-//                        loadingPipeResult = LOADINGSTATUS.REQUESTED;
-//                        fireLoadingActionUpdate();
-//                        break;
-//                    }
-//                    loadingPipeResult = LOADINGSTATUS.ERROR;
-//                }
-//            }
-//        }
         return false;
     }
 
@@ -1727,19 +1649,4 @@ public class LoadingCoordinator implements LoadingActionListener {
     public String getResultName() {
         return resultName;
     }
-
-    @Override
-    public void actionFired(Action action, Object source) {
-    }
-
-    @Override
-    public void loadNetwork(Network network, Object caller) {
-
-    }
-
-    @Override
-    public void loadSurface(Surface surface, Object caller) {
-
-    }
-
 }

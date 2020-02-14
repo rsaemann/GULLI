@@ -6,6 +6,7 @@
 package control.listener;
 
 import control.Action.Action;
+import control.scenario.Scenario;
 import model.surface.Surface;
 import model.topology.Network;
 
@@ -20,4 +21,6 @@ public interface LoadingActionListener {
     public void loadNetwork(Network network, Object caller);
     
     public void loadSurface(Surface surface, Object caller);
+    
+    public void loadScenario(Scenario scenario, Object caller);
 }

@@ -4,6 +4,7 @@ import control.Action.Action;
 import control.Controller;
 import control.listener.LoadingActionListener;
 import control.listener.SimulationActionListener;
+import control.scenario.Scenario;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -24,7 +25,7 @@ import model.topology.Network;
  *
  * @author saemann
  */
-public class ControllFrame extends JFrame implements ActionListener, LoadingActionListener, SimulationActionListener{
+public class ControllFrame extends JFrame implements ActionListener, LoadingActionListener, SimulationActionListener {
 
     private JCheckBox checkAlwaysOnTop;
     private JButton buttonHighlightVisualization;
@@ -34,7 +35,7 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
     private SingleControllPanel singleControl;
     private MultiControllPanel multiControl;
     private JPanel panelBottomButtons;
-    
+
     public ControllFrame(Controller controller, PaintManager pm) throws HeadlessException {
         super("Control");
         this.controller = controller;
@@ -100,6 +101,10 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
 
     @Override
     public void loadSurface(Surface surface, Object caller) {
+    }
+
+    @Override
+    public void loadScenario(Scenario scenario, Object caller) {
     }
 
     @Override

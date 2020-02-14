@@ -12,6 +12,7 @@ import control.listener.CapacitySelectionListener;
 import control.listener.LoadingActionListener;
 import control.listener.ParticleListener;
 import control.listener.SimulationActionListener;
+import control.scenario.Scenario;
 import control.scenario.injection.InjectionInformation;
 import io.extran.HE_Database;
 import io.SparseTimeLineDataProvider;
@@ -26,12 +27,14 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.geom.Point2D;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JCheckBoxMenuItem;
@@ -176,8 +179,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private final ColorHolder chContaminatedInlet = new ColorHolder(Color.GREEN, "Contaminated Inlet");
     private int contaminatedInlets = 0;
 
-    public static final DecimalFormat df = new DecimalFormat("0.0");
-    public static final DecimalFormat df3 = new DecimalFormat("0.000");
+    public static final DecimalFormat df1 = new DecimalFormat("0.0", DecimalFormatSymbols.getInstance(Locale.US));
+    public static final DecimalFormat df3 = new DecimalFormat("0.000", DecimalFormatSymbols.getInstance(Locale.US));
 
     public boolean drawPipesAsArrows = true;
 
@@ -2490,7 +2493,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
                 if (p.getSurrounding_actual() instanceof Pipe) {
                     Pipe pipe = (Pipe) p.getSurrounding_actual();
-                    information = information + ";Pipe " + pipe.getName() + ";relPos " + df.format(p.getPosition1d_actual() / pipe.getLength()) + "";
+                    information = information + ";Pipe " + pipe.getName() + ";relPos " + df1.format(p.getPosition1d_actual() / pipe.getLength()) + "";
 //                    Position3D ll = pipe.getPosition3D(p.getPosition1d_actual());
                 } else if (p.getSurrounding_actual() instanceof Manhole) {
                     Manhole mh = (Manhole) p.getSurrounding_actual();
@@ -2633,7 +2636,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         } else {
                             str.append(";").append(injection.getCapacity());
                         }
-                        str.append(";").append(injection.getMass()).append(" kg of;").append(injection.getMaterial());
+                        str.append(";").append(df3.format(injection.getMass())).append(" kg of;").append(injection.getMaterial());
                         str.append("; during ").append(injection.getNumberOfIntervals()).append(" timesteps");
                         LabelPainting lp = new LabelPainting(0, MapViewer.COLORHOLDER_LABEL, injection.getPosition(), str.toString().split(";"));
                         mapViewer.addPaintInfoToLayer(mapViewer.LAYER_KEY_LABEL, lp);
@@ -2751,7 +2754,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 //                + "Dist: " + df3.format(s.getDistance()) + "m  direct;"
                 + "N   : " + s.number_of_particles + ";"
                 + "Trvl: " + df3.format(s.sum_travelLength / s.number_of_particles) + "m  \u00D8;"
-                + "Time: " + df.format(s.sum_traveltime / (s.number_of_particles * 1000.)) + "s ~ " + df.format(s.sum_traveltime / (s.number_of_particles * 60000.)) + "min;"
+                + "Time: " + df1.format(s.sum_traveltime / (s.number_of_particles * 1000.)) + "s ~ " + df1.format(s.sum_traveltime / (s.number_of_particles * 60000.)) + "min;"
                 + "V   : " + df3.format((s.sum_travelLength / s.number_of_particles) / (s.sum_traveltime / (s.number_of_particles * 1000.))) + "m/s;"
                 + "Time: " + df3.format(s.minTravelTime / 60000.) + " - " + df3.format(s.maxTravelTime / 60000.) + "min;"
                 + "Dist: " + df3.format(s.minTravelLength) + " - " + df3.format(s.maxTravelLength) + "m;";
@@ -3323,6 +3326,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     @Override
     public void loadSurface(Surface surface, Object caller) {
         this.setSurface(surface);
+    }
+
+    @Override
+    public void loadScenario(Scenario scenario, Object caller) {
     }
 
     @Override

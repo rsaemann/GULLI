@@ -65,6 +65,8 @@ public abstract class Scenario {
     protected long starttime;
 
     protected long endtime;
+    
+    protected String name;
 
     public long getStartTime() {
         return starttime;
@@ -198,5 +200,15 @@ public abstract class Scenario {
         }
         return null;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    
 
 }

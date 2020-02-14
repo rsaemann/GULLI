@@ -20,6 +20,7 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
@@ -45,6 +46,7 @@ public class InjectionPanel extends JPanel {
     protected JButton buttonCoordinate;
     public static final DecimalFormat df = new DecimalFormat("0.###");
     protected JSpinner spinnerInjection, spinnerDuration;
+    protected JCheckBox checkInjectionDuration;
     protected SpinnerDateModel modelInjection;
     protected SpinnerNumberModel modelDuration;
     protected JSpinner.DateEditor dateEditorInjection, dateEditorDuration;
@@ -60,6 +62,7 @@ public class InjectionPanel extends JPanel {
     protected InjectionPanel(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super(new GridLayout(5, 2));
         this.setBorder(new LineBorder(Color.darkGray, 1, true));
+
         this.info = info;
         this.map = map;
         this.paintManager = paintManager;
@@ -74,7 +77,9 @@ public class InjectionPanel extends JPanel {
         dateEditorInjection = new JSpinner.DateEditor(spinnerInjection, "HH'h', mm'm', ss's'");
         dateEditorInjection.getTextField().setHorizontalAlignment(JTextField.RIGHT);
         spinnerInjection.setEditor(dateEditorInjection);
-        this.add(new JLabel("Inject @"));
+        checkInjectionDuration = new JCheckBox("Inject ", info.isActive());
+        checkInjectionDuration.setToolTipText("<html>Enables the spill at this start time after simulation start. <br>If disabled: no spill is released.</html>");
+        this.add(checkInjectionDuration);
         this.add(spinnerInjection);
 
         modelDuration = new SpinnerNumberModel(0., 0., Double.POSITIVE_INFINITY, 5);
@@ -114,10 +119,12 @@ public class InjectionPanel extends JPanel {
                 //surface position
                 if (info.getPosition() != null) {
                     buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
+                } else if (info.getTriangleID() >= 0) {
+                    buttonSetPosition.setText(info.getTriangleID() + " Triangle");
                 }
             }
 
-            if (info.getCapacity() == null) {
+            if (info.getCapacity() == null && info.getTriangleID() < 0) {
                 buttonSetPosition.setForeground(Color.red.darker());
             } else {
                 buttonSetPosition.setForeground(Color.darkGray);
@@ -145,6 +152,18 @@ public class InjectionPanel extends JPanel {
             }
         });
 
+        this.checkInjectionDuration.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                info.setActive(checkInjectionDuration.isSelected());
+                spinnerDuration.setEnabled(checkInjectionDuration.isSelected());
+                spinnerInjection.setEnabled(checkInjectionDuration.isSelected());
+                if (info.isChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                }
+            }
+        });
+
         this.spinnerParticles.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
@@ -159,7 +178,6 @@ public class InjectionPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent ae) {
                 info.getMaterial().setName(textname.getText());
-
             }
         });
 
@@ -185,6 +203,9 @@ public class InjectionPanel extends JPanel {
                     if (info.getPosition() != null) {
                         //No reference to network yet.
                     }
+                }
+                if (info.isChanged()) {
+                    setBorder(new TitledBorder("changed"));
                 }
             }
         });

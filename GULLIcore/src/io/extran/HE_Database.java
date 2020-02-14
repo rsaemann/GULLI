@@ -2184,6 +2184,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return db.readResultname();
     }
 
+    /**
+     * Gets the He2D result name. If this is a simulation without 2D, it will
+     * return the name of the HYSTEM EXTRAN simulation
+     *
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     */
     public String readResultname() throws SQLException, IOException {
         String name = "";
         Connection extran = getConnection();
@@ -2193,7 +2201,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
             //Resultset is empty
             rs.close();
             st.close();
-            return null;
+            rs = st.executeQuery("SELECT NAME FROM EXTRANPARAMETERSATZ");//This will only return 1 result row, because EXTRAN2DPARAMETERSATZ only contains one row after a single simulation.
+            if (!rs.isBeforeFirst()) {
+                //Resultset is empty
+                rs.close();
+                st.close();
+                return null;
+            }
+            rs.next();
+            name = rs.getString(1);
+            rs.close();
+            st.close();
+            return name;
         }
         rs.next();
         name = rs.getString(1);

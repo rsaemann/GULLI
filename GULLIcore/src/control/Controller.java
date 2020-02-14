@@ -183,7 +183,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
     }
 
-    public void loadScenario(Scenario sce) {
+    @Override
+    public void loadScenario(Scenario sce, Object caller) {
         currentAction.description = "load scenario";
         currentAction.startTime = System.currentTimeMillis();
         currentAction.hasProgress = false;
@@ -357,14 +358,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             //increasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);
-            double maxQ = -numberOfParticles * 2. *massPerParticle/ Math.abs(s);
+            double maxQ = -numberOfParticles * 2. * massPerParticle / Math.abs(s);
             double maxT = (-p + Math.sqrt(p * p - maxQ));
             double factor = duration / maxT;
 //            System.out.println("factor:" + factor);
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p + "\tfactor:" + factor + "  mass per PArticle=" + massPerParticle);
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle particle;
-                double q = -i * 2. *massPerParticle/ ( s);
+                double q = -i * 2. * massPerParticle / (s);
                 double t = (-p + Math.sqrt(p * p - q)) * factor;
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
                     particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);

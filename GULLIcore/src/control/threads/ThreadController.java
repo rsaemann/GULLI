@@ -29,6 +29,7 @@ import control.listener.LoadingActionListener;
 import control.listener.SimulationActionListener;
 import control.listener.ParticleListener;
 import control.maths.RandomArray;
+import control.scenario.Scenario;
 import control.scenario.injection.InjectionInformation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,6 +71,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      * Used to transform the Day time Back to Simulationtime of the scenario.
      */
     private long startOffset;
+
+   
 
     public static enum BARRIERS {
 
@@ -1047,6 +1050,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         for (ParticleThread pt : barrier_particle.getThreads()) {
             pt.setSurface(surface);
         }
+    }
+    
+     @Override
+    public void loadScenario(Scenario scenario, Object caller) {
+        
     }
 
     ////////////////If Particles are stored and controlled in this object
