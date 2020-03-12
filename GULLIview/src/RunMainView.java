@@ -108,9 +108,10 @@ public class RunMainView {
         //Fallback, if nothing was set in the GULLi.ini
 //        startFile = new File("F:\\GULLI_Input\\Modell2018_HE81\\E2D1T50_mehrFlaechen.result\\Ergebnis.idbr");
 //        startFile = new File("W:\\Hiwi-Homes\\Janina\\Hystem-Extran 8.2\\Hystem-Extran\\numDiff\\numDiff_4min_0amRand_Messwerte.idbr");
-//          startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Ergebnis.idbf");
+//          startFile = new File("C:\\Users\\saemann\\Desktop\\numDiff-Robert_Block30min_EXT.idbr");
 //        startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Model-Ex_E2DiT50_Schadstoff_EXT.idbr");
-        startFile = new File("F:\\ViktorPaper\\Ricklingen_Referenzloesung_Mai18\\Petristrasse_Obs_79_noGW.result\\Ergebnis.idbf");
+        startFile = new File("F:\\GULLI_Input\\Modell2018_HE82\\Ex2D_T10-D15-51_p10356_G3.result\\Ergebnis.idbr");
+//        startFile = new File("F:\\ViktorPaper\\Ricklingen_Referenzloesung_Mai18\\Petristrasse_Obs_79_noGW.result\\Ergebnis.idbf");
 //        startFile = new File("C:\\Users\\saemann\\Documents\\Hystem-Extran 8.1\\Hystem-Extran\\he81-Beispiel-Schmutzfracht-ungleichmäßig-E.idbr");
 //        startFile = new File("Y:\\EVUS\\Modelle\\Hannover\\EVUS_Hannover_gesamt2DAB\\HE2D_20190620_RobertDach.result\\Ergebnis.idbr");
 //        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
@@ -128,7 +129,7 @@ public class RunMainView {
         if (startFile.exists()) {
             //Try to crawl all dependent files from the information stored in the He result file.
             lc.requestDependentFiles(startFile, true, true);
-
+//            lc.setSurfaceTopologyDirectory(new File("W:\\EVUS\\Modell2018\\Modell2018_HE82\\2DModell_3m2.model"));
         } else {
             System.out.println("startfile does not exist");
         }

@@ -36,6 +36,7 @@ public class RandomArray {
     private final double[] gaussians, uniform;
     private int index = 0;
     private int indexU = 0;
+    private int indexRND=0;
     private Random r;
 
     public RandomArray(Random randomNumberGenerator, int numberOfValues) {
@@ -51,25 +52,36 @@ public class RandomArray {
         }
         index = 0;
         indexU = 0;
+        indexRND=0;
     }
 
     public double nextGaussian() {
-//        if (true) {
-//            return r.nextGaussian();
-//        }
+        if (true) {
+            return r.nextGaussian();
+        }
         index++;
         if (index >= gaussians.length) {
             index = 0;
+//            indexRND++;
+//            if(indexRND>=uniform.length){
+//                indexRND=0;
+//            }
+//            index=(int)(uniform[indexRND]*gaussians.length);
         }
 
         return gaussians[index];
     }
 
     public double nextDouble() {
-//        if(true)return r.nextDouble();
+        if(true)return r.nextDouble();
         indexU++;
         if (indexU >= uniform.length) {
             indexU = 0;
+//           indexRND++;
+//            if(indexRND>=uniform.length){
+//                indexRND=0;
+//            }
+//            indexU=(int)(uniform[indexRND]*uniform.length);
         }
 
         return uniform[indexU];
@@ -78,6 +90,7 @@ public class RandomArray {
     public void resetIndex() {
         this.index = 0;
         this.indexU = 0;
+        this.indexRND=0;
     }
 
     public int getIndex() {

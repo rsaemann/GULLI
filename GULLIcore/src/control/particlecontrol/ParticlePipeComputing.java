@@ -47,7 +47,7 @@ public class ParticlePipeComputing {
     private static int autoIncrement = 0;
 
     protected int id = autoIncrement++;
-    public static int maxloopsPerParticle = 50;
+    public static int maxloopsPerParticle = 100;
 
     public enum COMPUTING {
 
@@ -187,8 +187,8 @@ public class ParticlePipeComputing {
     }
 
     public void moveParticle(Particle p) {
-//        moveParticle4_transfersensitive(p);
-        moveParticle5_celltransmission(p);
+        moveParticle4_transfersensitive(p);
+//        moveParticle5_celltransmission(p);
     }
 
     /**
@@ -1443,10 +1443,10 @@ public class ParticlePipeComputing {
          * calculate spatial distance in this timestep.
          */
         float distance_adv = 0;
-        float distance_diff = 0;
+        float distance_diff =0;// (float) (diffusionDistance*rand.nextGaussian());
         float distance_total = 0;
         float resultVelocity = 0;
-        boolean forward = true;
+        boolean reverseDispersion = false; //flag true if dispersion is dominant and reverses advective direction
 
         /**
          * if ds is positive : advective dominant else diffusiv has higher
@@ -1463,10 +1463,13 @@ public class ParticlePipeComputing {
             float v = (float) pipe.getVelocity();
             distance_adv = v * (dt);
             p.setVelocity1d(v);
-            distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
+            distance_diff = (float) (calcDistanceTurbulentDiffusion(v)*rand.nextGaussian());
             distance_total = distance_adv + distance_diff;
             resultVelocity = distance_total / dt;
-            forward = !(distance_total < 0 ^ v < 0);
+            reverseDispersion = distance_adv*distance_total< 0;//!(distance_total < 0 ^ v < 0);
+//            if(!forward){
+//                System.out.println(forward+": "+(distance_total<0)+", "+(v<0));
+//            }
 
             neuePosition = position1d + distance_total;
             if (neuePosition < 0) {
@@ -1487,7 +1490,6 @@ public class ParticlePipeComputing {
                 moved = distance_total;
                 remaining_dt = 0;
                 c = pipe;
-
                 pipe.getMeasurementTimeLine().addParticle(p, 1f);
             }
 
@@ -1511,14 +1513,12 @@ public class ParticlePipeComputing {
             position1d = 0;
             while (remaining_dt > 0) {
                 if (loops > maxloopsPerParticle) {
-                    System.out.println(p + " in " + c + " exceeded maximum number of " + maxloopsPerParticle + " loops per timestep");
+                    System.out.println(p + " in " + c + " exceeded maximum number of " + maxloopsPerParticle + " loops per timestep, remain:"+remaining_dt+"\tdiffusion:"+distance_diff);
+                    break;
                 }
                 loops++;
                 try {
                     Manhole mh = (Manhole) c;
-//                    if (mh.getName().contains("MW-501")) {
-//                        System.out.println("starting from MW 501");
-//                    }
                     if (c.isSetAsOutlet()) {
                         p.setLeftSimulation();
                         p.setPosition1d_actual(0);
@@ -1528,7 +1528,7 @@ public class ParticlePipeComputing {
                     /**
                      * search only for outflowing connections
                      */
-                    Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, forward);
+                    Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, !reverseDispersion);
 
                     if (connection == null) {
                         //particle stays inside this manhole
@@ -1559,10 +1559,13 @@ public class ParticlePipeComputing {
                     float v = (float) pipe.getVelocity();
                     distance_adv = v * (remaining_dt);
                     p.setVelocity1d(v);
-                    distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian()) * remaining_dt / dt;
-                    distance_total = distance_adv + distance_diff;
+                    distance_diff = (float) (Math.sqrt(2*diffusionturbulentCoefficient*remaining_dt)*rand.nextGaussian());//float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian() * remaining_dt / dt);
+                    distance_total = distance_adv + distance_diff;//*remaining_dt/dt;
                     resultVelocity = distance_total / remaining_dt;
-                    forward = !(distance_total < 0 ^ v < 0);
+                    reverseDispersion = distance_adv*distance_total<0;//!(distance_total < 0 ^ v < 0);
+//                    if(!forward){
+//                        System.out.println("Manhole out:"+forward+" "+(distance_total < 0)+"\t"+(v < 0)+"   diff:"+distance_diff+"\tadv:"+distance_adv);
+//                    }
                     if (con.isStartOfPipe()) {
                         position1d = 0;
                     } else {
@@ -1574,33 +1577,41 @@ public class ParticlePipeComputing {
 //                    }
                     //Downstream Pipe
                     if (neuePosition < 0) {
+                        //System.out.println(position1d+" +" +distance_adv+"+"+distance_diff+" = \t"+distance_total);
                         moved = position1d;
                         timespend = Math.abs(moved / resultVelocity);
                         remaining_dt -= timespend;
                         neuePosition = 0;
                         c = pipe.getStartConnection().getManhole();
-                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        //if (moved > 0) {
+                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                       // }
                     } else if (neuePosition > pipe.getLength()) {
                         //rushed through this pipe and is now inside the next manhole
 
                         moved = pipe.getLength() - position1d;
-                        timespend = Math.abs(moved / resultVelocity);
+                        timespend = moved / resultVelocity;
+                        if(timespend<0){
+                            System.out.println("negative teimespend 134");
+                            timespend=-timespend;
+                        }
                         remaining_dt -= timespend;
                         c = pipe.getEndConnection().getManhole();
                         neuePosition = 0;
                         if (p.getClass().equals(HistoryParticle.class)) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
-                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                      //  if (moved > 0) {
+                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                      //  }
                     } else {
                         // Particle will end this timestep in this pipe.
                         moved = Math.abs(position1d - neuePosition);
                         timespend = Math.abs(moved / resultVelocity);
                         //position1d = neuePosition;
                         remaining_dt = 0;
-                        pipe.getMeasurementTimeLine().addParticle(p,timespend/dt);
+                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
                     }
-                   
 
                     p.addMovingLength(moved);
                 } catch (Exception e) {

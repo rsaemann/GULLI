@@ -168,6 +168,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.blue, new AxisKey("Q"), 0), "Time", "m³/s");
 
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.green, new AxisKey("lvl"), 0), "Time", "m");
+    private final TimeSeries volpipe0 = new TimeSeries(new SeriesKey("Volume", "V", "m³", new Color(100, 0, 255), new AxisKey("Vol"), 0), "Time", "m³");
 
     private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "msfx_ref_tot", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
     private final TimeSeries massflux = new TimeSeries(new SeriesKey("p. Massflux total", "mf_p_tot", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
@@ -214,6 +215,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_sum.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) hpipe0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
 
@@ -451,12 +453,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             ts.clear();
         }
 
-        TimeSeries v, q;
+        TimeSeries v, q,vol;
         TimeSeries hpipe;
         v = v0;
         q = q0;
+        vol=volpipe0;
         v.clear();
         q.clear();
+        vol.clear();
         hpipe = hpipe0;
         hpipe.clear();
         refMassfluxTotal.clear();
@@ -504,6 +508,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
                 q.addOrUpdate(time, tl.getDischarge(i));
                 hpipe.addOrUpdate(time, tl.getWaterlevel(i));
+                vol.addOrUpdate(time,tl.getVolume(i));
 
                 try {
                     moment1_refvorgabe.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment1[i]);
@@ -534,6 +539,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.collection.addSeries(v);
         this.collection.addSeries(q);
         this.collection.addSeries(hpipe);
+        this.collection.addSeries(vol);
 
         if (tlm != null && tlm.getContainer() != null) {
             float mass_sum = 0;
@@ -595,9 +601,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 }
 
-                float vol = tlm.getVolume(i);
-                if (!Double.isNaN(vol)) {
-                    m_vol.addOrUpdate(time, vol);
+                float vol_c = tlm.getVolume(i);
+                if (!Double.isNaN(vol_c)) {
+                    m_vol.addOrUpdate(time, vol_c);
                 }
 
                 double discharge = Math.abs(tl.getVelocity(tl.getTimeContainer().getTimeIndex(tlm.getContainer().getTimeMillisecondsAtIndex(i)))) / pipeLength;

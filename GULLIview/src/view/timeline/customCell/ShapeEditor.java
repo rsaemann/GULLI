@@ -325,7 +325,7 @@ public class ShapeEditor extends AbstractCellEditor
                     @Override
                     public Shape getShape() {
                         AffineTransform aft = new AffineTransform();
-                        aft.setToRotation(-0.5 * Math.PI);
+                        aft.setToRotation(0.5 * Math.PI);
                         return ((GeneralPath) ARROW_UP.getShape()).createTransformedShape(aft);
                     }
                 },
@@ -333,7 +333,7 @@ public class ShapeEditor extends AbstractCellEditor
                     @Override
                     public Shape getShape() {
                         AffineTransform aft = new AffineTransform();
-                        aft.setToRotation(0.5 * Math.PI);
+                        aft.setToRotation(-0.5 * Math.PI);
                         return ((GeneralPath) ARROW_UP.getShape()).createTransformedShape(aft);
                     }
                 };

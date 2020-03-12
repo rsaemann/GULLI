@@ -111,6 +111,21 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
+    public float getVolume(int temporalIndex) {
+        if (volume == null) {
+            if (waterlevel == null) {
+                //calculate fluid volume
+                container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
+            }
+            volume = new float[waterlevel.length];
+            for (int i = 0; i < waterlevel.length; i++) {
+                volume[i] = (float) (pipe.getProfile().getFlowArea(waterlevel[i]) * pipe.getLength());
+            }
+        }
+        return volume[temporalIndex];
+    }
+
+    @Override
     public float getDischarge(int temporalIndex) {
         if (flux == null) {
             container.loadTimelineFlux(this, pipeManualID, pipeName);
@@ -127,7 +142,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     @Override
-    public float getConcentration_reference(int temporalIndex,int material) {
+    public float getConcentration_reference(int temporalIndex, int material) {
         if (concentration_reference == null) {
             this.container.loadTimelineConcentration(this, pipeManualID, pipeName);
         }

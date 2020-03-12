@@ -51,17 +51,35 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
     public CALCULATION calculaion_Method = CALCULATION.LINEAR_INTERPOLATE;
 
     public ArrayTimeLinePipeContainer(TimeContainer time, int numberOfPipes) {
+        this(time, numberOfPipes, 0);
+    }
+
+    public ArrayTimeLinePipeContainer(TimeContainer time, int numberOfPipes, int numberOfMaterials) {
         super(time);
+        System.out.println("  number of times:"+time.getNumberOfTimes());
         this.numberOfPipes = numberOfPipes;
+        System.out.println("  velocities: ");
         this.velocity = new float[numberOfPipes * time.getNumberOfTimes()];
         this.volume = new float[numberOfPipes * time.getNumberOfTimes()];
         this.discharge = new float[numberOfPipes * time.getNumberOfTimes()];
+        System.out.println("  waterlevels: ");
         this.waterlevel = new float[numberOfPipes * time.getNumberOfTimes()];
-//        this.massflux_reference = new float[numberOfPipes * time.getNumberOfTimes()];
+        this.numberOfMaterials = numberOfMaterials;
+        if (numberOfMaterials > 0) {
+            System.out.println("  massflux for "+numberOfMaterials+" materials");
+            this.massflux_reference = new float[velocity.length][numberOfMaterials];
+            System.out.println("   ref: "+massflux_reference.length);
+            this.concentration_reference = new float[velocity.length][numberOfMaterials];
+        }
+        System.out.println("  all finished: ");
     }
 
     public ArrayTimeLinePipeContainer(long[] times, int numberOfPipes) {
-        this(new TimeContainer(times), numberOfPipes);
+        this(new TimeContainer(times), numberOfPipes,0);
+    }
+    
+     public ArrayTimeLinePipeContainer(long[] times, int numberOfPipes,int numberOfMaterials) {
+        this(new TimeContainer(times), numberOfPipes,numberOfMaterials);
     }
 
     public float[] getVelocityForTimeIndex(int timeIndex) {
@@ -137,6 +155,11 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
     @Override
     public long getEndTime() {
         return getLastTime();
+    }
+
+    public void setNumberOfMaterials(int numberOfMaterials) {
+        this.numberOfMaterials = numberOfMaterials;
+        initMass_Reference();
     }
 
     void initMass_Reference() {

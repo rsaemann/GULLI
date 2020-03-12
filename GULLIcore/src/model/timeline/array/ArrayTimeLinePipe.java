@@ -86,6 +86,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     public float getConcentration_reference_DoubleIndex(double temporalIndex, int materialIndex) {
         return (float) getValue_DoubleIndex(container.concentration_reference, temporalIndex,materialIndex);
     }
+    
+     @Override
+    public float getVolume(int temporalIndex) {
+        return container.volume[getIndex(temporalIndex)];
+    }
 
     @Override
     public float getWaterlevel(int temporalIndex) {
@@ -310,11 +315,11 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 //    }
     @Override
     public double getVolume() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+       return  container.volume[getIndex(container.getActualTimeIndex())];
     }
 
     @Override
     public String[] getMaterialNames() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return new String[1];
     }
 }

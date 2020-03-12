@@ -44,6 +44,14 @@ public interface TimeLinePipe {
      * @return
      */
     public float getWaterlevel(int temporalIndex);
+    
+    /**
+     * Volume in the pipe in cubic meters.
+     *
+     * @param temporalIndex
+     * @return
+     */
+    public float getVolume(int temporalIndex);
 
     /**
      * Volume Flow in pipe in [m³/s]

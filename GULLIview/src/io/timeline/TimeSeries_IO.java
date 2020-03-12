@@ -14,8 +14,13 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
+import org.jfree.data.statistics.BoxAndWhiskerItem;
+import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
 import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
@@ -255,19 +260,22 @@ public class TimeSeries_IO {
                 stbX.append(",");
                 stbY.append(",");
             }
-            stbX.append((item.getPeriod().getFirstMillisecond()-series.getDataItem(0).getPeriod().getFirstMillisecond()) / 60000.);
+            stbX.append((item.getPeriod().getFirstMillisecond() - series.getDataItem(0).getPeriod().getFirstMillisecond()) / 60000.);
             stbY.append(item.getValue().doubleValue());
         }
         stbX.append("];");
         stbY.append("];");
         bw.write(stbX + "\n");
         bw.write(stbY + "\n");
+        
+        String name=key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2");
 
-        bw.write("plot(x,y,'b-');\n");
+        bw.write("plot(x,y,'b-','DisplayName','"+name+"');\n");
 
-        bw.write("legend('" + key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "')\n");
+       // bw.write("legend('" + key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "')\n");
         bw.write("xlabel('Time [min]');\n");
         bw.write("ylabel('" + key.unit.replaceAll("³", "^3") + "');\n");
+         bw.write("legend SHOW\n");
 
         if (capacity_name != null) {
             bw.write("title('" + key.name + " in " + capacity_name + "');\n");
@@ -306,5 +314,84 @@ public class TimeSeries_IO {
                 exception.printStackTrace();
             }
         }
+    }
+
+    /**
+     *
+     * @param file
+     * @param dataset
+     * @param x_axisLabel
+     * @param xIsString if true, xa xis values are printed out in ''
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static void saveDatasetAsMatlab(File file, DefaultBoxAndWhiskerCategoryDataset dataset, String x_axisLabel, boolean xIsString) throws FileNotFoundException, IOException {
+        DecimalFormat df4=new DecimalFormat("0.####", DecimalFormatSymbols.getInstance(Locale.US));
+        OutputStream os = new FileOutputStream(file);
+        OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("ASCII"));
+        BufferedWriter bw = new BufferedWriter(osw);
+
+        bw.write("% Plot Dataset \n");
+
+        bw.write("% Created " + new Date().toLocaleString() + " with GULLI\n");
+
+        bw.write("figure(1)\n");
+        bw.write("hold off\n\n");
+        
+        bw.flush();
+        for (int r = 0; r < dataset.getRowCount(); r++) {
+            bw.append("%% ").append(dataset.getRowKey(r).toString()).append("\n");
+            StringBuilder stbX = new StringBuilder("x=[");
+            StringBuilder stbY = new StringBuilder("y=[");
+
+            for (int i = 0; i < dataset.getColumnCount(); i++) {
+                BoxAndWhiskerItem item = dataset.getItem(r, i);
+                if (i > 0) {
+                    stbX.append(",");
+                    stbY.append(",");
+                }
+                if (xIsString) {
+                    stbX.append("\'").append(dataset.getColumnKey(i)).append("\'");
+                } else {
+                    try {
+                        stbX.append(df4.format(Double.parseDouble((String) dataset.getColumnKey(i))));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        xIsString=true;
+                        stbX.append("\'").append(dataset.getColumnKey(i)).append("\'");
+                    }
+                }
+                
+                if (item == null) {
+                    System.out.println("Item [" + r + "," + i + "] is null");
+                    stbY.append("NaN");
+                } else {
+                    stbY.append(df4.format(item.getMedian()));
+                }
+            }
+            stbX.append("];");
+            stbY.append("];");
+            bw.write(stbX + "\n");
+            bw.write(stbY + "\n");
+
+            bw.write("plot(x,y,'x-','DisplayName','" + dataset.getRowKey(r).toString().replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "');\n");
+
+            bw.write("xlabel('" + x_axisLabel + "');\n");
+            if(r==0){
+                bw.write("hold on;\n");
+            }
+
+            bw.newLine();
+            bw.newLine();
+            bw.flush();
+        }
+        bw.write("title('Median');\n");
+        bw.write("legend SHOW");
+
+        bw.flush();
+        bw.close();
+        osw.close();
+        os.close();
+
     }
 }
