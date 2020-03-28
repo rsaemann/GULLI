@@ -256,6 +256,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         if (row >= getRowCount() || row < 0) {
             return;
         }
+        try{
         if (column == indexSort) {
             if (getRowCount() < 2) {
                 return;
@@ -333,6 +334,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             ((SeriesKey) collection.getSeries(row).getKey()).shape = (SHAPES) model.getValueAt(row, indexShape);
         }
         updatePanel();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     public void swapSeries(TimeSeriesCollection collection, int index0, int index1) {

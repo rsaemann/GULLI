@@ -17,7 +17,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
 import model.surface.Surface;
 import model.topology.Network;
 
@@ -31,9 +30,9 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
     private JButton buttonHighlightVisualization;
     private Controller controller;
 
-    private JTabbedPane tabs;
+//    private JTabbedPane tabs;
     private SingleControllPanel singleControl;
-    private MultiControllPanel multiControl;
+//    private MultiControllPanel multiControl;
     private JPanel panelBottomButtons;
 
     public ControllFrame(Controller controller, PaintManager pm) throws HeadlessException {
@@ -45,18 +44,19 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
 //        this.setUndecorated(true);
         this.getRootPane().setWindowDecorationStyle(JRootPane.NONE);
         // Tab panel
-        tabs = new JTabbedPane();
-        this.add(tabs, BorderLayout.CENTER);
+//        tabs = new JTabbedPane();
+//        this.add(tabs, BorderLayout.CENTER);
 //        tabs.setPreferredSize(new Dimension(180, tabs.getPreferredSize().height));
         // tab single control
         singleControl = new SingleControllPanel(controller.getThreadController(), controller, this, pm);
         singleControl.setPreferredSize(new Dimension(170, singleControl.getPreferredSize().height));
         JScrollPane scrollsingle = new JScrollPane(singleControl);
 
-        tabs.add("Single Event", scrollsingle);
+//        tabs.add("Single Event", scrollsingle);
+        this.add(scrollsingle,BorderLayout.CENTER);
 
         //tab multi controll
-        multiControl = new MultiControllPanel(controller);
+//        multiControl = new MultiControllPanel(controller);
 //        JScrollPane scrollMulti = new JScrollPane(multiControl);
 //        tabs.add("Multiple Events", scrollMulti);
 
@@ -88,7 +88,7 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
     }
 
     public MultiControllPanel getMultiControl() {
-        return multiControl;
+        return null;//multiControl;
     }
 
     @Override
