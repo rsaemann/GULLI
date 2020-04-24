@@ -1,6 +1,8 @@
 package model.timeline.array;
 
 /**
+ * Container holding the measurement timeline values for the samples taken in
+ * pipes.
  *
  * @author saemann
  */
@@ -27,7 +29,7 @@ public class ArrayTimeLineMeasurementContainer {
      */
     private boolean timespotmeasurement = false;
 
-    public double samplesPerTimeinterval;
+    public double samplesPerTimeinterval = 1;
     /**
      * Distance from an injection point to calculate the momentum of
      * concentration.
@@ -70,10 +72,12 @@ public class ArrayTimeLineMeasurementContainer {
 
         this.mass_type = new float[numberOfPipes * times.getNumberOfTimes()][numberOfContaminantTypes];
     }
-    
-    public void setNumberOfMaterials(int number){
-        if(this.numberOfContaminants==number)return;
-        this.numberOfContaminants=number;
+
+    public void setNumberOfMaterials(int number) {
+        if (this.numberOfContaminants == number) {
+            return;
+        }
+        this.numberOfContaminants = number;
         this.mass_type = new float[numberOfCapacities * times.getNumberOfTimes()][number];
     }
 
@@ -98,10 +102,11 @@ public class ArrayTimeLineMeasurementContainer {
 
     /**
      * Seconds per Timeindex between storing timesteps.
+     *
      * @return seconds
      */
     public double getDeltaTimeS() {
-        return times.getDeltaTimeMS()/1000.;
+        return times.getDeltaTimeMS() / 1000.;
     }
 
     public double getMomentum1_xc(int timeIndex) {
@@ -242,7 +247,5 @@ public class ArrayTimeLineMeasurementContainer {
     public int getNumberOfContaminants() {
         return numberOfContaminants;
     }
-    
-    
 
 }

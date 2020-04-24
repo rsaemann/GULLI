@@ -1463,10 +1463,13 @@ public class ParticlePipeComputing {
             float v = (float) pipe.getVelocity();
             distance_adv = v * (dt);
             p.setVelocity1d(v);
-            distance_diff = (float) (calcDistanceTurbulentDiffusion(v)*rand.nextGaussian());
+            distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
+//            if (distance_diff < 0) {
+//                distance_diff *= -1;
+//            }
             distance_total = distance_adv + distance_diff;
             resultVelocity = distance_total / dt;
-            reverseDispersion = distance_adv*distance_total< 0;//!(distance_total < 0 ^ v < 0);
+            reverseDispersion = distance_adv * distance_total < 0;//!(distance_total < 0 ^ v < 0);
 //            if(!forward){
 //                System.out.println(forward+": "+(distance_total<0)+", "+(v<0));
 //            }
@@ -1513,7 +1516,7 @@ public class ParticlePipeComputing {
             position1d = 0;
             while (remaining_dt > 0) {
                 if (loops > maxloopsPerParticle) {
-                    System.out.println(p + " in " + c + " exceeded maximum number of " + maxloopsPerParticle + " loops per timestep, remain:"+remaining_dt+"\tdiffusion:"+distance_diff);
+                    System.out.println(p + " in " + c + " exceeded maximum number of " + maxloopsPerParticle + " loops per timestep, remain:" + remaining_dt + "\tdiffusion:" + distance_diff);
                     break;
                 }
                 loops++;
@@ -1561,50 +1564,58 @@ public class ParticlePipeComputing {
                     p.setVelocity1d(v);
                     //TODO: FIX: Reassigning of next dispersive step causes too low velocities
                     //distance_diff  =(float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());//(float) (Math.sqrt(2*diffusionturbulentCoefficient*remaining_dt)*rand.nextGaussian());//float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian() * remaining_dt / dt);
-                    distance_total = distance_adv + (distance_diff*remaining_dt/dt);
+                    distance_total = distance_adv + (distance_diff * remaining_dt / dt);
                     resultVelocity = distance_total / remaining_dt;
-                    reverseDispersion = distance_adv*distance_total<0;//!(distance_total < 0 ^ v < 0);
-                    
+                    reverseDispersion = distance_adv * distance_total < 0;//!(distance_total < 0 ^ v < 0);
+
                     if (con.isStartOfPipe()) {
                         position1d = 0;
                     } else {
                         position1d = pipe.getLength();
                     }
                     neuePosition = position1d + distance_total;
-                    
+
                     //Downstream Pipe
                     if (neuePosition < 0) {
                         //System.out.println(position1d+" +" +distance_adv+"+"+distance_diff+" = \t"+distance_total);
                         moved = position1d;
                         timespend = Math.abs(moved / resultVelocity);
+//                        if (timespend <= 0) {
+//                            System.out.println("negative teimespend 123");
+//                            timespend = -timespend;
+//                        }
                         remaining_dt -= timespend;
                         neuePosition = 0;
                         c = pipe.getStartConnection().getManhole();
                         //if (moved > 0) {
-                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
-                       // }
+                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        // }
                     } else if (neuePosition > pipe.getLength()) {
                         //rushed through this pipe and is now inside the next manhole
 
                         moved = pipe.getLength() - position1d;
                         timespend = moved / resultVelocity;
-                        if(timespend<0){
-                            System.out.println("negative teimespend 134");
-                            timespend=-timespend;
-                        }
+//                        if (timespend <= 0) {
+//                            System.out.println("negative teimespend 134");
+//                            timespend = -timespend;
+//                        }
                         remaining_dt -= timespend;
                         c = pipe.getEndConnection().getManhole();
                         neuePosition = 0;
                         if (p.getClass().equals(HistoryParticle.class)) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
-                      //  if (moved > 0) {
-                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
-                      //  }
+                        //  if (moved > 0) {
+                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        //  }
                     } else {
                         // Particle will end this timestep in this pipe.
-                        moved = Math.abs( neuePosition-position1d);
+                        moved = Math.abs(neuePosition - position1d);
                         timespend = Math.abs(moved / resultVelocity);
+//                        if (timespend <= 0) {
+//                            System.out.println("negative teimespend 154");
+//                            timespend = -timespend;
+//                        }
                         remaining_dt -= timespend;
 //                        if(remaining_dt>0){
 //                            System.out.println("remaining: "+remaining_dt+" s");
@@ -1612,6 +1623,9 @@ public class ParticlePipeComputing {
                         //position1d = neuePosition;
                         remaining_dt = 0;
                         pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                    }
+                    if (timespend == 0) {
+                        break;
                     }
 
                     p.addMovingLength(moved);

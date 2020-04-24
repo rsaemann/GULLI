@@ -56,22 +56,22 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
 
     public ArrayTimeLinePipeContainer(TimeContainer time, int numberOfPipes, int numberOfMaterials) {
         super(time);
-        System.out.println("  number of times:"+time.getNumberOfTimes());
+//        System.out.println("  number of times:"+time.getNumberOfTimes());
         this.numberOfPipes = numberOfPipes;
-        System.out.println("  velocities: ");
+//        System.out.println("  velocities: ");
         this.velocity = new float[numberOfPipes * time.getNumberOfTimes()];
         this.volume = new float[numberOfPipes * time.getNumberOfTimes()];
         this.discharge = new float[numberOfPipes * time.getNumberOfTimes()];
-        System.out.println("  waterlevels: ");
+//        System.out.println("  waterlevels: ");
         this.waterlevel = new float[numberOfPipes * time.getNumberOfTimes()];
         this.numberOfMaterials = numberOfMaterials;
         if (numberOfMaterials > 0) {
-            System.out.println("  massflux for "+numberOfMaterials+" materials");
+//            System.out.println("  massflux for "+numberOfMaterials+" materials");
             this.massflux_reference = new float[velocity.length][numberOfMaterials];
-            System.out.println("   ref: "+massflux_reference.length);
+//            System.out.println("   ref: "+massflux_reference.length);
             this.concentration_reference = new float[velocity.length][numberOfMaterials];
         }
-        System.out.println("  all finished: ");
+//        System.out.println("  all finished: ");
     }
 
     public ArrayTimeLinePipeContainer(long[] times, int numberOfPipes) {
@@ -128,20 +128,20 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         return r;
     }
 
-    public double getMomentum1_xc(int timeIndex) {
-        if (massflux_reference == null) {
-            throw new NullPointerException("No reference mass in scenario applied to " + this.getClass());
-        }
-        double zaehler = 0;
-        double nenner = 0;
-        double c = 0;
-        for (int i = 0; i < distance.length; i++) {
-            c = massflux_reference[i * getNumberOfTimes() + timeIndex][0];
-            zaehler += distance[i] * c;
-            nenner += c;
-        }
-        return zaehler / nenner;
-    }
+//    public double getMomentum1_xc(int timeIndex) {
+//        if (massflux_reference == null) {
+//            throw new NullPointerException("No reference mass in scenario applied to " + this.getClass());
+//        }
+//        double zaehler = 0;
+//        double nenner = 0;
+//        double c = 0;
+//        for (int i = 0; i < distance.length; i++) {
+//            c = massflux_reference[i * getNumberOfTimes() + timeIndex][0];
+//            zaehler += distance[i] * c;
+//            nenner += c;
+//        }
+//        return zaehler / nenner;
+//    }
 
     public double getMomentum2_xc(int timeIndex) {
         return moment2[timeIndex];

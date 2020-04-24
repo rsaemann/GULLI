@@ -56,8 +56,8 @@ public abstract class SurfaceMeasurementRaster {
 
     public int status = -1;
 
-    public int[] statuse = new int[8];
-    volatile public TriangleMeasurement[] monitor = new TriangleMeasurement[8];
+    public int[] statuse;// = new int[8];
+    volatile public TriangleMeasurement[] monitor;// = new TriangleMeasurement[8];
 
     public abstract void reset();
 

@@ -72,8 +72,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     private long startOffset;
 
-   
-
     public static enum BARRIERS {
 
         HYDRODYNAMICS, PARTICLE, SYNC, POSITION
@@ -145,6 +143,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         this.control = control;
         this.control.addParticleListener(this);
         this.control.addActioListener(this);
+
+        //initialize number of threads on the surface 
+        if (control.getSurface() != null && control.getSurface().getMeasurementRaster() != null) {
+            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[numberParticleThreads];
+            control.getSurface().getMeasurementRaster().statuse = new int[numberParticleThreads];
+
+        }
 //        numberParallelParticleThreads = threads;
         //Start n threads 
         barrier_particle = new MultiThreadBarrier("ParticleBarrier", this);
@@ -191,14 +196,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         Pipe[] fullarray = control.getNetwork().getPipes().toArray(new Pipe[control.getNetwork().getPipes().size()]);
         syncThread_pipes.setPipes(fullarray);
-//        int fromIndex = 0;
-//        int numberofPipes = fullarray.length / barrier_sync.getThreads().size();
-//        for (int i = 0; i < barrier_sync.getThreads().size(); i++) {
-//            SynchronizationThreadPipe st = barrier_sync.getThreads().get(i);
-//            st.allFinished = false;
-//            st.setPipes(Arrays.copyOfRange(fullarray, fromIndex, Math.min(fullarray.length, fromIndex + numberofPipes)));
-//            fromIndex += numberofPipes + 1;
-//        }
+
+        //initialize number of threads on the surface 
+        if (control.getSurface() != null && control.getSurface().getMeasurementRaster() != null) {
+            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[barrier_particle.getThreads().size()];
+            control.getSurface().getMeasurementRaster().statuse = new int[control.getSurface().getMeasurementRaster().monitor.length];
+
+        }
 
         barrier_sync.setSimulationtime(simulationTimeMS);
         barrier_particle.setSimulationtime(simulationTimeMS);
@@ -231,9 +235,9 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         this.seed = seed;
         if (randomNumberGenerators != null) {
 //            System.out.println("resetRandom Seeds to length "+randomNumberGenerators.length);
-            Random r=new Random(seed);
+            Random r = new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize * 20 + 1));
+                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize * 30 + 3));
                 randomNumberGenerators[i] = newField;
             }
         }
@@ -1051,10 +1055,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             pt.setSurface(surface);
         }
     }
-    
-     @Override
+
+    @Override
     public void loadScenario(Scenario scenario, Object caller) {
-        
+
     }
 
     ////////////////If Particles are stored and controlled in this object

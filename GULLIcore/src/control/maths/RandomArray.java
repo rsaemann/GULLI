@@ -36,7 +36,15 @@ public class RandomArray {
     private final double[] gaussians, uniform;
     private int index = 0;
     private int indexU = 0;
-    private int indexRND=0;
+    private int indexRND = 0;
+    /**
+     * if true the random number will always be generated new. if false the
+     * apriori filled array is used. The array version can have reoccuring
+     * values, that causes non-uniform distributed results (when using a high
+     * number of simulation loops. Array version is much faster as the
+     * random-algorithm is very complex.
+     */
+    public static boolean alwaysGenerateNew = true;
     private Random r;
 
     public RandomArray(Random randomNumberGenerator, int numberOfValues) {
@@ -52,11 +60,11 @@ public class RandomArray {
         }
         index = 0;
         indexU = 0;
-        indexRND=0;
+        indexRND = 0;
     }
 
     public double nextGaussian() {
-        if (true) {
+        if (alwaysGenerateNew) {
             return r.nextGaussian();
         }
         index++;
@@ -73,7 +81,9 @@ public class RandomArray {
     }
 
     public double nextDouble() {
-        if(true)return r.nextDouble();
+        if (alwaysGenerateNew) {
+            return r.nextDouble();
+        }
         indexU++;
         if (indexU >= uniform.length) {
             indexU = 0;
@@ -90,14 +100,12 @@ public class RandomArray {
     public void resetIndex() {
         this.index = 0;
         this.indexU = 0;
-        this.indexRND=0;
+        this.indexRND = 0;
     }
 
     public int getIndex() {
         return index;
     }
-    
-    
 
     public boolean hasEqualValues(RandomArray other) {
         boolean equal = true;

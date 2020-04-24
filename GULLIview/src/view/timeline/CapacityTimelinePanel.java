@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -67,13 +68,12 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTitleAnnotation;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.event.ChartChangeEvent;
-import org.jfree.chart.event.ChartChangeEventType;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.Quarter;
 import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
@@ -104,8 +104,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     public boolean showMarkerLabelTime = true;
     protected String title;
 
-    public boolean showVelocityInformationInputPoints = true;
-
+    // public boolean showVelocityInformationInputPoints = true;
     protected DateAxis dateAxis;
     HashMap<String, Integer> yAxisMap = new HashMap<>(10);
     protected int numberUsedDataSetSlots = 0;
@@ -160,18 +159,18 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries moment2_delta_relative = new TimeSeries(new SeriesKey("Rel. Error 2.Moment ", "rel. Fehler 2.M (messung-ref)", "-", Color.orange, new AxisKey("Relative Error", "Relative Error [-]")));
 
     //Measures auflisten
-    private final AxisKey keymassFlux = new AxisKey("Massflux","Massflux [kg/s]");
-    private final AxisKey keyConcentration = new AxisKey("C","Concentration [kg/m³]");
+    private final AxisKey keymassFlux = new AxisKey("Massflux", "Massflux [kg/s]");
+    private final AxisKey keyConcentration = new AxisKey("C", "Concentration [kg/m³]");
     private final TimeSeries m_p = new TimeSeries(new SeriesKey("#Particles", "n", "-", Color.magenta, new AxisKey("Particle")), "Time", "");
     private final TimeSeries m_p_sum = new TimeSeries(new SeriesKey("Sum Particles", "Sum(n)", "-", Color.red, new AxisKey("Particle")), "Time", "");
     private final TimeSeries m_p_l = new TimeSeries(new SeriesKey("Particles/Length", "n/L", "1/m", Color.orange, new AxisKey("Particle per Length")), "Time", "");
     private final TimeSeries m_p_l_sum = new TimeSeries(new SeriesKey("\u03a3Particles/Length", "\u03a3n/L", "1/m", Color.orange), "Time", "");
     private final TimeSeries m_m = new TimeSeries(new SeriesKey("p. Mass", "m_p", "kg", Color.red, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 p. Mass ", "m_p", "kg", Color.orange, new AxisKey("Mass","Mass [kg]")), "Time", "");
+    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 p. Mass ", "m_p", "kg", Color.orange, new AxisKey("Mass", "Mass [kg]")), "Time", "");
     private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan, new AxisKey("Vol", "Volume [m³]")), "Time", "m³");
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
-    private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V","Velocity [m/s]"), 0), "Time", "m/s");
-    private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.blue, new AxisKey("Q","Discharge [m³/s]"), 0), "Time", "m³/s");
+    private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V", "Velocity [m/s]"), 0), "Time", "m/s");
+    private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.blue, new AxisKey("Q", "Discharge [m³/s]"), 0), "Time", "m³/s");
 
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.green, new AxisKey("lvl"), 0), "Time", "m");
     private final TimeSeries volpipe0 = new TimeSeries(new SeriesKey("Volume", "V", "m³", new Color(100, 0, 255), new AxisKey("Vol", "Volume [m³]"), 0), "Time", "m³");
@@ -224,6 +223,17 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
+        
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta_relative.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_messung.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_refvorgabe.getKey()).name, false);
+        
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta_relative.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_mess.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_ref.getKey()).name, false);
+        
 
         try {
             if (StartParameters.getPictureExportPath() != null) {
@@ -590,15 +600,21 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
             }
 
+            long moveVisiblePointToIntervalMid = 0;
+            if (!tlm.getContainer().isTimespotmeasurement()) {
+                moveVisiblePointToIntervalMid = (long) (-tlm.getContainer().getDeltaTimeS() * 500);
+            }
+
             for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
                 Date d;
                 if (showSimulationTime) {
-                    d = new Date(calcSimulationTime(tlm.getContainer().getTimeMillisecondsAtIndex(i), controller.getThreadController().getStartOffset()));
+                    d = new Date(calcSimulationTime(tlm.getContainer().getTimeMillisecondsAtIndex(i), controller.getThreadController().getStartOffset()) + (i == 0 ? 0 : moveVisiblePointToIntervalMid));
 //                    System.out.println(getClass()+" show simulation time: ORG: "+new Date(tlm.getContainer().getTimeMillisecondsAtIndex(i))+"   -> "+d);
                 } else {
-                    d = new Date(tlm.getContainer().getTimeMillisecondsAtIndex(i));
+                    d = new Date(tlm.getContainer().getTimeMillisecondsAtIndex(i) + (i == 0 ? 0 : moveVisiblePointToIntervalMid));
                 }
                 RegularTimePeriod time = new Millisecond(d);
+
                 int refTimeIndex = i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / tlm.getContainer().getNumberOfTimes();
 //                System.out.println(getClass()+".container.distance="+tlm.getContainer().distance+"\t Timeline:"+tl.getClass());
                 if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
@@ -608,22 +624,26 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //                    System.out.println("Moment1 (t="+i+")= "+m);
                     if (!Double.isNaN(m1) && m1 > 0) {
                         moment1_messung.addOrUpdate(time, m1);
-
+                        if (cont.moment1 != null) {
 //                        System.out.println(i + "/" + tlm.getContainer().getNumberOfTimes() + "    measurem: " + refTimeIndex + "/" + tl.getTimeContainer().getNumberOfTimes());
-                        double mref = cont.moment1[refTimeIndex];
-                        if (i > 0) {
-                            if (i == 1) {
-                                offset = mref - m1;
-                            }
-                            moment1_delta.addOrUpdate(time, m1 - mref + offset);
-                            moment1_delta_relative.addOrUpdate(time, (m1 - mref + offset) / mref);
+                            double mref = cont.moment1[refTimeIndex];
+                            if (i > 0) {
+                                if (i == 1) {
+                                    offset = mref - m1;
+                                }
+                                moment1_delta.addOrUpdate(time, m1 - mref + offset);
+                                moment1_delta_relative.addOrUpdate(time, (m1 - mref + offset) / mref);
 
-                            double m2 = tlm.getContainer().getMomentum2_xc(i, m1);
-                            moment2_mess.addOrUpdate(time, m2);
-                            double delta2=m2 - cont.getMomentum2_xc(refTimeIndex);
-                            moment2_delta.addOrUpdate(time, delta2);
-                            
-                            moment2_delta_relative.addOrUpdate(time, delta2/cont.getMomentum2_xc(refTimeIndex));
+                                double m2 = tlm.getContainer().getMomentum2_xc(i, m1);
+                                moment2_mess.addOrUpdate(time, m2);
+                                double m2ref = cont.moment2[refTimeIndex];//cont.getMomentum2_xc(refTimeIndex);
+                                moment2_ref.addOrUpdate(time, m2ref);
+                                double delta2 = m2 - m2ref;
+                                moment2_delta.addOrUpdate(time, delta2);
+                                if (i>10&&m2ref != 0) {
+                                    moment2_delta_relative.addOrUpdate(time, delta2 / m2ref);
+                                }
+                            }
                         }
                     }
 
@@ -757,8 +777,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         if (!moment2_delta.isEmpty()) {
             this.collection.addSeries(moment2_delta);
         }
-        
-         if (!moment2_delta_relative.isEmpty()) {
+
+        if (!moment2_delta_relative.isEmpty()) {
             this.collection.addSeries(moment2_delta_relative);
         }
 

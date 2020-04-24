@@ -28,12 +28,15 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import io.extran.HE_Database;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.logging.Level;
@@ -65,7 +68,7 @@ import org.opengis.referencing.FactoryException;
  */
 public class Geopackage_IO {
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         try {
             //Test creation of a single element
 //            GeoPackage gp=new GeoPackage(new File("F:\\geppackageDatabase.db"));
@@ -74,11 +77,19 @@ public class Geopackage_IO {
 //            gp.add(new FeatureEntry(), new AbstractFeatureCollection);
 
 //test output network
-            HE_Database he = new HE_Database(new File("F:\\GULLI_Input\\Modell2018_HE82\\Model.idbm"), true);
+            HE_Database he = new HE_Database(new File("E:\\EVUS\\Testmodell\\E2D1T50.result\\Ergebnis2.idbr"), true);
             Network nw = he.loadNetwork();
 
-            writeNetwork(nw, new File("F:\\"), "netzwerktest");
-            writeWGS84_Pipes(nw.getPipes(), "F:\\pipes.gpkg", "contaminatedPipes");
+            writeNetwork(nw, new File("E:\\EVUS"), "netzwerktest");
+
+            ArrayList<Geometry> geoms = new ArrayList<Geometry>();
+            GeometryFactory gf=new GeometryFactory();
+            for (Pipe pp : nw.getPipes()) {
+                Coordinate c0=pp.getStartConnection().getPosition().lonLatCoordinate();
+                Coordinate c1=pp.getEndConnection().getPosition().lonLatCoordinate();
+                geoms.add(gf.createLineString(new Coordinate[]{c0,c1}));
+            }
+            writeWGS84(geoms, "E:\\EVUS\\pipes.gpkg", "contaminatedPipes", false);
         } catch (IOException ex) {
             Logger.getLogger(Geopackage_IO.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException ex) {
@@ -312,7 +323,6 @@ public class Geopackage_IO {
      * @param collection
      * @param filePathName
      * @param layername
-     * @param switchCoordinates
      */
     public static void writeWGS84_Pipes(Collection<Pipe> collection, String filePathName, String layername) {
         if (collection.isEmpty()) {
@@ -359,7 +369,7 @@ public class Geopackage_IO {
                 sfb.add(p.getName());
                 sfb.add(p.getManualID());
                 sfb.add(p.getDecline());
-                
+
                 SimpleFeature f = sfb.buildFeature(null);
                 dfcollection.add(f);
             }
@@ -378,6 +388,204 @@ public class Geopackage_IO {
         } catch (Exception ex) {
             Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+    
+        public static void writeWGS84_Filtered(Collection<Geometry> collection, Class geometryFilter, String filePathName, boolean switchCoordinates) throws SchemaException, FactoryException {
+        try {
+
+
+            File directory = new File(filePathName).getParentFile();
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            if (!filePathName.endsWith(".gpkg")) {
+                filePathName += ".gpkg";
+            }
+            File outfile = new File(filePathName);
+            if (outfile.exists()) {
+                outfile.delete();
+            }
+
+           GeoPackage geopackage = new GeoPackage(outfile);
+           geopackage.init(); //Initialize database tables
+           geopackage.addCRS(4326); //set Coordinate reference system WGS84
+
+           //Manhole Schema
+           final SimpleFeatureType FEATURE = DataUtilities.createType(geometryFilter.getSimpleName(),
+                    "the_geom:" + geometryFilter.getSimpleName() + ":srid=4326" // <- the geometry attribute: Polygon type in WGS84 Latlon
+            );
+
+            SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(FEATURE);
+
+            DefaultFeatureCollection dfcollection = new DefaultFeatureCollection();
+            for (Geometry g : collection) {
+                if (g.getClass().isAssignableFrom(geometryFilter)) {
+                    //Change coords from lat/long to long/lat
+                    if (switchCoordinates) {
+                        g = (Geometry) g.clone();
+                        for (int i = 0; i < g.getCoordinates().length; i++) {
+                            double tempX = g.getCoordinates()[i].x;
+                            g.getCoordinates()[i].x = g.getCoordinates()[i].y;
+                            g.getCoordinates()[i].y = tempX;
+                        }
+                        g.geometryChanged();
+                    }
+                    sfb.add(g);
+                    SimpleFeature f = sfb.buildFeature(null);
+                    dfcollection.add(f);
+                }
+            }
+            FeatureEntry fe = new FeatureEntry();
+            fe.setLastChange(new Date());
+            fe.setBounds(ReferencedEnvelope.create(CRS.decode("EPSG:4326")));
+            fe.setDataType(Entry.DataType.Feature);
+            fe.setGeometryColumn(FEATURE.getGeometryDescriptor().getLocalName());
+            fe.setLastChange(new Date());
+            fe.setGeometryType(Geometries.getForName(FEATURE.getGeometryDescriptor().getType().getName().getLocalPart()));
+
+            geopackage.add(fe, dfcollection);
+            geopackage.close();
+        } catch (IOException ex) {
+            Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public static void writeWGS84_Converted(Collection<Geometry> collection, Class geometryType, String filePathName, boolean switchCoordinates) throws SchemaException, IOException, FactoryException {
+            File directory = new File(filePathName).getParentFile();
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            if (!filePathName.endsWith(".gpkg")) {
+                filePathName += ".gpkg";
+            }
+            File outfile = new File(filePathName);
+            if (outfile.exists()) {
+                outfile.delete();
+            }
+
+            GeoPackage geopackage = new GeoPackage(outfile);
+            geopackage.init();
+            geopackage.addCRS(4326);
+
+            //the_geom Schema
+            final SimpleFeatureType FEATURE = DataUtilities.createType(geometryType.getSimpleName(),
+                    "the_geom:" + geometryType.getSimpleName() + ":srid=4326" // <- the geometry attribute: Polygon type in WGS84 Latlon
+            );
+
+            SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(FEATURE);
+
+            DefaultFeatureCollection dfcollection = new DefaultFeatureCollection();
+            for (Geometry g : collection) {
+                //Change coords from lat/long to long/lat
+                if (switchCoordinates) {
+                    g = (Geometry) g.clone();
+                    for (int i = 0; i < g.getCoordinates().length; i++) {
+                        double tempX = g.getCoordinates()[i].x;
+                        g.getCoordinates()[i].x = g.getCoordinates()[i].y;
+                        g.getCoordinates()[i].y = tempX;
+                    }
+                    g.geometryChanged();
+                }
+                sfb.add(g);
+                SimpleFeature f = sfb.buildFeature(null);
+                dfcollection.add(f);
+            }
+            FeatureEntry fe = new FeatureEntry();
+            fe.setLastChange(new Date());
+            fe.setBounds(ReferencedEnvelope.create(CRS.decode("EPSG:4326")));
+            fe.setDataType(Entry.DataType.Feature);
+            fe.setGeometryColumn(FEATURE.getGeometryDescriptor().getLocalName());
+            fe.setLastChange(new Date());
+            fe.setGeometryType(Geometries.getForName(FEATURE.getGeometryDescriptor().getType().getName().getLocalPart()));
+
+            geopackage.add(fe, dfcollection);
+            geopackage.close();
+
+      
+    }
+
+    public static void writePonds(String filePathName, Geometry[] geoms, int[] id, int srid, String epsgString) throws SchemaException, FactoryException, IOException {
+       
+
+            File directory = new File(filePathName).getParentFile();
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            if (!filePathName.endsWith(".gpkg")) {
+                filePathName += ".gpkg";
+            }
+            File outfile = new File(filePathName);
+            if (outfile.exists()) {
+                outfile.delete();
+            }
+
+            GeoPackage geopackage = new GeoPackage(outfile);
+            geopackage.init();
+            geopackage.addCRS(4326);
+
+            //Geometry Schema
+            final SimpleFeatureType SCHEMETYPE = DataUtilities.createType("Geometry",
+                    "the_geom:Polygon:srid=" + srid + "," + // <- the geometry attribute
+                    "locmin_id:int,"
+                    + "area:float"
+            );
+
+            SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(SCHEMETYPE);
+
+            DefaultFeatureCollection collection = new DefaultFeatureCollection();
+            int counter1 = 0;
+            for (int i = 0; i < geoms.length; i++) {
+
+                Geometry g = geoms[i];
+                if (g == null) {
+                    continue;
+                }
+                Polygon[] polys = null;
+                if (g instanceof Polygon) {
+                    polys = new Polygon[]{(Polygon) g};
+                        //System.out.println("Regular Polygon "+i);
+                } else if (g instanceof MultiPolygon) {
+                    MultiPolygon mp = (MultiPolygon) g;
+                    polys = new Polygon[mp.getNumGeometries()];
+                    int counter = 0;
+                    for (int j = 0; j < g.getNumGeometries(); j++) {
+                        Geometry g1 = g.getGeometryN(j);
+                        if (g1 instanceof Polygon) {
+                            polys[j] = (Polygon) g1;
+                            counter++;
+                        }
+                    }
+                    System.out.println("Split Geometry " + i + " into " + counter + " Polygons.");
+                } else {
+                    System.out.println("Could not build Polygon out of " + g.getGeometryType());
+                }
+                if (polys != null) {
+                    for (Polygon poly : polys) {
+                        if (poly == null) {
+                            continue;
+                        }
+                        sfb.add(poly);
+                        sfb.add(i);
+                        sfb.add(poly.getArea());
+                        SimpleFeature f = sfb.buildFeature("" + counter1++);
+                        collection.add(f);
+                    }
+                }
+            }
+            
+            
+            FeatureEntry fe = new FeatureEntry();
+            fe.setLastChange(new Date());
+            fe.setBounds(ReferencedEnvelope.create(CRS.decode("EPSG:4326")));
+            fe.setDataType(Entry.DataType.Feature);
+            fe.setGeometryColumn(SCHEMETYPE.getGeometryDescriptor().getLocalName());
+            fe.setLastChange(new Date());
+            fe.setGeometryType(Geometries.getForName(SCHEMETYPE.getGeometryDescriptor().getType().getName().getLocalPart()));
+
+            geopackage.add(fe, collection);
+            geopackage.close();
+
+      
     }
 
 }

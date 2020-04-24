@@ -68,6 +68,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public double[][] weight;
 
     public boolean spatialInterpolationVelocity = true;
+    public boolean timeInterpolatedValues = true;
     public boolean calculateWeighted = false;
 
     private float[][] neighbourDistances;
@@ -138,8 +139,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     private long recalculationIntervallMS = 1000;// * 60 * 2;
 
     protected TimeIndexContainer times;
-
-    public boolean timeInterpolatedValues = true;
 
     protected long actualTime;
 
@@ -2141,12 +2140,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             if (timeInterpolatedValues) {
                 float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
                 float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
-                tofillVelocity[0]=vt_t[0]*(timeinvFrac)+vt_tp[0]*timeFrac;
-                tofillVelocity[1]=vt_t[1]*(timeinvFrac)+vt_tp[1]*timeFrac;
-            }else{
+                tofillVelocity[0] = vt_t[0] * (timeinvFrac) + vt_tp[0] * timeFrac;
+                tofillVelocity[1] = vt_t[1] * (timeinvFrac) + vt_tp[1] * timeFrac;
+            } else {
                 float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);
-                tofillVelocity[0]=vt_t[0];
-                tofillVelocity[1]=vt_t[1];
+                tofillVelocity[0] = vt_t[0];
+                tofillVelocity[1] = vt_t[1];
             }
             return tofillVelocity;
         }

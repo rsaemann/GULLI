@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 /**
+ * Class for number decoding from tetfiles without creation of STring-Objects.
  * This class can decode numbers from a filereader without mass creation of
  * char[] through split() operation.
  * 
@@ -194,6 +195,12 @@ public class NumberConverter {
         return true;
     }
 
+    /**
+     * Read and decode indices for mooreNeighbours when loading surface information
+     * @param toFill
+     * @return
+     * @throws IOException 
+     */
     public int[][] fillMooreNeighbours(int[][] toFill) throws IOException {
         char c;
 //        boolean lastWasSplitter = true;
@@ -202,7 +209,7 @@ public class NumberConverter {
         char splitNeighbours = ' ';
         int indexComma = -1;
         int neighbours = 0;
-        int index = 0;
+        int index;
         for (int i = 0; i < buffer.length; i++) {
             if (reader.ready()) {
                 c = (char) reader.read();
@@ -395,7 +402,7 @@ public class NumberConverter {
         return buffer.length;
     }
 
-    public static void main(String[] args) throws FileNotFoundException, IOException {
+    public static void main0(String[] args) throws FileNotFoundException, IOException {
         parseDoubleFromToInclude(new char[]{'8', '7', ',', '6', '5'}, 0, 4);
         System.out.println('.' == 46);
         System.out.println("'0'=" + (int) '0');

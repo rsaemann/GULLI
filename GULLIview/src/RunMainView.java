@@ -1,5 +1,4 @@
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import control.Controller;
 import control.LoadingCoordinator;
@@ -10,7 +9,7 @@ import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing2D;
 import control.scenario.injection.InjectionInformation;
 import io.GeoJSON_IO;
-import io.SHP_IO_GULLI;
+import io.Geopackage_IO;
 import io.extran.HE_SurfaceIO;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -28,7 +27,6 @@ import model.GeoPosition;
 import model.particle.Material;
 import model.topology.Manhole;
 import org.jfree.ui.action.ActionMenuItem;
-import org.opengis.referencing.operation.TransformException;
 import org.openstreetmap.gui.jmapviewer.source.MyOSMTileSource;
 import view.MapViewer;
 import view.SimpleMapViewerFrame;
@@ -37,7 +35,7 @@ import view.ViewController;
 /**
  * The Run Class to start the GUI with a Simulation. After the run, shapefiles
  * with the contaminated area are created inside the input folder.
- * Generic_unsteady_lagrangian_locatIng
+ * Generic_Urban_transport_for pollution_with_Lagrangian_aspect_for_Location_tracIng
  *
  *
  *
@@ -59,26 +57,16 @@ public class RunMainView {
      * @throws Exception
      */
     public static void main(String[] args) throws Exception {
-//        try {
-//            for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-//                if ("Nimbus".equals(info.getName())) {
-//                    UIManager.setLookAndFeel(info.getClassName());
-//                    break;
-//                }
-//            }
-//        } catch (Exception e) {
+
         // If Nimbus is not available, you can set the GUI to another look and feel.
-        UIManager.setLookAndFeel(
-                UIManager.getCrossPlatformLookAndFeelClassName());
-//            UIManager.getSystemLookAndFeelClassName());
-//        }
+        UIManager.setLookAndFeel( UIManager.getCrossPlatformLookAndFeelClassName());
 
 //            
         //Der Controller koordiniert alle einzelnen Module und startet die Benutzeroberfläche.
         //Control links all model and io components and stores the mesh and all simulation-related information
         final Controller control = new Controller();
         //ViewController links the Controller to the GUI
-        ViewController vcontroller = new ViewController(control);
+        final ViewController vcontroller = new ViewController(control);
         //The Main Frame containing the Map.
         final SimpleMapViewerFrame frame = vcontroller.getMapFrame();
 
@@ -104,32 +92,13 @@ public class RunMainView {
         // Give the path to the HYSTEM EXTRAN RESULT FILE under the Key "StartFile=".
         File startFile = new File(StartParameters.getStartFilePath());
 
-//        if (startFile == null || !startFile.exists()) {
+       if (startFile == null || !startFile.exists()) {
         //Fallback, if nothing was set in the GULLi.ini
 //        startFile = new File("F:\\GULLI_Input\\Modell2018_HE81\\E2D1T50_mehrFlaechen.result\\Ergebnis.idbr");
-//        startFile = new File("W:\\Hiwi-Homes\\Janina\\Hystem-Extran 8.2\\Hystem-Extran\\numDiff\\numDiff_4min_0amRand_Messwerte.idbr");
-//          startFile = new File("C:\\Users\\saemann\\Desktop\\numDiff-Robert_Block30min_EXT.idbr");
-//        startFile = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Model-Ex_E2DiT50_Schadstoff_EXT.idbr");
-        startFile = new File("F:\\GULLI_Input\\Modell2018_HE82\\Ex2D_T10-D15-51_p10356_G3.result\\Ergebnis.idbr");
-//        startFile = new File("F:\\ViktorPaper\\Ricklingen_Referenzloesung_Mai18\\Petristrasse_Obs_79_noGW.result\\Ergebnis.idbf");
-//        startFile = new File("C:\\Users\\saemann\\Documents\\Hystem-Extran 8.1\\Hystem-Extran\\he81-Beispiel-Schmutzfracht-ungleichmäßig-E.idbr");
-//        startFile = new File("Y:\\EVUS\\Modelle\\Hannover\\EVUS_Hannover_gesamt2DAB\\HE2D_20190620_RobertDach.result\\Ergebnis.idbr");
-//        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
-//        startFile = new File("L:\\Model-Extr_BLD3V1,2_EXT.idbr");
-//         startFile = new File("F:\\muster-modelldatenbank_janina-Janina_EXT.idbr");
-//        startFile=new File("W:\\EVUS\\ITWH_Rechnungen_neu_3\\0-120\\Ex2D_T10-D15-51_p10356_G3\\Ergebnis.idbf");
-//        lc.setSurfaceTopologyDirectory(new File("W:\\\\EVUS\\\\Modell2017MaiResultsBora\\\\2D_Model\\\\2DModell_10cm_3m2_Mit_BK.model"));
-//         Surface surf = HE_SurfaceIO.loadSurface(new File("W:\\EVUS\\Modell2017MaiResultsBora\\2D_Model\\2DModell_10cm_3m2_Mit_BK.model"));
-//        areagenerator.controller.getLoadingCoordinator().setSurfaceTopologyDirectory(new File("W:\\EVUS\\Modell2017MaiResultsBora\\2D_Model\\2DModell_10cm_3m2_Mit_BK.model"));
-//        areagenerator.controller.loadSurface(surf, filter);
-//        
-//        areagenerator.controller.getLoadingCoordinator().mapManholes(surf, areagenerator.network);
-//        areagenerator.controller.getLoadingCoordinator().mapStreetInlets(surf, areagenerator.network);
-//        }
+        }
         if (startFile.exists()) {
             //Try to crawl all dependent files from the information stored in the He result file.
             lc.requestDependentFiles(startFile, true, true);
-//            lc.setSurfaceTopologyDirectory(new File("W:\\EVUS\\Modell2018\\Modell2018_HE82\\2DModell_3m2.model"));
         } else {
             System.out.println("startfile does not exist");
         }
@@ -139,12 +108,22 @@ public class RunMainView {
 //                lc.setPipeResultsFile(NETWORKVELOCITIES);
 //                lc.setSurfaceTopologyDirectory(SURFACE DIRECTORY);
 //                lc.setSurfaceWaterlevelFile(SURFACEWATERLEVELANDVELOCITY);
-        //Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
+       
+
+//Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
         lc.loadingFinishedListener.add(new Runnable() {
             @Override
             public void run() {
+                
+           
+                
                 try {
-//                    control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+                    if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
+                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+                        System.out.println("Changed sampling to simgel sample at end of interval");
+                    }else{
+                        System.err.println("Could not change sampling to simgel sample at end of interval");
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -158,18 +137,18 @@ public class RunMainView {
                         ParticlePipeComputing.spillOutToSurface = true;
 
                         //3 injections scenario 
+                        if(control.getNetwork()==null){
+                            System.err.println("There is no Pipe network for the simulation.");
+                            return;
+                        }
                         int anzahl = 100000 / 3;
                         Manhole mh = control.getNetwork().getManholeByName("RI09S515");
                         if (mh != null) {
                             System.out.println("add 3 Injection at " + mh);
                             try {
-//                            lc.addManualInjection(new InjectionInformation(226429, 10, 100000, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
-//                            for (InjectionInformation injection : lc.getInjections()) {
-//                                injection.setSpillPipesystem(false);
-//                            }
                             } catch (NullPointerException nullPointerException) {
                                 System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
                             }
@@ -180,14 +159,6 @@ public class RunMainView {
                         //~30 sek
                         //Viktor Paper scenario 
                         Manhole mh = control.getNetwork().getManholeByName("RI05S516");
-                        try {
-                            Coordinate pos = control.getSurface().getGeotools().toUTM(mh.getPosition().lonLatCoordinate(), true);
-//                            control.getSurface().setMeasurementRaster(SurfaceMeasurementRectangleRaster.RasterFocusOnPoint(pos.x, pos.y, true, 10, 10, 60, 50, 1, control.getSurface().getTimes()));
-//SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(control.getSurface(), 100, 100));
-
-                        } catch (TransformException ex) {
-                            Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
-                        }
                         int anzahl = 100000;
                         mh = control.getNetwork().getManholeByName("MU08S561");
                         System.out.println("add 1 Injection at " + mh);
@@ -324,6 +295,7 @@ public class RunMainView {
                                     File shxfile = new File(parent + name + ".shx");
                                     File jsonfile = new File(parent + name + ".json");
                                     File csvFile = new File(parent + name + ".csv");
+                                    File gpckFile = new File(parent + name + ".gpkg");
                                     //Delete old files
                                     if (shpfile.exists()) {
                                         shpfile.delete();
@@ -331,8 +303,12 @@ public class RunMainView {
                                     if (shxfile.exists()) {
                                         shxfile.delete();
                                     }
-                                    SHP_IO_GULLI.writeWGS84(shapes, shpfile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
-                                    System.out.println("Shapefiles written to " + shpfile.getAbsolutePath());
+                                    if (gpckFile.exists()) {
+                                        gpckFile.delete();
+                                    }
+                                    //SHP_IO_GULLI.writeWGS84(shapes, shpfile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
+                                    Geopackage_IO.writeWGS84(shapes, gpckFile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
+                                    System.out.println("Shapefiles written to " + gpckFile.getAbsolutePath());
                                     HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, control.getSurface());
 
                                     GeoJSON_IO geojson = new GeoJSON_IO();
@@ -408,5 +384,15 @@ public class RunMainView {
 
             tilesMenu.revalidate();
         }
+        
+        JMenuItem itemFrameReset=new JMenuItem("Reset Frames");
+        itemFrameReset.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                vcontroller.getTimeLineFrame().setBounds(vcontroller.getMapFrame().getX(), vcontroller.getMapFrame().getY(), 400, 400);
+            }
+        });
+        frame.getMenu_View().add(itemFrameReset);
     }
 }

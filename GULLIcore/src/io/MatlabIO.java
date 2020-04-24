@@ -64,11 +64,11 @@ public class MatlabIO {
 //        int numberOfParticles = 100000;
 //        Particle.massPerParticle =1./10.;
         //Zeitvektor t2 (sekunden) aufbauen
-        GregorianCalendar cal = new GregorianCalendar();
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
+//        GregorianCalendar cal = new GregorianCalendar();
+//        cal.set(Calendar.HOUR_OF_DAY, 0);
+//        cal.set(Calendar.MINUTE, 0);
+//        cal.set(Calendar.SECOND, 0);
+//        cal.set(Calendar.MILLISECOND, 0);
 
         MLArray t2a = mfr.getMLArray("t2");
         MLArray m1s = mfr.getMLArray("m1s");
@@ -77,11 +77,10 @@ public class MatlabIO {
         MLDouble t2 = (MLDouble) t2a;
         MLDouble m1 = (MLDouble) m1s;
         MLDouble m2 = (MLDouble) m2s;
-        System.out.println("first time: " + new Date(cal.getTimeInMillis()) + "   + times(1): " + t2.get(0));
+//        System.out.println("first time: " + new Date(cal.getTimeInMillis()) + "   + times(1): " + t2.get(0));
         times = new long[t2.getSize()];
         for (int i = 0; i < t2.getSize(); i++) {
-            times[i] = (long) (cal.getTimeInMillis() + (t2.get(i) * 1000));
-
+            times[i] = (long) ((t2.get(i) * 1000));
         }
 //        t2a = null;
         //Fließwerte für t2 auslesen

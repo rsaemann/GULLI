@@ -192,7 +192,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         if (enableDiffusion) {
             // calculate diffusion
-            if (totalvelocity > 0.0000001f) {
+            if (totalvelocity >0) {
                 //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
                 tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
                 double sqrt2dtDx = sqrt2dt * tempDiff[0];
