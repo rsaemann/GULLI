@@ -38,7 +38,6 @@ import control.threads.ParticleThread;
 import control.threads.ThreadController;
 import io.NamedPipe_IO;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,6 +48,8 @@ import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
+import model.timeline.array.TimeIndexCalculator;
+import model.timeline.array.TimeIndexContainer;
 import model.timeline.sparse.SparseTimeLinePipeContainer;
 import model.topology.Capacity;
 import model.topology.Connection;
@@ -524,6 +525,30 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
         currentAction.description = "";
     }
+    
+    /**
+     * use information of this scenario to initialise the sampling interval.
+     * The measuremnt timeline will have the exact same intervals as the pipes timeline.
+     * @param scenario 
+     */
+    public void initMeasurementTimelines(Scenario scenario){
+        initMeasurementTimelines(scenario, scenario.getTimesPipe().getNumberOfTimes()-1);
+    }
+    
+     public void initMeasurementTimelines(Scenario scenario, TimeIndexContainer times, int numberOfContaminants) {
+//        System.out.println(getClass() + "::initMeasurmenetTimeline with " + network.getPipes().size() + " Pipes");
+        ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
+        scenario.setMeasurementsPipe(container_m);
+        ArrayTimeLineMeasurementContainer.instance = container_m;
+        container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+        System.out.println("Simulation step: "+ThreadController.getDeltaTime()+"s\t sampleinterval:"+container_m.getDeltaTimeS()+" \t-> "+ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval+" samples per interval");
+ 
+        int number = 0;
+        for (Pipe p : network.getPipes()) {
+            p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
+            number++;
+        }
+    }
 
     public void initMeasurementTimelines(Scenario scenario, long[] times, int numberOfContaminants) {
 //        System.out.println(getClass() + "::initMeasurmenetTimeline with " + network.getPipes().size() + " Pipes");
@@ -564,14 +589,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      */
     public double initMeasurementTimelines(Scenario scenario, int numberOfIntervalls) {
 
-//        // USE statustimeline's dt
-//        double dt = (scenario.getEndTime() - scenario.getStartTime()) / ((numberOfIntervalls));
-//        if (dt > 5 * 60 * 1000) {
-//            dt = 5 * 60 * 1000;
-//        }
-//        //Manual input 1min:
-//        dt = 60 * 1000;
-//
         int n = numberOfIntervalls;//(int) ((this.scenario.getEndTime() - this.scenario.getStartTime()) / dt + 1);
         double dt = (scenario.getEndTime() - scenario.getStartTime()) / ((n));
         System.out.println("sample dt= "+dt+"ms.  duration:"+(scenario.getEndTime() - scenario.getStartTime()));
@@ -580,11 +597,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (int i = 0; i < times.length; i++) {
             times[i] = this.scenario.getStartTime() + (long) (i * dt);
         }
-//count different types of contaminants
+        //count different types of contaminants
         int numberContaminantTypes = 1;
         try {
             for (InjectionInformation injection : scenario.getInjections()) {
-                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex);
+                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex+1);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -598,7 +615,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * Set the number of sample intervals by definition of the number of
      * intervals
      *
-     * @param scenario
+     * @param scenarioStarttime
+     * @param deltatimeSeconds
      * @param numberOfIntervalls
      * @return seconds per interval
      */
@@ -615,7 +633,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         int numberContaminantTypes = 1;
         try {
             for (InjectionInformation injection : scenario.getInjections()) {
-                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex);
+                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex+1);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -633,6 +651,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario == null) {
             throw new NullPointerException("No Scenario loaded.");
         }
+        
+        if(scenario.getMeasurementsPipe()==null){
+            System.out.println("Initialize sampling intervals with input interval length as no user defined sampling was set.");
+            initMeasurementTimelines(scenario);
+        }
+        
         if (requestRecalculationOfInjections) {
             recalculateInjections();
         }

@@ -9,6 +9,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Shape;
 import java.awt.geom.Line2D;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -17,6 +18,8 @@ import javax.swing.JScrollPane;
 import model.timeline.RainGauge;
 import org.jfree.chart.LegendItem;
 import org.jfree.chart.LegendItemCollection;
+import org.jfree.chart.axis.DateTickUnit;
+import org.jfree.chart.axis.DateTickUnitType;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
@@ -51,6 +54,10 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
     private final JScrollPane scrollchecks;
 
     private Shape lineShapeForLegend = new Line2D.Float(-7, 3, 7, 3);
+
+    public boolean startAtZero = false;
+
+    public boolean showLegend = false;
 
     //Init Timeseries
     //Status
@@ -128,10 +135,16 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
         key.setVisible(false);
         TimeSeries ts = new TimeSeries(key);
         final long timespan = raingauge.getIntervallMinutes() * 60000L;
+
+        GregorianCalendar cal = new GregorianCalendar();
+
         for (int i = 0; i < raingauge.getPrecipitation().length; i++) {
             double niederschlagshoehe = raingauge.getPrecipitation()[i];
             long time = raingauge.getTimes()[i];
-            if (showSimulationTime) {
+
+            if (startAtZero) {
+                time = raingauge.getTimes()[i] - raingauge.getTimes()[0] - cal.getTimeZone().getRawOffset();
+            } else if (showSimulationTime) {
 //                time += timesShift;
                 time -= offset;
             }
@@ -249,6 +262,8 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
             ts.add(s, niederschlagshoehe);
         }
         key.timeseries = ts;
+        key.shapeFilled = false;
+        key.renderAsBar = true;
         return ts;
     }
 
@@ -321,85 +336,85 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
                 plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
             } else {
                 NumberAxis yAxis;
-                if (yAxisMap.containsKey(key.axis.name)) {
-                    indexDataset = yAxisMap.get(key.axis.name);
-                    yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
-                    dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
-                    indexSeries = dataset.getSeriesCount();
-                    dataset.addSeries(this.collection.getSeries(i));
-
-                    renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
-                    renderer.setSeriesStroke(indexSeries, key.stroke);
-
+//                if (yAxisMap.containsKey(key.axis.name)) {
+//                    indexDataset = yAxisMap.get(key.axis.name);
+//                    yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
+//                    dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
+//                    indexSeries = dataset.getSeriesCount();
+//                    dataset.addSeries(this.collection.getSeries(i));
+//
+//                    renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
+//                    renderer.setSeriesStroke(indexSeries, key.stroke);
+//
+//                } else {
+                // Axis key not yet in use. Build new Dataset for this Yaxis
+                indexDataset = numberUsedDataSetSlots;
+                numberUsedDataSetSlots++;
+                yAxisMap.put(key.axis.name, indexDataset);
+                indexSeries = 0;
+                if (key.axis.label != null) {
+                    yAxis = new NumberAxis(key.axis.label);
                 } else {
-                    // Axis key not yet in use. Build new Dataset for this Yaxis
-                    indexDataset = numberUsedDataSetSlots;
-                    numberUsedDataSetSlots++;
-                    yAxisMap.put(key.axis.name, indexDataset);
-                    indexSeries = 0;
-                    if (key.axis.label != null) {
-                        yAxis = new NumberAxis(key.axis.label);
-                    } else {
-                        yAxis = new NumberAxis("[" + key.unit + "]");
-                    }
-                    yAxisMap.put(yAxis.getLabel(), indexDataset);
-                    if (key.renderAsBar) {
+                    yAxis = new NumberAxis("[" + key.unit + "]");
+                }
+                yAxisMap.put(yAxis.getLabel(), indexDataset);
+                if (key.renderAsBar) {
 //                        System.out.println("Render " + key.name + " as barchart");
-                        XYBarRenderer barr = new XYBarRenderer(0);
-
-                        barr.setSeriesOutlinePaint(indexSeries, Color.BLUE);
-                        barr.setSeriesFillPaint(indexSeries, key.lineColor);
-                        barr.setSeriesOutlineStroke(indexSeries, key.stroke);
+                    XYBarRenderer barr = new XYBarRenderer(0);
+                    barr.setSeriesOutlinePaint(indexSeries, Color.blue);
+                    barr.setSeriesFillPaint(indexSeries, Color.cyan);
+                    barr.setSeriesOutlineStroke(indexSeries, key.stroke);
+                    barr.setSeriesPaint(indexSeries, new Color(100, 100, 255));
+                    //barr.setBaseFillPaint(Color.red);
 //                        barr.setBarAlignmentFactor(5);
-                        barr.setDrawBarOutline(true);
-                        barr.setShadowVisible(false);
+                    barr.setDrawBarOutline(true);
+                    barr.setShadowVisible(false);
 //                        barr.setUseYInterval(true);
+                    StandardXYBarPainter bp = new StandardXYBarPainter();
+                    barr.setBarPainter(bp);
 
-//                        series.getDataItem(0).getPeriod().getFirstMillisecond();
-                        barr.setBarPainter(new StandardXYBarPainter());
-
-                        renderer = barr;
-                        panelChart.getChart().getXYPlot().setRenderer(indexDataset, renderer);
-                    } else {
-                        renderer = new XYLineAndShapeRenderer(true, false);
-                        renderer.setSeriesStroke(indexSeries, key.stroke);
-                        plot.setRenderer(indexDataset, renderer);
-                    }
-                    yAxis.setAutoRangeIncludesZero(false);
-
-                    plot.setRangeAxis(indexDataset, yAxis);
-                    plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-                    dataset = new TimeSeriesCollection(this.collection.getSeries(i));
-                    plot.setDataset(indexDataset, dataset);
+                    renderer = barr;
+                    panelChart.getChart().getXYPlot().setRenderer(indexDataset, renderer);
+                } else {
+                    renderer = new XYLineAndShapeRenderer(true, false);
+                    renderer.setSeriesStroke(indexSeries, key.stroke);
+                    plot.setRenderer(indexDataset, renderer);
                 }
+                yAxis.setAutoRangeIncludesZero(false);
+
+                plot.setRangeAxis(indexDataset, yAxis);
                 plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                dataset = new TimeSeriesCollection(this.collection.getSeries(i));
+                plot.setDataset(indexDataset, dataset);
             }
+            plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+//            }
 
-            if (renderer instanceof XYLineAndShapeRenderer) {
-                ((XYLineAndShapeRenderer) renderer).setDrawSeriesLineAsPath(true);
-            }
-            if (key.lineColor != null) {
-                renderer.setSeriesPaint(indexSeries, key.lineColor);
-            }
-            if (key.stroke != null) {
-                renderer.setSeriesStroke(indexSeries, key.stroke);
-                renderer.setSeriesVisible(indexSeries, true);
-            } else {
-                renderer.setSeriesVisible(indexSeries, false);
-            }
-
-            if (key.shape != null && key.shape.getShape() != null) {
-                renderer.setSeriesShape(indexSeries, key.shape.getShape());
-                if (renderer instanceof XYLineAndShapeRenderer) {
-                    XYLineAndShapeRenderer r = (XYLineAndShapeRenderer) renderer;
-                    r.setSeriesShapesFilled(indexSeries, key.shapeFilled);
-                    r.setSeriesShapesVisible(i, true);
-                }
-
-                renderer.setSeriesVisible(indexSeries, true);
-            } else {
-                renderer.setSeriesShape(indexSeries, null);
-            }
+//            if (renderer instanceof XYLineAndShapeRenderer) {
+//                ((XYLineAndShapeRenderer) renderer).setDrawSeriesLineAsPath(true);
+//            }
+//            if (key.lineColor != null) {
+//                renderer.setSeriesPaint(indexSeries, key.lineColor);
+//            }
+//            if (key.stroke != null) {
+//                renderer.setSeriesStroke(indexSeries, key.stroke);
+//                renderer.setSeriesVisible(indexSeries, true);
+//            } else {
+//                renderer.setSeriesVisible(indexSeries, false);
+//            }
+//
+//            if (key.shape != null && key.shape.getShape() != null) {
+//                renderer.setSeriesShape(indexSeries, key.shape.getShape());
+//                if (renderer instanceof XYLineAndShapeRenderer) {
+//                    XYLineAndShapeRenderer r = (XYLineAndShapeRenderer) renderer;
+//                    r.setSeriesShapesFilled(indexSeries, key.shapeFilled);
+//                    r.setSeriesShapesVisible(i, true);
+//                }
+//
+//                renderer.setSeriesVisible(indexSeries, true);
+//            } else {
+//                renderer.setSeriesShape(indexSeries, null);
+//            }
             indexDataset++;
             LegendItem legendItem = new LegendItem(key.label, key.lineColor) {
 
@@ -432,7 +447,15 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
             legendItems.add(legendItem);
 //            System.out.println("set description of legend " + i + " to " + key.label);
         }
-        plot.setFixedLegendItems(legendItems);
+        if (showLegend) {
+            
+            panelChart.getChart().getLegend().setVisible(true);
+            plot.setFixedLegendItems(legendItems);
+        }else{
+            plot.clearAnnotations();
+            panelChart.getChart().getLegend().setVisible(false);
+        }
+
         if (matlabStyle) {
 
             MatlabLayout.layoutToMatlab(this.panelChart.getChart());
@@ -440,6 +463,9 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
         } else {
 
         }
+
+        dateAxis.setDateFormatOverride(new SimpleDateFormat("HH:mm"));
+        dateAxis.setTickUnit(new DateTickUnit(DateTickUnitType.MINUTE, 5));// plot.getRangeAxis()
 
     }
 }

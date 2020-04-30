@@ -83,6 +83,7 @@ public class StartParameters {
                     streetinletsPath = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("startFile=")) {
                     startFilePath = line.substring(line.indexOf("=") + 1);
+                    System.out.println("startfile read from ini is:'"+startFilePath+"'");
                 } else if (line.startsWith("subsurfaceVTU=")) {
                     pathUndergroundVTU = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("mapFrame")) {

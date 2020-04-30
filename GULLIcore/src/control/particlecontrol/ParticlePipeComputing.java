@@ -1630,7 +1630,7 @@ public class ParticlePipeComputing {
 
                     p.addMovingLength(moved);
                 } catch (Exception e) {
-                    System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual());
+                    System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual()+"  material index: "+p.getMaterial().materialIndex);
                     e.printStackTrace();
                     break;
                 }

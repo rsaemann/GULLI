@@ -426,7 +426,7 @@ public class AnalyticalChannel {
                 System.out.println("analytical concentration [" + i + "] is null");
                 continue;
             }
-            float x = (float) ((i + 0.5) * segmentlength);
+            float x = (float) ((i) * segmentlength);
             for (int j = 0; j < numberOfTimeIntervals; j++) {
                 tl.setConcentration_Reference(cp[j], j, 0);
                 tl.setMassflux_reference(cp[j] * tl.getDischarge(j), j, 0);

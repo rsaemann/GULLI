@@ -37,6 +37,7 @@ public class RandomArray {
     private int index = 0;
     private int indexU = 0;
     private int indexRND = 0;
+    
     /**
      * if true the random number will always be generated new. if false the
      * apriori filled array is used. The array version can have reoccuring
@@ -46,6 +47,8 @@ public class RandomArray {
      */
     public static boolean alwaysGenerateNew = true;
     private Random r;
+     public static int numberOfGaussLoops=0;
+     public static int numberOfDoubleLoops=0;
 
     public RandomArray(Random randomNumberGenerator, int numberOfValues) {
 //        System.out.println("new random array size "+numberOfValues);
@@ -70,6 +73,7 @@ public class RandomArray {
         index++;
         if (index >= gaussians.length) {
             index = 0;
+            numberOfGaussLoops++;
 //            indexRND++;
 //            if(indexRND>=uniform.length){
 //                indexRND=0;
@@ -87,6 +91,7 @@ public class RandomArray {
         indexU++;
         if (indexU >= uniform.length) {
             indexU = 0;
+            numberOfDoubleLoops++;
 //           indexRND++;
 //            if(indexRND>=uniform.length){
 //                indexRND=0;
@@ -101,6 +106,8 @@ public class RandomArray {
         this.index = 0;
         this.indexU = 0;
         this.indexRND = 0;
+        numberOfDoubleLoops=0;
+        numberOfGaussLoops=0;
     }
 
     public int getIndex() {

@@ -1050,6 +1050,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 frame.setBounds(SingleControllPanel.this.getBounds().x + SingleControllPanel.this.getBounds().width, SingleControllPanel.this.getBounds().y + 30, 400, 300);
                 //Timelinepanel
                 PrecipitationTimelinePanel timelinePanel = new PrecipitationTimelinePanel("Precipitation", control);
+                timelinePanel.startAtZero=true;
                 frame.add(timelinePanel, BorderLayout.CENTER);
                 File file = control.getLoadingCoordinator().getFilePipeResultIDBF();
                 if (file != null) {

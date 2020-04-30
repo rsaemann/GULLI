@@ -571,7 +571,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             public boolean paint(Graphics2D g2) {
 
                                 try {
-                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesUntil(pipe.getMeasurementTimeLine().getContainer().getActualTimeIndex()) + pipe.getMeasurementTimeLine().getNumberOfParticles() > 20) {
+                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesUntil(pipe.getMeasurementTimeLine().getContainer().getActualTimeIndex()) + pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
                                         g2.setColor(ch.color);
                                         g2.setStroke(stroke3pRound);
                                         super.paint(g2); //To change body of generated methods, choose Tools | Templates.

@@ -1511,7 +1511,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             } catch (NullPointerException nullPointerException) {
             }
             if (cap == null) {
-                System.err.println("Could not find Pipe with name '" + pipename + "' to apply a treetinlet next to it.");
+                System.err.println("Could not find Pipe with name '" + pipename + "' to apply a streetinlet next to it. (deprectaed call)");
                 continue;
             }
             //Transform Pipe to surface coordinates
@@ -1584,7 +1584,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             cap = capacityNames.get(capacityName);
 
             if (cap == null) {
-                System.err.println("Could not find Pipe with name '" + capacityName + "' to apply a treetinlet next to it.");
+                System.err.println("Could not find Pipe with name '" + capacityName + "' to apply a streetinlet next to it.");
                 continue;
             }
 
