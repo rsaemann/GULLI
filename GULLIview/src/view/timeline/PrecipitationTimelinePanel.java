@@ -336,85 +336,85 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
                 plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
             } else {
                 NumberAxis yAxis;
-//                if (yAxisMap.containsKey(key.axis.name)) {
-//                    indexDataset = yAxisMap.get(key.axis.name);
-//                    yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
-//                    dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
-//                    indexSeries = dataset.getSeriesCount();
-//                    dataset.addSeries(this.collection.getSeries(i));
-//
-//                    renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
-//                    renderer.setSeriesStroke(indexSeries, key.stroke);
-//
-//                } else {
-                // Axis key not yet in use. Build new Dataset for this Yaxis
-                indexDataset = numberUsedDataSetSlots;
-                numberUsedDataSetSlots++;
-                yAxisMap.put(key.axis.name, indexDataset);
-                indexSeries = 0;
-                if (key.axis.label != null) {
-                    yAxis = new NumberAxis(key.axis.label);
-                } else {
-                    yAxis = new NumberAxis("[" + key.unit + "]");
-                }
-                yAxisMap.put(yAxis.getLabel(), indexDataset);
-                if (key.renderAsBar) {
-//                        System.out.println("Render " + key.name + " as barchart");
-                    XYBarRenderer barr = new XYBarRenderer(0);
-                    barr.setSeriesOutlinePaint(indexSeries, Color.blue);
-                    barr.setSeriesFillPaint(indexSeries, Color.cyan);
-                    barr.setSeriesOutlineStroke(indexSeries, key.stroke);
-                    barr.setSeriesPaint(indexSeries, new Color(100, 100, 255));
-                    //barr.setBaseFillPaint(Color.red);
-//                        barr.setBarAlignmentFactor(5);
-                    barr.setDrawBarOutline(true);
-                    barr.setShadowVisible(false);
-//                        barr.setUseYInterval(true);
-                    StandardXYBarPainter bp = new StandardXYBarPainter();
-                    barr.setBarPainter(bp);
+                if (yAxisMap.containsKey(key.axis.name)) {
+                    indexDataset = yAxisMap.get(key.axis.name);
+                    yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
+                    dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
+                    indexSeries = dataset.getSeriesCount();
+                    dataset.addSeries(this.collection.getSeries(i));
 
-                    renderer = barr;
-                    panelChart.getChart().getXYPlot().setRenderer(indexDataset, renderer);
-                } else {
-                    renderer = new XYLineAndShapeRenderer(true, false);
+                    renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
                     renderer.setSeriesStroke(indexSeries, key.stroke);
-                    plot.setRenderer(indexDataset, renderer);
+
+                } else {
+                    // Axis key not yet in use. Build new Dataset for this Yaxis
+                    indexDataset = numberUsedDataSetSlots;
+                    numberUsedDataSetSlots++;
+                    yAxisMap.put(key.axis.name, indexDataset);
+                    indexSeries = 0;
+                    if (key.axis.label != null) {
+                        yAxis = new NumberAxis(key.axis.label);
+                    } else {
+                        yAxis = new NumberAxis("[" + key.unit + "]");
+                    }
+                    yAxisMap.put(yAxis.getLabel(), indexDataset);
+                    if (key.renderAsBar) {
+//                        System.out.println("Render " + key.name + " as barchart");
+                        XYBarRenderer barr = new XYBarRenderer(0);
+                        barr.setSeriesOutlinePaint(indexSeries, Color.blue);
+                        barr.setSeriesFillPaint(indexSeries, Color.cyan);
+                        barr.setSeriesOutlineStroke(indexSeries, key.stroke);
+                        barr.setSeriesPaint(indexSeries, new Color(100, 100, 255));
+                        //barr.setBaseFillPaint(Color.red);
+//                        barr.setBarAlignmentFactor(5);
+                        barr.setDrawBarOutline(true);
+                        barr.setShadowVisible(false);
+//                        barr.setUseYInterval(true);
+                        StandardXYBarPainter bp = new StandardXYBarPainter();
+                        barr.setBarPainter(bp);
+
+                        renderer = barr;
+                        panelChart.getChart().getXYPlot().setRenderer(indexDataset, renderer);
+                    } else {
+                        renderer = new XYLineAndShapeRenderer(true, false);
+                        renderer.setSeriesStroke(indexSeries, key.stroke);
+                        plot.setRenderer(indexDataset, renderer);
+                    }
+                    yAxis.setAutoRangeIncludesZero(false);
+
+                    plot.setRangeAxis(indexDataset, yAxis);
+                    plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                    dataset = new TimeSeriesCollection(this.collection.getSeries(i));
+                    plot.setDataset(indexDataset, dataset);
                 }
-                yAxis.setAutoRangeIncludesZero(false);
-
-                plot.setRangeAxis(indexDataset, yAxis);
                 plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-                dataset = new TimeSeriesCollection(this.collection.getSeries(i));
-                plot.setDataset(indexDataset, dataset);
             }
-            plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-//            }
 
-//            if (renderer instanceof XYLineAndShapeRenderer) {
-//                ((XYLineAndShapeRenderer) renderer).setDrawSeriesLineAsPath(true);
-//            }
-//            if (key.lineColor != null) {
-//                renderer.setSeriesPaint(indexSeries, key.lineColor);
-//            }
-//            if (key.stroke != null) {
-//                renderer.setSeriesStroke(indexSeries, key.stroke);
-//                renderer.setSeriesVisible(indexSeries, true);
-//            } else {
-//                renderer.setSeriesVisible(indexSeries, false);
-//            }
-//
-//            if (key.shape != null && key.shape.getShape() != null) {
-//                renderer.setSeriesShape(indexSeries, key.shape.getShape());
-//                if (renderer instanceof XYLineAndShapeRenderer) {
-//                    XYLineAndShapeRenderer r = (XYLineAndShapeRenderer) renderer;
-//                    r.setSeriesShapesFilled(indexSeries, key.shapeFilled);
-//                    r.setSeriesShapesVisible(i, true);
-//                }
-//
-//                renderer.setSeriesVisible(indexSeries, true);
-//            } else {
-//                renderer.setSeriesShape(indexSeries, null);
-//            }
+            if (renderer instanceof XYLineAndShapeRenderer) {
+                ((XYLineAndShapeRenderer) renderer).setDrawSeriesLineAsPath(true);
+            }
+            if (key.lineColor != null&&!key.renderAsBar) {
+                renderer.setSeriesPaint(indexSeries, key.lineColor);
+            }
+            if (key.stroke != null) {
+                renderer.setSeriesStroke(indexSeries, key.stroke);
+                renderer.setSeriesVisible(indexSeries, true);
+            } else {
+                renderer.setSeriesVisible(indexSeries, false);
+            }
+
+            if (key.shape != null && key.shape.getShape() != null) {
+                renderer.setSeriesShape(indexSeries, key.shape.getShape());
+                if (renderer instanceof XYLineAndShapeRenderer) {
+                    XYLineAndShapeRenderer r = (XYLineAndShapeRenderer) renderer;
+                    r.setSeriesShapesFilled(indexSeries, key.shapeFilled);
+                    r.setSeriesShapesVisible(i, true);
+                }
+
+                renderer.setSeriesVisible(indexSeries, true);
+            } else {
+                renderer.setSeriesShape(indexSeries, null);
+            }
             indexDataset++;
             LegendItem legendItem = new LegendItem(key.label, key.lineColor) {
 
@@ -448,10 +448,10 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
 //            System.out.println("set description of legend " + i + " to " + key.label);
         }
         if (showLegend) {
-            
+
             panelChart.getChart().getLegend().setVisible(true);
             plot.setFixedLegendItems(legendItems);
-        }else{
+        } else {
             plot.clearAnnotations();
             panelChart.getChart().getLegend().setVisible(false);
         }

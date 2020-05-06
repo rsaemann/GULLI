@@ -4,6 +4,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Polygon;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -12,6 +13,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Collection;
+import java.util.Locale;
 
 /**
  *
@@ -38,7 +40,7 @@ public class GeoJSON_IO {
     public boolean checkDoubleStrings = true;
 
     public GeoJSON_IO() {
-        DecimalFormatSymbols dfs = new DecimalFormatSymbols();
+        DecimalFormatSymbols dfs = new DecimalFormatSymbols(Locale.US);
         dfs.setDecimalSeparator('.');
         dfs.setGroupingSeparator(',');
         df = new DecimalFormat("0.#####", dfs);
@@ -66,6 +68,9 @@ public class GeoJSON_IO {
         }
         if (geom.getClass().equals(LineString.class)) {
             return stringForLineString(geom, crs);
+        }
+        if (geom.getClass().equals(MultiPolygon.class)) {
+            return stringForMultiPolygon(geom, crs);
         }
         System.out.println("No decoder for Geometry of type " + geom.getGeometryType() + "\t class:" + geom.getClass() + "\t -> will be treated as Multipoint");
         return stringForMultiPoint(geom, crs);
@@ -102,6 +107,80 @@ public class GeoJSON_IO {
             }
         }
 
+        str.append("]\n" + actual_indention + "    }\n" + actual_indention + "}");
+
+        return str.toString();
+    }
+
+    private String stringForMultiPolygon(Geometry geom, String crs) {
+
+        boolean first = true;
+        StringBuilder str = new StringBuilder(""
+                + actual_indention + "{\n"
+                + actual_indention + "    " + quotes + "type" + quotes + ": " + quotes + "Feature" + quotes + ",\n");
+        Object data = geom.getUserData();
+        if (data != null) {
+            if (data instanceof JSONProperty[]) {
+                String propString = prepareProperties((JSONProperty[]) data);
+                str.append(actual_indention + propString + ",\n");
+            } else {
+                System.out.println("Userdata is " + data.getClass());
+            }
+        }
+
+        str.append(actual_indention + "    " + quotes + "geometry" + quotes + ": {\n"
+                + actual_indention + "        " + quotes + "type" + quotes + ": " + quotes + "MultiPolygon" + quotes + ",\n"
+                + actual_indention + "        " + quotes + "coordinates" + quotes + ": [\n");
+        actual_indention.append(indention).append(indention);
+        for (int i = 0; i < geom.getNumGeometries(); i++) {
+            if (i == 0) {
+                str.append(actual_indention).append("[\n");
+            } else {
+                str.append(",\n").append(actual_indention).append("[\n");
+            }
+            Polygon polygon = (Polygon) geom.getGeometryN(i);
+            //Exterior ring:
+
+            str.append(actual_indention + "[");
+            actual_indention.append(indention);
+            LineString exring = polygon.getExteriorRing();
+            first = true;
+            for (Coordinate c : exring.getCoordinates()) {
+                if (!first) {
+                    str.append(',');
+                }
+                first = false;
+                if (swapXY) {
+                    str.append("[").append(df.format(c.y)).append(",").append(df.format(c.x)).append("]");
+                } else {
+                    str.append("[").append(df.format(c.x)).append(",").append(df.format(c.y)).append("]");
+                }
+            }
+            str.append(actual_indention).append("]");
+            if (polygon.getNumInteriorRing() > 0) {
+                for (int j = 0; j < polygon.getNumInteriorRing(); j++) {
+                    LineString iring = polygon.getInteriorRingN(j);
+                    first = true;
+                    str.append(",\n" + actual_indention + "[");
+                    for (Coordinate c : iring.getCoordinates()) {
+                        if (!first) {
+                            str.append(',');
+                        }
+                        first = false;
+                        if (swapXY) {
+                            str.append("[").append(df.format(c.y)).append(",").append(df.format(c.x)).append("]");
+                        } else {
+                            str.append("[").append(df.format(c.x)).append(",").append(df.format(c.y)).append("]");
+                        }
+                    }
+                    str.append("]");
+                }
+            }
+            actual_indention.delete(0, indention.length());
+            str.append("\n"+actual_indention+"]");
+            
+        }
+        actual_indention.delete(0, indention.length()*2);
         str.append("]\n" + actual_indention + "    }\n" + actual_indention + "}");
 
         return str.toString();
@@ -164,7 +243,7 @@ public class GeoJSON_IO {
                 .append(actual_indention).append(quotes).append("coordinates").append(quotes).append(": [\n");
         actual_indention.append(indention);
         str.append(actual_indention).append("[");
-        
+
 //        StringBuilder str = new StringBuilder(""
 //                + actual_indention + "{\n"
 //                + actual_indention + "    \"type\": \"Feature\",\n"
@@ -241,7 +320,7 @@ public class GeoJSON_IO {
             }
         }
         actual_indention.delete(0, indention.length());
-        str.append("\n" + actual_indention  + "]\n");// \coordinates
+        str.append("\n" + actual_indention + "]\n");// \coordinates
         actual_indention.delete(0, indention.length());
         str.append(actual_indention + "}\n"); // \geometry
         actual_indention.delete(0, indention.length());
