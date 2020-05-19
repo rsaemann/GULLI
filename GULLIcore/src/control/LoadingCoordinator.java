@@ -313,7 +313,8 @@ public class LoadingCoordinator {
                         action.description = "Load Scenario";
                         action.progress = 0f;
                         fireLoadingActionUpdate();
-                        for (LoadingActionListener ll : listener) {                            
+                        for (LoadingActionListener ll : listener) {
+
                             ll.loadScenario(scenario, this);
                         }
 //                        control.loadScenario(scenario);
@@ -437,6 +438,7 @@ public class LoadingCoordinator {
      * discharge/velocity/massflux values in the pipes' and manholes' timelines.
      *
      * returns true if all information has been loaded successfully.
+     *
      * @param nw
      */
     private boolean loadPipeVelocities(Network nw) {
@@ -659,7 +661,7 @@ public class LoadingCoordinator {
                 scenario.setTimesPipe(timeContainerPipe);
                 scenario.setTimesManhole(timeContainerManholes);
                 scenario.setName(scenarioName);
-                
+
                 loadingPipeResult = LOADINGSTATUS.LOADED;
                 return true;
             } catch (Exception ex) {
@@ -782,13 +784,13 @@ public class LoadingCoordinator {
                     velocityLoader = gdb;
                     waterlevelLoader = gdb;
                     if (gdb.isResultDB()) {
-                        if (gdb.hasWaterlevels()) {
+                        if (gdb.hasVelocities()) {
                             long start = System.currentTimeMillis();
-                            action.description = "Reading GDB surface waterlevels";
+                            action.description = "Reading GDB surface velocities";
                             fireLoadingActionUpdate();
                             if (sparseSurfaceLoading) {
                                 int numberTriangles = surface.getTriangleMids().length;
-                                int times = gdb.getNumberOfWaterlevelTimeSteps();
+                                int times = gdb.getNumberOfVelocityTimeSteps();
                                 surface.waterlevelLoader = gdb;
                                 surface.initVelocityArrayForSparseLoading(numberTriangles, times);
                             } else {
@@ -800,9 +802,27 @@ public class LoadingCoordinator {
                             }
 
                         } else {
-                            loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
-                            action.description = "GDB has no water levels";
-                            System.err.println(action.description);
+                            if (gdb.hasWaterlevels()) {
+                                long start = System.currentTimeMillis();
+                                action.description = "Reading GDB surface waterlevels";
+                                System.err.println("Surface GDB does only provide waterlevels but no velocities.");
+                                if (sparseSurfaceLoading) {
+                                    int numberTriangles = surface.getTriangleMids().length;
+                                    int times = gdb.getNumberOfWaterlevelTimeSteps();
+                                    surface.waterlevelLoader = gdb;
+                                    surface.initVelocityArrayForSparseLoading(numberTriangles, times);
+                                } else {
+                                    gdb.applyWaterlevelsToSurface(surface);
+                                    surface.waterlevelLoader = gdb;
+                                    if (verbose) {
+                                        System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                                    }
+                                }
+                            } else {
+                                loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
+                                action.description = "GDB has no water levels";
+                                System.err.println(action.description);
+                            }
                         }
                         if (cancelLoading) {
                             System.out.println("   LoadingThread is interrupted -> break");
