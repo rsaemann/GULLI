@@ -1462,11 +1462,10 @@ public class ParticlePipeComputing {
             Pipe pipe = ((Pipe) c);
             float v = (float) pipe.getVelocity();
             distance_adv = v * (dt);
+            
             p.setVelocity1d(v);
             distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
-//            if (distance_diff < 0) {
-//                distance_diff *= -1;
-//            }
+
             distance_total = distance_adv + distance_diff;
             resultVelocity = distance_total / dt;
             reverseDispersion = distance_adv * distance_total < 0;//!(distance_total < 0 ^ v < 0);

@@ -131,6 +131,13 @@ public class ArrayTimeLineMeasurement {
 
     public void addMeasurement(int timeindex,/* int particleCount, double mass,*/ double volumeValue) {
         int index = getIndex(timeindex);
+
+//        if (timeindex < 5) {
+//            if (particleMassInTimestep > 0) {
+//                System.out.println("Add measurement "+timeindex+":  " + getContainer().getTimeMillisecondsAtIndex(timeindex));
+//            }
+//        }
+
         try {
             container.particles[index] += numberOfParticlesInTimestep;
 
@@ -146,7 +153,7 @@ public class ArrayTimeLineMeasurement {
                         container.mass_type[index][i] += (float) (particleMassPerTypeinTimestep[i]);
                     }
                 } catch (Exception e) {
-                    System.err.println("Index problem with material "+(particleMassPerTypeinTimestep.length-1)+", length of array: "+container.mass_type[index].length);
+                    System.err.println("Index problem with material " + (particleMassPerTypeinTimestep.length - 1) + ", length of array: " + container.mass_type[index].length);
                 }
             }
 
@@ -166,7 +173,7 @@ public class ArrayTimeLineMeasurement {
                 }
             }
         } catch (Exception e) {
-            System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getNumberOfTimes() + ")=>"+index+", particles=" + numberOfParticlesInTimestep + ", volume=" + volumeValue + ")");
+            System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getNumberOfTimes() + ")=>" + index + ", particles=" + numberOfParticlesInTimestep + ", volume=" + volumeValue + ")");
             e.printStackTrace();
         }
     }
@@ -206,7 +213,7 @@ public class ArrayTimeLineMeasurement {
         if (!active) {
             return;
         }
-        addParticle(particleToCount,1f);
+        addParticle(particleToCount, 1f);
     }
 
     /**
@@ -225,9 +232,9 @@ public class ArrayTimeLineMeasurement {
                     if (!particles.contains(particleToCount)) {
                         particles.add(particleToCount);
                         synchronized (this) {
-                            this.particleMassInTimestep += particleToCount.particleMass*dtfactor;
+                            this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
                             this.numberOfParticlesInTimestep++;
-                            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass()*dtfactor);
+                            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
                         }
                     }
                 }
@@ -235,9 +242,9 @@ public class ArrayTimeLineMeasurement {
 //                synchronized (this) {
                 lock.lock();
                 try {
-                    this.particleMassInTimestep += particleToCount.particleMass*dtfactor;
+                    this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
                     this.numberOfParticlesInTimestep++;
-                    addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass()*dtfactor);
+                    addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
                 } finally {
                     lock.unlock();
                 }
@@ -251,12 +258,15 @@ public class ArrayTimeLineMeasurement {
                     }
                 }
             }
-            this.particleMassInTimestep += particleToCount.particleMass*dtfactor;
+            this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
             this.numberOfParticlesInTimestep++;
-            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass()*dtfactor);
+            addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
         }
     }
 
+    /**
+     * Clears all counters to start a new sampling action.
+     */
     public void resetNumberOfParticles() {
         this.numberOfParticlesInTimestep = 0;
         this.particleMassInTimestep = 0.;
@@ -273,38 +283,16 @@ public class ArrayTimeLineMeasurement {
         }
     }
 
+    /**
+     * True if samples have been taken sinze the last reset of the counter.
+     * This is indicated by a number of counted particles >0.
+     * @param timeIndex
+     * @return 
+     */
     public boolean hasMeasurements(int timeIndex) {
         return container.counts[startIndex + timeIndex] > 0;
     }
 
-//    public static float[] getMassForTimeIndex(int timeIndex) {
-//        float[] r = new float[distance.length];
-//        for (int i = 0; i < distance.length; i++) {
-//            r[i] = (float) ((particles[i * times.length + timeIndex] * Particle.massPerParticle) / (samplesPerTimeinterval));
-//        }
-//        return r;
-//    }
-//    public static float[] getConcentrationForTimeIndex(int timeIndex) {
-//        float[] r = new float[distance.length];
-//        for (int i = 0; i < distance.length; i++) {
-//            r[i] = (float) ((particles[i * times.length + timeIndex] * Particle.massPerParticle * counts[i * times.length + timeIndex]) / (volumes[i * times.length + timeIndex] * samplesPerTimeinterval));
-//        }
-//        return r;
-//    }
-//    public static float[] getNumberOfParticlesForTimeIndex(int timeIndex) {
-//        float[] r = new float[distance.length];
-//        for (int i = 0; i < distance.length; i++) {
-//            r[i] = (float) ((particles[i * times.length + timeIndex]) / (samplesPerTimeinterval));
-//        }
-//        return r;
-//    }
-//    public static int[] getNumberOfMeasurementsPerTimestepForTimeIndex(int timeIndex) {
-//        int[] r = new int[distance.length];
-//        for (int i = 0; i < distance.length; i++) {
-//            r[i] = counts[i * times.length + timeIndex];
-//        }
-//        return r;
-//    }
     public double getMaxMass() {
         return maxMass;
     }

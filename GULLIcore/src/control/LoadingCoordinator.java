@@ -26,6 +26,7 @@ package control;
 import control.Action.Action;
 import control.listener.LoadingActionListener;
 import control.multievents.PipeResultData;
+import control.particlecontrol.ParticlePipeComputing;
 import control.scenario.SpillScenario;
 import control.scenario.injection.InjectionInformation;
 import control.scenario.Setup;
@@ -293,6 +294,12 @@ public class LoadingCoordinator {
 
                         }
                     }
+                    if (loadingSurfaceVelocity==LOADINGSTATUS.LOADED){
+                        ParticlePipeComputing.spillOutToSurface=true;
+                    }else {
+                        ParticlePipeComputing.spillOutToSurface=false;
+                        System.err.println("Disabled Spill to surface because no Velocity field was loaded.");
+                    }
 
                     //Send information to UserInterface if GUI exists
                     for (LoadingActionListener listener1 : listener) {
@@ -306,8 +313,7 @@ public class LoadingCoordinator {
                         action.description = "Load Scenario";
                         action.progress = 0f;
                         fireLoadingActionUpdate();
-                        for (LoadingActionListener ll : listener) {
-                            
+                        for (LoadingActionListener ll : listener) {                            
                             ll.loadScenario(scenario, this);
                         }
 //                        control.loadScenario(scenario);

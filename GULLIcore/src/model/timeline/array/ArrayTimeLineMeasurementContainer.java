@@ -115,14 +115,15 @@ public class ArrayTimeLineMeasurementContainer {
         double c;
         int index = 0;
 //        int mittlungsradius = 5;
-        for (int i = 0; i < Math.min(distance.length, numberOfCapacities); i++) {
+        int to=Math.min(distance.length, numberOfCapacities);
+        for (int i = 0; i < to; i++) {
             try {
                 index = i * times.getNumberOfTimes() + timeIndex;
                 if (particles[index] < 1) {
                     continue;
                 }
                 c = (((double) mass_total[index] * (double) counts[index]) / (volumes[index] * samplesPerTimeinterval));
-
+                
                 zaehler += (distance[i]) * c;
                 nenner += c;
             } catch (Exception e) {
@@ -142,7 +143,8 @@ public class ArrayTimeLineMeasurementContainer {
         double nenner = 0;
         double c;
         int index = 0;
-        for (int i = 0; i < Math.min(distance.length, numberOfCapacities); i++) {
+        int to=Math.min(distance.length, numberOfCapacities);
+        for (int i = 0; i < to; i++) {
             try {
                 index = i * times.getNumberOfTimes() + timeIndex;
 
@@ -151,7 +153,7 @@ public class ArrayTimeLineMeasurementContainer {
                 }
 //                //ArrayTimeLinePipe.concentration_reference[index];//
                 c = (((double) mass_total[index] * (double) counts[index]) / (volumes[index] * samplesPerTimeinterval));
-
+               
                 zaehler += (distance[i] - moment1) * (distance[i] - moment1) * c;
                 nenner += c;
             } catch (Exception e) {

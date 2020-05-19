@@ -7,21 +7,23 @@ import java.util.Objects;
  * @author saemann
  */
 public class AxisKey {
-    
+
     public final String name;
-    
+
     public String label;
-    
-    public boolean manualBounds=false;
-    public double lowerBound=0;
-    public double upperBound=0;
+
+    public boolean manualBounds = false;
+    public double lowerBound = 0;
+    public double upperBound = 0;
+
+    public boolean logarithmic = false;
 
     public AxisKey(String name, String label) {
         this.name = name;
         this.label = label;
     }
 
-    public AxisKey(String  name) {
+    public AxisKey(String name) {
         this.name = name;
     }
 
@@ -50,20 +52,21 @@ public class AxisKey {
     @Override
     public String toString() {
 //        System.out.println("label:"+label);
-        StringBuilder str=new StringBuilder(name);
-        
-        if(label!=null&&!label.isEmpty()&&!label.equals("null")){
+        StringBuilder str = new StringBuilder(name);
+
+        if (label != null && !label.isEmpty() && !label.equals("null")) {
             str.append(",").append(label);
         }
-        if(manualBounds){
-            str.append("("+lowerBound+";"+upperBound+")");
+        if (manualBounds) {
+            str.append("(" + lowerBound + ";" + upperBound + ")");
+        }
+        if(logarithmic){
+            str.append("log");
         }
         return str.toString();
     }
-    
-    
 
-   public static AxisKey CONCENTRATION(){
-       return new AxisKey("CONCENTRATION", "c Concentration [kg/m³]");
-   }
+    public static AxisKey CONCENTRATION() {
+        return new AxisKey("CONCENTRATION", "c Concentration [kg/m³]");
+    }
 }

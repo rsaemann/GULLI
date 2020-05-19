@@ -248,7 +248,7 @@ public class TimelinePanel extends JPanel {
              * Baue neues Dataset wenn keine Wiederekennung zu finden ist
              */
             TimeSeriesCollection dataset = null;
-            if (key.axis == null || key.axis.name == null) {
+            if (key.axisKey == null || key.axisKey.name == null) {
                 /*
                  * No recognition (mapping to other dataset) required.
                  * Build a new Dataset+Yaxis for this TimeSeries
@@ -267,8 +267,8 @@ public class TimelinePanel extends JPanel {
                 plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
             } else {
                 NumberAxis yAxis;
-                if (yAxisMap.containsKey(key.axis.name)) {
-                    indexDataset = yAxisMap.get(key.axis.name);
+                if (yAxisMap.containsKey(key.axisKey.name)) {
+                    indexDataset = yAxisMap.get(key.axisKey.name);
                     yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
                     dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
                     indexSeries = dataset.getSeriesCount();
@@ -279,20 +279,20 @@ public class TimelinePanel extends JPanel {
                     // Axis key not yet in use. Build new Dataset for this Yaxis
                     indexDataset = numberUsedDataSetSlots;
                     numberUsedDataSetSlots++;
-                    yAxisMap.put(key.axis.name, indexDataset);
+                    yAxisMap.put(key.axisKey.name, indexDataset);
                     indexSeries = 0;
-                    if (key.axis.label != null) {
-                        yAxis = new NumberAxis(key.axis.label);
+                    if (key.axisKey.label != null) {
+                        yAxis = new NumberAxis(key.axisKey.label);
                     } else {
                         yAxis = new NumberAxis("[" + key.unit + "]");
                     }
-                    if (key.axis != null) {
-                        if (key.axis.manualBounds) {
-                            yAxis.setLowerBound(key.axis.lowerBound);
-                            yAxis.setUpperBound(key.axis.upperBound);
+                    if (key.axisKey != null) {
+                        if (key.axisKey.manualBounds) {
+                            yAxis.setLowerBound(key.axisKey.lowerBound);
+                            yAxis.setUpperBound(key.axisKey.upperBound);
                         } else {
-                            key.axis.lowerBound = yAxis.getLowerBound();
-                            key.axis.upperBound = yAxis.getUpperBound();
+                            key.axisKey.lowerBound = yAxis.getLowerBound();
+                            key.axisKey.upperBound = yAxis.getUpperBound();
                         }
                     }
                     yAxisMap.put(yAxis.getLabel(), indexDataset);
@@ -588,7 +588,7 @@ public class TimelinePanel extends JPanel {
     public static TimeSeries createMovingaverageCentral(TimeSeries ts, int maxinvolvedPeriods, String name, Color c, boolean originIsShiftTimeSeries) {
         SeriesKey oldKey = (SeriesKey) ts.getKey();
         Color colorNew = c;
-        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axis);
+        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axisKey);
         TimeSeries average = new TimeSeries(newKey);
         if (!originIsShiftTimeSeries) {
             int minIndex = maxinvolvedPeriods / 2 + 1;

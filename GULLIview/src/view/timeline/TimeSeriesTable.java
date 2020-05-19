@@ -42,7 +42,13 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
     protected int indexSort = 0;
     protected int indexKey = 1;
     protected int indexLabel = 2;
+    protected int indexAxis;
+    protected int indexLogarithmic;
+    protected int indexView;
+    protected int indexColor;
+    protected int indexLine;
     protected int indexShape = 7;
+    protected int indexFile;
     protected int indexIndex = 9;
 
     public TimeSeriesTable(DefaultTableModel model, TimeSeriesCollection col) {
@@ -52,7 +58,35 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
 
         //Init Tablecolumns
         String ct_show = "Show";
-        model.setColumnIdentifiers(new String[]{"Sort", "Series", "Label", "Axis", "View", "Color", "Line", "Shape", "File", "Index"});
+
+        int column = 0;
+        indexSort = column++;
+        indexKey = column++;
+        indexLabel = column++;
+        indexAxis = column++;
+        indexLogarithmic = column++;
+        indexView = column++;
+        indexColor = column++;
+        indexLine = column++;
+        indexShape = column++;
+        indexFile = column++;
+        indexIndex = column++;
+
+        model.setColumnCount(column);
+        String[] header = new String[column];
+        header[indexSort] = "Sort";
+        header[indexKey] = "Series";
+        header[indexLabel] = "Label";
+        header[indexAxis] = "Axis";
+        header[indexLogarithmic] = "Logarithmic";
+        header[indexView] = "View";
+        header[indexColor] = "Color";
+        header[indexLine] = "Line";
+        header[indexShape] = "Shape";
+        header[indexFile] = "File";
+        header[indexIndex] = "Index";
+
+        model.setColumnIdentifiers(header);
 
         this.setDefaultRenderer(Color.class, new ColorRenderer(false));
         this.colorEditor = new ColorEditor(collection);
@@ -95,16 +129,21 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         this.getColumnModel().getColumn(indexSort).setMaxWidth(50);
         this.getColumnModel().getColumn(indexSort).setMinWidth(30);
 
-        this.getColumnModel().getColumn(4).setMaxWidth(50);
-        this.getColumnModel().getColumn(4).setMinWidth(50);
-        this.getColumnModel().getColumn(4).setWidth(50);
+        this.getColumnModel().getColumn(indexView).setMaxWidth(50);
+        this.getColumnModel().getColumn(indexView).setMinWidth(50);
+        this.getColumnModel().getColumn(indexView).setWidth(50);
 
-        this.getColumnModel().getColumn(5).setMaxWidth(60);
-        this.getColumnModel().getColumn(5).setMinWidth(40);
-        this.getColumnModel().getColumn(5).setWidth(40);
+        this.getColumnModel().getColumn(indexLogarithmic).setMaxWidth(50);
+        this.getColumnModel().getColumn(indexLogarithmic).setMinWidth(50);
+        this.getColumnModel().getColumn(indexLogarithmic).setWidth(50);
 
-        this.getColumnModel().getColumn(6).setMaxWidth(70);
-        this.getColumnModel().getColumn(6).setMinWidth(50);
+        
+        this.getColumnModel().getColumn(indexColor).setMaxWidth(60);
+        this.getColumnModel().getColumn(indexColor).setMinWidth(40);
+        this.getColumnModel().getColumn(indexColor).setWidth(40);
+
+        this.getColumnModel().getColumn(indexLine).setMaxWidth(70);
+        this.getColumnModel().getColumn(indexLine).setMinWidth(50);
 
         this.getColumnModel().getColumn(indexShape).setMaxWidth(50);
         this.getColumnModel().getColumn(indexShape).setMinWidth(50);
@@ -124,22 +163,25 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         if (i == indexLabel) {
             return String.class; //Display name
         }
-        if (i == 3) {
+        if (i == indexAxis) {
             return AxisKey.class;
         }
-        if (i == 4) {
+        if (i == indexLogarithmic) {
             return Boolean.class; //Show
         }
-        if (i == 5) {
+        if (i == indexView) {
+            return Boolean.class; //Show
+        }
+        if (i == indexColor) {
             return Color.class; //Line Color
         }
-        if (i == 6) {
+        if (i == indexLine) {
             return BasicStroke.class;
         }
         if (i == indexShape) {
             return Shape.class;
         }
-        if (i == 8) {//FileName
+        if (i == indexFile) {//FileName
             return String.class;
         }
         if (i == indexIndex) {
@@ -150,7 +192,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
 
     @Override
     public boolean isCellEditable(int row, int col) {
-        if (col == indexKey || col == 8 || col == indexIndex) {
+        if (col == indexKey || col == indexIndex || col == indexFile) {
             return false;
         }
         return true;
@@ -182,12 +224,13 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             model.setValueAt(null, i, indexSort);
             model.setValueAt(key.toString(), i, indexKey);
             model.setValueAt(key.label, i, indexLabel);
-            model.setValueAt(key.axis, i, 3);
-            model.setValueAt(key.isVisible(), i, 4);
-            model.setValueAt(key.lineColor, i, 5);
-            model.setValueAt(key.stroke, i, 6);
+            model.setValueAt(key.axisKey, i, indexAxis);
+            model.setValueAt(key.logarithmic, i, indexLogarithmic);
+            model.setValueAt(key.isVisible(), i, indexView);
+            model.setValueAt(key.lineColor, i, indexColor);
+            model.setValueAt(key.stroke, i, indexLine);
             model.setValueAt(key.shape, i, indexShape);
-            model.setValueAt(key.file, i, 8);
+            model.setValueAt(key.file, i, indexFile);
             model.setValueAt(key.containerIndex, i, indexIndex);
         }
         setColumnSize();
@@ -256,85 +299,90 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         if (row >= getRowCount() || row < 0) {
             return;
         }
-        try{
-        if (column == indexSort) {
-            if (getRowCount() < 2) {
-                return;
-            }
-            SortButtonRenderer sbr = (SortButtonRenderer) model.getValueAt(row, indexSort);
-            if (sbr.getDirection() == SortButtonRenderer.DIRECTION.UP && row > 0) {
-                swapSeries(collection, row, row - 1);
-                this.updateTableByCollection();
-            } else if (sbr.getDirection() == SortButtonRenderer.DIRECTION.DOWN && row < getRowCount() - 1) {
-                swapSeries(collection, row, row + 1);
-                this.updateTableByCollection();
-            }
-        } else if (column == indexLabel) {
-            //Label
-            ((SeriesKey) collection.getSeries(row).getKey()).label = model.getValueAt(row, column) + "";
-        } else if (column == 3) {
-            //axis
-            String text = model.getValueAt(row, column).toString();
-            AxisKey oldKey = ((SeriesKey) collection.getSeries(row).getKey()).axis;
-            AxisKey newKey = null;
-            try {
-                if (text.contains(",")) {
-                    String[] splits = text.split(",", 2);
-                    newKey = new AxisKey(splits[0], splits[1]);
-                } else {
-                    try {
-                        if (oldKey.name.equals(text) && oldKey.label == null) {
-                            //Nothing to do. the existing Key is identical to the new text
-                        } else {
+        try {
+            if (column == indexSort) {
+                if (getRowCount() < 2) {
+                    return;
+                }
+                SortButtonRenderer sbr = (SortButtonRenderer) model.getValueAt(row, indexSort);
+                if (sbr.getDirection() == SortButtonRenderer.DIRECTION.UP && row > 0) {
+                    swapSeries(collection, row, row - 1);
+                    this.updateTableByCollection();
+                } else if (sbr.getDirection() == SortButtonRenderer.DIRECTION.DOWN && row < getRowCount() - 1) {
+                    swapSeries(collection, row, row + 1);
+                    this.updateTableByCollection();
+                }
+            } else if (column == indexLabel) {
+                //Label
+                ((SeriesKey) collection.getSeries(row).getKey()).label = model.getValueAt(row, column) + "";
+            } else if (column == indexAxis) {
+                //axis
+                String text = model.getValueAt(row, column).toString();
+                AxisKey oldKey = ((SeriesKey) collection.getSeries(row).getKey()).axisKey;
+                AxisKey newKey = null;
+                try {
+                    if (text.contains(",")) {
+                        String[] splits = text.split(",", 2);
+                        newKey = new AxisKey(splits[0], splits[1]);
+                    } else {
+                        try {
+                            if (oldKey.name.equals(text) && oldKey.label == null) {
+                                //Nothing to do. the existing Key is identical to the new text
+                            } else {
+                                newKey = new AxisKey(text);
+                            }
+                        } catch (Exception e) {
                             newKey = new AxisKey(text);
                         }
-                    } catch (Exception e) {
-                        newKey = new AxisKey(text);
                     }
-                }
 
-                if (text.contains("(")) {
-                    String value = text.substring(text.indexOf("(") + 1);
-                    value = value.substring(0, value.indexOf(")"));
+                    if (text.contains("(")) {
+                        String value = text.substring(text.indexOf("(") + 1);
+                        value = value.substring(0, value.indexOf(")"));
 
-                    String[] values;
-                    if (value.contains(";")) {
-                        values = value.split(";");
+                        String[] values;
+                        if (value.contains(";")) {
+                            values = value.split(";");
+                        } else {
+                            values = value.split(",");
+                        }
+                        AxisKey key = oldKey;
+                        if (newKey != null) {
+                            key = newKey;
+                        }
+                        if (values.length > 1) {
+                            key.lowerBound = Double.parseDouble(values[0]);
+                            key.upperBound = Double.parseDouble(values[1]);
+                        } else {
+                            key.upperBound = Double.parseDouble(values[0]);
+                        }
+                        key.manualBounds = true;
                     } else {
-                        values = value.split(",");
+                        oldKey.manualBounds = false;
                     }
-                    AxisKey key = oldKey;
-                    if (newKey != null) {
-                        key = newKey;
-                    }
-                    if (values.length > 1) {
-                        key.lowerBound = Double.parseDouble(values[0]);
-                        key.upperBound = Double.parseDouble(values[1]);
-                    } else {
-                        key.upperBound = Double.parseDouble(values[0]);
-                    }
-                    key.manualBounds = true;
-                } else {
-                    oldKey.manualBounds = false;
+                } catch (Exception exception) {
+                    exception.printStackTrace();
                 }
-            } catch (Exception exception) {
-                exception.printStackTrace();
+                if (newKey != null) {
+                    ((SeriesKey) collection.getSeries(row).getKey()).axisKey = newKey;
+                }
+            } else if (column == indexLogarithmic) {
+                //Visible?
+                ((SeriesKey) collection.getSeries(row).getKey()).logarithmic = ((Boolean) model.getValueAt(row, indexLogarithmic));
+                ((SeriesKey) collection.getSeries(row).getKey()).axisKey.logarithmic = ((Boolean) model.getValueAt(row, indexLogarithmic));
+                
+            } else if (column == indexView) {
+                //Visible?
+                ((SeriesKey) collection.getSeries(row).getKey()).setVisible((Boolean) model.getValueAt(row, indexView));
+            } else if (column == indexLine) {
+                //Stroke
+                ((SeriesKey) collection.getSeries(row).getKey()).stroke = (BasicStroke) model.getValueAt(row, indexLine);
+            } else if (column == indexShape) {
+                //Stroke
+                ((SeriesKey) collection.getSeries(row).getKey()).shape = (SHAPES) model.getValueAt(row, indexShape);
             }
-            if (newKey != null) {
-                ((SeriesKey) collection.getSeries(row).getKey()).axis = newKey;
-            }
-        } else if (column == 4) {
-            //Visible?
-            ((SeriesKey) collection.getSeries(row).getKey()).setVisible((Boolean) model.getValueAt(row, column));
-        } else if (column == 6) {
-            //Stroke
-            ((SeriesKey) collection.getSeries(row).getKey()).stroke = (BasicStroke) model.getValueAt(row, column);
-        } else if (column == indexShape) {
-            //Stroke
-            ((SeriesKey) collection.getSeries(row).getKey()).shape = (SHAPES) model.getValueAt(row, indexShape);
-        }
-        updatePanel();
-        }catch(Exception e){
+            updatePanel();
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

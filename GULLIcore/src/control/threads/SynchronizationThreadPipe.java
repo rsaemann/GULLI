@@ -127,7 +127,6 @@ public class SynchronizationThreadPipe extends Thread {
                                     if (pipe.getMeasurementTimeLine() != null) {
                                         pipe.getMeasurementTimeLine().active = true;
                                         pipe.getMeasurementTimeLine().resetNumberOfParticles();
-//                                        }
                                     }
                                 }
                             }
@@ -139,7 +138,6 @@ public class SynchronizationThreadPipe extends Thread {
                             }
                             if (lastMeasurementImeIndex != timeindex) {
                                 lastMeasurementImeIndex = timeindex;
-//                            System.out.println("write pipe measurements for index " + timeindex + " at " + ((actualSimulationTime - mcp.getStartTime()) / 60000.) + " min.  Messungen pro zeitschritt:"+mcp.messungenProZeitschritt);
                                 for (Pipe pipe : pipes) {
                                     if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
                                         pipe.getMeasurementTimeLine().addMeasurement(timeindex, (float) pipe.getFluidVolume());
@@ -158,11 +156,6 @@ public class SynchronizationThreadPipe extends Thread {
                                 }
                             }
                         }
-//                    status = 5;
-//                        if (mcp.isTimespotmeasurement()) {
-//                            //test if next timestep has to be used for value collection & writing
-//                            
-//                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

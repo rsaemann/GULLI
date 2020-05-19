@@ -156,7 +156,7 @@ public class XYSeriesTable extends JTable implements KeyListener {
             model.setValueAt(null, i, 0);
             model.setValueAt(key.toString(), i, 1);
             model.setValueAt(key.label, i, 2);
-            model.setValueAt(key.axis, i, 3);
+            model.setValueAt(key.axisKey, i, 3);
             model.setValueAt(key.lineColor, i, 4);
             model.setValueAt(key.stroke, i, 5);
             model.setValueAt(key.shape, i, 6);
@@ -243,7 +243,7 @@ public class XYSeriesTable extends JTable implements KeyListener {
         } else if (column == 3) {
             //axis
             String text = model.getValueAt(row, column).toString();
-            AxisKey oldKey = ((SeriesKey) collection.getSeries(row).getKey()).axis;
+            AxisKey oldKey = ((SeriesKey) collection.getSeries(row).getKey()).axisKey;
             AxisKey newKey = null;
             if (text.contains(",")) {
                 String[] splits = text.split(",", 2);
@@ -256,7 +256,7 @@ public class XYSeriesTable extends JTable implements KeyListener {
                 }
             }
             if (newKey != null) {
-                ((SeriesKey) collection.getSeries(row).getKey()).axis = newKey;
+                ((SeriesKey) collection.getSeries(row).getKey()).axisKey = newKey;
             }
         } else if (column == 5) {
             //Stroke

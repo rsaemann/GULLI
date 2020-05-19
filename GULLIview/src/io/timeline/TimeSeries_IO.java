@@ -51,10 +51,10 @@ public class TimeSeries_IO {
         bw.write("symbl;" + key.symbol + "\n");
         bw.write("unit ;" + key.unit + "\n");
         bw.write("label;" + key.label + "\n");
-        if (key.axis == null) {
+        if (key.axisKey == null) {
             bw.write("axis ;" + key.symbol + ";\n");
         } else {
-            bw.write("axis ;" + key.axis.name + ";" + key.axis.label + "\n");
+            bw.write("axis ;" + key.axisKey.name + ";" + key.axisKey.label + "\n");
         }
         bw.write("index;" + key.containerIndex + "\n");
         bw.write("show ;" + key.isVisible() + "\n");

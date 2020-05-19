@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -67,13 +66,14 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTitleAnnotation;
 import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.general.Series;
 import org.jfree.data.time.Millisecond;
-import org.jfree.data.time.Quarter;
 import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
@@ -603,6 +603,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             long moveVisiblePointToIntervalMid = 0;
             if (!tlm.getContainer().isTimespotmeasurement()) {
                 moveVisiblePointToIntervalMid = (long) (-tlm.getContainer().getDeltaTimeS() * 500);
+//                System.out.println("moved points . timespot: "+tlm.getContainer().isTimespotmeasurement());
             }
 
             for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
@@ -617,19 +618,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
                 RegularTimePeriod time = new Millisecond(d);
 
-                //System.out.println(time.getFirstMillisecond()+", "+time.getMiddleMillisecond()+"  ,  "+time.getLastMillisecond()+",   :"+d.getTime()+" tlm: "+tlm.getContainer().getTimeMillisecondsAtIndex(i)+"  status:"+tl.getTimeContainer().getTimeMilliseconds(i)+ " i="+i+" must be "+tl.getTimeContainer().getTimeIndexDouble(tlm.getContainer().getTimeMillisecondsAtIndex(i)));
-                double refTimeIndex = tl.getTimeContainer().getTimeIndexDouble(statustime);// i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / (double) tlm.getContainer().getNumberOfTimes();
-                int refTimeIndexInt = (int) refTimeIndex;
-
-                double refFrac = refTimeIndex % 1;
-                if (refTimeIndexInt >= tl.getNumberOfTimes() - 2) {
-                    //Need to set the last value to -2 of the maximum count, because values.length is one shorter than number of times.
-//                    System.out.println("last index: set frac to 1");
-                    refTimeIndexInt = tl.getNumberOfTimes() - 3;
-                    refFrac = 1.;
-//                    System.out.println("index="+refTimeIndexInt+" / "+tl.getNumberOfTimes());
-                }
-//                System.out.println(getClass()+".container.distance="+tlm.getContainer().distance+"\t Timeline:"+tl.getClass());
                 if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
                     ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
 
@@ -638,28 +626,40 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     if (!Double.isNaN(m1) && m1 > 0) {
                         moment1_messung.addOrUpdate(time, m1);
                         if (cont.moment1 != null) {
-//                        System.out.println(i + "/" + tlm.getContainer().getNumberOfTimes() + "    measurem: " + refTimeIndex + "/" + tl.getTimeContainer().getNumberOfTimes());
-                            double mref = cont.moment1[refTimeIndexInt] * (1 - refFrac) + cont.moment1[refTimeIndexInt + 1] * (refFrac);
-                            if (i > 0) {
-                                if (i == 1) {
-                                    offset = mref - m1;
-                                }
-                                moment1_delta.addOrUpdate(time, m1 - mref + offset);
-                                if (mref != 0) {
-                                    moment1_delta_relative.addOrUpdate(time, (m1 - mref + offset) / mref);
-                                }
+                            //Get reference Momentum index to calculate difference and statistics
+                            double refTimeIndex = tl.getTimeContainer().getTimeIndexDouble(statustime);// i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / (double) tlm.getContainer().getNumberOfTimes();
+                            int refTimeIndexInt = (int) refTimeIndex;
+
+                            double refFrac = refTimeIndex % 1;
+                            if (refTimeIndex >= cont.moment1.length-0.5) {
+                                //out of bounds
+                                continue;
+                            }
+                            double mref;
+                            double m2ref;
+                            if (refTimeIndexInt >= cont.moment1.length - 1) {
+                                mref = cont.moment1[cont.moment1.length - 1];
+                                m2ref = cont.moment2[cont.moment2.length - 1];
+                            } else {
+                                mref = cont.moment1[refTimeIndexInt] * (1 - refFrac) + cont.moment1[refTimeIndexInt + 1] * (refFrac);
+                                m2ref = cont.moment2[refTimeIndexInt] * (1 - refFrac) + cont.moment2[refTimeIndexInt + 1] * (refFrac);
+                            }
+//                            System.out.println("mref [" + refTimeIndex + "] " + mref + "    bei " + time);
+                            if (i > -1 && mref > 0 && !Double.isNaN(mref)) {
+//                                if (i == 1) {
+////                                    offset = mref - m1;
+//                                }
+                                moment1_delta.addOrUpdate(time, m1 - mref /*+ offset*/);
+//                                if (mref != 0) {
+                                    moment1_delta_relative.addOrUpdate(time, (m1 - mref /*+ offset*/) / mref);
+//                                }
 
                                 double m2 = tlm.getContainer().getMomentum2_xc(i, m1);
                                 moment2_mess.addOrUpdate(time, m2);
-                                double m2ref = offset2 + cont.moment2[refTimeIndexInt] * (1 - refFrac) + cont.moment2[refTimeIndexInt + 1] * (refFrac);//cont.moment2[refTimeIndex];//cont.getMomentum2_xc(refTimeIndex);
-                                if (i == 1) {
-                                    offset2 = m2ref - m2;
-                                }
-                                m2 = +offset2;
 
                                 //System.out.println("frac: "+refFrac+" index: "+refTimeIndex);
                                 moment2_ref.addOrUpdate(time, m2ref);
-                                double delta2 = m2 - m2ref;
+                                double delta2 = m2 - m2ref;// + offset2;
 
                                 moment2_delta.addOrUpdate(time, delta2);
                                 if (i > 0 && m2ref != 0) {
@@ -1035,10 +1035,15 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             return;
         }
         XYPlot plot = panelChart.getChart().getXYPlot();
-        for (int i = 0; i < plot.getDatasetCount(); i++) {
-            plot.setDataset(i, null);
-        }
         plot.clearRangeAxes();
+        for (int i = 0; i < plot.getDatasetCount(); i++) {
+            try {
+                plot.setDataset(i, null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         numberUsedDataSetSlots = 0;
         yAxisMap.clear();
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
@@ -1055,7 +1060,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                  * Baue neues Dataset wenn keine Wiederekennung zu finden ist
                  */
                 TimeSeriesCollection dataset = null;
-                if (key.axis == null || key.axis.name == null) {
+                if (key.axisKey == null || key.axisKey.name == null) {
                     /*
                      * No recognition (mapping to other dataset) required.
                      * Build a new Dataset+Yaxis for this TimeSeries
@@ -1074,35 +1079,48 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
                 } else {
                     NumberAxis yAxis;
-                    if (yAxisMap.containsKey(key.axis.name)) {
-                        indexDataset = yAxisMap.get(key.axis.name);
+                    if (yAxisMap.containsKey(key.axisKey.toString())) {
+                        indexDataset = yAxisMap.get(key.axisKey.toString());
                         yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
                         dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
                         indexSeries = dataset.getSeriesCount();
-                        dataset.addSeries(this.collection.getSeries(i));
+                        TimeSeries ts = (TimeSeries) this.collection.getSeries(i);
+                        if (key.logarithmic) {
+                            makeTimeSeriesAbsolute(ts);
+                        }
+                        dataset.addSeries(ts);
                         renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
                         renderer.setSeriesStroke(indexSeries, key.stroke);
                     } else {
                         // Axis key not yet in use. Build new Dataset for this Yaxis
                         indexDataset = numberUsedDataSetSlots;
                         numberUsedDataSetSlots++;
-                        yAxisMap.put(key.axis.name, indexDataset);
+                        yAxisMap.put(key.axisKey.toString(), indexDataset);
                         indexSeries = 0;
-                        if (key.axis.label != null) {
-                            yAxis = new NumberAxis(key.axis.label);
-                        } else {
-                            yAxis = new NumberAxis("[" + key.unit + "]");
+                        String label = key.axisKey.label;
+                        if (label == null || label.isEmpty()) {
+                            label = "[" + key.unit + "]";
                         }
-                        if (key.axis != null) {
-                            if (key.axis.manualBounds) {
-                                yAxis.setLowerBound(key.axis.lowerBound);
-                                yAxis.setUpperBound(key.axis.upperBound);
+                        if (key.logarithmic) {
+                            yAxis = new LogarithmicAxis(label);
+                        } else {
+                            yAxis = new NumberAxis(label);
+                        }
+//                        if (key.axisKey.label != null) {
+//                            yAxis = new NumberAxis(key.axisKey.label);
+//                        } else {
+//                            yAxis = new NumberAxis("[" + key.unit + "]");
+//                        }
+                        if (key.axisKey != null) {
+                            if (key.axisKey.manualBounds) {
+                                yAxis.setLowerBound(key.axisKey.lowerBound);
+                                yAxis.setUpperBound(key.axisKey.upperBound);
                             } else {
-                                key.axis.lowerBound = yAxis.getLowerBound();
-                                key.axis.upperBound = yAxis.getUpperBound();
+                                key.axisKey.lowerBound = yAxis.getLowerBound();
+                                key.axisKey.upperBound = yAxis.getUpperBound();
                             }
                         }
-                        yAxisMap.put(yAxis.getLabel(), indexDataset);
+//                        yAxisMap.put(yAxis.getLabel(), indexDataset);
                         renderer = new XYLineAndShapeRenderer(true, false);
                         renderer.setSeriesStroke(indexSeries, key.stroke);
                         plot.setRenderer(indexDataset, renderer);
@@ -1112,9 +1130,25 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         plot.setRangeAxis(indexDataset, yAxis);
                         plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
                         dataset = new TimeSeriesCollection(this.collection.getSeries(i));
-                        plot.setDataset(indexDataset, dataset);
+
+                        if (key.logarithmic) {
+                            for (Object s : dataset.getSeries()) {
+                                if (s instanceof TimeSeries) {
+                                    TimeSeries ts = (TimeSeries) s;
+                                    makeTimeSeriesAbsolute(ts);
+                                }
+                            }
+                        }
+                        try {
+                            plot.setDataset(indexDataset, dataset);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                    plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                    try {
+                        plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                    } catch (Exception e) {
+                    }
                 }
                 renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
                 renderer.setDrawSeriesLineAsPath(true);
@@ -1142,6 +1176,26 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
         if (matlabStyle) {
             MatlabLayout.layoutToMatlab(this.panelChart.getChart());
+        }
+    }
+
+    /**
+     * Logarithic axis can only plot, when all values are positive. So update
+     * all elements of this timeseries to absolute values. 0 becomes NaN, this
+     * will hide the point completely
+     *
+     * @param ts
+     */
+    private void makeTimeSeriesAbsolute(TimeSeries ts) {
+        if (ts.getMinY() <= 0) {
+            for (int j = 0; j < ts.getItemCount(); j++) {
+                double v = ts.getValue(j).doubleValue();
+                if (v == 0) {
+                    ts.update(j, Double.NaN);
+                } else if (v < 0) {
+                    ts.update(j, Math.abs(v));
+                }
+            }
         }
     }
 
@@ -1461,7 +1515,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     public static TimeSeries createMovingaverageCentral(TimeSeries ts, int maxinvolvedPeriods, String name, Color c, boolean originIsShiftTimeSeries) {
         SeriesKey oldKey = (SeriesKey) ts.getKey();
         Color colorNew = c;
-        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axis);
+        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axisKey);
         TimeSeries average = new TimeSeries(newKey);
         if (!originIsShiftTimeSeries) {
             int minIndex = maxinvolvedPeriods / 2 + 1;
@@ -1510,7 +1564,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //
 //        SeriesKey oldKey = (SeriesKey) ts.getKey();
 //        Color colorNew = c;
-//        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axis);
+//        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axisKey);
 //        System.out.println("build mean steps " + oldKey.name);
 //        newKey.shape = ShapeEditor.SHAPES.DOT;
 //        TimeSeries average = new TimeSeries(newKey);

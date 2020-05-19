@@ -315,7 +315,7 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
              * Baue neues Dataset wenn keine Wiederekennung zu finden ist
              */
             TimeSeriesCollection dataset = null;
-            if (key.axis == null || key.axis.name == null) {
+            if (key.axisKey == null || key.axisKey.name == null) {
                 /*
                  * No recognition (mapping to other dataset) required.
                  * Build a new Dataset+Yaxis for this TimeSeries
@@ -336,8 +336,8 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
                 plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
             } else {
                 NumberAxis yAxis;
-//                if (yAxisMap.containsKey(key.axis.name)) {
-//                    indexDataset = yAxisMap.get(key.axis.name);
+//                if (yAxisMap.containsKey(key.axisKey.name)) {
+//                    indexDataset = yAxisMap.get(key.axisKey.name);
 //                    yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
 //                    dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
 //                    indexSeries = dataset.getSeriesCount();
@@ -350,10 +350,10 @@ public class PrecipitationTimelinePanel extends CapacityTimelinePanel {
                 // Axis key not yet in use. Build new Dataset for this Yaxis
                 indexDataset = numberUsedDataSetSlots;
                 numberUsedDataSetSlots++;
-                yAxisMap.put(key.axis.name, indexDataset);
+                yAxisMap.put(key.axisKey.name, indexDataset);
                 indexSeries = 0;
-                if (key.axis.label != null) {
-                    yAxis = new NumberAxis(key.axis.label);
+                if (key.axisKey.label != null) {
+                    yAxis = new NumberAxis(key.axisKey.label);
                 } else {
                     yAxis = new NumberAxis("[" + key.unit + "]");
                 }

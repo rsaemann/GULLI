@@ -113,12 +113,12 @@ public class ParticleThread extends Thread {
     @Override
     public void run() {
         //is initialized now
-        status = 10;
+//        status = 10;
         if (barrier.isinitialized) {
             barrier.loopfinished(this);
         } else {
             barrier.initialized(this);
-            status = 20;
+//            status = 20;
         }
         //if woken up start the normal loop
         Particle p;
@@ -127,18 +127,18 @@ public class ParticleThread extends Thread {
             try {
 //                activeCalculation = true;
 //                status = 0;
-                status = 30;
+//                status = 30;
                 fromto = threadController.getNextParticlesToTreat(fromto);
-                status = 31;
+//                status = 31;
                 if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
 //                    particleID = -5;
 //                    activeCalculation = false;
-                    status = 33;
+//                    status = 33;
                     barrier.loopfinished(this);
-                    status = 34;
+//                    status = 34;
                 } else {
-                    status = 35;
+//                    status = 35;
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getSimulationtime();
                     this.surfcomp.setActualSimulationTime(simulationTime);
@@ -207,7 +207,7 @@ public class ParticleThread extends Thread {
 //                    this.allParticlesReachedOutlet = false;
 //                    activeCalculation = false;
                 }
-                status = 50;
+//                status = 50;
             } catch (Exception ex) {
                 activeCalculation = false;
                 this.allParticlesReachedOutlet = false;

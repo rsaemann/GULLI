@@ -6,6 +6,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
+import control.listener.CapacitySelectionListener;
 import org.freehep.graphicsio.emf.EMFGraphics2DX;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
@@ -41,6 +42,8 @@ import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.ArrayTimeLinePipe;
 import model.timeline.array.ArrayTimeLinePipeContainer;
+import model.topology.Capacity;
+import model.topology.Pipe;
 import model.topology.StorageVolume;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -60,7 +63,7 @@ import static view.timeline.CapacityTimelinePanel.matlabStyle;
  *
  * @author saemann
  */
-public class SpacelinePanel extends JPanel {
+public class SpacelinePanel extends JPanel implements CapacitySelectionListener {
 
     protected JSlider slider;
     protected JSplitPane splitpane;
@@ -79,7 +82,8 @@ public class SpacelinePanel extends JPanel {
     HashMap<String, Integer> yAxisMap = new HashMap<>(10);
     protected XYDataset datasetConcentration, datasetVelocity, dataSetLvl;
     protected int numberUsedDataSetSlots = 0;
-    protected ArrayTimeLinePipeContainer instance;
+    protected ArrayTimeLinePipeContainer referenceContainer;
+    protected ArrayTimeLineMeasurementContainer measurementContainer;
     XYSeriesEditorTablePanel editorpanel;
 
     protected static String directoryPDFsave = ".";
@@ -88,7 +92,7 @@ public class SpacelinePanel extends JPanel {
      */
     private Thread t;
 
-    public SpacelinePanel(ArrayTimeLinePipe tl, String title) {
+    public SpacelinePanel(ArrayTimeLinePipeContainer referenceContainer, ArrayTimeLineMeasurementContainer tl, String title) {
         super(new BorderLayout());
         this.title = title;
 
@@ -99,12 +103,13 @@ public class SpacelinePanel extends JPanel {
         editorpanel = new XYSeriesEditorTablePanel();
         editorpanel.setSpacelinePanel(this);
 
-        if (!(tl instanceof ArrayTimeLinePipe)) {
-            throw new NullPointerException("Timeline must be of Type " + ArrayTimeLinePipe.class + " to get 1. and 2. momentum of mass. is: "+tl);
-        }
-        this.instance = ((ArrayTimeLinePipe) tl).container;
+//        if (!(tl instanceof ArrayTimeLinePipe)) {
+//            throw new NullPointerException("Timeline must be of Type " + ArrayTimeLinePipe.class + " to get 1. and 2. momentum of mass. is: "+tl);
+//        }
+        this.referenceContainer = referenceContainer;
+        this.measurementContainer = tl;
         try {
-            setTimeToShow(instance.getTimeIndex(0));
+            setTimeToShow(referenceContainer.getTimeIndex(0));
         } catch (Exception e) {
         }
 
@@ -116,7 +121,7 @@ public class SpacelinePanel extends JPanel {
     }
 
     public final void setTimeToShow(final long time) {
-//        this.instance = ArrayTimeLinePipeContainer.instance;
+//        this.referenceContainer = ArrayTimeLinePipeContainer.referenceContainer;
         if (t != null && t.isAlive()) {
             System.out.println(this.getClass() + ":: interrupt TimelineThread " + t.toString());
             try {
@@ -136,7 +141,7 @@ public class SpacelinePanel extends JPanel {
 
                 SpacelinePanel.this.updateChart("Preparing... " + new Date(time));
 
-                SpacelinePanel.this.buildPipeSpaceline(instance, time);
+                SpacelinePanel.this.buildPipeSpaceline(referenceContainer, time);
 
                 SpacelinePanel.this.updateCheckboxPanel();
 
@@ -182,7 +187,7 @@ public class SpacelinePanel extends JPanel {
     }
 
     private void buildPipeSpaceline(ArrayTimeLinePipeContainer instance, long time) {
-        this.instance = instance;
+        this.referenceContainer = instance;
 
         XYSeries v = new XYSeries(new SeriesKey("Velocity", "u", "m/s", Color.red));
 //        TimeSeries q = new TimeSeries(new SeriesKey("Flux", "q", "m³/s", Color.DARK_GRAY), "Time", "m³/s");
@@ -220,9 +225,9 @@ public class SpacelinePanel extends JPanel {
         int ind = indexTimePipe;
         float[] vs = instance.getVelocityForTimeIndex(ind);
         float[] hs = instance.getWaterlevelsForTimeIndex(ind);
-        float[] ms = instance.getMassFluxForTimeIndex(ind,0);
+        float[] ms = instance.getMassFluxForTimeIndex(ind, 0);
 //        System.out.println("timeindex: " + ind);
-        System.out.println(getClass()+":: ArrayTimeLinePipeContainer.distance="+instance.distance);
+        System.out.println(getClass() + ":: ArrayTimeLinePipeContainer.distance=" + instance.distance);
         if (instance.distance != null) {
             for (int i = 0; i < instance.distance.length; i++) {
 //            System.out.println(i + "\t" + hs[i] + "m");
@@ -261,21 +266,21 @@ public class SpacelinePanel extends JPanel {
             this.collection.addSeries(mr100);
         }
 
-        if (ArrayTimeLineMeasurementContainer.instance!=null) {
+        if (ArrayTimeLineMeasurementContainer.instance != null) {
             ArrayTimeLineMeasurementContainer container = ArrayTimeLineMeasurementContainer.instance;
             ind = container.getIndexForTime(time);
             ms = container.getMassForTimeIndex(ind);
             float[] ps = container.getNumberOfParticlesForTimeIndex(ind);
             float[] cs = container.getConcentrationForTimeIndex(ind);
             int[] ns = container.getNumberOfMeasurementsPerTimestepForTimeIndex(ind);
-            System.out.println("distances: "+container.distance.length);
+            System.out.println("distances: " + container.distance.length);
             for (int i = 0; i < ArrayTimeLineMeasurementContainer.distance.length; i++) {
                 float d = ArrayTimeLineMeasurementContainer.distance[i];
                 m_p.addOrUpdate(d, ps[i]);
                 m_m.addOrUpdate(d, ms[i]);
                 m_c.addOrUpdate(d, cs[i]);
                 m_n.addOrUpdate(d, ns[i]);
-                
+
             }
 
             if (moment1_refvorgabe.getMaxY() > 0) {
@@ -326,8 +331,8 @@ public class SpacelinePanel extends JPanel {
                 this.collection.addSeries(m100);
             }
 //        beforeWasNull = false;
-        }else{
-            System.out.println(getClass()+":: MeasurementContainer is not initialized.");
+        } else {
+            System.out.println(getClass() + ":: MeasurementContainer is not initialized.");
         }
     }
 
@@ -415,7 +420,7 @@ public class SpacelinePanel extends JPanel {
                  * Baue neues Dataset wenn keine Wiederekennung zu finden ist
                  */
                 XYSeriesCollection dataset = null;
-                if (key.axis == null || key.axis.name == null) {
+                if (key.axisKey == null || key.axisKey.name == null) {
                     /*
                      * No recognition (mapping to other dataset) required.
                      * Build a new Dataset+Yaxis for this TimeSeries
@@ -434,8 +439,8 @@ public class SpacelinePanel extends JPanel {
                     plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
                 } else {
                     NumberAxis yAxis;
-                    if (yAxisMap.containsKey(key.axis.name)) {
-                        indexDataset = yAxisMap.get(key.axis.name);
+                    if (yAxisMap.containsKey(key.axisKey.name)) {
+                        indexDataset = yAxisMap.get(key.axisKey.name);
                         yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
                         dataset = (XYSeriesCollection) plot.getDataset(indexDataset);
                         indexSeries = dataset.getSeriesCount();
@@ -446,10 +451,10 @@ public class SpacelinePanel extends JPanel {
                         // Axis key not yet in use. Build new Dataset for this Yaxis
                         indexDataset = numberUsedDataSetSlots;
                         numberUsedDataSetSlots++;
-                        yAxisMap.put(key.axis.name, indexDataset);
+                        yAxisMap.put(key.axisKey.name, indexDataset);
                         indexSeries = 0;
-                        if (key.axis.label != null) {
-                            yAxis = new NumberAxis(key.axis.label);
+                        if (key.axisKey.label != null) {
+                            yAxis = new NumberAxis(key.axisKey.label);
                         } else {
                             yAxis = new NumberAxis("[" + key.unit + "]");
                         }
@@ -524,7 +529,7 @@ public class SpacelinePanel extends JPanel {
                  * Baue neues Dataset wenn keine Wiederekennung zu finden ist
                  */
                 XYSeriesCollection dataset = null;
-                if (key.axis == null || key.axis.name == null) {
+                if (key.axisKey == null || key.axisKey.name == null) {
                     /*
                      * No recognition (mapping to other dataset) required.
                      * Build a new Dataset+Yaxis for this TimeSeries
@@ -544,8 +549,8 @@ public class SpacelinePanel extends JPanel {
                     plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
                 } else {
                     NumberAxis yAxis;
-                    if (yAxisMap.containsKey(key.axis.name)) {
-                        indexDataset = yAxisMap.get(key.axis.name);
+                    if (yAxisMap.containsKey(key.axisKey.name)) {
+                        indexDataset = yAxisMap.get(key.axisKey.name);
 //                        System.out.println("Platz für Dataset " + key.toString() + " an index " + indexDataset);
                         yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
                         dataset = (XYSeriesCollection) plot.getDataset(indexDataset);
@@ -556,11 +561,11 @@ public class SpacelinePanel extends JPanel {
                         // Axis key not yet in use. Build new Dataset for this Yaxis
                         indexDataset = numberUsedDataSetSlots;
                         numberUsedDataSetSlots++;
-                        yAxisMap.put(key.axis.name, indexDataset);
+                        yAxisMap.put(key.axisKey.name, indexDataset);
 //                        System.out.println("Platziere neues Dataset " + key.toString() + " an index " + indexDataset);
                         indexSeries = 0;
-                        if (key.axis.label != null) {
-                            yAxis = new NumberAxis(key.axis.label);
+                        if (key.axisKey.label != null) {
+                            yAxis = new NumberAxis(key.axisKey.label);
                         } else {
                             yAxis = new NumberAxis("[" + key.unit + "]");
                         }
@@ -605,7 +610,7 @@ public class SpacelinePanel extends JPanel {
     public void updateTimeSlider() {
         boolean init = false;
         try {
-            if (instance.getNumberOfTimes() > 0) {
+            if (referenceContainer.getNumberOfTimes() > 0) {
                 init = true;
             }
         } catch (Exception e) {
@@ -627,16 +632,16 @@ public class SpacelinePanel extends JPanel {
             });
 
         } else {
-            if (slider != null && slider.getMaximum() == instance.getNumberOfTimes() - 1) {
+            if (slider != null && slider.getMaximum() == referenceContainer.getNumberOfTimes() - 1) {
                 return;
             }
             //Slider has to be initialized.
-            slider = new JSlider(0, instance.getNumberOfTimes() - 1);
+            slider = new JSlider(0, referenceContainer.getNumberOfTimes() - 1);
             slider.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseReleased(MouseEvent me) {
 //                    System.out.println("SpacelinePanel::slider.mouseReleased: released @ " + new Date(ArrayTimeLinePipe.getTimeMilliseconds(slider.getValue()))+"\t value="+slider.getValue()+" / Times:"+ArrayTimeLinePipe.getNumberOfTimes());
-                    SpacelinePanel.this.setTimeToShow(instance.getTimeMilliseconds(slider.getValue()));
+                    SpacelinePanel.this.setTimeToShow(referenceContainer.getTimeMilliseconds(slider.getValue()));
                 }
             });
             this.add(slider, BorderLayout.NORTH);
@@ -798,7 +803,7 @@ public class SpacelinePanel extends JPanel {
             colorNew = new Color(oldKey.lineColor.getRGB() * 300000);
 //            System.out.println("Color Old: " + oldKey.lineColor.toString() + " -> new: " + colorNew.toString());
         }
-        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axis);
+        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axisKey);
         XYSeries average = new XYSeries(newKey);
         int minIndex = maxinvolvedPeriods / 2 + 1;
         int maxIndex = ts.getItemCount() - maxinvolvedPeriods / 2;
@@ -866,6 +871,18 @@ public class SpacelinePanel extends JPanel {
         System.out.println("10000: " + new Color(old.getRGB() * 10000));
         System.out.println("100000:" + new Color(old.getRGB() * 100000));
         System.out.println("1000000:" + new Color(old.getRGB() * 1000000));
+    }
+
+    @Override
+    public void selectCapacity(Capacity c, Object caller) {
+        if (c != null) {
+            if (c instanceof Pipe) {
+                Pipe p = (Pipe) c;
+                this.measurementContainer = p.getMeasurementTimeLine().getContainer();
+                this.referenceContainer=((ArrayTimeLinePipe)p.getStatusTimeLine()).container;
+                buildPipeSpaceline(referenceContainer, 0);
+            }
+        }
     }
 
 }

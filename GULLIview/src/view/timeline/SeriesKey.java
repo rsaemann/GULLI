@@ -24,13 +24,14 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
 
     public final String name, symbol, unit;
     public Color lineColor;
-    public AxisKey axis = null;
+    public AxisKey axisKey = null;
     public int containerIndex = 0;
     private boolean visible = true;
     public String label;
     public String file;
     public final String eventID;
     public boolean renderAsBar = false;
+    public boolean logarithmic=false;
     public BasicStroke stroke = defaultstroke;
     public ShapeEditor.SHAPES shape = null;
     public boolean shapeFilled = false;
@@ -47,7 +48,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
 
     public SeriesKey(Value v, Color lineColor, AxisKey yaxis) {
         this(v, lineColor);
-        this.axis = yaxis;
+        this.axisKey = yaxis;
     }
 
     public SeriesKey(String name, String symbol, String unit, Color lineColor) {
@@ -76,7 +77,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
         this.symbol = symbol;
         this.unit = unit;
         this.lineColor = lineColor;
-        this.axis = yaxis;
+        this.axisKey = yaxis;
         this.containerIndex = containerIndex;
         this.file = file;
         this.eventID = extractEventID(name);

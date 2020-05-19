@@ -121,6 +121,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
     private Thread statusThread = initStatusThread();
 
+    public static boolean pauseRevokerThread = false;
+
     private Thread lockbreaker;
 
     private long seed = 100;
@@ -237,7 +239,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //            System.out.println("resetRandom Seeds to length "+randomNumberGenerators.length);
             Random r = new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize*50 ));
+                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize * 50));
                 randomNumberGenerators[i] = newField;
             }
         }
@@ -909,7 +911,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                         if (tc.barrier_particle != null) {
                             int running = 0, waiting = 0;
-                            if (run && steps == laststep) {
+                            if (!pauseRevokerThread && (run && steps == laststep)) {
                                 // something is incredibly slow. prepare output to console
                                 StringBuilder str = new StringBuilder("--" + getClass() + "--detected hanging at loop " + steps + " called barrier: " + (calledObject) + "   :");
                                 str.append("\n lastfinishedBarrier: " + lastFinishedBarrier + "  :  " + controlThread.barrier + ",," + "\t control.status=" + controlThread.status + " (" + controlThread.getState() + ")  listener: " + controlThread.lastenvokenListener);
