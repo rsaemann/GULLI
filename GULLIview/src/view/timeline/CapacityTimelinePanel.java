@@ -30,6 +30,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.FieldPosition;
+import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -66,8 +69,11 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.annotations.XYTitleAnnotation;
 import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.axis.DateTickUnitType;
 import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.event.AxisChangeEvent;
+import org.jfree.chart.event.AxisChangeListener;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
@@ -78,6 +84,7 @@ import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
+import org.jfree.ui.Layer;
 import org.jfree.ui.RectangleAnchor;
 import org.jfree.ui.RectangleEdge;
 import org.jfree.ui.RectangleInsets;
@@ -106,6 +113,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     // public boolean showVelocityInformationInputPoints = true;
     protected DateAxis dateAxis;
+    private boolean showSeconds = true;
     HashMap<String, Integer> yAxisMap = new HashMap<>(10);
     protected int numberUsedDataSetSlots = 0;
 
@@ -153,10 +161,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries moment1_delta = new TimeSeries(new SeriesKey("Delta 1.Moment Messung-Ref", "Fehler 1.M (messung-ref)", "m", Color.red.darker(), new AxisKey("Moment", "1. Moment")));
     private final TimeSeries moment1_delta_relative = new TimeSeries(new SeriesKey("Relative Error 1.Moment", "rel. Error 1. Momentum", "-", Color.red, new AxisKey("Relative Error", "Relative Error [-]")));
 
-    private final TimeSeries moment2_ref = new TimeSeries(new SeriesKey("2.Moment Matlab", "2.M ref", "m", Color.GREEN, new AxisKey("Moment2", "2. Moment")));
-    private final TimeSeries moment2_mess = new TimeSeries(new SeriesKey("2.Moment Messung", "2.M mess", "m", Color.red, new AxisKey("Moment2", "2. Moment")));
-    private final TimeSeries moment2_delta = new TimeSeries(new SeriesKey("Delta 2.Moment Messung-Ref", "Fehler 2.M (messung-ref)", "m", Color.orange.darker(), new AxisKey("Moment2", "2. Moment")));
-    private final TimeSeries moment2_delta_relative = new TimeSeries(new SeriesKey("Rel. Error 2.Moment ", "rel. Fehler 2.M (messung-ref)", "-", Color.orange, new AxisKey("Relative Error", "Relative Error [-]")));
+    private final TimeSeries moment2_ref = new TimeSeries(new SeriesKey("2. Moment ref", "", "m", Color.GREEN, new AxisKey("Moment2", "2. Moment")));
+    private final TimeSeries moment2_mess = new TimeSeries(new SeriesKey("2. Moment mes", "", "m", Color.red, new AxisKey("Moment2", "2. Moment")));
+    private final TimeSeries moment2_delta = new TimeSeries(new SeriesKey("\u0394 2.Moment", "", "m", Color.orange.darker(), new AxisKey("Moment2", "2. Moment")));
+    private final TimeSeries moment2_delta_relative = new TimeSeries(new SeriesKey("Rel. \u0394 2.Moment", "", "-", Color.orange, new AxisKey("Relative Error", "Relative Error [-]")));
 
     //Measures auflisten
     private final AxisKey keymassFlux = new AxisKey("Massflux", "Massflux [kg/s]");
@@ -186,6 +194,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     private final ArrayList<TimeSeries> ref_Concentration_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> concentration_Type = new ArrayList<>(2);
+
+    public static final ValueMarker zero_Marker = new ValueMarker(0, Color.LIGHT_GRAY, new BasicStroke(1));
 
     public CapacityTimelinePanel(String title, Controller c/*, PipeResultData... input*/) {
         super(new BorderLayout());
@@ -277,6 +287,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
 
         });
+        
+        
     }
 
     public void setLegendPosition(LEGEND_POSITION pos) {
@@ -308,6 +320,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             this.remove(panelChecks);
         } else {
             this.add(panelChecks, BorderLayout.SOUTH);
+        }
+    }
+    
+    public void showZeroLine(boolean show){
+        if(show){
+            panelChart.getChart().getXYPlot().addRangeMarker(0,zero_Marker,Layer.BACKGROUND);
+        }else{
+            panelChart.getChart().getXYPlot().removeRangeMarker(zero_Marker);
         }
     }
 
@@ -395,10 +415,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
      */
     public static long calcSimulationTime(long actualTime, long startTime) {
         long time = actualTime - startTime;
-        int offset = TimeZone.getDefault().getOffset(time);
+        //       int offset = TimeZone.getDefault().getOffset(time);
 
 //        System.out.println("offset: "+offset+" .... input: "+actualTime+"    start: "+startTime+" \t subtracted="+time);
-        time -= offset;
+//        time -= offset;
         return time;
     }
 
@@ -460,6 +480,54 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.collection.removeAllSeries();
         this.panelChart.getChart().setNotify(false);
         collection.setNotify(false);
+
+        if (showSimulationTime) {
+
+            final long start = tl.getTimeContainer().getFirstTime();
+            final long end = tl.getTimeContainer().getLastTime();
+            if (end - start < 1000L * 60 * 60 * 120) {
+                //If the simulation is less than 120 minutes, only show minutes and hide hours
+                dateAxis.setLabel("Time [min:sec]");
+                showSeconds = true;
+
+                dateAxis.setDateFormatOverride(new DateFormat() {
+                    @Override
+                    public StringBuffer format(Date date, StringBuffer buff, FieldPosition fieldPosition) {
+                        //System.out.println("append "+fieldPosition);
+                        int seconds = (int) ((date.getTime() - start) / 1000);
+                        buff.append(seconds / 60);
+                        //System.out.println("Tickunit="+dateAxis.getTickUnit().getUnitType());
+                        //System.out.println("time:"+date.getTime()+"\t start:"+start+" -> "+seconds);
+                        if (dateAxis.getTickUnit().getUnitType() == DateTickUnitType.SECOND || dateAxis.getTickUnit().getUnitType() == DateTickUnitType.MILLISECOND) {
+                            buff.append(":");
+                            int zehner = seconds % 60;
+                            if (zehner < 10) {
+                                buff.append("0");
+                            }
+                            buff.append(zehner);
+                            if (!showSeconds) {
+                                showSeconds = true;
+                                dateAxis.setLabel("Time [min:sec]");
+                            }
+                        } else {
+                            if (showSeconds) {
+                                //Switch back to only minute display
+                                showSeconds = false;
+                                dateAxis.setLabel("Time [min]");
+                            }
+                        }
+                        return buff;
+                    }
+
+                    @Override
+                    public Date parse(String source, ParsePosition pos) {
+                        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+                    }
+                });
+            } else {
+                dateAxis.setLabel("Time [hour:min]");
+            }
+        }
 
         /* moment1_refvorgabe.clear();
          moment1_messung.clear();
@@ -608,7 +676,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
             for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
                 Date d;
-                long statustime = tlm.getContainer().getTimeMillisecondsAtIndex(i) + (i == 0 ? 0 : moveVisiblePointToIntervalMid);
+                long statustime = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i) + (i == 0 ? 0 : moveVisiblePointToIntervalMid);
                 if (showSimulationTime) {
 
                     d = new Date(calcSimulationTime(statustime, controller.getThreadController().getStartOffset()));//calcSimulationTime(tlm.getContainer().getTimeMillisecondsAtIndex(i), controller.getThreadController().getStartOffset()) + (i == 0 ? 0 : moveVisiblePointToIntervalMid));
@@ -631,7 +699,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             int refTimeIndexInt = (int) refTimeIndex;
 
                             double refFrac = refTimeIndex % 1;
-                            if (refTimeIndex >= cont.moment1.length-0.5) {
+                            if (refTimeIndex >= cont.moment1.length - 0.5) {
                                 //out of bounds
                                 continue;
                             }
@@ -651,7 +719,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //                                }
                                 moment1_delta.addOrUpdate(time, m1 - mref /*+ offset*/);
 //                                if (mref != 0) {
-                                    moment1_delta_relative.addOrUpdate(time, (m1 - mref /*+ offset*/) / mref);
+                                moment1_delta_relative.addOrUpdate(time, (m1 - mref /*+ offset*/) / mref);
 //                                }
 
                                 double m2 = tlm.getContainer().getMomentum2_xc(i, m1);
@@ -847,6 +915,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
             }
         }
+        showZeroLine(true);
         this.panelChart.getChart().setNotify(true);
         this.panelChart.getChart().fireChartChanged();
     }
@@ -1214,6 +1283,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         try {
             dateAxis = (DateAxis) plot.getDomainAxis();
+            dateAxis.setTimeZone(TimeZone.getTimeZone("UTC"));
         } catch (Exception e) {
         }
         plot.setBackgroundPaint(Color.WHITE);

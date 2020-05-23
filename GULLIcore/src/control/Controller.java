@@ -48,7 +48,6 @@ import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
-import model.timeline.array.TimeIndexCalculator;
 import model.timeline.array.TimeIndexContainer;
 import model.timeline.sparse.SparseTimeLinePipeContainer;
 import model.topology.Capacity;

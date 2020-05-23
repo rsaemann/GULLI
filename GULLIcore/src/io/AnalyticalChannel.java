@@ -28,13 +28,11 @@ import control.Controller;
 import control.StartParameters;
 import control.scenario.Scenario;
 import control.scenario.SpillScenario;
-import control.scenario.injection.InjectionInfo;
 import control.scenario.injection.InjectionInformation;
 import java.io.IOException;
 import java.util.ArrayList;
 import model.GeoTools;
 import model.particle.Material;
-import model.timeline.array.ArrayTimeLineManhole;
 import model.timeline.array.ArrayTimeLineManholeContainer;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.ArrayTimeLinePipe;
@@ -72,6 +70,7 @@ public class AnalyticalChannel {
     float spillWidthM = 20;
 
     float[][] c;
+    float[] distancesX;
 
     private Scenario scenario;
     TimeIndexContainer times;
@@ -90,12 +89,13 @@ public class AnalyticalChannel {
         material = new Material("Analytical solution", 1000, true, 0);
     }
 
-    public AnalyticalChannel(float width, float length, int timeIntervalCount, float timeIntervalDurationS) {
+    public AnalyticalChannel(float width, float length, int simulationDurationS, float timeIntervalDurationS) {
         this();
         this.slope = slope;
         this.width = width;
         this.totallength = length;
-        this.numberOfTimeIntervals = timeIntervalCount;
+
+        this.numberOfTimeIntervals = (int) (simulationDurationS / timeIntervalDurationS);
         this.timeintervallengthMS = (int) (timeIntervalDurationS * 1000);
         injections = new ArrayList<InjectionInformation>();
         System.out.println("create timelines");
@@ -144,7 +144,7 @@ public class AnalyticalChannel {
 //        final ArrayList<InjectionInformation> injections = new ArrayList<>(lengthX);
 //        System.out.println("Load x from 0 to "+lengthX);
         int skipped = 0;
-        float[] distancesX = new float[numberOfChannelElements - 1];
+        distancesX = new float[numberOfChannelElements - 1];
         ArrayTimeLineMeasurementContainer.distance = distancesX;
         pipeTLcontainer.distance = distancesX;
 
@@ -219,7 +219,7 @@ public class AnalyticalChannel {
             coord = new Coordinate(posX, y);
             coord = gt.toGlobal(coord);
             neuePos = new Position(coord.x, coord.y, posX, y);
-            distancesX[i - 1] = (i - 0.5f) * segmentLength;
+            distancesX[i - 1] = (i - 1) * segmentLength;//-0.5*segmentLength;
 
             Manhole neuesMH = new Manhole(neuePos, "MH_" + i, circ);
             neuesMH.setTop_height(1);
@@ -305,38 +305,46 @@ public class AnalyticalChannel {
     }
 
     public void addContaminationSuperposition(int injectionElementIndex, int injectionTimeIndex, float mass) {
-        double x_inj = injectionElementIndex * segmentlength + segmentlength * 0.5;
+        double x_inj = distancesX[injectionElementIndex];// injectionElementIndex * segmentlength;// + segmentlength * 0.5;
         double t_injMS = injectionTimeIndex * timeintervallengthMS;
 
         double v_e = width * waterlevel * segmentlength;
         double c_ini = mass / v_e;
-        System.out.println("c_ini= " + c_ini + " kg/m³  from " + mass + " kg in " + width + "x" + waterlevel + "x" + segmentlength + "=" + v_e + "m^3 volume");
-        if (disp == 0) {
-            System.out.println("Dispersion D=0. Analytical solution  cannot be calculated (div by 0)");
-            return;
-        }
+        //System.out.println("c_ini= " + c_ini + " kg/m³  from " + mass + " kg in " + width + "x" + waterlevel + "x" + segmentlength + "=" + v_e + "m^3 volume");
+
         for (int it = injectionTimeIndex; it < numberOfTimeIntervals; it++) {
             float t = (float) ((it * timeintervallengthMS - t_injMS) * 0.001); //Seconds since injection
 //            System.out.println(it+": "+t+"s");
             if (t == 0) {
                 t = 0.001f;
 //                //only set the initial concentration at the initial position
-                c[injectionElementIndex][injectionTimeIndex] += c_ini * 0.5;
-                c[injectionElementIndex + 1][injectionTimeIndex] += c_ini * 0.5;
-//
-//                //div by 0 error for the analytical solution
+                c[injectionElementIndex][injectionTimeIndex] += c_ini ;//* 0.5;
+//                c[injectionElementIndex + 1][injectionTimeIndex] += c_ini * 0.5;
+
                 continue;
             }
-            double sqrt4pidt = Math.sqrt(4 * Math.PI * disp * t);
 
-            for (int i = 0; i < numberOfChannelElements; i++) {
-                float x = (float) ((i) * segmentlength - x_inj);
-                float addC = (float) ((c_ini / (sqrt4pidt)) * Math.exp(-(x - velocity * t) * (x - velocity * t) / (4 * disp * t)));
-                c[i][it] += addC;
+            double sqrt4pidt = Math.sqrt(4 * Math.PI * disp * t);
+            if (disp == 0) {
+                //System.out.println("Dispersion D=0. Analytical solution  cannot be calculated (div by 0)");
+                double x = x_inj + velocity * t;
+                double fraction = (x / segmentlength);
+                int indexFloor = (int) fraction;
+                c[indexFloor][it] += c_ini * (1 - (fraction % 1));
+                c[indexFloor + 1][it] += c_ini * fraction % 1;
+
+            } else {
+                for (int i = 0; i < numberOfChannelElements; i++) {
+                    float x = (float) ((i) * segmentlength - x_inj);
+                    float addC = (float) ((c_ini / (sqrt4pidt)) * Math.exp(-(x - velocity * t) * (x - velocity * t) / (4 * disp * t)));
+                    c[i][it] += addC * 1;
+                }
             }
         }
 
-        injections.add(new InjectionInformation(pipes.get(injectionElementIndex), 0, (float) mass, (int) (mass / massPerParticle), material, (injectionTimeIndex * timeintervallengthMS) / 1000., 0/*timeintervallengthMS * 0.001*/));
+//        System.out.println("Add "+mass+"kg to X="+distancesX[injectionElementIndex]);
+        injections.add(new InjectionInformation(pipes.get(injectionElementIndex), 0.5 * segmentlength, (float) mass, (int) (mass / massPerParticle), material, 0/*(injectionTimeIndex * timeintervallengthMS) / 1000.*/, 0/*timeintervallengthMS * 0.001*/));
+//        injections.add(new InjectionInformation(pipes.get(injectionElementIndex-1),  0*segmentlength, (float) mass*0.5f, (int) (mass*0.5 / massPerParticle), material, (injectionTimeIndex * timeintervallengthMS) / 1000., 0/*timeintervallengthMS * 0.001*/));
     }
 
     public void resetConcentration() {
@@ -406,7 +414,7 @@ public class AnalyticalChannel {
         //2. Momentum
         for (int t = 0; t < numberOfTimeIntervals; t++) {
             for (int j = 0; j < numberOfChannelElements; j++) {
-                float x = (float) ((j + 0.5) * segmentlength);
+                float x = (float) ((j) * segmentlength);
                 momentum2[t] += c[j][t] * (x - momentum1[t]) * (x - momentum1[t]);
             }
             momentum2[t] = momentum2[t] / sumC[t];

@@ -23,6 +23,7 @@ public class ArrayTimeLineMeasurementContainer {
     public int[] particles_visited;
     public float[] volumes;
     public int[] counts;
+    public long[] measurementTimes;
 
     /**
      * Is it only recorded once per timeindex?
@@ -71,6 +72,7 @@ public class ArrayTimeLineMeasurementContainer {
         this.mass_total = new float[numberOfPipes * times.getNumberOfTimes()];
 
         this.mass_type = new float[numberOfPipes * times.getNumberOfTimes()][numberOfContaminantTypes];
+        this.measurementTimes=new long[times.getNumberOfTimes()];
     }
 
     public void setNumberOfMaterials(int number) {
@@ -248,6 +250,17 @@ public class ArrayTimeLineMeasurementContainer {
 
     public int getNumberOfContaminants() {
         return numberOfContaminants;
+    }
+    
+    /**
+     * Measurement timestamps can vary from the time when they should be taken.
+     * This returns the simulationtime when the samples were taken.
+     * 
+     * @param timeindex
+     * @return timestamp of the sample
+     */
+    public long getMeasurementTimestampAtTimeIndex(int timeindex){
+        return measurementTimes[timeindex];
     }
 
 }

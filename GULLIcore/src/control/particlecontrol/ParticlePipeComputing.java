@@ -73,6 +73,8 @@ public class ParticlePipeComputing {
 //    public static boolean useDynamicVelocity = true;
     public static boolean useDynamicDispersion = false;
 
+    public static boolean measureOnlyFinalCapacity = false;
+
     /**
      * Determines the computational effort for the diffusive
      */
@@ -1462,7 +1464,7 @@ public class ParticlePipeComputing {
             Pipe pipe = ((Pipe) c);
             float v = (float) pipe.getVelocity();
             distance_adv = v * (dt);
-            
+
             p.setVelocity1d(v);
             distance_diff = (float) (calcDistanceTurbulentDiffusion(v) * rand.nextGaussian());
 
@@ -1480,14 +1482,18 @@ public class ParticlePipeComputing {
                 timespend = Math.abs(moved / resultVelocity);
                 remaining_dt -= timespend;
                 c = pipe.getStartConnection().getManhole();
-                pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                if (!measureOnlyFinalCapacity) {
+                    pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                }
             } else if (neuePosition > pipe.getLength()) {
                 moved = pipe.getLength() - position1d;
                 neuePosition -= pipe.getLength();
                 timespend = Math.abs(moved / resultVelocity);
                 remaining_dt -= timespend;
                 c = pipe.getEndConnection().getManhole();
-                pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                if (!measureOnlyFinalCapacity) {
+                    pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                }
             } else {
                 moved = distance_total;
                 remaining_dt = 0;
@@ -1587,7 +1593,9 @@ public class ParticlePipeComputing {
                         neuePosition = 0;
                         c = pipe.getStartConnection().getManhole();
                         //if (moved > 0) {
-                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        if (!measureOnlyFinalCapacity) {
+                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        }
                         // }
                     } else if (neuePosition > pipe.getLength()) {
                         //rushed through this pipe and is now inside the next manhole
@@ -1605,7 +1613,9 @@ public class ParticlePipeComputing {
                             ((HistoryParticle) p).addToHistory(c);
                         }
                         //  if (moved > 0) {
-                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        if (!measureOnlyFinalCapacity) {
+                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        }
                         //  }
                     } else {
                         // Particle will end this timestep in this pipe.
@@ -1621,7 +1631,11 @@ public class ParticlePipeComputing {
 //                        }
                         //position1d = neuePosition;
                         remaining_dt = 0;
-                        pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        if (!measureOnlyFinalCapacity) {
+                            pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
+                        } else {
+                            pipe.getMeasurementTimeLine().addParticle(p, dt);
+                        }
                     }
                     if (timespend == 0) {
                         break;
@@ -1629,7 +1643,7 @@ public class ParticlePipeComputing {
 
                     p.addMovingLength(moved);
                 } catch (Exception e) {
-                    System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual()+"  material index: "+p.getMaterial().materialIndex);
+                    System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual() + "  material index: " + p.getMaterial().materialIndex);
                     e.printStackTrace();
                     break;
                 }
