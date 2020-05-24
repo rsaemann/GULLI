@@ -54,7 +54,7 @@ public class TriangleMeasurement {
      */
     int[][] threadParticleCounter;
     
-    public boolean used=false;
+    //public boolean used=false;
 
     public ReentrantLock lock = new ReentrantLock();
 

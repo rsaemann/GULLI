@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
 import model.surface.Surface;
+import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Network;
@@ -148,8 +149,9 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         //initialize number of threads on the surface 
         if (control.getSurface() != null && control.getSurface().getMeasurementRaster() != null) {
-            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[numberParticleThreads];
-            control.getSurface().getMeasurementRaster().statuse = new int[numberParticleThreads];
+            control.getSurface().getMeasurementRaster().setNumberOfThreads(numberParticleThreads);
+//            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[numberParticleThreads];
+//            control.getSurface().getMeasurementRaster().statuse = new int[numberParticleThreads];
 
         }
 //        numberParallelParticleThreads = threads;
@@ -201,8 +203,9 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         //initialize number of threads on the surface 
         if (control.getSurface() != null && control.getSurface().getMeasurementRaster() != null) {
-            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[barrier_particle.getThreads().size()];
-            control.getSurface().getMeasurementRaster().statuse = new int[control.getSurface().getMeasurementRaster().monitor.length];
+            control.getSurface().getMeasurementRaster().setNumberOfThreads(barrier_particle.getThreads().size());
+//            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[barrier_particle.getThreads().size()];
+//            control.getSurface().getMeasurementRaster().statuse = new int[control.getSurface().getMeasurementRaster().monitor.length];
 
         }
 
@@ -519,10 +522,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     e.printStackTrace();
                 }
             } else if (pt.getState() == Thread.State.RUNNABLE) {
-                TriangleMeasurement tm = control.getSurface().getMeasurementRaster().monitor[pt.threadIndex];
-                System.out.println("Break lock of " + pt + "  on " + tm);
-                if (tm != null) {
-                    tm.lock.unlock();
+                if (control.getSurface().getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+                    TriangleMeasurement tm = ((SurfaceMeasurementTriangleRaster) control.getSurface().getMeasurementRaster()).monitor[pt.threadIndex];
+                    System.out.println("Break lock of " + pt + "  on " + tm);
+                    if (tm != null) {
+                        tm.lock.unlock();
+                    }
                 }
             }
         }
@@ -610,10 +615,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     e.printStackTrace();
                 }
             } else if (pt.getState() == Thread.State.RUNNABLE) {
-                TriangleMeasurement tm = control.getSurface().getMeasurementRaster().monitor[pt.threadIndex];
-                System.out.println("Break lock of " + pt + "  on " + tm);
-                if (tm != null) {
-                    tm.lock.unlock();
+                if (control.getSurface().getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+                    TriangleMeasurement tm = ((SurfaceMeasurementTriangleRaster) control.getSurface().getMeasurementRaster()).monitor[pt.threadIndex];
+                    System.out.println("Break lock of " + pt + "  on " + tm);
+                    if (tm != null) {
+                        tm.lock.unlock();
+                    }
                 }
             }
         }

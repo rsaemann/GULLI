@@ -745,6 +745,124 @@ public class HE_SurfaceIO {
         }
     }
 
+    public static void writeSurfaceContaminationDynamicMassCSV(File outputFile, Surface surface, int materialIndex) throws IOException {
+        if (surface == null) {
+            throw new NullPointerException("No Surface set. No output file written.");
+        }
+        int categories = surface.getNumberOfMaterials();
+        if (categories < 1) {
+            throw new NullPointerException("No Surface Material Categories. No output file written.");
+        }
+        DecimalFormat df4 = new DecimalFormat("0.####", DecimalFormatSymbols.getInstance(Locale.US));
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
+            if (surface.fileTriangles != null) {
+                bw.write("Surface:" + surface.fileTriangles.getParentFile().getName() + "/" + surface.fileTriangles.getName());
+                bw.newLine();
+            }
+            bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
+            bw.newLine();
+
+            bw.write("Contaminant category:" + materialIndex);
+            bw.newLine();
+            bw.write("Timesteps:" + surface.getNumberOfTimes());
+            bw.newLine();
+            bw.write("Stepduration:" + surface.getTimes().getDeltaTimeMS() + "ms");
+            bw.newLine();
+            bw.write("TriangleID;[Coordinate];cMax;t0;t1;t2;...");
+            bw.newLine();
+            bw.write("***");
+            bw.newLine();
+            StringBuffer buffer = new StringBuffer(80);
+//            if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+            SurfaceMeasurementRaster raster = /*(SurfaceMeasurementTriangleRaster)*/ surface.getMeasurementRaster();
+            int cellcount = raster.getNumberOfCells();
+            int timesteps = raster.getIndexContainer().getNumberOfTimes();
+            for (int mID = 0; mID < cellcount; mID++) {
+                if (raster.isCellContaminated(mID)) {
+                    buffer.delete(0, buffer.length());
+
+                    double max = 0;
+                    for (int j = 0; j < timesteps; j++) {
+                        double mass = raster.getMassInCell(mID, j, materialIndex);
+                        max = Math.max(max, mass);
+                        buffer.append(";").append(df4.format(mass));
+                    }
+                    if (max > 0) {//Only write cell information, if there is content
+                        bw.write(mID + ";");
+                        Coordinate coord = raster.getCenterOfCell(mID);
+                        bw.write("[" + df4.format(coord.x) + "," + df4.format(coord.y) + "," + df4.format(coord.z) + "]");
+                        bw.write(";" + max);
+                        bw.write(buffer.toString());
+                        bw.newLine();
+                    }
+                }
+            }
+        }
+    }
+
+    public static void writeSurfaceWaterlevelDynamicsCSV(File outputFile, Surface surface) throws IOException {
+        if (surface == null) {
+            throw new NullPointerException("No Surface set. No output file written.");
+        }
+        DecimalFormat df3 = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.US));
+        float[][] waterlevels = surface.getWaterlevels();
+        double[] maxWaterlevels = surface.getMaxWaterLevels();
+        double maxWL = 0;
+        if (maxWaterlevels != null) {
+            for (int i = 0; i < maxWaterlevels.length; i++) {
+                maxWL = Math.max(maxWL, maxWaterlevels[i]);
+            }
+        } else {
+            //Need to calculated everything first
+            int count=0;
+            maxWaterlevels = new double[waterlevels.length];
+            for (int i = 0; i < waterlevels.length; i++) {
+                if (waterlevels[i] != null) {
+                    for (int j = 0; j < waterlevels[i].length; j++) {
+                        maxWL = Math.max(maxWL, waterlevels[i][j]);
+                        maxWaterlevels[i] = Math.max(maxWaterlevels[i], waterlevels[i][j]);
+                    }
+                    count++;
+                }
+            }
+            System.out.println("waterlevels for "+count+" triangles");
+        }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
+            if (surface.fileTriangles != null) {
+                bw.write("Surface:" + surface.fileTriangles.getParentFile().getName() + "/" + surface.fileTriangles.getName());
+                bw.newLine();
+            }
+            bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
+            bw.newLine();
+
+            bw.write("Waterlevels:" + maxWaterlevels.length);
+            bw.newLine();
+            bw.write("Maximum:" + maxWL);
+            bw.newLine();
+            bw.write("Timesteps:" + surface.getNumberOfTimes());
+            bw.newLine();
+            bw.write("Stepduration:" + surface.getTimes().getDeltaTimeMS() + "ms");
+            bw.newLine();
+            bw.write("TriangleID;[Coordinate];max;t0;t1;t2;...");
+            bw.newLine();
+            bw.write("***");
+            int timesteps = surface.getNumberOfTimes();
+            for (int mID = 0; mID < waterlevels.length; mID++) {
+                if (maxWaterlevels[mID] >= 0.001) {
+                    bw.newLine();
+                    bw.write(mID + ";");
+                    double[] xyz = surface.getTriangleMids()[mID];
+                    bw.write("[" + df3.format(xyz[0]) + "," + df3.format(xyz[1]) + "," + df3.format(xyz[2]) + "]");
+                    bw.write(";" + maxWaterlevels[mID]);
+                    for (int j = 0; j < timesteps; j++) {
+                        bw.append(";").append(df3.format(waterlevels[mID][j]));
+                    }
+                    bw.flush();
+                }
+            }
+        }
+    }
+
     public static ArrayList<Integer>[] findNodesTriangleIDs(int[][] triangleNotes, int vertexcount) {
         ArrayList<Integer>[] nodeVertices = new ArrayList[vertexcount];
         int zehntel = triangleNotes.length / 10;
@@ -851,11 +969,11 @@ public class HE_SurfaceIO {
 //            NumberConverter nc = new NumberConverter(br);
             char c;
 //        boolean lastWasSplitter = true;
-            int linelength ;
+            int linelength;
             char splitID = ',';
             char splitNeighbours = ' ';
-            int indexComma ;
-            int neighbours ;
+            int indexComma;
+            int neighbours;
             int index;
             char[] buffer = new char[256];
             while (br.ready()) {

@@ -23,6 +23,7 @@
  */
 package model.surface.measurement;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import model.particle.Particle;
 import model.timeline.array.TimeIndexContainer;
 
@@ -47,6 +48,14 @@ public abstract class SurfaceMeasurementRaster {
     public abstract void measureParticle(long time, Particle particle, int threadIndex);
 
     public abstract void setNumberOfMaterials(int numberOfMaterials);
+    
+    public abstract int getNumberOfCells();
+    
+    public abstract boolean isCellContaminated(int cellIndex);
+    
+    public abstract Coordinate getCenterOfCell(int cellindex);
+    
+    public abstract double getMassInCell(int cellIndex,int timeindex,int materialIndex);
 
     public abstract void setTimeContainer(TimeIndexContainer times);
 
@@ -57,9 +66,14 @@ public abstract class SurfaceMeasurementRaster {
     public int status = -1;
 
     public int[] statuse;// = new int[8];
-    volatile public TriangleMeasurement[] monitor;// = new TriangleMeasurement[8];
-
+   
     public abstract void reset();
+    
+    /**
+     * Initialize the threadsafe component.
+     * @param threadCount 
+     */
+    public abstract void setNumberOfThreads(int threadCount);
 
     /**
      * This is called, when a Thread blocks the simulation.

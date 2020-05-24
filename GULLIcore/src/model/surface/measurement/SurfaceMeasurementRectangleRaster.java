@@ -341,6 +341,47 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
     @Override
     public void synchronizeMeasurements() {
-        return; //Not needed
+        //Not needed        
+    }
+
+    @Override
+    public void setNumberOfThreads(int threadCount) {
+
+    }
+
+    @Override
+    public int getNumberOfCells() {
+        return numberXIntervals * numberYIntervals;
+    }
+
+    @Override
+    public Coordinate getCenterOfCell(int cellindex) {
+        int x = cellindex / numberYIntervals;
+        int y = cellindex % numberYIntervals;
+        return getMidCoordinate(x, y);
+    }
+
+    @Override
+    public double getMassInCell(int cellIndex, int timeindex, int materialIndex) {
+        int x = cellIndex / numberYIntervals;
+        int y = cellIndex % numberYIntervals;
+        return mass[x][y][timeindex][materialIndex];
+    }
+
+    @Override
+    public boolean isCellContaminated(int cellIndex) {
+        if (particlecounter == null) {
+            return false;
+        }
+        int x = cellIndex / numberYIntervals;
+
+        if (particlecounter[x] == null) {
+            return false;
+        }
+        int y = cellIndex % numberYIntervals;
+        if (particlecounter[x][y] == null) {
+            return false;
+        }
+        return true;
     }
 }

@@ -35,6 +35,7 @@ import model.particle.Particle;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
 import model.surface.SurfaceTrianglePath;
+import model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import model.topology.Inlet;
 import model.topology.Manhole;
 import org.opengis.referencing.operation.TransformException;
@@ -155,7 +156,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             checkSurrounding(p);
 //            status = 10;
             moveParticle2(p);
-            
+
             if (p.isOnSurface()) {
 //                status = 31;
                 surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
@@ -166,7 +167,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 washToPipesystem(p, p.surfaceCellID);
             }
 //            status = 30;
-            
+
 //            status = 40;
         } catch (Exception e) {
             e.printStackTrace();
@@ -192,7 +193,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         if (enableDiffusion) {
             // calculate diffusion
-            if (totalvelocity >0) {
+            if (totalvelocity > 0) {
                 //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
                 tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
                 double sqrt2dtDx = sqrt2dt * tempDiff[0];
@@ -346,8 +347,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double nextRandomGaussian() {
         return random.nextGaussian();
     }
-    
-    private int getRandomIndex(){
+
+    private int getRandomIndex() {
         return random.getIndex();
     }
 
@@ -381,11 +382,15 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     @Override
     public String reportCalculationStatus() {
-        if (surface.getMeasurementRaster().statuse != null && surface.getMeasurementRaster().monitor != null && surface.getMeasurementRaster().monitor[threadindex] != null) {
-            return "Status:" + status + "  Raster:" + surface.getMeasurementRaster().statuse[threadindex] + " monitor: " + surface.getMeasurementRaster().monitor[threadindex] + "   mass: " + surface.getMeasurementRaster().monitor[threadindex].totalParticleCount() + "  isused:" + surface.getMeasurementRaster().monitor[threadindex].lock.toString();
-        } else {
-            return "Status:" + status;
+        if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+            SurfaceMeasurementTriangleRaster smtr = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
+
+            if (smtr.statuse != null && smtr.monitor != null && smtr.monitor[threadindex] != null) {
+                return "Status:" + status + "  Raster:" + surface.getMeasurementRaster().statuse[threadindex] + " monitor: " + smtr.monitor[threadindex] + "   mass: " + smtr.monitor[threadindex].totalParticleCount() + "  isused:" + smtr.monitor[threadindex].lock.toString();
+            }
         }
+        return "Status:" + status;
+
     }
 
     @Override

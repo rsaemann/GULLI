@@ -5,11 +5,13 @@ import control.LoadingCoordinator;
 import control.ShapeTools;
 import control.StartParameters;
 import control.listener.SimulationActionAdapter;
+import control.maths.RandomArray;
 import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing2D;
 import control.scenario.injection.InjectionInformation;
 import io.GeoJSON_IO;
 import io.Geopackage_IO;
+import io.extran.HE_GDB_IO;
 import io.extran.HE_SurfaceIO;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
@@ -22,7 +24,6 @@ import java.util.logging.Logger;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
-import javax.swing.UIManager;
 import model.GeoPosition;
 import model.particle.Material;
 import model.topology.Manhole;
@@ -35,7 +36,8 @@ import view.ViewController;
 /**
  * The Run Class to start the GUI with a Simulation. After the run, shapefiles
  * with the contaminated area are created inside the input folder.
- * Generic_Urban_transport_for pollution_with_Lagrangian_aspect_for_Location_tracIng
+ * Generic_Urban_transport_for
+ * pollution_with_Lagrangian_aspect_for_Location_tracIng
  *
  *
  *
@@ -59,8 +61,7 @@ public class RunMainView {
     public static void main(String[] args) throws Exception {
 
         // If Nimbus is not available, you can set the GUI to another look and feel.
-        UIManager.setLookAndFeel( UIManager.getCrossPlatformLookAndFeelClassName());
-
+//        UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
 //            
         //Der Controller koordiniert alle einzelnen Module und startet die Benutzeroberfläche.
         //Control links all model and io components and stores the mesh and all simulation-related information
@@ -92,8 +93,8 @@ public class RunMainView {
         // Give the path to the HYSTEM EXTRAN RESULT FILE under the Key "StartFile=".
         File startFile = new File(StartParameters.getStartFilePath());
 
-       if (startFile == null || !startFile.exists()) {
-        //Fallback, if nothing was set in the GULLi.ini
+        if (startFile == null || !startFile.exists()) {
+            //Fallback, if nothing was set in the GULLi.ini
 //        startFile = new File("F:\\GULLI_Input\\Modell2018_HE81\\E2D1T50_mehrFlaechen.result\\Ergebnis.idbr");
         }
         if (startFile.exists()) {
@@ -108,25 +109,28 @@ public class RunMainView {
 //                lc.setPipeResultsFile(NETWORKVELOCITIES);
 //                lc.setSurfaceTopologyDirectory(SURFACE DIRECTORY);
 //                lc.setSurfaceWaterlevelFile(SURFACEWATERLEVELANDVELOCITY);
-       
-
 //Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
         lc.loadingFinishedListener.add(new Runnable() {
             @Override
             public void run() {
-                
-           
-                
+
                 try {
-                    if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
-                        System.out.println("Changed sampling to simgel sample at end of interval");
-                    }else{
-                        System.err.println("Could not change sampling to simgel sample at end of interval");
+                    if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() == null) {
+                        control.initMeasurementTimelines(control.getScenario());
                     }
+//                    if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
+//                        
+//                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+//                        System.out.println("Changed sampling to simgel sample at end of interval");
+//                    }else{
+//                        System.err.println("Could not change sampling to simgel sample at end of interval");
+//                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+
+                RandomArray.alwaysGenerateNew = false;
+                System.out.println("use looping arrays for random number generation.");
 
                 //Automatic start after loading loop has finished.   
                 if (true) {
@@ -136,8 +140,11 @@ public class RunMainView {
                         ParticleSurfaceComputing2D.allowWashToPipesystem = true;
                         ParticlePipeComputing.spillOutToSurface = true;
 
+                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+                        System.out.println("Changed sampling to simgel sample at end of interval");
+
                         //3 injections scenario 
-                        if(control.getNetwork()==null){
+                        if (control.getNetwork() == null) {
                             System.err.println("There is no Pipe network for the simulation.");
                             return;
                         }
@@ -260,6 +267,7 @@ public class RunMainView {
                                 if (control.getSurface() == null) {
                                     return;
                                 }
+                                String parent = control.getLoadingCoordinator().getFilePipeResultIDBF().getParent() + File.separator;
                                 for (int m = -1; m < control.getSurface().getNumberOfMaterials(); m++) {
 
                                     int materialindex = m; //<0 = all
@@ -276,7 +284,6 @@ public class RunMainView {
                                         System.out.println("No Shape files created.");
                                         continue;
                                     }
-                                    String parent = control.getLoadingCoordinator().getFilePipeResultIDBF().getParent() + File.separator;
 
                                     //Search for injection with this index
                                     String materialName = "unknown" + materialindex;
@@ -310,6 +317,9 @@ public class RunMainView {
                                     Geopackage_IO.writeWGS84(shapes, gpckFile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
                                     System.out.println("Shapefiles written to " + gpckFile.getAbsolutePath());
                                     HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, control.getSurface());
+                                    if (materialindex >= 0) {
+                                        HE_SurfaceIO.writeSurfaceContaminationDynamicMassCSV(new File(parent, "dyn" + name + ".csv"), control.getSurface(), materialindex);
+                                    }
 
                                     GeoJSON_IO geojson = new GeoJSON_IO();
                                     geojson.setMaximumFractionDigits(5);
@@ -329,6 +339,17 @@ public class RunMainView {
                                     geojson.write(jsonfile, mercator);
                                     System.out.println("Shapefiles written to " + jsonfile.getAbsolutePath());
 
+                                }
+                                //Write Waterlevels CSV for further postprocessing
+                                File waterleveldynamicsFile = new File(parent, "waterlevelDynamic.csv");
+                                if (!waterleveldynamicsFile.exists()) {
+                                    System.out.println("Need to write Waterlevel dynamics");
+                                    if (control.getSurface().waterlevelLoader instanceof HE_GDB_IO) {
+                                        HE_GDB_IO gdb = (HE_GDB_IO) control.getSurface().waterlevelLoader;
+                                        System.out.println("Load waterlevels from GDB");
+                                        gdb.applyWaterlevelsToSurface(control.getSurface());
+                                    }
+                                    HE_SurfaceIO.writeSurfaceWaterlevelDynamicsCSV(waterleveldynamicsFile, control.getSurface());
                                 }
                             } catch (IOException ex) {
                                 Logger.getLogger(Controller.class
@@ -384,8 +405,8 @@ public class RunMainView {
 
             tilesMenu.revalidate();
         }
-        
-        JMenuItem itemFrameReset=new JMenuItem("Reset Frames");
+
+        JMenuItem itemFrameReset = new JMenuItem("Reset Frames");
         itemFrameReset.addActionListener(new ActionListener() {
 
             @Override

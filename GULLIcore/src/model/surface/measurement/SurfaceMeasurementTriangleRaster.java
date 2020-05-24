@@ -23,6 +23,7 @@
  */
 package model.surface.measurement;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import model.particle.Particle;
 import model.surface.Surface;
 import model.timeline.array.TimeIndexContainer;
@@ -40,6 +41,8 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
      * Particle Measurements for surface triangle ID
      */
     protected TriangleMeasurement[] measurements;
+
+    volatile public TriangleMeasurement[] monitor;// = new TriangleMeasurement[8];
 
     protected int numberOfMaterials = 1;
 
@@ -61,7 +64,6 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 //     * count directly. this is slower due to the blocking.
 //     */
 //    public static boolean synchronizeOnlyAtEnd = false;
-
 //    private final Object monitort = new String("Monitor");
     public SurfaceMeasurementTriangleRaster(Surface surf, int numberOfMaterials, TimeIndexContainer time, int numberOfParticleThreads) {
         this.surf = surf;
@@ -117,7 +119,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 //                }
 //
 //            } else 
-             if (synchronizeMeasures) {
+            if (synchronizeMeasures) {
                 if (m == null) {
                     System.err.println("monitor object is null for cell triangle " + id);
                 } else {
@@ -182,7 +184,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             }
             measurement.synchronizeMeasurements(timeindex);
         }
-        usedInCurrentStep=false;
+        usedInCurrentStep = false;
     }
 
     @Override
@@ -215,7 +217,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     @Override
     public void reset() {
-        usedInCurrentStep=false;
+        usedInCurrentStep = false;
         measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
     }
 
@@ -244,6 +246,38 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
                 }
             }
         }
+    }
+
+    @Override
+    public void setNumberOfThreads(int threadCount) {
+        this.monitor = new TriangleMeasurement[threadCount];
+        this.statuse = new int[threadCount];
+    }
+
+    @Override
+    public int getNumberOfCells() {
+        return surf.getTriangleMids().length;
+    }
+
+    @Override
+    public Coordinate getCenterOfCell(int cellindex) {
+        double[] xyz = surf.getTriangleMids()[cellindex];
+        return new Coordinate(xyz[0], xyz[1], xyz[2]);
+    }
+
+    @Override
+    public double getMassInCell(int cellIndex, int timeindex, int materialIndex) {
+        return measurements[cellIndex].mass[materialIndex][timeindex];
+    }
+
+    /**
+     *
+     * @param cellIndex
+     * @return
+     */
+    @Override
+    public boolean isCellContaminated(int cellIndex) {
+        return measurements[cellIndex] != null;
     }
 
 }
