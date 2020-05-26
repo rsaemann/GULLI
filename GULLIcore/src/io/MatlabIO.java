@@ -78,20 +78,23 @@ public class MatlabIO {
         MLDouble m1 = (MLDouble) m1s;
         MLDouble m2 = (MLDouble) m2s;
 //        System.out.println("first time: " + new Date(cal.getTimeInMillis()) + "   + times(1): " + t2.get(0));
-        times = new long[t2.getSize()];
-        for (int i = 0; i < t2.getSize(); i++) {
-            times[i] = (long) ((t2.get(i) * 1000));
+        times = new long[t2.getSize() + 1];
+        for (int i = 0; i < times.length - 1; i++) {
+            times[i + 1] = (long) (((t2.get(i)) * 1000));
         }
+
+        System.out.println("starttime 0 " + times[0] + " , " + times[1] + " , " + times[2]);
 //        t2a = null;
         //Fließwerte für t2 auslesen
         MLSingle vs = (MLSingle) mfr.getMLArray("vs");
         MLSingle hs = (MLSingle) mfr.getMLArray("hs");
         MLSingle phis = (MLSingle) mfr.getMLArray("phis");
-        
-        MLSingle b=(MLSingle) mfr.getMLArray("b"); //width [m]
-        float channelwidth=1;
-        if(b!=null)
-            channelwidth=b.get(0);
+
+        MLSingle b = (MLSingle) mfr.getMLArray("b"); //width [m]
+        float channelwidth = 1;
+        if (b != null) {
+            channelwidth = b.get(0);
+        }
 
         //Ortsdiskretisierung aufbauen
         MLArray x1 = mfr.getMLArray("x1");
@@ -103,18 +106,19 @@ public class MatlabIO {
         int lengthX = x1d.getSize();
         double letztesX = x1d.get(0);
 
-        System.out.println("x :"+x1.getM()+"x"+x1.getN());
-        System.out.println("vs:"+vs.getM()+"x"+vs.getN());
-        System.out.println("hs:"+hs.getM()+"x"+hs.getN());
-        System.out.println("phi:"+phis.getM()+"x"+phis.getN());
-        
-        int numberOfManholes=Math.min(x1d.getN(), phis.getN());
-        
+        System.out.println("x :" + x1.getM() + "x" + x1.getN());
+        System.out.println("vs:" + vs.getM() + "x" + vs.getN());
+        System.out.println("hs:" + hs.getM() + "x" + hs.getN());
+        System.out.println("phi:" + phis.getM() + "x" + phis.getN());
+
+        int numberOfManholes = Math.min(x1d.getN(), phis.getN());
+
         ArrayList<Manhole> manholes = new ArrayList<>(numberOfManholes + 1);
         ArrayList<Pipe> pipes = new ArrayList<>(numberOfManholes);
         // create StatusTimeline for pipes
         System.out.println("create timelines");
-        final ArrayTimeLinePipeContainer pipeTLcontainer = new ArrayTimeLinePipeContainer(times, numberOfManholes - 1,1);
+        final ArrayTimeLinePipeContainer pipeTLcontainer = new ArrayTimeLinePipeContainer(times, numberOfManholes - 1, 1);
+
         System.out.println("pipes ok, start manholes");
         final ArrayTimeLineManholeContainer manholeTLcontainer = new ArrayTimeLineManholeContainer(pipeTLcontainer, numberOfManholes);
         System.out.println("ok");
@@ -141,17 +145,62 @@ public class MatlabIO {
         ArrayTimeLineMeasurementContainer.distance = distancesX;
         pipeTLcontainer.distance = distancesX;
         double mass = 0;
-        System.out.println(" phis: "+phis.getNDimensions()+" M:"+phis.getM()+"  N:"+phis.getN()+"   x: "+distancesX.length);
+        System.out.println(" phis: " + phis.getNDimensions() + " M:" + phis.getM() + "  N:" + phis.getN() + "   x: " + distancesX.length);
         for (int i = 0; i < numberOfManholes; i++) {
             if (phis.get(1, i) > 0) {
-                mass += phis.get(1, i) * hs.get(1, i) * dx;
+                mass += phis.get(1, i) * hs.get(1, i) * dx * channelwidth;
             }
         }
         double massPerParticle = mass / (double) numberOfParticles;
         System.out.println("Matlab mass: " + mass + " kg => \t" + massPerParticle + " kg/particle");
 
+        TimeLineManhole tlmh = new TimeLineManhole() {
+
+            @Override
+            public float getWaterZ(int temporalIndex) {
+                return 2;
+            }
+
+            @Override
+            public boolean isWaterlevelIncreasing() {
+                return false;
+            }
+
+            @Override
+            public float getActualWaterZ() {
+                return 2;
+            }
+
+            @Override
+            public float getFlowToSurface(int temporalIndex) {
+                return 0;
+            }
+
+            @Override
+            public float getActualFlowToSurface() {
+                return 0;
+            }
+
+            @Override
+            public int getNumberOfTimes() {
+                return times.length;
+            }
+
+            @Override
+            public TimeContainer getTimeContainer() {
+                return pipeTLcontainer;
+            }
+
+            @Override
+            public float getActualWaterLevel() {
+                return 2f;
+            }
+        };
+
         double tempMassSum = 0;
         int counterParticles = 0;
+        int numberOfTimes= t2.getSize();
+
         for (int i = 1; i < numberOfManholes; i++) {
 //            if (i > 1000) {
 //                System.out.println("break loading pipes at pipe nr " + i);
@@ -159,10 +208,10 @@ public class MatlabIO {
 //            }
             double neuesX = x1d.get(i);
             double posX = (neuesX + letztesX) * 0.5;
-            coord = new Coordinate(posX,y);
+            coord = new Coordinate(posX, y);
             coord = gt.toGlobal(coord);
             neuePos = new Position(coord.x, coord.y, posX, y);
-            distancesX[i - 1] = i - 0.5f;
+            distancesX[i - 1] = i+0.5f;// - 1f;
 
             Manhole neuesMH = new Manhole(neuePos, "MH_" + i, circ);
             neuesMH.setTop_height(1);
@@ -179,83 +228,43 @@ public class MatlabIO {
             p.setManualID(i);
             p.setName("Pipe_" + i);
             p.setLength((float) dx);
-            TimeLineManhole tlmh = new TimeLineManhole() {
-
-                @Override
-                public float getWaterZ(int temporalIndex) {
-                    return 2;
-                }
-
-                @Override
-                public boolean isWaterlevelIncreasing() {
-                    return false;
-                }
-
-                @Override
-                public float getActualWaterZ() {
-                    return 2;
-                }
-
-                @Override
-                public float getFlowToSurface(int temporalIndex) {
-                    return 0;
-                }
-
-                @Override
-                public float getActualFlowToSurface() {
-                    return 0;
-                }
-
-                @Override
-                public int getNumberOfTimes() {
-                    return times.length;
-                }
-
-                @Override
-                public TimeContainer getTimeContainer() {
-                    return pipeTLcontainer;
-                }
-
-                @Override
-                public float getActualWaterLevel() {
-                    return 2f;
-                }
-            };
 
             try {
                 ArrayTimeLinePipe tl = new ArrayTimeLinePipe(pipeTLcontainer, i - 1);
                 tl.setVelocity(vs.get(1, i), 0);
                 tl.setWaterlevel(hs.get(1, i), 0);
-                tl.setDischarge(vs.get(1,i)*hs.get(1,i)*channelwidth, 0);
-                tl.setVolume(hs.get(1,i)*channelwidth*p.getLength(), 0);
-                tl.setMassflux_reference(phis.get(1, i) * vs.get(1, i)*hs.get(1,i)*channelwidth, 0,0);
-                for (int t = 1; t < t2.getSize(); t++) {
-                    float v=vs.get(t, i);
+                tl.setDischarge(vs.get(1, i) * hs.get(1, i) * channelwidth, 0);
+                tl.setVolume(hs.get(1, i) * channelwidth * p.getLength(), 0);
+                tl.setMassflux_reference(phis.get(1, i) * vs.get(1, i) * hs.get(1, i) * channelwidth, 0, 0);
+                for (int t = 1; t <numberOfTimes; t++) {
+                    float v = vs.get(t, i);
                     tl.setVelocity(v, t);
-                    float h=hs.get(t, i);
+                    float h = hs.get(t, i);
                     tl.setWaterlevel(h, t);
-                    float vol=(float) (h*channelwidth* p.getLength());
+                    float vol = (float) (h * channelwidth * p.getLength());
                     tl.setVolume(vol, t);
-                    tl.setDischarge((float) (v*h*channelwidth), t);
-                    float phi=phis.get(t, i); // kg?
-                    tl.setMassflux_reference((float) (phi*v*h*channelwidth), t,0);
-                    tl.setConcentration_Reference(phi, t,0);
+                    tl.setDischarge((float) (v * h * channelwidth), t);
+                    float phi = phis.get(t, i); // kg?
+                    tl.setMassflux_reference((float) (phi * v * h * channelwidth), t, 0);
+                    tl.setConcentration_Reference(phi, t, 0);
                 }
-//                float volumen = (float) ( p.getProfile().getFlowArea(hs.get(2, i)) * p.getLength());
-                double particlemass = phis.get(1, i)* hs.get(1, i) * dx*channelwidth;
-                tempMassSum += particlemass;
-//               double particles = particlemass /*/ Particle.massPerParticle*/ ;
-//                if (particlemass > 0.001) {
-                int particles = (int) ((tempMassSum * numberOfParticles) / mass); //Number of particles that have to be released up to here
-                if (particles > counterParticles) {
-                    //Insert the amount of missing number of particles
-                    int nparticles = particles - counterParticles;
-                    InjectionInformation inj = new InjectionInformation(p, dx / 2., /*nparticles * massPerParticle*/particlemass, nparticles, material, 0, 0);//p.getLength() * 0.5,material,particlemass,  
-                    
-                    injections.add(inj);
+                if (i < numberOfManholes - 6) {
+                    try {
+                        double particlemass = phis.get(1, i + 5) * hs.get(1, i) * dx * channelwidth;
+                        tempMassSum += particlemass;
+                        int particles = (int) ((tempMassSum/mass) * numberOfParticles); //Number of particles that have to be released up to here
+                        if (particles > counterParticles) {
+                            //Insert the amount of missing number of particles
+                            int nparticles = particles - counterParticles;
+                            InjectionInformation inj = new InjectionInformation(p, 0*dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 0, 0);//p.getLength() * 0.5,material,particlemass,  
+                            counterParticles += nparticles;
+                            injections.add(inj);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Buffer exeption for index "+i+"+5 / "+phis.getSize());
+                    }
                 }
-                counterParticles = particles;
-//                }
+
                 p.setStatusTimeLine(tl);
                 tl.calculateMaxMeanValues();
 
@@ -274,7 +283,7 @@ public class MatlabIO {
             }
 
         }
-        System.out.println("inserted "+counterParticles+" particles with total "+tempMassSum+" kg");
+        System.out.println("inserted " + counterParticles + " particles with total " + tempMassSum + " kg / "+mass);
 
         //Test total mass of particles
         double masssum = 0;
@@ -287,16 +296,18 @@ public class MatlabIO {
         pipeTLcontainer.moment2 = new float[times.length];
         pipeTLcontainer.moment1[0] = m1.get(1).floatValue();
         pipeTLcontainer.moment2[0] = m2.get(1).floatValue();
-        for (int i = 1; i < times.length; i++) {
+//        System.out.println("refM1(0)=" + m1.get(0).floatValue());
+//        System.out.println("refM1(1)=" + m1.get(1).floatValue());
+//        System.out.println("refM1(2)=" + m1.get(2).floatValue());
+//        System.out.println("refM1(3)=" + m1.get(3).floatValue());
+        for (int i = 1; i < times.length - 1; i++) {
             pipeTLcontainer.moment1[i] = m1.get(i).floatValue();
             pipeTLcontainer.moment2[i] = m2.get(i).floatValue();
         }
-//        System.out.println("CatalogTimelines saved space of " + skipped + " entries.");
-        // Set timeline for very last manhole (same as the one before
-//        if (letzte_mhstamps != null) {
-//            letztesMH.setStatusTimeLine(new CatalogTimeLine<>(letzte_mhstamps, catalog));
-//            letztesMH.getStatusTimeLine().addAdditionalValue(matlabConcentration);
-//        }
+//        System.out.println("refM1TL(0)=" + pipeTLcontainer.moment1[0]);
+//        System.out.println("refM1TL(1)=" + pipeTLcontainer.moment1[1]);
+//        System.out.println("refM1TL(2)=" + pipeTLcontainer.moment1[2]);
+
         letztesMH.setAsOutlet(true);
 
         System.gc();

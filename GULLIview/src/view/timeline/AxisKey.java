@@ -15,6 +15,8 @@ public class AxisKey {
     public boolean manualBounds = false;
     public double lowerBound = 0;
     public double upperBound = 0;
+    
+    public int drawInterval=1;
 
     public boolean logarithmic = false;
 

@@ -139,6 +139,35 @@ public class ArrayTimeLineMeasurementContainer {
         }
         return zaehler / nenner;
     }
+    
+    public double getMomentum1_xm(int timeIndex) {
+        double zaehler = 0;
+        double nenner = 0;
+        double m;
+        int index = 0;
+//        int mittlungsradius = 5;
+        int to=Math.min(distance.length, numberOfCapacities);
+        for (int i = 0; i < to; i++) {
+            try {
+                index = i * times.getNumberOfTimes() + timeIndex;
+                if (particles[index] < 1) {
+                    continue;
+                }
+                m = (((double) mass_total[index] * (double) counts[index]) / (samplesPerTimeinterval));
+                
+                zaehler += (distance[i]) * m;
+                nenner += m;
+            } catch (Exception e) {
+                System.out.println("timeIndex: " + timeIndex + "  index=" + (i * times.getNumberOfTimes() + timeIndex) + "  i=" + i + " times.length=" + times.getNumberOfTimes());
+                System.out.println("distance[" + i + "]=" + distance[i]);
+                System.out.println("particles.length=" + particles.length);
+                System.out.println("particles[" + index + "]=" + particles[index]);
+                e.printStackTrace();
+                break;
+            }
+        }
+        return zaehler / nenner;
+    }
 
     public double getMomentum2_xc(int timeIndex, double moment1) {
         double zaehler = 0;
@@ -158,6 +187,36 @@ public class ArrayTimeLineMeasurementContainer {
                
                 zaehler += (distance[i] - moment1) * (distance[i] - moment1) * c;
                 nenner += c;
+            } catch (Exception e) {
+                System.out.println("timeIndex: " + timeIndex + "  index=" + (i * times.getNumberOfTimes() + timeIndex) + "  i=" + i + " times.length=" + times.getNumberOfTimes());
+                System.out.println("distance[" + i + "]=" + distance[i]);
+                System.out.println("particles.length=" + particles.length);
+                System.out.println("particles[" + index + "]=" + particles[index]);
+                e.printStackTrace();
+                break;
+            }
+        }
+        return zaehler / nenner;
+    }
+    
+     public double getMomentum2_xm(int timeIndex, double moment1xm) {
+        double zaehler = 0;
+        double nenner = 0;
+        double m;
+        int index = 0;
+        int to=Math.min(distance.length, numberOfCapacities);
+        for (int i = 0; i < to; i++) {
+            try {
+                index = i * times.getNumberOfTimes() + timeIndex;
+
+                if (particles[index] < 1) {
+                    continue;
+                }
+//                //ArrayTimeLinePipe.concentration_reference[index];//
+                m = (((double) mass_total[index] * (double) counts[index]) / ( samplesPerTimeinterval));
+               
+                zaehler += (distance[i] - moment1xm) * (distance[i] - moment1xm) * m;
+                nenner += m;
             } catch (Exception e) {
                 System.out.println("timeIndex: " + timeIndex + "  index=" + (i * times.getNumberOfTimes() + timeIndex) + "  i=" + i + " times.length=" + times.getNumberOfTimes());
                 System.out.println("distance[" + i + "]=" + distance[i]);

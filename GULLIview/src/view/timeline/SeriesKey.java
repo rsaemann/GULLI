@@ -31,7 +31,7 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
     public String file;
     public final String eventID;
     public boolean renderAsBar = false;
-    public boolean logarithmic=false;
+    public boolean logarithmic = false;
     public BasicStroke stroke = defaultstroke;
     public ShapeEditor.SHAPES shape = null;
     public boolean shapeFilled = false;

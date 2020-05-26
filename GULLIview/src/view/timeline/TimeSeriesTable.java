@@ -48,6 +48,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
     protected int indexColor;
     protected int indexLine;
     protected int indexShape = 7;
+    protected int indexInterval;
     protected int indexFile;
     protected int indexIndex = 9;
 
@@ -69,6 +70,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         indexColor = column++;
         indexLine = column++;
         indexShape = column++;
+        indexInterval = column++;
         indexFile = column++;
         indexIndex = column++;
 
@@ -83,6 +85,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         header[indexColor] = "Color";
         header[indexLine] = "Line";
         header[indexShape] = "Shape";
+        header[indexShape] = "Interval";
         header[indexFile] = "File";
         header[indexIndex] = "Index";
 
@@ -137,7 +140,6 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         this.getColumnModel().getColumn(indexLogarithmic).setMinWidth(50);
         this.getColumnModel().getColumn(indexLogarithmic).setWidth(50);
 
-        
         this.getColumnModel().getColumn(indexColor).setMaxWidth(60);
         this.getColumnModel().getColumn(indexColor).setMinWidth(40);
         this.getColumnModel().getColumn(indexColor).setWidth(40);
@@ -147,6 +149,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
 
         this.getColumnModel().getColumn(indexShape).setMaxWidth(50);
         this.getColumnModel().getColumn(indexShape).setMinWidth(50);
+
+        this.getColumnModel().getColumn(indexInterval).setMaxWidth(30);
+        this.getColumnModel().getColumn(indexInterval).setMinWidth(30);
 
         this.getColumnModel().getColumn(indexIndex).setMaxWidth(40);
         this.getColumnModel().getColumn(indexIndex).setMinWidth(40);
@@ -180,6 +185,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         }
         if (i == indexShape) {
             return Shape.class;
+        }
+        if (i == indexInterval) {
+            return Integer.class;
         }
         if (i == indexFile) {//FileName
             return String.class;
@@ -230,6 +238,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             model.setValueAt(key.lineColor, i, indexColor);
             model.setValueAt(key.stroke, i, indexLine);
             model.setValueAt(key.shape, i, indexShape);
+            if (key.axisKey != null) {
+                model.setValueAt(key.axisKey.drawInterval, i, indexInterval);
+            }
             model.setValueAt(key.file, i, indexFile);
             model.setValueAt(key.containerIndex, i, indexIndex);
         }
@@ -370,7 +381,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
                 //Visible?
                 ((SeriesKey) collection.getSeries(row).getKey()).logarithmic = ((Boolean) model.getValueAt(row, indexLogarithmic));
                 ((SeriesKey) collection.getSeries(row).getKey()).axisKey.logarithmic = ((Boolean) model.getValueAt(row, indexLogarithmic));
-                
+
             } else if (column == indexView) {
                 //Visible?
                 ((SeriesKey) collection.getSeries(row).getKey()).setVisible((Boolean) model.getValueAt(row, indexView));
@@ -380,6 +391,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             } else if (column == indexShape) {
                 //Stroke
                 ((SeriesKey) collection.getSeries(row).getKey()).shape = (SHAPES) model.getValueAt(row, indexShape);
+            } else if (column == indexInterval) {
+                //Plot interval for shapes
+                ((SeriesKey) collection.getSeries(row).getKey()).axisKey.drawInterval = (int) model.getValueAt(row, indexInterval);
             }
             updatePanel();
         } catch (Exception e) {

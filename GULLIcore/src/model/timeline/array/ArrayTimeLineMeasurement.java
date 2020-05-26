@@ -90,8 +90,8 @@ public class ArrayTimeLineMeasurement {
         /**
          * container.counts[index]
          */
-    }
-
+    }    
+    
     /**
      * get total mass of all materials
      *

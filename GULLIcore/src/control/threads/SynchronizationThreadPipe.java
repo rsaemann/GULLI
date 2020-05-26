@@ -119,6 +119,17 @@ public class SynchronizationThreadPipe extends Thread {
                                     nextMeasurementTime = Long.MAX_VALUE;
                                 }
                             } else {
+                                if (mcp.getActualTimeIndex() < writeindex - 1) {
+//                                    System.out.println("need to set writeindex back from " + writeindex + " to " + (mcp.getActualTimeIndex() + 1) + " to sample at time " + mcp.getTimeMillisecondsAtIndex(mcp.getActualTimeIndex() + 1));
+                                    if (mcp.getActualTimeIndex() == 0&&actualSimulationTime<=ThreadController.getDeltaTime()*1000) {
+                                        //Try to open measurements for the very first sampling at time 0 (+1simulation step)
+                                        writeindex = 0;
+                                        nextMeasurementTime = mcp.getTimeMillisecondsAtIndex(writeindex);
+                                    } else {
+                                        writeindex = mcp.getActualTimeIndex() + 1;
+                                        nextMeasurementTime = mcp.getTimeMillisecondsAtIndex(writeindex);
+                                    }
+                                }
 
                             }
                             if (actualSimulationTime + ThreadController.getDeltaTime() * 1000 >= nextMeasurementTime) {
