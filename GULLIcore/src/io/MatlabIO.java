@@ -13,9 +13,6 @@ import control.scenario.Scenario;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
 import model.GeoTools;
 import model.particle.Material;
 import model.timeline.array.ArrayTimeLineManhole;
@@ -58,32 +55,40 @@ public class MatlabIO {
         System.out.println((System.currentTimeMillis() - start) + "ms\t MatlabFileReader loaded.");
 //        System.exit(-1);
     }
-
     public Network readNetwork(File f, int numberOfParticles) throws IOException, Exception {
+        return readNetwork(f, numberOfParticles, -1);
+    }
+    
+    public Network readNetwork(File f, int numberOfParticles,int maxSeconds) throws IOException, Exception {
         long start = System.currentTimeMillis();
-//        int numberOfParticles = 100000;
-//        Particle.massPerParticle =1./10.;
-        //Zeitvektor t2 (sekunden) aufbauen
-//        GregorianCalendar cal = new GregorianCalendar();
-//        cal.set(Calendar.HOUR_OF_DAY, 0);
-//        cal.set(Calendar.MINUTE, 0);
-//        cal.set(Calendar.SECOND, 0);
-//        cal.set(Calendar.MILLISECOND, 0);
 
         MLArray t2a = mfr.getMLArray("t2");
         MLArray m1s = mfr.getMLArray("m1s");
         MLArray m2s = mfr.getMLArray("m2s");
-//        System.out.println((System.currentTimeMillis() - start) + "ms\tType of 't2' is " + t2a.getClass());
+        
         MLDouble t2 = (MLDouble) t2a;
         MLDouble m1 = (MLDouble) m1s;
         MLDouble m2 = (MLDouble) m2s;
+        
+        
+        int numberOfTimes = t2.getSize();
+        if(maxSeconds>0){
+            for (int i = 0; i < numberOfTimes; i++) {
+                if(t2.get(i)>maxSeconds){
+                    numberOfTimes=i;
+                    System.out.println("found last index is:"+i+" : "+t2.get(i)+"s>"+maxSeconds+"s");
+                    break;
+                }
+            }
+        }
+        
 //        System.out.println("first time: " + new Date(cal.getTimeInMillis()) + "   + times(1): " + t2.get(0));
-        times = new long[t2.getSize() + 1];
-        for (int i = 0; i < times.length - 1; i++) {
+        times = new long[numberOfTimes];
+        for (int i = 0; i < times.length-1; i++) {
             times[i + 1] = (long) (((t2.get(i)) * 1000));
         }
-
-        System.out.println("starttime 0 " + times[0] + " , " + times[1] + " , " + times[2]);
+        System.out.println("times: use "+times.length+" of "+t2.getSize());
+        System.out.println("starttime 0 " + times[0] + " , " + times[1] + " , " + times[2]+" .... "+times[times.length-1]);
 //        t2a = null;
         //Fließwerte für t2 auslesen
         MLSingle vs = (MLSingle) mfr.getMLArray("vs");
@@ -199,7 +204,7 @@ public class MatlabIO {
 
         double tempMassSum = 0;
         int counterParticles = 0;
-        int numberOfTimes= t2.getSize();
+        
 
         for (int i = 1; i < numberOfManholes; i++) {
 //            if (i > 1000) {
@@ -211,7 +216,7 @@ public class MatlabIO {
             coord = new Coordinate(posX, y);
             coord = gt.toGlobal(coord);
             neuePos = new Position(coord.x, coord.y, posX, y);
-            distancesX[i - 1] = i+0.5f;// - 1f;
+            distancesX[i - 1] = i + 0.5f;// - 1f;
 
             Manhole neuesMH = new Manhole(neuePos, "MH_" + i, circ);
             neuesMH.setTop_height(1);
@@ -236,7 +241,7 @@ public class MatlabIO {
                 tl.setDischarge(vs.get(1, i) * hs.get(1, i) * channelwidth, 0);
                 tl.setVolume(hs.get(1, i) * channelwidth * p.getLength(), 0);
                 tl.setMassflux_reference(phis.get(1, i) * vs.get(1, i) * hs.get(1, i) * channelwidth, 0, 0);
-                for (int t = 1; t <numberOfTimes; t++) {
+                for (int t = 1; t < numberOfTimes; t++) {
                     float v = vs.get(t, i);
                     tl.setVelocity(v, t);
                     float h = hs.get(t, i);
@@ -249,19 +254,20 @@ public class MatlabIO {
                     tl.setConcentration_Reference(phi, t, 0);
                 }
                 if (i < numberOfManholes - 6) {
+                    //Move the injection position upstream, so the intital mass is equal to the matlab reference injection.
                     try {
                         double particlemass = phis.get(1, i + 5) * hs.get(1, i) * dx * channelwidth;
                         tempMassSum += particlemass;
-                        int particles = (int) ((tempMassSum/mass) * numberOfParticles); //Number of particles that have to be released up to here
+                        int particles = (int) ((tempMassSum / mass) * numberOfParticles); //Number of particles that have to be released up to here
                         if (particles > counterParticles) {
                             //Insert the amount of missing number of particles
                             int nparticles = particles - counterParticles;
-                            InjectionInformation inj = new InjectionInformation(p, 0*dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 0, 0);//p.getLength() * 0.5,material,particlemass,  
+                            InjectionInformation inj = new InjectionInformation(p, 0 * dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 0, 0);//p.getLength() * 0.5,material,particlemass,  
                             counterParticles += nparticles;
                             injections.add(inj);
                         }
                     } catch (Exception e) {
-                        System.err.println("Buffer exeption for index "+i+"+5 / "+phis.getSize());
+                        System.err.println("Buffer exeption for index " + i + "+5 / " + phis.getSize());
                     }
                 }
 
@@ -283,7 +289,7 @@ public class MatlabIO {
             }
 
         }
-        System.out.println("inserted " + counterParticles + " particles with total " + tempMassSum + " kg / "+mass);
+        System.out.println("inserted " + counterParticles + " particles with total " + tempMassSum + " kg / " + mass);
 
         //Test total mass of particles
         double masssum = 0;

@@ -85,7 +85,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         header[indexColor] = "Color";
         header[indexLine] = "Line";
         header[indexShape] = "Shape";
-        header[indexShape] = "Interval";
+        header[indexInterval] = "Interval";
         header[indexFile] = "File";
         header[indexIndex] = "Index";
 

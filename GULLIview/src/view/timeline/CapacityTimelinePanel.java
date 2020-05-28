@@ -737,6 +737,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         double m = tlm.getContainer().mass_total[ti];
                         mass += m;
                     }
+                    mass/=tlm.getContainer().samplesPerTimeinterval;
                     moment0_particleMass.addOrUpdate(time, mass);
 
                     double m1 = tlm.getContainer().getMomentum1_xm(i);
