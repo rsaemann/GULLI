@@ -493,16 +493,18 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario != null && scenario.getMeasurementsPipe() != null) {
             scenario.getMeasurementsPipe().clearValues();
         }
-        currentAction.description = "Reset scenario, Set # Materials";
-        fireAction(currentAction);
+
         if (surface != null) {
+            currentAction.description = "Reset scenario, Set # Materials";
+            fireAction(currentAction);
             surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
             surface.reset();
         }
-        currentAction.description = "Reset scenario, Clean Pipe Measurements";
-        fireAction(currentAction);
-        boolean informed = false;
+
         if (network != null) {
+            currentAction.description = "Reset scenario, Clean Pipe Measurements";
+            fireAction(currentAction);
+            boolean informed = false;
             for (Pipe pipe : network.getPipes()) {
                 if (pipe.getMeasurementTimeLine() != null) {
                     pipe.getMeasurementTimeLine().resetVisitedParticlesStorage();
@@ -524,28 +526,34 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
         currentAction.description = "";
     }
-    
+
     /**
-     * use information of this scenario to initialise the sampling interval.
-     * The measuremnt timeline will have the exact same intervals as the pipes timeline.
-     * @param scenario 
+     * use information of this scenario to initialise the sampling interval. The
+     * measuremnt timeline will have the exact same intervals as the pipes
+     * timeline.
+     *
+     * @param scenario
      */
-    public void initMeasurementTimelines(Scenario scenario){
-        initMeasurementTimelines(scenario, scenario.getTimesPipe().getNumberOfTimes()-1);
+    public void initMeasurementTimelines(Scenario scenario) {
+        initMeasurementTimelines(scenario, scenario.getTimesPipe().getNumberOfTimes() - 1);
     }
-    
-     public void initMeasurementTimelines(Scenario scenario, TimeIndexContainer times, int numberOfContaminants) {
+
+    public void initMeasurementTimelines(Scenario scenario, TimeIndexContainer times, int numberOfContaminants) {
 //        System.out.println(getClass() + "::initMeasurmenetTimeline with " + network.getPipes().size() + " Pipes");
         ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
         scenario.setMeasurementsPipe(container_m);
         ArrayTimeLineMeasurementContainer.instance = container_m;
         container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
-        System.out.println("Simulation step: "+ThreadController.getDeltaTime()+"s\t sampleinterval:"+container_m.getDeltaTimeS()+" \t-> "+ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval+" samples per interval");
- 
+        System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
+
         int number = 0;
         for (Pipe p : network.getPipes()) {
             p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
             number++;
+        }
+
+        if (surface != null && surface.getMeasurementRaster() != null) {
+            scenario.setMeasurementsSurface(surface.getMeasurementRaster());
         }
     }
 
@@ -555,12 +563,16 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         scenario.setMeasurementsPipe(container_m);
         ArrayTimeLineMeasurementContainer.instance = container_m;
         container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
-        System.out.println("Simulation step: "+ThreadController.getDeltaTime()+"s\t sampleinterval:"+container_m.getDeltaTimeS()+" \t-> "+ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval+" samples per interval");
- 
+        System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
+
         int number = 0;
         for (Pipe p : network.getPipes()) {
             p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
             number++;
+        }
+
+        if (surface != null && surface.getMeasurementRaster() != null) {
+            scenario.setMeasurementsSurface(surface.getMeasurementRaster());
         }
     }
 
@@ -573,7 +585,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @return the number of intervals
      */
     public int initMeasurementsTimelinesBySeconds(Scenario scenario, double secondsPerInterval) {
-        int numberIntervals = (int) ((scenario.getEndTime() - scenario.getStartTime()) / (1000*secondsPerInterval));
+        int numberIntervals = (int) ((scenario.getEndTime() - scenario.getStartTime()) / (1000 * secondsPerInterval));
         initMeasurementTimelines(scenario, numberIntervals);
         return numberIntervals;
     }
@@ -590,7 +602,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         int n = numberOfIntervalls;//(int) ((this.scenario.getEndTime() - this.scenario.getStartTime()) / dt + 1);
         double dt = (scenario.getEndTime() - scenario.getStartTime()) / ((n));
-        System.out.println("sample dt= "+dt+"ms.  duration:"+(scenario.getEndTime() - scenario.getStartTime()));
+        System.out.println("sample dt= " + dt + "ms.  duration:" + (scenario.getEndTime() - scenario.getStartTime()));
         long[] times = new long[n + 1];
 
         for (int i = 0; i < times.length; i++) {
@@ -600,7 +612,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         int numberContaminantTypes = 1;
         try {
             for (InjectionInformation injection : scenario.getInjections()) {
-                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex+1);
+                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex + 1);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -609,7 +621,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         initMeasurementTimelines(scenario, times, numberContaminantTypes);
         return dt;
     }
-    
+
     /**
      * Set the number of sample intervals by definition of the number of
      * intervals
@@ -622,7 +634,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     public double initMeasurementTimelines(long scenarioStarttime, int numberOfIntervalls, double deltatimeSeconds) {
 
         int n = numberOfIntervalls;//(int) ((this.scenario.getEndTime() - this.scenario.getStartTime()) / dt + 1);
-        double dt = deltatimeSeconds*1000; //in MS
+        double dt = deltatimeSeconds * 1000; //in MS
         long[] times = new long[n + 1];
 
         for (int i = 0; i < times.length; i++) {
@@ -632,7 +644,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         int numberContaminantTypes = 1;
         try {
             for (InjectionInformation injection : scenario.getInjections()) {
-                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex+1);
+                numberContaminantTypes = Math.max(numberContaminantTypes, injection.getMaterial().materialIndex + 1);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -650,12 +662,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario == null) {
             throw new NullPointerException("No Scenario loaded.");
         }
-        
-        if(scenario.getMeasurementsPipe()==null){
+
+        if (network != null && scenario.getMeasurementsPipe() == null) {
             System.out.println("Initialize sampling intervals with input interval length as no user defined sampling was set.");
             initMeasurementTimelines(scenario);
         }
-        
+
         if (requestRecalculationOfInjections) {
             recalculateInjections();
         }

@@ -42,6 +42,12 @@ public abstract class SurfaceMeasurementRaster {
     public static boolean countStayingParticle = true;
 
     public static boolean synchronizeMeasures = true;
+    
+    public boolean measurementsActive=true;
+    
+    public boolean continousMeasurements=true;
+    
+    public int[] measurementsInTimeinterval;
 
     protected TimeIndexContainer times;
 

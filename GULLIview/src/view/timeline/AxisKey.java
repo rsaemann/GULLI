@@ -15,8 +15,8 @@ public class AxisKey {
     public boolean manualBounds = false;
     public double lowerBound = 0;
     public double upperBound = 0;
-    
-    public int drawInterval=1;
+
+    public int drawInterval = 1;
 
     public boolean logarithmic = false;
 
@@ -55,16 +55,16 @@ public class AxisKey {
     public String toString() {
 //        System.out.println("label:"+label);
         StringBuilder str = new StringBuilder(name);
-
-        if (label != null && !label.isEmpty() && !label.equals("null")) {
-            str.append(",").append(label);
+        if (logarithmic) {
+            str.append("log");
         }
         if (manualBounds) {
             str.append("(" + lowerBound + ";" + upperBound + ")");
         }
-        if(logarithmic){
-            str.append("log");
+        if (label != null && !label.isEmpty() && !label.equals("null")) {
+            str.append(",").append(label);
         }
+
         return str.toString();
     }
 

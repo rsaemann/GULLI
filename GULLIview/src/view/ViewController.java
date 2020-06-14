@@ -31,10 +31,10 @@ public class ViewController {
     //Frames
     protected final SimpleMapViewerFrame mapFrame;
     protected final ControllFrame controlFrame;
-    protected final EditorTableFrame timeLineFrame;
+    public final EditorTableFrame timeLineFrame;
 
     //Frame content
-    protected final CapacityTimelinePanel timelinePanel;
+    public final CapacityTimelinePanel timelinePanel;
     protected final MapViewer mapViewer;
 
     public ViewController(Controller c) {

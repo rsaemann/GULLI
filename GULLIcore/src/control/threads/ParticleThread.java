@@ -167,7 +167,7 @@ public class ParticleThread extends Thread {
                                 //All further particles area also waiting. Break the loop here.
                                 break;
                             } else {
-                                if (p.injectionSurrounding.getClass().equals(Surface.class)) {
+                                if (p.injectionSurrounding instanceof Surface){//.getClass().equals(Surface.class)) {
                                     p.setOnSurface();
                                     p.surfaceCellID = p.getInjectionCellID();
                                     double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
@@ -187,7 +187,7 @@ public class ParticleThread extends Thread {
                         if (p.isActive()) {
 //                            particleID = p.getId();
 //                            particle = p;
-
+                            
                             if (p.isInPipeNetwork()) {
 //                                status = 4;
                                 pc.moveParticle(p);

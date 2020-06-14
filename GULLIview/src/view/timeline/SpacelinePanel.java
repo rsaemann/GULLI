@@ -6,6 +6,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
+import control.StartParameters;
 import control.listener.CapacitySelectionListener;
 import org.freehep.graphicsio.emf.EMFGraphics2DX;
 import java.awt.BasicStroke;
@@ -24,8 +25,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
@@ -48,6 +53,7 @@ import model.topology.StorageVolume;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.ValueMarker;
@@ -65,6 +71,7 @@ import static view.timeline.CapacityTimelinePanel.matlabStyle;
  */
 public class SpacelinePanel extends JPanel implements CapacitySelectionListener {
 
+    protected JPanel panelNorth;
     protected JSlider slider;
     protected JSplitPane splitpane;
     protected ChartPanel panelChart;
@@ -78,6 +85,8 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     public boolean showmarker = true, showMarkerDistance = true;
     protected String title;
 
+    public static Locale FormatLocale = StartParameters.formatLocale;
+
 //    protected NumberAxis yAxisConcentration, yAxisVelocity, yAxisLvl;
     HashMap<String, Integer> yAxisMap = new HashMap<>(10);
     protected XYDataset datasetConcentration, datasetVelocity, dataSetLvl;
@@ -87,6 +96,31 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     XYSeriesEditorTablePanel editorpanel;
 
     protected static String directoryPDFsave = ".";
+
+    XYSeries v = new XYSeries(new SeriesKey("Velocity", "u", "m/s", Color.red));
+//        TimeSeries q = new TimeSeries(new SeriesKey("Flux", "q", "m³/s", Color.DARK_GRAY), "Time", "m³/s");
+    XYSeries hpipe = new XYSeries(new SeriesKey("Waterlevel", "h", "m", Color.blue));
+    XYSeries refConcentration = new XYSeries(new SeriesKey("Conentration ref.", "", "kg/m³", Color.black, AxisKey.CONCENTRATION()));
+    XYSeries refMassFlux = new XYSeries(new SeriesKey("Massflux ref.", "", "kg/s", Color.orange.darker(), new AxisKey("Massflux")));
+    XYSeries refMass = new XYSeries(new SeriesKey("Mass ref.", "", "kg", Color.red.darker(), new AxisKey("Mass")));
+
+    XYSeries moment1_ref = new XYSeries(new SeriesKey("1.Moment ref", "1.M ref", "m", Color.GREEN, new AxisKey("Moment", "1. Moment")));
+    XYSeries moment1_refvorgabe = new XYSeries(new SeriesKey("1.Moment Matlab Vorgabe ", "1.M vorgabe", "m", Color.BLUE, new AxisKey("Moment", "1. Moment")));
+    XYSeries moment1_messung = new XYSeries(new SeriesKey("1.Moment Messung", "1.M messung", "m", Color.red, new AxisKey("Moment", "1. Moment")));
+    XYSeries moment1_delta = new XYSeries(new SeriesKey("Delta 1.Moment Messung-Ref", "Fehler 1.M (messung-ref)", "m", Color.red, new AxisKey("Moment", "1. Moment")));
+
+    XYSeries moment2_ref = new XYSeries(new SeriesKey("2.Moment Matlab", "2.M ref", "m", Color.GREEN, new AxisKey("Moment2", "2. Moment")));
+    XYSeries moment2_mess = new XYSeries(new SeriesKey("2.Moment Messung", "2.M mess", "m", Color.red, new AxisKey("Moment2", "2. Moment")));
+
+    //Measures auflisten
+    XYSeries m_p = new XYSeries(new SeriesKey("#Particles", "n", "-", Color.magenta));
+    XYSeries m_c = new XYSeries(new SeriesKey("Concentration ptcl", "", "kg/m³", Color.black, AxisKey.CONCENTRATION()));
+    XYSeries m_m = new XYSeries(new SeriesKey("Mass ptcl", "", "kg", Color.red, new AxisKey("Mass")));
+    XYSeries m_m_sma = new XYSeries(new SeriesKey("Mass ptcl SMA", "", "kg", new Color(250,200,200), new AxisKey("Mass")));
+    XYSeries m_MassFlux = new XYSeries(new SeriesKey("Massflux ptcl", "", "kg/s", Color.orange, new AxisKey("Massflux")));
+    
+    XYSeries m_vol = new XYSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan));
+    XYSeries m_n = new XYSeries(new SeriesKey("#Samples per Interval", "", "-", Color.lightGray));
     /**
      * Thread building the timelines in Background.
      */
@@ -95,7 +129,8 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     public SpacelinePanel(ArrayTimeLinePipeContainer referenceContainer, ArrayTimeLineMeasurementContainer tl, String title) {
         super(new BorderLayout());
         this.title = title;
-
+        panelNorth = new JPanel(new BorderLayout());
+        this.add(panelNorth, BorderLayout.NORTH);
         this.panelChartContainer = new JPanel(new BorderLayout());
         initCheckboxpanel();
         splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -133,19 +168,48 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             @Override
             public void run() {
 
-                if (SpacelinePanel.this.collection != null) {
-                    SpacelinePanel.this.collection.removeAllSeries();
-
-                }
+//                if (SpacelinePanel.this.collection != null) {
+//                    SpacelinePanel.this.collection.removeAllSeries();
+//
+//                }
 //                SpacelinePanel.this.title = title;
-
                 SpacelinePanel.this.updateChart("Preparing... " + new Date(time));
 
                 SpacelinePanel.this.buildPipeSpaceline(referenceContainer, time);
 
                 SpacelinePanel.this.updateCheckboxPanel();
 
-                SpacelinePanel.this.updateChart(new Date(time) + "");
+                boolean showWholeDate = false;
+                if (referenceContainer != null && referenceContainer.getEndTime() > 24L * 3600L * 1000L) {
+                    showWholeDate = true;
+                } else if (measurementContainer != null && measurementContainer.getEndTime() > 24L * 3600L * 1000L) {
+                    showWholeDate = true;
+                }
+                if (showWholeDate) {
+//                    GregorianCalendar gc=new BuddhistCalendar(TimeZone.getTimeZone("UTC"));
+//                    gc.setTimeInMillis(time);
+                    SimpleDateFormat sdf = new SimpleDateFormat();
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    SpacelinePanel.this.updateChart(sdf.format(time) + "");
+                } else {
+                    StringBuffer str = new StringBuffer(10);
+                    if (time >= 3600_000L) {
+                        //need Hours
+                        str.append(time / 3600_000L).append("h: ");
+                    }
+                    int minutes = (int) (time % 3600_000) / 60000;
+                    if (str.length() > 1 && minutes < 10) {
+                        //führende 0
+                        str.append("0");
+                    }
+                    str.append(minutes).append("m: ");
+                    int seconds = (int) (time % 60000) / 1000;
+                    if (seconds < 10) {
+                        str.append("0");
+                    }
+                    str.append(seconds).append("s");
+                    SpacelinePanel.this.updateChart(str.toString());
+                }
 
                 SpacelinePanel.this.updateShownTimeSeries();
 
@@ -189,27 +253,6 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     private void buildPipeSpaceline(ArrayTimeLinePipeContainer instance, long time) {
         this.referenceContainer = instance;
 
-        XYSeries v = new XYSeries(new SeriesKey("Velocity", "u", "m/s", Color.red));
-//        TimeSeries q = new TimeSeries(new SeriesKey("Flux", "q", "m³/s", Color.DARK_GRAY), "Time", "m³/s");
-        XYSeries hpipe = new XYSeries(new SeriesKey("Waterlevel", "h", "m", Color.blue));
-        XYSeries refConcentration = new XYSeries(new SeriesKey("ref. Konzentration", "c_mat", "kg/m³", Color.red, AxisKey.CONCENTRATION()));
-        XYSeries refMass = new XYSeries(new SeriesKey("ref. Masse", "m_ref", "kg", Color.black, new AxisKey("Mass")));
-
-        XYSeries moment1_ref = new XYSeries(new SeriesKey("1.Moment Matlab", "1.M ref", "m", Color.GREEN, new AxisKey("Moment", "1. Moment")));
-        XYSeries moment1_refvorgabe = new XYSeries(new SeriesKey("1.Moment Matlab Vorgabe ", "1.M vorgabe", "m", Color.BLUE, new AxisKey("Moment", "1. Moment")));
-        XYSeries moment1_messung = new XYSeries(new SeriesKey("1.Moment Messung", "1.M messung", "m", Color.red, new AxisKey("Moment", "1. Moment")));
-        XYSeries moment1_delta = new XYSeries(new SeriesKey("Delta 1.Moment Messung-Ref", "Fehler 1.M (messung-ref)", "m", Color.red, new AxisKey("Moment", "1. Moment")));
-
-        XYSeries moment2_ref = new XYSeries(new SeriesKey("2.Moment Matlab", "2.M ref", "m", Color.GREEN, new AxisKey("Moment2", "2. Moment")));
-        XYSeries moment2_mess = new XYSeries(new SeriesKey("2.Moment Messung", "2.M mess", "m", Color.red, new AxisKey("Moment2", "2. Moment")));
-
-        //Measures auflisten
-        XYSeries m_p = new XYSeries(new SeriesKey("Particles", "n", "-", Color.magenta));
-        XYSeries m_c = new XYSeries(new SeriesKey("Konzentration Messung", "c_measure", "kg/m³", Color.black, AxisKey.CONCENTRATION()));
-        XYSeries m_m = new XYSeries(new SeriesKey("Masse Messung", "m_mess", "kg", Color.red, new AxisKey("Mass")));
-        XYSeries m_vol = new XYSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan));
-        XYSeries m_n = new XYSeries(new SeriesKey("Messungen ", "#", "-", Color.DARK_GRAY));
-
         double dtm = 1;
 
 //        dtm = (tlm.getEndTime() - tlm.getStartTime()) / (1000. * (tlm.lengthTimes() - 1));
@@ -219,69 +262,87 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             this.collection = new XYSeriesCollection();
             System.out.println(this.getClass() + ":: editorpanel not yet initialized. create new XYSeriesCollection.");
         }
+        for (int i = 0; i < collection.getSeriesCount(); i++) {
+            collection.getSeries(i).setNotify(false);
+        }
+
+        collection.removeAllSeries();
+
+        hpipe.clear();
+        v.clear();
+        refConcentration.clear();
+        refMass.clear();
+        refMassFlux.clear();
+        m_c.clear();
+        m_MassFlux.clear();
+        m_m.clear();
+        m_m_sma.clear();
+        m_n.clear();
+        m_p.clear();
+        m_vol.clear();
+
 //        this.collection.removeAllSeries();
         int indexTimePipe = instance.getTimeIndex(time);
         int indexTimeMeasure = ArrayTimeLineMeasurementContainer.instance.getIndexForTime(time);
         int ind = indexTimePipe;
         float[] vs = instance.getVelocityForTimeIndex(ind);
         float[] hs = instance.getWaterlevelsForTimeIndex(ind);
-        float[] ms = instance.getMassFluxForTimeIndex(ind, 0);
+        float[] massFlux = instance.getMassFluxForTimeIndex(ind, 0);
+        float[] cs = instance.getConcentrationForTimeIndex(ind, 0);
+        float[] vol = instance.getVolumesForTimeIndex(ind);
+        float[] q=instance.getDischargeForTimeIndex(ind);
 //        System.out.println("timeindex: " + ind);
-        System.out.println(getClass() + ":: ArrayTimeLinePipeContainer.distance=" + instance.distance);
+//        System.out.println(getClass() + ":: ArrayTimeLinePipeContainer.distance=" + instance.distance);
         if (instance.distance != null) {
             for (int i = 0; i < instance.distance.length; i++) {
-//            System.out.println(i + "\t" + hs[i] + "m");
+//            System.out.println(i + "\t" + hs[i] + "m,\t"+vs[i]+"m/s"+"\tC:"+cs[i]);
                 hpipe.addOrUpdate(instance.distance[i], hs[i]);
-
                 v.addOrUpdate(instance.distance[i], vs[i]);
-                refMass.addOrUpdate(instance.distance[i], ms[i]);
-                refConcentration.addOrUpdate(instance.distance[i], ms[i] / (hs[i]));
-////            q.addOrUpdate(time, tl.getFlux(i));
-//            hpipe.addOrUpdate(time, tl.getWaterlevel(i));
-//            refConcentration.addOrUpdate(time, tl.getMass_reference(i) / tl.getWaterlevel(i));
-//            refMass.addOrUpdate(time, tl.getMass_reference(i));
-//            if (ArrayTimeLinePipe.distance != null) {
-//                moment1_ref.addOrUpdate(time, ArrayTimeLinePipe.getMomentum1_xc(i));
-//                moment2_ref.addOrUpdate(time, ArrayTimeLinePipe.getMomentum2_xc(i));
-//            }
-//            if (ArrayTimeLinePipe.moment1 != null) {
-//                moment1_refvorgabe.add(time, ArrayTimeLinePipe.moment1[i]);
-//            }
+                refMassFlux.addOrUpdate(instance.distance[i], massFlux[i]);
+                refMass.addOrUpdate(instance.distance[i], vol[i] * cs[i]);
+                refConcentration.addOrUpdate(instance.distance[i], cs[i]);
             }
-        }
+            this.collection.addSeries(v);
+            this.collection.addSeries(hpipe);
 
-        this.collection.addSeries(v);
-//        this.collection.addSeries(q);
-        this.collection.addSeries(hpipe);
+            if (refConcentration.getMaxY() > 0) {
+                this.collection.addSeries(refConcentration);
+//            this.collection.addSeries(createMovingaverageCentral(refConcentration, 100, "SMA100 " + refConcentration.getKey()));
+            }
 
-        if (refConcentration.getMaxY() > 0) {
-            this.collection.addSeries(refConcentration);
-            this.collection.addSeries(createMovingaverageCentral(refConcentration, 100, "100er Mittel " + refConcentration.getKey()));
-        }
+            if (refMass.getMaxY() > 0) {
+                this.collection.addSeries(refMass);
+//            this.collection.addSeries(createMovingaverageCentral(refMass, 100, "SMA100 " + refMass.getKey()));
+            }
 
-        if (refMass.getMaxY() > 0) {
-            this.collection.addSeries(refMass);
-            XYSeries mr100 = createMovingaverageCentral(refMass, 100, "100er Mittel Masse ref");
-            ((SeriesKey) mr100.getKey()).lineColor = Color.GRAY;
-            this.collection.addSeries(mr100);
+            if (refMassFlux.getMaxY() != 0) {
+                this.collection.addSeries(refMassFlux);
+//                System.out.println("add refmassflux in space");
+//            XYSeries mr100 = createMovingaverageCentral(refMassFlux, 10, "SMA10 Massflux ref");
+//            ((SeriesKey) mr100.getKey()).lineColor = Color.GRAY;
+//            this.collection.addSeries(mr100);
+            }
+        } else {
+            System.out.println("no reference value container");
         }
 
         if (ArrayTimeLineMeasurementContainer.instance != null) {
             ArrayTimeLineMeasurementContainer container = ArrayTimeLineMeasurementContainer.instance;
             ind = container.getIndexForTime(time);
-            ms = container.getMassForTimeIndex(ind);
+            float[] mass = container.getMassForTimeIndex(ind);
             float[] ps = container.getNumberOfParticlesForTimeIndex(ind);
-            float[] cs = container.getConcentrationForTimeIndex(ind);
             int[] ns = container.getNumberOfMeasurementsPerTimestepForTimeIndex(ind);
-            System.out.println("distances: " + container.distance.length);
+            //System.out.println("distances: " + container.distance.length);
             for (int i = 0; i < ArrayTimeLineMeasurementContainer.distance.length; i++) {
                 float d = ArrayTimeLineMeasurementContainer.distance[i];
+                
                 m_p.addOrUpdate(d, ps[i]);
-                m_m.addOrUpdate(d, ms[i]);
+                m_m.addOrUpdate(d, mass[i]);
                 m_c.addOrUpdate(d, cs[i]);
                 m_n.addOrUpdate(d, ns[i]);
-
+                m_MassFlux.addOrUpdate(d, mass[i]*q[i]);
             }
+            m_m_sma = createMovingaverageCentral(m_m, 10, "10 mean Mass",m_m_sma);
 
             if (moment1_refvorgabe.getMaxY() > 0) {
                 this.collection.addSeries(moment1_refvorgabe);
@@ -325,11 +386,15 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 //                this.collection.addSeries(c100);
 //            }
             if (m_m.getMaxY() > 0) {
+                
+                this.collection.addSeries(m_MassFlux);
                 this.collection.addSeries(m_m);
-                XYSeries m100 = createMovingaverageCentral(m_m, 100, "100 mean Mass");
-                ((SeriesKey) m100.getKey()).lineColor = Color.magenta;
-                this.collection.addSeries(m100);
+                this.collection.addSeries(m_m_sma);
+//                XYSeries m100 = createMovingaverageCentral(m_m, 10, "10 mean Mass");
+//                ((SeriesKey) m100.getKey()).lineColor = Color.magenta;
+//                this.collection.addSeries(m100);
             }
+            this.collection.seriesChanged(null);
 //        beforeWasNull = false;
         } else {
             System.out.println(getClass() + ":: MeasurementContainer is not initialized.");
@@ -355,10 +420,13 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 
     private void initCheckboxpanel() {
         panelChecks = new JPanel();
-        panelChartContainer.add(panelChecks, BorderLayout.SOUTH);
+//        panelChartContainer.add(panelChecks, BorderLayout.SOUTH);
     }
 
     public void updateCheckboxPanel() {
+        if (panelChecks == null) {
+            return;
+        }
         panelChecks.removeAll();
         if (this.collection == null || this.collection.getSeries().isEmpty()) {
             panelChecks.setLayout(new BorderLayout());
@@ -394,7 +462,198 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         this.revalidate();
     }
 
-    protected void updateShownTimeSeries() {
+    public void updateShownTimeSeries() {
+        if (this.collection == null) {
+            return;
+        }
+        if (checkboxes == null) {
+            return;
+        }
+        XYPlot plot = panelChart.getChart().getXYPlot();
+        plot.clearRangeAxes();
+        for (int i = 0; i < plot.getDatasetCount(); i++) {
+            try {
+                plot.setDataset(i, null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+//        System.out.println("updateXYSpacelinePlot");
+
+        numberUsedDataSetSlots = 0;
+        yAxisMap.clear();
+        XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+        int indexDataset = 0;
+        int indexSeries = 0;
+//        System.out.println("checkboxes: "+checkboxes.length);
+        for (int i = 0; i < collection.getSeriesCount() /*checkboxes.length*/; i++) {
+            if (true || checkboxes[i].isSelected() || !checkboxes[i].isVisible()) {
+//                if (this.collection.getSeries(i) == null) {
+//                    continue;
+//                }
+                SeriesKey key = (SeriesKey) collection.getSeries(i).getKey();
+                if (!key.isVisible()) {
+                    continue;
+                }
+                /**
+                 * Baue neues Dataset wenn keine Wiederekennung zu finden ist
+                 */
+                XYSeriesCollection dataset = null;
+                if (key.axisKey == null || key.axisKey.name == null) {
+                    /*
+                     * No recognition (mapping to other dataset) required.
+                     * Build a new Dataset+Yaxis for this TimeSeries
+                     */
+                    indexDataset = numberUsedDataSetSlots;
+                    numberUsedDataSetSlots++;
+                    dataset = new XYSeriesCollection(this.collection.getSeries(i));
+                    plot.setDataset(indexDataset, dataset);
+                    renderer = new XYLineAndShapeRenderer(true, false);
+                    plot.setRenderer(indexDataset, renderer);
+
+                    NumberAxis axis2 = new NumberAxis(checkboxes[i].getText());
+                    axis2.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
+                    yAxisMap.put(axis2.getLabel(), indexDataset);
+                    axis2.setAutoRangeIncludesZero(false);
+                    plot.setRangeAxis(indexDataset, axis2);
+                    plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                } else {
+                    NumberAxis yAxis;
+                    if (yAxisMap.containsKey(key.axisKey.toString())) {
+                        indexDataset = yAxisMap.get(key.axisKey.toString());
+                        yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
+                        dataset = (XYSeriesCollection) plot.getDataset(indexDataset);
+                        indexSeries = dataset.getSeriesCount();
+                        XYSeries ts = (XYSeries) this.collection.getSeries(i);
+                        if (key.logarithmic) {
+                            makeSeriesAbsolute(ts);
+                        }
+                        dataset.addSeries(ts);
+                        renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
+                        renderer.setSeriesStroke(indexSeries, key.stroke);
+                    } else {
+                        // Axis key not yet in use. Build new Dataset for this Yaxis
+                        indexDataset = numberUsedDataSetSlots;
+                        numberUsedDataSetSlots++;
+                        yAxisMap.put(key.axisKey.toString(), indexDataset);
+                        indexSeries = 0;
+                        String label = key.axisKey.label;
+                        if (label == null || label.isEmpty()) {
+                            label = "[" + key.unit + "]";
+                        }
+                        if (key.logarithmic) {
+                            yAxis = new LogarithmicAxis(label);
+                        } else {
+                            yAxis = new NumberAxis(label);
+                        }
+                        yAxis.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
+//                        if (key.axisKey.label != null) {
+//                            yAxis = new NumberAxis(key.axisKey.label);
+//                        } else {
+//                            yAxis = new NumberAxis("[" + key.unit + "]");
+//                        }
+                        if (key.axisKey != null) {
+                            if (key.axisKey.manualBounds) {
+                                yAxis.setLowerBound(key.axisKey.lowerBound);
+                                yAxis.setUpperBound(key.axisKey.upperBound);
+                            } else {
+                                key.axisKey.lowerBound = yAxis.getLowerBound();
+                                key.axisKey.upperBound = yAxis.getUpperBound();
+                            }
+                        }
+//                        yAxisMap.put(yAxis.getLabel(), indexDataset);
+                        XYIntervalRenderer intervalRenderer = new XYIntervalRenderer();
+                        intervalRenderer.drawinterval = true;
+                        if (key.axisKey != null) {
+                            intervalRenderer.interval = key.axisKey.drawInterval;
+                        }
+                        renderer = intervalRenderer;// new XYIntervalRenderer();//new XYLineAndShapeRenderer(true, false);
+                        renderer.setSeriesStroke(indexSeries, key.stroke);
+                        plot.setRenderer(indexDataset, renderer);
+
+                        yAxis.setAutoRangeIncludesZero(false);
+
+                        plot.setRangeAxis(indexDataset, yAxis);
+                        plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                        dataset = new XYSeriesCollection(this.collection.getSeries(i));
+
+                        if (key.logarithmic) {
+                            for (Object s : dataset.getSeries()) {
+                                if (s instanceof XYSeries) {
+                                    XYSeries ts = (XYSeries) s;
+                                    makeSeriesAbsolute(ts);
+                                }
+                            }
+                        }
+                        try {
+                            plot.setDataset(indexDataset, dataset);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    try {
+                        plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                    } catch (Exception e) {
+                    }
+                }
+                renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
+                renderer.setDrawSeriesLineAsPath(true);
+                if (key.lineColor != null) {
+                    renderer.setSeriesPaint(indexSeries, key.lineColor);
+                }
+                if (key.stroke != null) {
+                    renderer.setSeriesStroke(indexSeries, key.stroke);
+                    renderer.setSeriesLinesVisible(indexSeries, true);
+                } else {
+                    renderer.setSeriesLinesVisible(indexSeries, false);
+                }
+                if (key.shape != null && key.shape.getShape() != null) {
+                    renderer.setSeriesShape(indexSeries, key.shape.getShape());
+                    renderer.setSeriesShapesFilled(indexSeries, key.shapeFilled);
+                    renderer.setSeriesShapesVisible(indexSeries, true);
+                    if (key.axisKey != null && key.axisKey.drawInterval > 1) {
+                        if (renderer instanceof XYIntervalRenderer) {
+                            ((XYIntervalRenderer) renderer).interval = key.axisKey.drawInterval;
+                        }
+                    }
+//                    System.out.println("Series "+key.label+" shape: "+key.shape);
+                } else {
+                    renderer.setSeriesShape(indexSeries, null);
+                    renderer.setSeriesShapesVisible(indexSeries, false);
+//                    System.out.println("Series "+key.label+" without shape");
+                }
+                indexDataset++;
+            }
+        }
+        if (matlabStyle) {
+            MatlabLayout.layoutToMatlab(this.panelChart.getChart());
+        }
+    }
+
+    /**
+     * Logarithic axis can only plot, when all values are positive. So update
+     * all elements of this timeseries to absolute values. 0 becomes NaN, this
+     * will hide the point completely
+     *
+     * @param ts
+     */
+    private void makeSeriesAbsolute(XYSeries ts) {
+        if (ts.getMinY() <= 0) {
+            for (int j = 0; j < ts.getItemCount(); j++) {
+                double v = ts.getY(j).doubleValue();
+                if (v == 0) {
+                    ts.updateByIndex(j, Double.NaN);
+                } else if (v < 0) {
+                    ts.updateByIndex(j, Math.abs(v));
+                }
+            }
+        }
+    }
+
+    /**
+     * @deprecated
+     */
+    protected void updateShownTimeSeriesOld() {
         if (this.collection == null) {
             return;
         }
@@ -433,6 +692,8 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                     renderer = new XYLineAndShapeRenderer(true, false);
                     plot.setRenderer(indexDataset, renderer);
                     NumberAxis axis2 = new NumberAxis(checkboxes[i].getText());
+
+                    axis2.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
                     yAxisMap.put(axis2.getLabel(), indexDataset);
                     axis2.setAutoRangeIncludesZero(false);
                     plot.setRangeAxis(indexDataset, axis2);
@@ -458,6 +719,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                         } else {
                             yAxis = new NumberAxis("[" + key.unit + "]");
                         }
+                        yAxis.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
                         yAxisMap.put(yAxis.getLabel(), indexDataset);
                         renderer = new XYLineAndShapeRenderer(true, false);
                         renderer.setSeriesStroke(indexSeries, key.stroke);
@@ -543,6 +805,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                     plot.setRenderer(indexDataset, renderer);
 
                     NumberAxis axis2 = new NumberAxis(checkboxes[i].getText());
+                    axis2.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
                     yAxisMap.put(axis2.getLabel(), indexDataset);
                     axis2.setAutoRangeIncludesZero(false);
                     plot.setRangeAxis(indexDataset, axis2);
@@ -569,6 +832,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                         } else {
                             yAxis = new NumberAxis("[" + key.unit + "]");
                         }
+                        yAxis.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
                         yAxisMap.put(yAxis.getLabel(), indexDataset);
                         renderer = new XYLineAndShapeRenderer(true, false);
                         plot.setRenderer(indexDataset, renderer);
@@ -622,7 +886,8 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             panel.add(label, BorderLayout.CENTER);
             JButton buttonUpdate = new JButton("Refresh");
             panel.add(buttonUpdate, BorderLayout.EAST);
-            this.add(panel, BorderLayout.NORTH);
+            panelNorth.removeAll();
+            panelNorth.add(panel, BorderLayout.CENTER);
             buttonUpdate.addActionListener(new ActionListener() {
 
                 @Override
@@ -630,7 +895,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                     SpacelinePanel.this.updateTimeSlider();
                 }
             });
-
+            panelNorth.revalidate();
         } else {
             if (slider != null && slider.getMaximum() == referenceContainer.getNumberOfTimes() - 1) {
                 return;
@@ -644,7 +909,9 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                     SpacelinePanel.this.setTimeToShow(referenceContainer.getTimeMilliseconds(slider.getValue()));
                 }
             });
-            this.add(slider, BorderLayout.NORTH);
+            panelNorth.removeAll();
+            panelNorth.add(slider, BorderLayout.CENTER);
+            panelNorth.revalidate();
         }
     }
 
@@ -796,34 +1063,38 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         }
     }
 
-    public static XYSeries createMovingaverageCentral(XYSeries ts, int maxinvolvedPeriods, String name) {
-        SeriesKey oldKey = (SeriesKey) ts.getKey();
-        Color colorNew = null;
-        if (oldKey.lineColor != null) {
-            colorNew = new Color(oldKey.lineColor.getRGB() * 300000);
+    public static XYSeries createMovingaverageCentral(XYSeries original, int maxinvolvedPeriods, String name, XYSeries target) {
+        if (target == null) {
+            SeriesKey oldKey = (SeriesKey) original.getKey();
+            Color colorNew = null;
+            if (oldKey.lineColor != null) {
+                colorNew = new Color(oldKey.lineColor.getRGB() * 300000);
 //            System.out.println("Color Old: " + oldKey.lineColor.toString() + " -> new: " + colorNew.toString());
+            }
+            SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, "", oldKey.unit, colorNew, oldKey.axisKey);
+
+            XYSeries average = new XYSeries(newKey);
+            target = average;
         }
-        SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of " + oldKey.name, maxinvolvedPeriods + " mean " + oldKey.symbol, oldKey.unit, colorNew, oldKey.axisKey);
-        XYSeries average = new XYSeries(newKey);
         int minIndex = maxinvolvedPeriods / 2 + 1;
-        int maxIndex = ts.getItemCount() - maxinvolvedPeriods / 2;
+        int maxIndex = original.getItemCount() - maxinvolvedPeriods / 2;
         int radius = maxinvolvedPeriods / 2;
         double nenner = (2. * radius + 1.);
-        boolean verbose = name.startsWith("c_mat");
+//        boolean verbose = name.startsWith("c_mat");
         for (int i = minIndex; i < maxIndex; i++) {
             double sum = 0;
             for (int j = i - radius; j < i + radius; j++) {
-                sum += ts.getDataItem(j).getY().doubleValue();
+                sum += original.getDataItem(j).getY().doubleValue();
 
             }
             double wert = sum / nenner;
 //            if (verbose) {
 //                System.out.println(name + " " + p + " :\t" + sum + "/" + nenner + " = " + wert);
 //            }
-            average.add(ts.getDataItem(i).getX(), wert);
+            target.add(original.getDataItem(i).getX(), wert);
         }
 
-        return average;
+        return target;
     }
 
     public static XYSeries createConcentrationMovingaverageCentral(ArrayTimeLineMeasurement mtm, int maxinvolvedPeriods) {
@@ -879,10 +1150,14 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             if (c instanceof Pipe) {
                 Pipe p = (Pipe) c;
                 this.measurementContainer = p.getMeasurementTimeLine().getContainer();
-                this.referenceContainer=((ArrayTimeLinePipe)p.getStatusTimeLine()).container;
+                this.referenceContainer = ((ArrayTimeLinePipe) p.getStatusTimeLine()).container;
                 buildPipeSpaceline(referenceContainer, 0);
             }
         }
+    }
+
+    public void setDividerlocation(double ratio) {
+        this.splitpane.setDividerLocation(ratio);
     }
 
 }

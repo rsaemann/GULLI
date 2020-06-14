@@ -77,6 +77,7 @@ public class AnalyticalChannel {
 
     private ArrayList<InjectionInformation> injections;
     private ArrayTimeLinePipe[] timelinesPipe;
+    private ArrayTimeLinePipeContainer pipeTLcontainer;
 
     ArrayList<Manhole> manholes;
     ArrayList<Pipe> pipes;
@@ -123,7 +124,7 @@ public class AnalyticalChannel {
         pipes = new ArrayList<>(numberOfChannelElements);
         // create StatusTimeline for pipes
 
-        final ArrayTimeLinePipeContainer pipeTLcontainer = new ArrayTimeLinePipeContainer(times, numberOfChannelElements, 1);
+        pipeTLcontainer = new ArrayTimeLinePipeContainer(times, numberOfChannelElements, 1);
         System.out.println("pipes ok, start manholes");
         final ArrayTimeLineManholeContainer manholeTLcontainer = new ArrayTimeLineManholeContainer(pipeTLcontainer, numberOfManholes);
         System.out.println("ok");
@@ -168,6 +169,11 @@ public class AnalyticalChannel {
             float vol = (float) (h * width * dx);
             tl.setVolume(vol, t);
             tl.setDischarge((float) (v * h * width), t);
+//            for (int i = 1; i < numberOfChannelElements; i++) {
+//                pipeTLcontainer.velocity[i*numberOfTimeIntervals+t]=v;
+//                pipeTLcontainer.waterlevel[i*numberOfTimeIntervals+t]=h;
+//                pipeTLcontainer.volume[i*numberOfTimeIntervals+t]=vol;
+//            }
         }
 
         TimeLineManhole tlmh = new TimeLineManhole() {
@@ -239,7 +245,23 @@ public class AnalyticalChannel {
 
             try {
 //                ArrayTimeLinePipe tl = new ArrayTimeLinePipe(pipeTLcontainer, i - 1);
-                timelinesPipe[i - 1] = tl;
+                tl = new ArrayTimeLinePipe(pipeTLcontainer, i-1);
+
+                for (int t = 0; t < times.getNumberOfTimes(); t++) {
+                    float v = velocity;
+                    tl.setVelocity(v, t);
+                    float h = waterlevel;
+                    tl.setWaterlevel(h, t);
+                    float vol = (float) (h * width * dx);
+                    tl.setVolume(vol, t);
+                    tl.setDischarge((float) (v * h * width), t);
+//            for (int i = 1; i < numberOfChannelElements; i++) {
+//                pipeTLcontainer.velocity[i*numberOfTimeIntervals+t]=v;
+//                pipeTLcontainer.waterlevel[i*numberOfTimeIntervals+t]=h;
+//                pipeTLcontainer.volume[i*numberOfTimeIntervals+t]=vol;
+//            }
+                }
+                timelinesPipe[i-1] = tl;
 //                for (int t = 0; t < times.getNumberOfTimes(); t++) {
 //                    float v = velocity;
 //                    tl.setVelocity(v, t);
@@ -318,7 +340,7 @@ public class AnalyticalChannel {
             if (t == 0) {
                 t = 0.001f;
 //                //only set the initial concentration at the initial position
-                c[injectionElementIndex][injectionTimeIndex] += c_ini ;//* 0.5;
+                c[injectionElementIndex][injectionTimeIndex] += c_ini;//* 0.5;
 //                c[injectionElementIndex + 1][injectionTimeIndex] += c_ini * 0.5;
 
                 continue;

@@ -89,6 +89,14 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
         }
         return r;
     }
+    
+     public float[] getDischargeForTimeIndex(int timeIndex) {
+        float[] r = new float[numberOfPipes];
+        for (int i = 0; i < numberOfPipes; i++) {
+            r[i] = discharge[i * getNumberOfTimes() + timeIndex];
+        }
+        return r;
+    }
 
     public float[] getWaterlevelsForTimeIndex(int timeIndex) {
         float[] r = new float[numberOfPipes];

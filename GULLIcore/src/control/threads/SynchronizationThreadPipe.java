@@ -25,6 +25,7 @@ package control.threads;
 
 import control.Controller;
 import java.util.ArrayList;
+import model.surface.measurement.SurfaceMeasurementRaster;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Pipe;
@@ -43,12 +44,15 @@ public class SynchronizationThreadPipe extends Thread {
     public long actualSimulationTime = 0;
 
     public int lastMeasurementImeIndex = -1;
+    private int measurementsCounter = 0;
 
     private long nextOpenTime = 0;
     private long nextMeasurementTime = 0;
     private int writeindex = 0;
-    private int lastWriteIndex=-1;
+    private int lastWriteIndex = -1;
     private boolean openMeasurements = false;
+
+    private int lastwriteindexSurface = -1;
 
     protected Controller control;
     public int status = -1;
@@ -72,19 +76,22 @@ public class SynchronizationThreadPipe extends Thread {
             ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
             if (mcp != null) {
                 if (mcp.isTimespotmeasurement()) {
-                    for (Pipe pipe : pipes) {
-                        pipe.getMeasurementTimeLine().active = false;
-                    }
+//                    for (Pipe pipe : pipes) {
+//                        pipe.getMeasurementTimeLine().active = false;
+//                    }
+                    mcp.measurementsActive = false;
                     this.openMeasurements = false;
 //                System.out.println("closed measurements");
                 } else {
-                    for (Pipe pipe : pipes) {
-                        if (pipe.getMeasurementTimeLine() != null) {
-                            pipe.getMeasurementTimeLine().active = true;
-                        }
-                    }
+//                    for (Pipe pipe : pipes) {
+//                        if (pipe.getMeasurementTimeLine() != null) {
+//                            pipe.getMeasurementTimeLine().active = true;
+//                        }
+//                    }
+                    mcp.measurementsActive = true;
                 }
             }
+
         } catch (Exception ex) {
             ex.printStackTrace();
         };
@@ -107,12 +114,14 @@ public class SynchronizationThreadPipe extends Thread {
                                             tl.addMeasurement(writeindex, (float) pipe.getFluidVolume());
                                         }
                                         tl.resetNumberOfParticles();
-                                        tl.getContainer().measurementTimes[writeindex] = actualSimulationTime;
-                                        tl.active = false;
+
                                     }
                                 }
+                                mcp.measurementTimes[writeindex] = actualSimulationTime;
+                                mcp.measurementsActive = false;
+                                mcp.samplesInTimeInterval[writeindex]++;
                                 openMeasurements = false;
-                                lastWriteIndex=writeindex;
+                                lastWriteIndex = writeindex;
                                 writeindex = mcp.getActualTimeIndex() + 1;
                                 if (writeindex < mcp.getNumberOfTimes()) {
                                     nextMeasurementTime = mcp.getTimeMillisecondsAtIndex(writeindex);
@@ -123,7 +132,7 @@ public class SynchronizationThreadPipe extends Thread {
                             } else {
                                 if (mcp.getActualTimeIndex() != lastWriteIndex) {
 //                                    System.out.println("need to set writeindex back from " + writeindex + " to " + (mcp.getActualTimeIndex() + 1) + " to sample at time " + mcp.getTimeMillisecondsAtIndex(mcp.getActualTimeIndex() + 1));
-                                    if (mcp.getActualTimeIndex() == 0&&actualSimulationTime<=ThreadController.getDeltaTime()*1000) {
+                                    if (mcp.getActualTimeIndex() == 0 && actualSimulationTime <= ThreadController.getDeltaTime() * 1000) {
                                         //Try to open measurements for the very first sampling at time 0 (+1simulation step)
                                         writeindex = 0;
                                         nextMeasurementTime = mcp.getTimeMillisecondsAtIndex(writeindex);
@@ -139,16 +148,19 @@ public class SynchronizationThreadPipe extends Thread {
                                 openMeasurements = true;
                                 for (Pipe pipe : pipes) {
                                     if (pipe.getMeasurementTimeLine() != null) {
-                                        pipe.getMeasurementTimeLine().active = true;
+//    pipe.getMeasurementTimeLine().active = true;
                                         pipe.getMeasurementTimeLine().resetNumberOfParticles();
                                     }
                                 }
+                                mcp.measurementsActive = true;
                             }
                         } else if (pipes != null) {
                             int timeindex = mcp.getIndexForTime(actualSimulationTime);
                             if (timeindex >= mcp.getNumberOfTimes()) {
                                 timeindex = mcp.getNumberOfTimes() - 1;
                             }
+                            //Also count up, if the interval is only internally filled. the final value is written, when the index changes = when a new interval is going to start
+                            measurementsCounter++;
                             if (lastMeasurementImeIndex != timeindex) {
                                 lastMeasurementImeIndex = timeindex;
                                 for (Pipe pipe : pipes) {
@@ -158,7 +170,10 @@ public class SynchronizationThreadPipe extends Thread {
                                     }
                                 }
                                 mcp.measurementTimes[timeindex] = actualSimulationTime;
+                                mcp.samplesInTimeInterval[timeindex] = measurementsCounter;
+                                measurementsCounter = 0;
                             }
+
                         }
 
                         if (messung != null) {
@@ -168,6 +183,26 @@ public class SynchronizationThreadPipe extends Thread {
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
+                            }
+                        }
+                    }
+                    //Surface
+                    SurfaceMeasurementRaster smr = control.getSurface().getMeasurementRaster();
+                    if (smr != null) {
+                        if (smr.measurementsActive) {
+                            if (lastwriteindexSurface >= 0) {
+                                smr.measurementsInTimeinterval[lastwriteindexSurface]++;
+                            }
+                        }
+                        if (smr.continousMeasurements) {
+                            smr.measurementsActive = true;
+
+                        } else {
+                            if (smr.getIndexContainer().getActualTimeIndex() != lastwriteindexSurface) {
+                                smr.measurementsActive = true;
+                                lastwriteindexSurface = smr.getIndexContainer().getActualTimeIndex();
+                            } else {
+                                smr.measurementsActive = false;
                             }
                         }
                     }

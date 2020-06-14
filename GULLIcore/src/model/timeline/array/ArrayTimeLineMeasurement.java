@@ -49,13 +49,16 @@ public class ArrayTimeLineMeasurement {
 
     private double[] particleMassPerTypeinTimestep;
 
-    /**
-     * if not active, then no information is collected and stored.
-     */
-    public boolean active = true;
+//    /**
+//     * if not active, then no information is collected and stored.
+//     */
+//    public boolean active = true;
+    
+    private int spatialIndex;
 
     public ArrayTimeLineMeasurement(ArrayTimeLineMeasurementContainer container, int spatialIndex) {
         this.container = container;
+        this.spatialIndex=spatialIndex;
         this.startIndex = container.getNumberOfTimes() * spatialIndex;
         if (useIDsharpParticleCounting) {
             particles = new HashSet<>(0);
@@ -65,7 +68,7 @@ public class ArrayTimeLineMeasurement {
     }
 
     private int getIndex(int temporalIndex) {
-        int i = startIndex + temporalIndex;
+        int i = container.getNumberOfTimes() * spatialIndex+temporalIndex;//startIndex + temporalIndex;
 //        if (i >= container.getn) {
 //            System.err.println(this.getClass() + ":Index out of Bounds: temporalIndex:" + temporalIndex + " + startindex: " + startIndex + " = " + i + ">= " + ArrayTimeLineMeasurement.counts.length);
 //        }
@@ -75,7 +78,7 @@ public class ArrayTimeLineMeasurement {
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (container.mass_total[index] / (container.volumes[index] * container.samplesPerTimeinterval));
+        return (float) (container.mass_total[index] / (container.volumes[index] * container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
         /*container.particles[index] * Particle.massPerParticle*/
         /**
          * container.counts[index]
@@ -85,13 +88,13 @@ public class ArrayTimeLineMeasurement {
     public float getConcentrationOfType(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (container.mass_type[index][materialIndex] / (container.volumes[index] * container.samplesPerTimeinterval));
+        return (float) (container.mass_type[index][materialIndex] / (container.volumes[index] * container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
         /*container.particles[index] * Particle.massPerParticle*/
         /**
          * container.counts[index]
          */
-    }    
-    
+    }
+
     /**
      * get total mass of all materials
      *
@@ -100,19 +103,21 @@ public class ArrayTimeLineMeasurement {
      */
     public float getMass(int temporalIndex) {
         int index = getIndex(temporalIndex);
-        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] / (container.samplesPerTimeinterval));
+        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] / (container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
 
     }
 
     public float getMass(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
-        return (float) (container.mass_type[index][materialIndex] / (container.samplesPerTimeinterval));
+        float mass = (float) (container.mass_type[index][materialIndex] / (container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
+//        System.out.println("mass at ti="+temporalIndex+": mass="+container.mass_type[index][materialIndex]+", smples: "+container.samplesInTimeInterval[temporalIndex]);
+        return mass;
 
     }
 
     public float getParticles(int temporalIndex) {
         int index = getIndex(temporalIndex);
-        return (float) (container.particles[index] / (float) container.samplesPerTimeinterval);
+        return (float) (container.particles[index] / (float) container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/);
     }
 
     public float getVolume(int temporalIndex) {
@@ -137,7 +142,6 @@ public class ArrayTimeLineMeasurement {
 //                System.out.println("Add measurement "+timeindex+":  " + getContainer().getTimeMillisecondsAtIndex(timeindex));
 //            }
 //        }
-
         try {
             container.particles[index] += numberOfParticlesInTimestep;
 
@@ -158,7 +162,7 @@ public class ArrayTimeLineMeasurement {
             }
 
             container.counts[index]++;
-            double tempmass = (particleMassInTimestep / (container.samplesPerTimeinterval));
+            double tempmass = (particleMassInTimestep / (container.samplesInTimeInterval[timeindex]/*samplesPerTimeinterval*/));
             if (tempmass > maxMass) {
                 maxMass = tempmass;
             }
@@ -210,7 +214,7 @@ public class ArrayTimeLineMeasurement {
     }
 
     public void addParticle(Particle particleToCount) {
-        if (!active) {
+        if (!container.measurementsActive) {
             return;
         }
         addParticle(particleToCount, 1f);
@@ -223,7 +227,8 @@ public class ArrayTimeLineMeasurement {
      * the whole timestep.
      */
     public void addParticle(Particle particleToCount, float dtfactor) {
-        if (!active) {
+        if (!container.measurementsActive && container.isTimespotmeasurement()) {
+            //Skip if the paticles should only be sampled at the end of an interval and the sampling is not enabled for that last step.
             return;
         }
         if (synchronizeMeasures) {
@@ -284,10 +289,11 @@ public class ArrayTimeLineMeasurement {
     }
 
     /**
-     * True if samples have been taken sinze the last reset of the counter.
-     * This is indicated by a number of counted particles >0.
+     * True if samples have been taken sinze the last reset of the counter. This
+     * is indicated by a number of counted particles >0.
+     *
      * @param timeIndex
-     * @return 
+     * @return
      */
     public boolean hasMeasurements(int timeIndex) {
         return container.counts[startIndex + timeIndex] > 0;

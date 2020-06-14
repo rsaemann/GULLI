@@ -32,12 +32,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.FieldPosition;
+import java.text.NumberFormat;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -72,13 +74,10 @@ import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.DateTickUnitType;
 import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.event.AxisChangeEvent;
-import org.jfree.chart.event.AxisChangeListener;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.general.Series;
 import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.Second;
@@ -98,7 +97,7 @@ import view.timeline.customCell.StrokeEditor;
 public class CapacityTimelinePanel extends JPanel implements CapacitySelectionListener {
 
     protected ChartPanel panelChart;
-    protected TimeSeriesCollection collection;
+    public TimeSeriesCollection collection;
     protected JCheckBox[] checkboxes;
     protected JPanel panelChecks;
     protected ValueMarker marker;
@@ -111,6 +110,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     public boolean showMarkerLabelTime = true;
     protected String title;
+
+    /**
+     * Change this to your locale Locale to have axis number format in your
+     * local format. standard is US.
+     */
+    public static Locale FormatLocale = StartParameters.formatLocale;
 
     // public boolean showVelocityInformationInputPoints = true;
     protected DateAxis dateAxis;
@@ -174,24 +179,24 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final AxisKey keymassFlux = new AxisKey("Massflux", "Massflux [kg/s]");
     private final AxisKey keyConcentration = new AxisKey("C", "Concentration [kg/m³]");
     private final TimeSeries m_p = new TimeSeries(new SeriesKey("#Particles", "n", "-", Color.magenta, new AxisKey("Particle")), "Time", "");
-    private final TimeSeries m_p_sum = new TimeSeries(new SeriesKey("Sum Particles", "Sum(n)", "-", Color.red, new AxisKey("Particle")), "Time", "");
-    private final TimeSeries m_p_l = new TimeSeries(new SeriesKey("Particles/Length", "n/L", "1/m", Color.orange, new AxisKey("Particle per Length")), "Time", "");
-    private final TimeSeries m_p_l_sum = new TimeSeries(new SeriesKey("\u03a3Particles/Length", "\u03a3n/L", "1/m", Color.orange), "Time", "");
+    private final TimeSeries m_p_sum = new TimeSeries(new SeriesKey("Sum Particles", "", "-", Color.red, new AxisKey("Particle")), "Time", "");
+    private final TimeSeries m_p_l = new TimeSeries(new SeriesKey("Particles/Length", "", "1/m", Color.orange, new AxisKey("Particle per Length")), "Time", "");
+    private final TimeSeries m_p_l_sum = new TimeSeries(new SeriesKey("\u03a3Particles/Length", "", "1/m", Color.orange), "Time", "");
     private final TimeSeries m_m = new TimeSeries(new SeriesKey("p. Mass", "m_p", "kg", Color.red, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 p. Mass ", "m_p", "kg", Color.pink, new AxisKey("Mass", "Mass [kg]")), "Time", "");
+    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 p. Mass ", "", "kg", Color.pink, new AxisKey("Mass", "Mass [kg]")), "Time", "");
     private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan, new AxisKey("Vol", "Volume [m³]")), "Time", "m³");
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V", "Velocity [m/s]"), 0), "Time", "m/s");
-    private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.blue, new AxisKey("Q", "Discharge [m³/s]"), 0), "Time", "m³/s");
+    private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.green, new AxisKey("Q", "Discharge [m³/s]"), 0), "Time", "m³/s");
 
-    private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.green, new AxisKey("lvl"), 0), "Time", "m");
+    private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.blue, new AxisKey("lvl"), 0), "Time", "m");
     private final TimeSeries volpipe0 = new TimeSeries(new SeriesKey("Volume", "V", "m³", new Color(100, 0, 255), new AxisKey("Vol", "Volume [m³]"), 0), "Time", "m³");
 
-    private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "msfx_ref_tot", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
-    private final TimeSeries massflux = new TimeSeries(new SeriesKey("p. Massflux total", "mf_p_tot", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
+    private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
+    private final TimeSeries m_massflux = new TimeSeries(new SeriesKey("Massflux total ptcl", "", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
 
-    private final TimeSeries refConcentrationTotal = new TimeSeries(new SeriesKey("ref Concentration total", "c_ref_tot", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
-    private final TimeSeries m_c = new TimeSeries(new SeriesKey("p. Concentration", "c_p_0", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
+    private final TimeSeries refConcentrationTotal = new TimeSeries(new SeriesKey("ref. Concentration total", "", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
+    private final TimeSeries m_c = new TimeSeries(new SeriesKey("ptcl. Concentration total", "", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
 
     private final ArrayList<TimeSeries> ref_massFlux_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> massFlux_Type = new ArrayList<>(2);
@@ -214,42 +219,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         addEMFexport();
         addMatlabSeriesExport();
         addTimeSeriesExport();
-
-//        ((SeriesKey) m_vol.getKey()).visible = false;
-//        ((SeriesKey) m_m.getKey()).visible = false;
-//        ((SeriesKey) m_p.getKey()).visible = false;
-//        ((SeriesKey) m_p_l.getKey()).visible = false;
-//        ((SeriesKey) refMassfluxTotal.getKey()).visible = false;
-//        ((SeriesKey) massflux.getKey()).visible = false;
-//        ((SeriesKey) refConcentrationTotal.getKey()).visible = false;
-//        ((SeriesKey) m_c.getKey()).visible = false;
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_vol.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p_l.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_c.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refConcentrationTotal.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refMassfluxTotal.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) massflux.getKey()).name, false);
-
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_sum.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) hpipe0.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
-
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment0_particleMass.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta_relative.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_messung.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_refvorgabe.getKey()).name, false);
-
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta_relative.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_variance.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_mess.getKey()).name, false);
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_ref.getKey()).name, false);
-
+        initCollection();
         try {
             if (StartParameters.getPictureExportPath() != null) {
                 directoryPDFsave = StartParameters.getPictureExportPath();
@@ -294,6 +264,35 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         });
 
+    }
+
+    public void initCollection() {
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_vol.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p_l.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_c.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refConcentrationTotal.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refMassfluxTotal.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_massflux.getKey()).name, false);
+
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_sum.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) hpipe0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
+
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment0_particleMass.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta_relative.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_messung.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_refvorgabe.getKey()).name, false);
+
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta_relative.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_variance.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_mess.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_ref.getKey()).name, false);
     }
 
     public void setLegendPosition(LEGEND_POSITION pos) {
@@ -475,31 +474,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             marker = null;
         }
     }
-
-    private void buildPipeTimeline(TimeLinePipe tl, ArrayTimeLineMeasurement tlm, double pipeLength) {
-        for (Iterator it = collection.getSeries().iterator(); it.hasNext();) {
-            TimeSeries se = (TimeSeries) it.next();
-//            System.out.println("setNotify(false) for "+se.getKey());
-            se.setNotify(false);
-            se.clear();
-        }
-        for (int i = 0; i < panelChart.getChart().getXYPlot().getRendererCount(); i++) {
-            XYItemRenderer r = panelChart.getChart().getXYPlot().getRenderer(i);
-            XYDataset ds = panelChart.getChart().getXYPlot().getDataset(i);
-            if (r != null && ds != null) {
-                for (int j = 0; j < ds.getSeriesCount(); j++) {
-                    r.setSeriesVisible(j, false);
-                }
-            }
-        }
-        this.collection.removeAllSeries();
-        this.panelChart.getChart().setNotify(false);
-        collection.setNotify(false);
-
+    
+    public void updateDateAxis(TimeContainer tc){
         if (showSimulationTime) {
 
-            final long start = tl.getTimeContainer().getFirstTime();
-            final long end = tl.getTimeContainer().getLastTime();
+            final long start = tc.getFirstTime();
+            final long end = tc.getLastTime();
             if (end - start < 1000L * 60 * 60 * 120) {
                 //If the simulation is less than 120 minutes, only show minutes and hide hours
                 dateAxis.setLabel("Time [min:sec]");
@@ -545,38 +525,30 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 dateAxis.setDateFormatOverride(new SimpleDateFormat());
             }
         }
+    }
 
-        /* moment1_refvorgabe.clear();
-         moment1_messung.clear();
-         moment1_delta.clear();
-         moment1_delta_relative.clear();
-         moment2_ref.clear();
-         moment2_mess.clear();
-         moment2_delta.clear();
-         m_p.clear();
-         m_p_l.clear();
-         m_c.clear();
-         m_m.clear();
-         m_m_sum.clear();
-         m_vol.clear();
-         m_n.clear();
-         m_p_sum.clear();
-         m_p_l_sum.clear();
-         massflux.clear();
+    private void buildPipeTimeline(TimeLinePipe tl, ArrayTimeLineMeasurement tlm, double pipeLength) {
+        for (Iterator it = collection.getSeries().iterator(); it.hasNext();) {
+            TimeSeries se = (TimeSeries) it.next();
+//            System.out.println("setNotify(false) for "+se.getKey());
+            se.setNotify(false);
+            se.clear();
+        }
+        for (int i = 0; i < panelChart.getChart().getXYPlot().getRendererCount(); i++) {
+            XYItemRenderer r = panelChart.getChart().getXYPlot().getRenderer(i);
+            XYDataset ds = panelChart.getChart().getXYPlot().getDataset(i);
+            if (r != null && ds != null) {
+                for (int j = 0; j < ds.getSeriesCount(); j++) {
+                    r.setSeriesVisible(j, false);
+                }
+            }
+        }
+        this.collection.removeAllSeries();
+        this.panelChart.getChart().setNotify(false);
+        collection.setNotify(false);
 
-         for (TimeSeries massFlux_Type1 : ref_massFlux_Type) {
-         massFlux_Type1.clear();
-         }
-         for (TimeSeries massFlux_Type1 : massFlux_Type) {
-         massFlux_Type1.clear();
-         }
-         for (TimeSeries ts : ref_Concentration_Type) {
-         ts.clear();
-         }
-         for (TimeSeries ts : concentration_Type) {
-         ts.clear();
-         }
-         */
+        updateDateAxis(tl.getTimeContainer());
+
         TimeSeries v, q, vol;
         TimeSeries hpipe;
         v = v0;
@@ -589,6 +561,15 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         hpipe.clear();
         refMassfluxTotal.clear();
         refConcentrationTotal.clear();
+        m_m.clear();
+        m_c.clear();
+        m_m_sum.clear();
+        m_n.clear();
+        m_p.clear();        
+        m_p_sum.clear();
+        m_p_l_sum.clear();
+        m_p_l.clear();
+        m_vol.clear();
 
         moment0_particleMass.clear();
         moment1_messung.clear();
@@ -687,7 +668,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
                 if (massFlux_Type.size() < j + 1) {
                     SeriesKey key = new SeriesKey("p. Massflux " + name, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
-                    key.setVisible(((SeriesKey) massflux.getKey()).isVisible());
+                    key.setVisible(((SeriesKey) m_massflux.getKey()).isVisible());
                     massFlux_Type.add(new TimeSeries(key, "Time", "kg/s"));
                 }
                 if (concentration_Type.size() < j + 1) {
@@ -726,6 +707,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //                    int ti = j * tlm.getContainer().getNumberOfTimes() + i;
 //                    mass += tlm.getMass(ti);
 //                }
+//                System.out.println(tlm.getContainer().samplesInTimeInterval[i]+" samples at time index "+i+" : "+tlm.getContainer().measurementTimes[i]/1000+"s");
 
                 if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
                     ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
@@ -737,7 +719,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         double m = tlm.getContainer().mass_total[ti];
                         mass += m;
                     }
-                    mass/=tlm.getContainer().samplesPerTimeinterval;
+                    mass /= tlm.getContainer().samplesInTimeInterval[i]/*samplesPerTimeinterval*/;
                     moment0_particleMass.addOrUpdate(time, mass);
 
                     double m1 = tlm.getContainer().getMomentum1_xm(i);
@@ -817,10 +799,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 float massT = tlm.getMass(i);
                 if (Double.isNaN(massT)) {
                     m_m.addOrUpdate(time, 0);
-                    massflux.addOrUpdate(time, 0);
+                    m_massflux.addOrUpdate(time, 0);
                 } else {
                     m_m.addOrUpdate(time, massT);
-                    massflux.addOrUpdate(time, massT * discharge);
+                    m_massflux.addOrUpdate(time, massT * discharge);
                     if (i > 0) {
                         mass_sum += massT * discharge * (tlm.getContainer().getTimeMillisecondsAtIndex(i) - tlm.getContainer().getTimeMillisecondsAtIndex(i - 1)) / 1000.;
                     }
@@ -880,8 +862,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
         }
 
-        if (massflux.getMaxY() > 0) {
-            this.collection.addSeries(massflux);
+        if (m_massflux.getMaxY() > 0) {
+            this.collection.addSeries(m_massflux);
         }
         for (int i = 0; i < massFlux_Type.size(); i++) {
             TimeSeries ts = massFlux_Type.get(i);
@@ -1219,6 +1201,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     plot.setRenderer(indexDataset, renderer);
 
                     NumberAxis axis2 = new NumberAxis(checkboxes[i].getText());
+                    axis2.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
                     yAxisMap.put(axis2.getLabel(), indexDataset);
                     axis2.setAutoRangeIncludesZero(false);
                     plot.setRangeAxis(indexDataset, axis2);
@@ -1228,6 +1211,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     if (yAxisMap.containsKey(key.axisKey.toString())) {
                         indexDataset = yAxisMap.get(key.axisKey.toString());
                         yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
+//                        yAxis.setNumberFormatOverride(NumberFormat.getCurrencyInstance(Locale.US));
                         dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
                         indexSeries = dataset.getSeriesCount();
                         TimeSeries ts = (TimeSeries) this.collection.getSeries(i);
@@ -1252,6 +1236,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         } else {
                             yAxis = new NumberAxis(label);
                         }
+                        yAxis.setNumberFormatOverride(NumberFormat.getNumberInstance(FormatLocale));
 //                        if (key.axisKey.label != null) {
 //                            yAxis = new NumberAxis(key.axisKey.label);
 //                        } else {

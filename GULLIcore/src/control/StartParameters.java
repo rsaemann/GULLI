@@ -32,6 +32,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -62,6 +63,8 @@ public class StartParameters {
 
     public static File fileStartParameter = new File(getProgramDirectory(), "GULLI.ini");
     private static boolean isloaded = loadStartParameter();
+    
+    public static Locale formatLocale=Locale.US;
 
     public static boolean loadStartParameter() {
         try {

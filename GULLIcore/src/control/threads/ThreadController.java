@@ -198,8 +198,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //        initialize();
         calculationFinished = false;
 
-        Pipe[] fullarray = control.getNetwork().getPipes().toArray(new Pipe[control.getNetwork().getPipes().size()]);
-        syncThread_pipes.setPipes(fullarray);
+        if (control.getNetwork() != null) {
+            Pipe[] fullarray = control.getNetwork().getPipes().toArray(new Pipe[control.getNetwork().getPipes().size()]);
+            syncThread_pipes.setPipes(fullarray);
+        }
 
         //initialize number of threads on the surface 
         if (control.getSurface() != null && control.getSurface().getMeasurementRaster() != null) {
@@ -801,13 +803,17 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     status = 28;
                 case POSITION:
                     status = 30;
-                    for (SimulationActionListener l : listener) {
-                        try {
-                            lastenvokenListener = l;
-                            l.simulationSTEPFINISH(steps, this);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    try {
+                        for (SimulationActionListener l : listener) {
+                            try {
+                                lastenvokenListener = l;
+                                l.simulationSTEPFINISH(steps, this);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                     status = 31;
                     if (calculationFinished) {

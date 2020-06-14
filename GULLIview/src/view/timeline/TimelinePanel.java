@@ -293,6 +293,7 @@ public class TimelinePanel extends JPanel {
                         } else {
                             key.axisKey.lowerBound = yAxis.getLowerBound();
                             key.axisKey.upperBound = yAxis.getUpperBound();
+                            yAxis.setAutoRange(true);
                         }
                     }
                     yAxisMap.put(yAxis.getLabel(), indexDataset);

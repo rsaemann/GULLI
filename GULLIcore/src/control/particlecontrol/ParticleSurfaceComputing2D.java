@@ -68,10 +68,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     protected RandomArray random;
 
-    /**
-     * Seed used for generating the same random numbers for each run.
-     */
-//    protected long seed = 0;
+
     /**
      * Stutus variable for debugging. Increase after every important step to see
      * where surface computing is hanging.
@@ -152,11 +149,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     @Override
     public void moveParticle(Particle p) {
         try {
+//            System.out.println("move particle");
 //            status = 0;
             checkSurrounding(p);
 //            status = 10;
             moveParticle2(p);
-
+           
             if (p.isOnSurface()) {
 //                status = 31;
                 surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
@@ -185,6 +183,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         // get the particle velocity (most computation time used here)
         particlevelocity = surface.getParticleVelocity2D(p, p.surfaceCellID, particlevelocity, temp_barycentricWeights);
 
+//        System.out.println("particle.velocity="+particlevelocity[0]+", "+particlevelocity[1]);
+        
         totalvelocity = testVelocity(particlevelocity);
         p.addMovingLength(totalvelocity * dt);
 

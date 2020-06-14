@@ -38,7 +38,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     /**
      * [x-index][y-index][timeindex][materialindex]:mass
      */
-    double[][][][] mass;
+    public double[][][][] mass;
 
     /**
      * [x-index][y-index][timeindex][materialindex]:counter
@@ -61,6 +61,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
         mass = new double[numberXIntervals][][][];
         particlecounter = new int[numberXIntervals][][][];
+        measurementsInTimeinterval = new int[times.getNumberOfTimes()];
     }
 
     public static SurfaceMeasurementRectangleRaster SurfaceMeasurementRectangleRaster(Surface surf, int numberXInterval, int numberYInterval) {
@@ -100,7 +101,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
      * @param timec
      * @return
      */
-    public static SurfaceMeasurementRaster RasterFocusOnPoint(double x, double y, boolean toCellCenter, double dx, double dy, int numberXIntervals, int numberYIntervals, int numberMaterials, TimeIndexContainer timec) {
+    public static SurfaceMeasurementRectangleRaster RasterFocusOnPoint(double x, double y, boolean toCellCenter, double dx, double dy, int numberXIntervals, int numberYIntervals, int numberMaterials, TimeIndexContainer timec) {
 
         double xmin, ymin;
         if (toCellCenter) {
@@ -119,6 +120,9 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
     @Override
     public void measureParticle(long time, Particle particle, int index) {
+        if (!continousMeasurements && !measurementsActive) {
+            return;
+        }
         if (particle.getPosition3d() == null) {
             return;
         }
@@ -159,8 +163,15 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 //count particle
             if (synchronizeMeasures) {
                 synchronized (mass[xindex][yindex][timeIndex]) {
+
                     mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
-                    particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                    try {
+                        particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                    } catch (Exception e) {
+                        //this arrays seems not to be initialized by another thread. wait some time for completion.
+                        Thread.sleep(10);
+                        particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                    }
                 }
             } else {
                 mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
@@ -224,6 +235,17 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         return particlecounter;
     }
 
+    /**
+     * [x-index][y-index][timeindex][materialindex]:mass
+     *
+     * @return mass in raster
+     */
+    public double[][][][] getMass() {
+        return mass;
+    }
+    
+    
+
     public int getParticlesCounted(int xindex, int yindex, int timeindex, int materialindex) {
         if (particlecounter == null) {
             return 0;
@@ -275,6 +297,28 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                     int sum = 0;
                     for (int m = 0; m < numberOfMaterials; m++) {
                         sum += particlecounter[x][y][t][m];
+                    }
+                    maxSum = Math.max(maxSum, sum);
+                }
+            }
+        }
+        return maxSum;
+    }
+    
+     public double getMaxMassPerCell() {
+        double maxSum = 0;
+        for (int x = 0; x < numberXIntervals; x++) {
+            if (mass[x] == null) {
+                continue;
+            }
+            for (int y = 0; y < numberYIntervals; y++) {
+                if (mass[x][y] == null) {
+                    continue;
+                }
+                for (int t = 0; t < times.getNumberOfTimes(); t++) {
+                    double sum = 0;
+                    for (int m = 0; m < numberOfMaterials; m++) {
+                        sum += mass[x][y][t][m];
                     }
                     maxSum = Math.max(maxSum, sum);
                 }
@@ -384,4 +428,96 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         }
         return true;
     }
+
+    public double getTotalMassInTimestep(int timeindex, int materialindex) {
+        double sum = 0;
+        for (int i = 0; i < mass.length; i++) {
+            if (mass[i] == null) {
+                continue;
+            }
+            for (int j = 0; j < mass[i].length; j++) {
+                if (mass[i][j] == null) {
+                    continue;
+                }
+                try {
+                    sum += mass[i][j][timeindex][materialindex];
+                } catch (Exception e) {
+                }
+            }
+        }
+        return sum;
+    }
+
+    public double[] getCenterOfMass(int timeindex, int materialindex) {
+        double sumMass = 0;
+        double weightX = 0;
+        double weightY = 0;
+
+//        int xindex = (int) ((particle.getPosition3d().x - xmin) / xIntervalWidth);
+//        int yindex = (int) ((particle.getPosition3d().y - ymin) / YIntervalHeight);
+        double timeFactor = 1.0 / (double) measurementsInTimeinterval[timeindex];
+
+        for (int i = 0; i < mass.length; i++) {
+            double x = ((i + 0.5) * xIntervalWidth) + xmin;
+            if (mass[i] == null) {
+                continue;
+            }
+            for (int j = 0; j < mass[i].length; j++) {
+                double y = ((j + 0.5) * YIntervalHeight) + ymin;
+                if (mass[i][j] == null) {
+                    continue;
+                }
+                try {
+                    double m = mass[i][j][timeindex][materialindex] * timeFactor;
+                    sumMass += m;
+                    weightX += m * x;
+                    weightY += m * y;
+                } catch (Exception e) {
+                }
+            }
+        }
+        return new double[]{weightX / sumMass, weightY / sumMass};
+    }
+
+    public double[] getVarianceOfPlume(int timeindex, int materialindex, double centreX, double centreY) {
+        double sumMass = 0;
+        double weightX = 0;
+        double weightY = 0;
+
+//        int xindex = (int) ((particle.getPosition3d().x - xmin) / xIntervalWidth);
+//        int yindex = (int) ((particle.getPosition3d().y - ymin) / YIntervalHeight);
+        double centerX=0,centerY=0;
+
+        double timeFactor = 1.0 / (double) measurementsInTimeinterval[timeindex];
+
+        for (int i = 0; i < mass.length; i++) {
+
+            if (mass[i] == null) {
+                continue;
+            }
+            double x = ((i+0.5) * xIntervalWidth) + xmin;
+            double dxsq = (x - centreX) * (x - centreX);
+            for (int j = 0; j < mass[i].length; j++) {
+
+                if (mass[i][j] == null) {
+                    continue;
+                }
+                double y = ((j+0.5) * YIntervalHeight) + ymin;
+                double dysq = (y - centreY) * (y - centreY);
+                try {
+                    double m = mass[i][j][timeindex][materialindex]*timeFactor;
+                    sumMass += m;
+                    weightX += m * dxsq;
+                    weightY += m * dysq;
+                    centerX+=m*x;
+                    centerY+=m*y;
+                } catch (Exception e) {
+                }
+            }
+        }
+//        System.out.println("Variance center, given: "+centreX+","+centreY+"\tcalculated:"+(centerX/sumMass)+", "+(centerY/sumMass));
+//        System.out.println("Raster varaince: weightX" + weightX + ", centerX=" + centreX);
+        return new double[]{weightX / sumMass, weightY / sumMass};
+    }
+
 }

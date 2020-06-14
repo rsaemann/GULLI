@@ -41,7 +41,7 @@ public class TimeIndexContainer extends TimeContainer implements TimeIndexCalcul
     public TimeIndexContainer(long[] times) {
         super(times);
     }
-
+    
     @Override
     public int getActualTimeIndex() {
         return actualTimeIndex;

@@ -1277,9 +1277,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
                     SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
                     synchronized (raster) {
-                        int totalparticleCount = 0;
+                        double totalparticleCount = 0;
                         for (InjectionInformation injection : control.getScenario().getInjections()) {
-                            totalparticleCount += injection.getNumberOfParticles();
+                            totalparticleCount += injection.getMass();//.getNumberOfParticles();
                         }
                         //Find Layer and set represntative Colorholder, so everyone can change the colors in program
 //                    mapViewer.clearLayer(layerSurfaceContaminated);
@@ -1302,21 +1302,21 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 continue;
                             }
 //                            int i = (int) tri.getTriangleID();
-                            int particlesum = 0;
-                            for (int[] particlecount : triangleMeasurement.getParticlecount()) {
-                                for (int c : particlecount) {
-                                    particlesum += c;
+                            int massSum = 0;
+                            for (double[] mass : triangleMeasurement.getMass()) {
+                                for (double c : mass) {
+                                    massSum += c;
                                 }
                             }
                             Color color;
-                            if (particlesum == 0) {
+                            if (massSum == 0) {
                                 color = null;
                             } else {
                                 if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
-                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(particlesum) / highColorCount));
+                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(massSum) / highColorCount));
                                 } else {
                                     //Linear
-                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (particlesum) / highColorCount);
+                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (massSum) / highColorCount);
                                 }
                             }
                             if (color != null) {
@@ -1405,7 +1405,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 } else {
                                     if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
                                         color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(particlesum) / highColorCount));
-                                    } else {
+                                        } else {
                                         //Linear
                                         color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (particlesum) / highColorCount);
                                     }

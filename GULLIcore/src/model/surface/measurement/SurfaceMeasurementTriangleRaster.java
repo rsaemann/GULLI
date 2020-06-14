@@ -71,11 +71,14 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         this.numberOfMaterials = numberOfMaterials;
         this.measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
         this.numberOfParticleThreads = numberOfParticleThreads;
+        this.measurementsInTimeinterval = new int[time.getNumberOfTimes()];
     }
 
     @Override
     public void measureParticle(long time, Particle particle, int threadIndex) {
-
+        if (!continousMeasurements && !measurementsActive) {
+            return;
+        }
 //        statuse[threadIndex] = 0;
         if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
             //for risk map do not show inertial particles

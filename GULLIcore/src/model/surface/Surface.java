@@ -3291,7 +3291,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     @Override
     public Position3D getPosition3D(double meter) {
-        return null;
+        return new Position3D(0, 0, 0, 0, 0);
     }
 
     @Override

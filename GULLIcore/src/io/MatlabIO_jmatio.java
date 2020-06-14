@@ -31,10 +31,10 @@ import model.topology.profile.CircularProfile;
 import model.topology.profile.RectangularProfile;
 
 /**
- *
+ * Reads MET files with the help of the old and slow jmatio.jar.
  * @author saemann
  */
-public class MatlabIO {
+public class MatlabIO_jmatio {
 
     MatFileReader mfr;
 
@@ -43,11 +43,12 @@ public class MatlabIO {
     public long[] times;
 
 //    private boolean swapbytes = true;
-    public MatlabIO(File f) throws IOException {
+    public MatlabIO_jmatio(File f) throws IOException {
 
         long start = System.currentTimeMillis();
 
-        MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s", "m2s"});
+//        MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s", "m2s","m1s_2","m2s_2"});
+ MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s_c", "m2s_c","m1s_m","m2s_m"});
 
         mfr = new MatFileReader();
         System.out.println((System.currentTimeMillis() - start) + "ms\tinit MatlabFileReader...");
@@ -63,13 +64,31 @@ public class MatlabIO {
         long start = System.currentTimeMillis();
 
         MLArray t2a = mfr.getMLArray("t2");
-        MLArray m1s = mfr.getMLArray("m1s");
-        MLArray m2s = mfr.getMLArray("m2s");
+//        MLArray m1s = mfr.getMLArray("m1s_2");
+//        MLArray m2s = mfr.getMLArray("m2s_2");
+        
+        MLArray m1s = mfr.getMLArray("m1s_m");
+        MLArray m2s = mfr.getMLArray("m2s_m");
         
         MLDouble t2 = (MLDouble) t2a;
         MLDouble m1 = (MLDouble) m1s;
         MLDouble m2 = (MLDouble) m2s;
         
+        if(m1==null){
+            System.out.println("Moment1 is null");
+        }else if (m1.isEmpty()){
+            System.out.println("Moment1 is empty");
+        }else{
+            System.out.println("Moment1 has "+m1.getSize()+" elements");
+        }
+        
+        if(m2==null){
+            System.out.println("Moment2 is null");
+        }else if (m2.isEmpty()){
+            System.out.println("Moment2 is empty");
+        }else{
+            System.out.println("Moment2 has "+m2.getSize()+" elements");
+        }
         
         int numberOfTimes = t2.getSize();
         if(maxSeconds>0){
@@ -306,9 +325,12 @@ public class MatlabIO {
 //        System.out.println("refM1(1)=" + m1.get(1).floatValue());
 //        System.out.println("refM1(2)=" + m1.get(2).floatValue());
 //        System.out.println("refM1(3)=" + m1.get(3).floatValue());
-        for (int i = 1; i < times.length - 1; i++) {
-            pipeTLcontainer.moment1[i] = m1.get(i).floatValue();
-            pipeTLcontainer.moment2[i] = m2.get(i).floatValue();
+        for (int i = 1; i < times.length; i++) {
+            try {
+                pipeTLcontainer.moment1[i] = m1.get(i).floatValue();
+                pipeTLcontainer.moment2[i] = m2.get(i).floatValue();
+            } catch (Exception e) {
+            }
         }
 //        System.out.println("refM1TL(0)=" + pipeTLcontainer.moment1[0]);
 //        System.out.println("refM1TL(1)=" + pipeTLcontainer.moment1[1]);
@@ -349,122 +371,4 @@ public class MatlabIO {
         return scenario;
     }
 
-//    public static void main(String[] args) {
-//        File f = new File("J:/welle_klein.mat");//"X:\\Testmodell\\MATLAB\\welle_klein5000.mat");
-//        try {
-//            ParticlePipeComputing.setDispersionCoefficient(100);
-//
-//            ArrayTimeLineMeasurement.useIDsharpParticleCounting = false;
-//            MatlabIO mio = new MatlabIO(f);
-//            final Network nw = mio.readNetwork(f);
-//            Controller c = new Controller(true);
-//            c.importNetwork(nw);
-//            c.getThreadController().setDeltaTime(1);
-//            c.loadScenario(mio.getScenario());
-//            System.out.println("measurementTimeline gets " + mio.times.length + " intervals.");
-//            c.initMeasurementTimelines(mio.getScenario(), 240);
-//            c.getMapFrame().getMapViewer().recalculateShapes();
-//            c.recalculateInjections();
-//
-//            //Calculate particles total mass
-//            double pmass = 0;
-//            for (ParticleThread pT : c.getThreadController().getParticleThreads()) {
-//                for (Particle p : pT.waitingList) {
-//                    pmass += p.particleMass;
-//                }
-//            }
-//            System.out.println("Total particle mass is " + pmass + " kg");
-//
-//            c.openSpatialLineFrame((ArrayTimeLinePipe) nw.getPipes().iterator().next().getStatusTimeLine());
-////            c.getMapFrame().getMapViewer().zoomToFitLayer();
-//            Position pos = nw.getManholes().iterator().next().getPosition();
-//            c.getMapFrame().getMapViewer().setDisplayPositionByLatLon(pos.getLatitude(), pos.getLongitude(), 15);
-//            c.getMapFrame().repaint();
-////            ArrayTimeLineMeasurementContainer.instance.OnlyRecordOncePerTimeindex();
-//            System.out.println("messungen pro zeitschritt: " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval);
-////            System.out.println("surrounding:"+c.getThreadController().barrier_particle.getThreads().get(0).waitingList.getFirst().injectionSurrounding);
-//            c.start();
-//
-////            JFrame frame=new JFrame("Spaceline");
-////            frame.setBounds(300,300,500,300);
-////            SpacelinePanel sPanel=new SpacelinePanel(null, null);
-////            frame.add(sPanel);
-////            frame.setVisible(true);
-////            c.calculateParticlesFromTimestep(tl.getStamp(1).getTimeStamp(), 5.);
-//        } catch (IOException ex) {
-//            Logger.getLogger(MatlabIO.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (Exception ex) {
-//            Logger.getLogger(MatlabIO.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//    }
-//    public static void main2(String[] args) {
-//        FileReader fr = null;
-//        try {
-//            System.out.println("Matlab .mat File decoding");
-//            File file = new File(".\\input\\matlab_klein5000.mat");
-//            fr = new FileReader(file);
-//            DataInputStream dis = new DataInputStream(new FileInputStream(file));
-//            BufferedReader br = new BufferedReader(fr);
-//            byte[] header = new byte[128];
-//            dis.read(header);
-////            br.read(header);
-//            System.out.println(new String(header));
-//            while (dis.available() > 0) {
-//                boolean compressed = false;
-//                int datatype = Integer.reverseBytes(dis.readInt());
-//                int numberofBytes = Integer.reverseBytes(dis.readInt());
-//                System.out.print("Format: " + datatype + " number: " + numberofBytes + " content: ");
-//                int[] content = new int[numberofBytes / 4];
-//                if (datatype == 15) {
-//                    compressed = true;
-//                    content = new int[numberofBytes - 4];
-//                    System.out.print("Compressed!  ");
-//                    //Inner header
-////                    int bytes=(dis.readShort());
-////                    int data=dis.readShort();
-//                    System.out.print("Bytes:" + dis.readByte() + "," + dis.readByte() + ", data:" + dis.readByte() + "," + dis.readByte() + "  >>");
-//                }
-//
-//                for (int i = 0; i < content.length; i++) {
-//                    if (compressed) {
-//                        content[i] = (dis.readByte());
-//                    } else {
-//                        content[i] = Integer.reverseBytes(dis.readInt());
-//                    }
-//                    System.out.print(content[i] + ",");
-//                }
-//                System.out.println(" <<<");
-////               int datatype2=Integer.reverse(dis.readByte());
-////               int datatype3=Integer.reverse(dis.readByte());
-////                System.out.println("Datatype: "+datatype0+" "+datatype1+" "+datatype2+" "+datatype3+" ");
-////                
-////                
-//////                System.out.println(dis.readInt());
-////                int numbers0=Integer.reverseBytes(dis.readByte());
-////               int numbers1=Integer.reverseBytes(dis.readByte());
-////               int numbers2=Integer.reverseBytes(dis.readByte());
-////               int numbers3=Integer.reverseBytes(dis.readByte());
-////                System.out.println("Numbers: "+numbers0+" "+numbers1+" "+numbers2+" "+numbers3+" ");
-////                while(true){
-////                    System.out.print(dis.readByte());
-////                }
-//
-////                for (int i = 0; i < dataTag.length; i++) {
-////                    System.out.println("dataTag: "+dataTag[i]+" = "+new String(dataTag));
-////                    
-////                }
-////                break;
-//            }
-//        } catch (FileNotFoundException ex) {
-//            Logger.getLogger(MatlabIO.class.getName()).log(Level.SEVERE, null, ex);
-//        } catch (IOException ex) {
-//            Logger.getLogger(MatlabIO.class.getName()).log(Level.SEVERE, null, ex);
-//        } finally {
-//            try {
-//                fr.close();
-//            } catch (IOException ex) {
-//                Logger.getLogger(MatlabIO.class.getName()).log(Level.SEVERE, null, ex);
-//            }
-//        }
-//    }
 }

@@ -27,6 +27,7 @@ import control.scenario.injection.InjectionInformation;
 import control.Controller;
 import java.util.ArrayList;
 import model.particle.Material;
+import model.surface.measurement.SurfaceMeasurementRaster;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.TimeIndexCalculator;
 
@@ -61,11 +62,13 @@ public abstract class Scenario {
 
     protected ArrayTimeLineMeasurementContainer measurementsPipe;
 
+    protected SurfaceMeasurementRaster measurementsSurface;
+
 //    protected ArrayList<Material> materials;
     protected long starttime;
 
     protected long endtime;
-    
+
     protected String name;
 
     public long getStartTime() {
@@ -172,6 +175,14 @@ public abstract class Scenario {
         this.measurementsPipe = measurementsPipe;
     }
 
+    public SurfaceMeasurementRaster getMeasurementsSurface() {
+        return measurementsSurface;
+    }
+
+    public void setMeasurementsSurface(SurfaceMeasurementRaster measurementsSurface) {
+        this.measurementsSurface = measurementsSurface;
+    }
+
     public TimeIndexCalculator getTimesManhole() {
         return timesManhole;
     }
@@ -208,7 +219,5 @@ public abstract class Scenario {
     public void setName(String name) {
         this.name = name;
     }
-    
-    
 
 }
