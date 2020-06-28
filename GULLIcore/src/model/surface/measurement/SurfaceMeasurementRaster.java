@@ -92,4 +92,24 @@ public abstract class SurfaceMeasurementRaster {
      * simulation loop.
      */
     public abstract void synchronizeMeasurements();
+    
+      public void setIntervalSeconds(double seconds, long startTime, long endTime) {
+          System.out.println("change raster interval to "+seconds);
+        if (times!=null&&times.getDeltaTimeMS()/1000. == seconds) {
+//            System.out.println("do not change interval, same length");
+            //Nothing changed
+            return;
+        }
+        //Create timecontainer
+        double oldduration = (endTime - startTime) / 1000.;
+        int numberOfTimes = (int) (oldduration / seconds + 1);
+        long[] t = new long[numberOfTimes];
+        for (int i = 0; i < t.length; i++) {
+            t[i] = (long) (startTime + i * seconds * 1000);
+        }
+//        TimeContainer tc = new TimeContainer(t);
+//        double samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
+        this.setTimeContainer(new TimeIndexContainer(t));
+        
+    }
 }

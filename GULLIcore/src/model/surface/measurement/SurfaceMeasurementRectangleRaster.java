@@ -43,7 +43,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     /**
      * [x-index][y-index][timeindex][materialindex]:counter
      */
-    int[][][][] particlecounter;
+    public int[][][][] particlecounter;
 
     int numberXIntervals, numberYIntervals, numberOfMaterials;
     double xIntervalWidth, YIntervalHeight;
@@ -184,8 +184,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     }
 
     @Override
-    public void setNumberOfMaterials(int numberOfMaterials
-    ) {
+    public void setNumberOfMaterials(int numberOfMaterials) {
         if (this.numberOfMaterials == numberOfMaterials) {
             return;
         }
@@ -193,9 +192,9 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     }
 
     @Override
-    public void setTimeContainer(TimeIndexContainer times
-    ) {
+    public void setTimeContainer(TimeIndexContainer times) {
         this.times = times;
+        measurementsInTimeinterval = new int[times.getNumberOfTimes()];
     }
 
     public int getNumberOfMaterials() {
@@ -243,8 +242,6 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     public double[][][][] getMass() {
         return mass;
     }
-    
-    
 
     public int getParticlesCounted(int xindex, int yindex, int timeindex, int materialindex) {
         if (particlecounter == null) {
@@ -304,8 +301,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         }
         return maxSum;
     }
-    
-     public double getMaxMassPerCell() {
+
+    public double getMaxMassPerCell() {
         double maxSum = 0;
         for (int x = 0; x < numberXIntervals; x++) {
             if (mass[x] == null) {
@@ -376,6 +373,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     public void reset() {
         mass = new double[numberXIntervals][][][];
         particlecounter = new int[numberXIntervals][][][];
+        measurementsInTimeinterval = new int[times.getNumberOfTimes()];
     }
 
     @Override
@@ -486,7 +484,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
 //        int xindex = (int) ((particle.getPosition3d().x - xmin) / xIntervalWidth);
 //        int yindex = (int) ((particle.getPosition3d().y - ymin) / YIntervalHeight);
-        double centerX=0,centerY=0;
+        double centerX = 0, centerY = 0;
 
         double timeFactor = 1.0 / (double) measurementsInTimeinterval[timeindex];
 
@@ -495,22 +493,22 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             if (mass[i] == null) {
                 continue;
             }
-            double x = ((i+0.5) * xIntervalWidth) + xmin;
+            double x = ((i + 0.5) * xIntervalWidth) + xmin;
             double dxsq = (x - centreX) * (x - centreX);
             for (int j = 0; j < mass[i].length; j++) {
 
                 if (mass[i][j] == null) {
                     continue;
                 }
-                double y = ((j+0.5) * YIntervalHeight) + ymin;
+                double y = ((j + 0.5) * YIntervalHeight) + ymin;
                 double dysq = (y - centreY) * (y - centreY);
                 try {
-                    double m = mass[i][j][timeindex][materialindex]*timeFactor;
+                    double m = mass[i][j][timeindex][materialindex] * timeFactor;
                     sumMass += m;
                     weightX += m * dxsq;
                     weightY += m * dysq;
-                    centerX+=m*x;
-                    centerY+=m*y;
+                    centerX += m * x;
+                    centerY += m * y;
                 } catch (Exception e) {
                 }
             }

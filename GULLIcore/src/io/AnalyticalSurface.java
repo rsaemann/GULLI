@@ -70,7 +70,7 @@ public class AnalyticalSurface extends Surface {
     /**
      * [x][y][time]=mass;
      */
-    public double[][][][] analyticalMass;
+    public double[][][] analyticalMass;
 
     public AnalyticalSurface(double vx, double vy, double h) {
         super(null, null, null, null, "EPSG:25832");
@@ -108,10 +108,12 @@ public class AnalyticalSurface extends Surface {
                 scenario.setTimesSurface(times);
             }
             this.setTimeContainer(times);
-
         }
 
         rectraster = SurfaceMeasurementRectangleRaster.RasterFocusOnPoint(centerX, centerY, true, cellwidthx, cellwidthy, (int) (width / cellwidthx), (int) (height / cellwidthy), 1, times);
+        if(scenario!=null){
+            scenario.setMeasurementsSurface(rectraster);
+        }
         this.measurementRaster = rectraster;
     }
 
@@ -141,7 +143,7 @@ public class AnalyticalSurface extends Surface {
     private void calculateAnalyticalSolution(double x, double y, double injectiontime, double mass, double[] diffusionCoefficient,double firsttimestepS) {
         if (analyticalMass == null) {
             System.out.println("initialize mass analytical raster "+rectraster.getNumberXIntervals()+", "+rectraster.getNumberYIntervals()+", "+times.getNumberOfTimes());
-            analyticalMass = new double[rectraster.getNumberXIntervals()][rectraster.getNumberYIntervals()][times.getNumberOfTimes()][1];
+            analyticalMass = new double[rectraster.getNumberXIntervals()][rectraster.getNumberYIntervals()][times.getNumberOfTimes()];
         }
         double dx = rectraster.getxIntervalWidth();
         double dy = rectraster.getYIntervalHeight();
@@ -162,7 +164,7 @@ public class AnalyticalSurface extends Surface {
                     }
                     double mt = (mass / (4 * Math.PI * (t) * Math.sqrt(diffusionCoefficient[0] * diffusionCoefficient[1]))) * Math.exp(-(powx * powx) / (4 * diffusionCoefficient[0] * (t)) - (powy * powy) / (4 * diffusionCoefficient[1] * t));
 //                    System.out.println("it="+it+" -> t="+t);
-                    analyticalMass[ix][iy][it][0] += mt*dx*dy;
+                    analyticalMass[ix][iy][it] += mt*dx*dy;
                     
 //                    if(maxM<mt){
 //                        maxM=mt;
@@ -179,7 +181,7 @@ public class AnalyticalSurface extends Surface {
         double sumMass = 0;
         for (int i = 0; i < analyticalMass.length; i++) {
             for (int j = 0; j < analyticalMass[i].length; j++) {
-                double m = analyticalMass[i][j][timeIndex][0];
+                double m = analyticalMass[i][j][timeIndex];
                 sumMass += m;
             }
         }
@@ -198,7 +200,7 @@ public class AnalyticalSurface extends Surface {
             double x = ((i) * dx) + rectraster.getXmin();
             for (int j = 0; j < analyticalMass[i].length; j++) {
                 double y = ((j) * dy) + rectraster.getYmin();
-                double m = analyticalMass[i][j][timeindex][0];
+                double m = analyticalMass[i][j][timeindex];
                 sumMass += m;
                 weightX += m * x;
                 weightY += m * y;
@@ -226,7 +228,7 @@ public class AnalyticalSurface extends Surface {
             for (int j = 0; j < analyticalMass[i].length; j++) {
                 double y = ((j) * dy) + rectraster.getYmin();
                 double dysq = (y - centerY) * (y - centerY);
-                double m = analyticalMass[i][j][timeIndex][0];
+                double m = analyticalMass[i][j][timeIndex];
 //                System.out.println("mass["+i+","+j+","+timeIndex+"]= "+m);
                 sumMass += m;
                 weightX += m * dxsq;
@@ -326,6 +328,7 @@ public class AnalyticalSurface extends Surface {
     }
 
     public Scenario getScenario() {
+        scenario.setMeasurementsSurface(rectraster);
         return scenario;
     }
 

@@ -244,7 +244,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //            System.out.println("resetRandom Seeds to length "+randomNumberGenerators.length);
             Random r = new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize * 50));
+                RandomArray newField = new RandomArray(new Random(r.nextLong()), (int) (treatblocksize * 10));
                 randomNumberGenerators[i] = newField;
             }
         }

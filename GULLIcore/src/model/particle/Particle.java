@@ -7,6 +7,7 @@ package model.particle;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import model.topology.Capacity;
+import model.topology.Position;
 import model.topology.Position3D;
 
 /**
@@ -103,6 +104,9 @@ public class Particle {
      * Pipe/Manhole/SurfaceTriangle this particle is injected at spilltime.
      */
     public Capacity injectionSurrounding;
+    
+    //Stores the position UTM for the injection on the surface.
+    public Position injectionPosition;
 
     public float injectionPosition1D;
 
@@ -434,6 +438,11 @@ public class Particle {
     public void setPosition3D(double x, double y) {
         this.position3d.x = x;
         this.position3d.y = y;
+    }
+    
+    public void setPosition3D(Position utmPosition){
+        this.position3d.x=utmPosition.x;
+        this.position3d.y=utmPosition.y;
     }
 
     public int getInjectionCellID() {

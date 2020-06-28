@@ -216,12 +216,15 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
                 createMeasurement(i);
             }
         }
+        measurementsInTimeinterval = new int[times.getNumberOfTimes()];
     }
 
     @Override
     public void reset() {
         usedInCurrentStep = false;
         measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
+        measurementsInTimeinterval = new int[times.getNumberOfTimes()];
+
     }
 
     public Surface getSurface() {

@@ -1277,9 +1277,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
                     SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
                     synchronized (raster) {
-                        double totalparticleCount = 0;
+                        int totalparticleCount = 0;
                         for (InjectionInformation injection : control.getScenario().getInjections()) {
-                            totalparticleCount += injection.getMass();//.getNumberOfParticles();
+                            totalparticleCount += injection.getNumberOfParticles();//getMass();//
                         }
                         //Find Layer and set represntative Colorholder, so everyone can change the colors in program
 //                    mapViewer.clearLayer(layerSurfaceContaminated);
@@ -1303,8 +1303,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             }
 //                            int i = (int) tri.getTriangleID();
                             int massSum = 0;
-                            for (double[] mass : triangleMeasurement.getMass()) {
-                                for (double c : mass) {
+                            for (int[] mass : triangleMeasurement.getParticlecount()) {//.getMass()
+                                for (int c : mass) {
                                     massSum += c;
                                 }
                             }

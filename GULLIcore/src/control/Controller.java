@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import model.GeoPosition;
 import model.particle.HistoryParticle;
 import model.particle.Material;
 import model.particle.Particle;
@@ -58,6 +59,7 @@ import model.topology.Network;
 import model.topology.measurement.ParticleMeasurementSegment;
 import model.topology.Pipe;
 import model.topology.Position;
+import model.topology.Position3D;
 import model.topology.graph.GraphSearch;
 import model.topology.graph.Pair;
 import model.topology.measurement.ParticleMeasurementSection;
@@ -818,11 +820,39 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             }
             //Create particles over time
             if (injection.isActive()) {
+                Position3D injectionposition = null;
+                if (injection.spillOnSurface() && injection.getPosition() != null) {
+                    if (injection.getPosition() instanceof Position) {
+                        Position pos = (Position) injection.getPosition();
+                        if (!(pos.getLongitude() != 0 ^ pos.x != 0)) {
+                            // utm does not match the latlon coordinates. 
+                            if (pos.getLongitude() == 0) {
+                                //only utm coordinates are given -> OK
+                                injectionposition = new Position3D(pos);
+                            }
+
+                        }
+                    }
+                    if (injectionposition == null) {
+                        //transform to utm
+                        try {
+                            //only latlong is set, need to convert to utm
+                            Coordinate utm = surface.getGeotools().toUTM(injection.getPosition());
+                            injectionposition = new Position3D(injection.getPosition().getLongitude(), injection.getPosition().getLatitude(), utm.x, utm.y, utm.z);
+                        } catch (TransformException ex) {
+                            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
                 for (int i = 0; i < injection.getNumberOfIntervals(); i++) {
                     if (injection.spillOnSurface()) {
                         ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
                         for (Particle p : ps) {
                             p.setInjectionCellID(surfaceCell);
+//                            System.out.println("Spill on position " + p.injectionSurrounding);
+                            if (injectionposition!=null){
+                                p.injectionPosition=injectionposition;
+                            }
                         }
                         allParticles.addAll(ps);
                     } else {

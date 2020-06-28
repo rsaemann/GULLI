@@ -155,8 +155,8 @@ public class ParticleThread extends Thread {
                         try {
                             p = threadController.particles[i];
                         } catch (Exception e) {
-                            System.err.println("tc:"+threadController);
-                            System.err.println("tc.particles:"+threadController.particles);
+                            System.err.println("tc:" + threadController);
+                            System.err.println("tc.particles:" + threadController.particles);
                             e.printStackTrace();
                             continue;
                         }
@@ -167,15 +167,23 @@ public class ParticleThread extends Thread {
                                 //All further particles area also waiting. Break the loop here.
                                 break;
                             } else {
-                                if (p.injectionSurrounding instanceof Surface){//.getClass().equals(Surface.class)) {
+                                if (p.injectionSurrounding instanceof Surface) {//.getClass().equals(Surface.class)) {
                                     p.setOnSurface();
                                     p.surfaceCellID = p.getInjectionCellID();
-                                    double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
-                                    p.setPosition3D(pos[0], pos[1]);
+                                    if (p.injectionPosition == null) {
+                                        double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
+                                        p.setPosition3D(pos[0], pos[1]);
+                                    } else {
+                                        p.setPosition3D(p.injectionPosition.x, p.injectionPosition.y);
+                                    }
                                 } else if (p.injectionSurrounding.getClass().equals(SurfaceTriangle.class)) {
                                     p.setOnSurface();
                                     p.surfaceCellID = p.getInjectionCellID();
-                                    p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
+                                    if (p.injectionPosition == null) {
+                                        p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
+                                    } else {
+                                        p.setPosition3D(p.injectionPosition.x, p.injectionPosition.y);
+                                    }
                                 } else {
                                     p.setInPipenetwork();
                                     p.setPosition1d_actual(p.injectionPosition1D);
@@ -187,7 +195,7 @@ public class ParticleThread extends Thread {
                         if (p.isActive()) {
 //                            particleID = p.getId();
 //                            particle = p;
-                            
+
                             if (p.isInPipeNetwork()) {
 //                                status = 4;
                                 pc.moveParticle(p);

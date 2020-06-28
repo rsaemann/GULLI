@@ -107,6 +107,9 @@ public class SynchronizationThreadPipe extends Thread {
                         if (mcp.isTimespotmeasurement()) {
                             if (openMeasurements) {
                                 //Were open during the current step. We can write the samples and reset the counter
+                                if(writeindex>=mcp.getNumberOfTimes()){
+                                    writeindex=0;
+                                }
                                 for (Pipe pipe : pipes) {
                                     ArrayTimeLineMeasurement tl = pipe.getMeasurementTimeLine();
                                     if (tl != null) {
@@ -188,15 +191,16 @@ public class SynchronizationThreadPipe extends Thread {
                     }
                     //Surface
                     SurfaceMeasurementRaster smr = control.getSurface().getMeasurementRaster();
+
                     if (smr != null) {
+                        smr.getIndexContainer().setActualTime(actualSimulationTime);
                         if (smr.measurementsActive) {
-                            if (lastwriteindexSurface >= 0) {
+                            if (lastwriteindexSurface >= 0 && lastwriteindexSurface < smr.measurementsInTimeinterval.length) {
                                 smr.measurementsInTimeinterval[lastwriteindexSurface]++;
                             }
                         }
                         if (smr.continousMeasurements) {
                             smr.measurementsActive = true;
-
                         } else {
                             if (smr.getIndexContainer().getActualTimeIndex() != lastwriteindexSurface) {
                                 smr.measurementsActive = true;
