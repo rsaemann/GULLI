@@ -274,7 +274,7 @@ public class HE_SurfaceIO {
             if (!mapTriangleIndizes.containsKey(index)) {
                 continue;
             }
-
+            
             values = line.split(" ");
             int first = Integer.parseInt(values[0]);
             if (first < 0 || !mapTriangleIndizes.containsKey(first)) {
@@ -364,15 +364,7 @@ public class HE_SurfaceIO {
         NumberConverter nc = new NumberConverter(br);
         double[] dataparts = new double[3];
         while (br.ready()) {
-//            line = br.readLine();
-//            lines++;
-//            values = splitter.split(line,3);//line.split(seperator, 3);
-//            parts+=values.length;
-////            double x =Double.parseDouble(values[0]);//x;
-////            double y = ;Double.parseDouble(values[1]);//y;
-////            double ele = Double.parseDouble((values[values.length - 1])); //Double.parseDouble(values[2]);//ele;
-
-            if (nc.readNextLineDoubles(dataparts)) {//                
+            if (nc.readNextLineDoubles(dataparts)) {//    
                 vertices[index][0] = dataparts[0];
                 vertices[index][1] = dataparts[1];
                 vertices[index][2] = dataparts[2];
@@ -764,11 +756,11 @@ public class HE_SurfaceIO {
 
             bw.write("Contaminant category:" + materialIndex);
             bw.newLine();
-            bw.write("Timesteps:" + surface.getNumberOfTimes());
+            bw.write("Timesteps:" + surface.getMeasurementRaster().getIndexContainer().getNumberOfTimes());
             bw.newLine();
-            bw.write("Stepduration:" + surface.getTimes().getDeltaTimeMS() + "ms");
+            bw.write("Stepduration:" + surface.getMeasurementRaster().getIndexContainer().getDeltaTimeMS() + "ms");
             bw.newLine();
-            bw.write("TriangleID;[Coordinate];cMax;t0;t1;t2;...");
+            bw.write("TriangleID;[Coordinate];mMax;m0;m1;m2;...");
             bw.newLine();
             bw.write("***");
             bw.newLine();
@@ -800,6 +792,85 @@ public class HE_SurfaceIO {
         }
     }
 
+    public static void writeSurfaceContaminationDynamicParticlesCSV(File outputFile, Surface surface, int materialIndex, int numberOfParticles) throws IOException {
+        if (surface == null) {
+            throw new NullPointerException("No Surface set. No output file written.");
+        }
+        int categories = surface.getNumberOfMaterials();
+        if (categories < 1) {
+            throw new NullPointerException("No Surface Material Categories. No output file written.");
+        }
+        //Number of particles can be a decimal number if continuous measurements is enabled
+        DecimalFormat df2 = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(Locale.US));
+        int[] samplesTaken=surface.getMeasurementRaster().measurementsInTimeinterval;
+        int numberofIntervals=samplesTaken.length;
+        if(samplesTaken[samplesTaken.length-1]<1){
+            numberofIntervals--;
+        }
+        
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
+            if (surface.fileTriangles != null) {
+                bw.write("Surface:" + surface.fileTriangles.getParentFile().getName() + "/" + surface.fileTriangles.getName());
+                bw.newLine();
+            }
+            bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
+            bw.newLine();
+            bw.write("ParticleCount:" + numberOfParticles);
+            bw.newLine();
+            bw.write("Contaminant category:" + materialIndex);
+            bw.newLine();
+            bw.write("Timesteps:" + numberofIntervals);
+            bw.newLine();
+            bw.write("Samples taken:");
+            for (int i = 0; i < numberofIntervals; i++) {
+                if(i>0){
+                    bw.write(";");
+                }
+                bw.write(samplesTaken[i]+"");
+            }
+            bw.newLine();
+            bw.write("Timestamps:");
+             for (int i = 0; i < numberofIntervals; i++) {
+                if(i>0){
+                    bw.write(";");
+                }
+                bw.write(surface.getMeasurementRaster().measurementTimestamp[i]+"");
+            }
+            bw.newLine();
+            bw.write("Stepduration:" + surface.getMeasurementRaster().getIndexContainer().getDeltaTimeMS() + "ms");
+            bw.newLine();
+            bw.write("TriangleID;[Coordinate];#Max;#0;#1;#2;...");
+            bw.newLine();
+            bw.write("***");
+            bw.newLine();
+            StringBuffer buffer = new StringBuffer(80);
+//            if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+            SurfaceMeasurementRaster raster = /*(SurfaceMeasurementTriangleRaster)*/ surface.getMeasurementRaster();
+            int cellcount = raster.getNumberOfCells();
+            int timesteps = raster.getIndexContainer().getNumberOfTimes();
+            for (int mID = 0; mID < cellcount; mID++) {
+                if (raster.isCellContaminated(mID)) {
+                    buffer.delete(0, buffer.length());
+
+                    double max = 0;
+                    for (int j = 0; j < timesteps; j++) {
+                        double mass = raster.getNumberOfParticlesInCell(mID, j, materialIndex);
+                        max = Math.max(max, mass);
+                        buffer.append(";").append(df2.format(mass));
+                    }
+                    if (max >= 1) {//Only write cell information, if there is content
+                        bw.write(mID + ";");
+                        Coordinate coord = raster.getCenterOfCell(mID);
+                        bw.write("[" + df2.format(coord.x) + "," + df2.format(coord.y) + "," + df2.format(coord.z) + "]");
+                        bw.write(";" + max);
+                        bw.write(buffer.toString());
+                        bw.newLine();
+                    }
+                }
+            }
+        }
+    }
+
     public static void writeSurfaceWaterlevelDynamicsCSV(File outputFile, Surface surface) throws IOException {
         if (surface == null) {
             throw new NullPointerException("No Surface set. No output file written.");
@@ -814,7 +885,7 @@ public class HE_SurfaceIO {
             }
         } else {
             //Need to calculated everything first
-            int count=0;
+            int count = 0;
             maxWaterlevels = new double[waterlevels.length];
             for (int i = 0; i < waterlevels.length; i++) {
                 if (waterlevels[i] != null) {
@@ -825,7 +896,7 @@ public class HE_SurfaceIO {
                     count++;
                 }
             }
-            System.out.println("waterlevels for "+count+" triangles");
+            System.out.println("waterlevels for " + count + " triangles");
         }
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
             if (surface.fileTriangles != null) {

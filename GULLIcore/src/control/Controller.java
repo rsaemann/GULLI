@@ -518,7 +518,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 }
             }
         } else {
-            System.err.println("Network is not yet loaded. Cannot reset MeasurementTimelines of Pipes.");
+//            System.err.println("Network is not yet loaded. Cannot reset MeasurementTimelines of Pipes.");
         }
 
         if (NamedPipe_IO.instance != null) {

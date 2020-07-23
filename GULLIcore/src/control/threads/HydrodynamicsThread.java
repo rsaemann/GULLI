@@ -94,7 +94,7 @@ public class HydrodynamicsThread extends Thread {
             () {
         if (useTimelines) {
                 if (network != null) {
-                    setTimelineValues(barrier.getSimulationtime());
+                    setTimelineValues(barrier.getStepStartTime());
                 }
             }
             barrier.initialized(this);
@@ -105,10 +105,10 @@ public class HydrodynamicsThread extends Thread {
                     
                     if (usePipeFilter && loopcounter % allValuesUpdateLoop == 0) {
                         usePipeFilter = false;
-                        setTimelineValues(barrier.getSimulationtime());
+                        setTimelineValues(barrier.getStepStartTime());
                         usePipeFilter = true;
                     } else {
-                        setTimelineValues(barrier.getSimulationtime());
+                        setTimelineValues(barrier.getStepStartTime());
                     }
                     barrier.loopfinished(this);
                 }

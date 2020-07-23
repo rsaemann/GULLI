@@ -45,6 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -133,7 +134,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
      */
     public static boolean matlabStyle = true;
 
-    protected static String directoryPDFsave = ".";
+    public static String directoryPDFsave = ".";
     /**
      * Thread building the timelines in Background.
      */
@@ -215,7 +216,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         initCheckboxpanel();
         setStorage(null, title);
         initChart(title);
-        addPDFexport();
+        addPDFexport(panelChart,this);
         addEMFexport();
         addMatlabSeriesExport();
         addTimeSeriesExport();
@@ -1387,9 +1388,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
     }
 
-    private void addPDFexport() {
-        JPopupMenu menu = this.panelChart.getPopupMenu();
+    public static void addPDFexport(final ChartPanel panelChart,final JComponent surroundingContainer) {
+        JPopupMenu menu = panelChart.getPopupMenu();
         try {
+            panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {
                     JMenu m = (JMenu) menu.getComponent(i);
@@ -1412,11 +1414,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                     }
                                 };
                                 fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                                int n = fc.showSaveDialog(CapacityTimelinePanel.this);
+                                int n = fc.showSaveDialog(panelChart);
                                 if (n == JFileChooser.APPROVE_OPTION) {
                                     File output = fc.getSelectedFile();
                                     directoryPDFsave = output.getParent();
-
+                                    panelChart.setDefaultDirectoryForSaveAs(output.getParentFile());
                                     StartParameters.setPictureExportPath(directoryPDFsave);
                                     if (!output.getName().endsWith(".pdf")) {
                                         output = new File(output.getAbsolutePath() + ".pdf");
@@ -1424,7 +1426,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                     Paint formerBackground = panelChart.getChart().getBackgroundPaint();
                                     try {
                                         panelChart.getChart().setBackgroundPaint(Color.white);
-                                        Rectangle rec = CapacityTimelinePanel.this.getBounds();
+                                        Rectangle rec = surroundingContainer.getBounds();
                                         Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
                                         FileOutputStream fos = new FileOutputStream(output);
                                         PdfWriter writer = PdfWriter.getInstance(doc, fos);
@@ -1432,12 +1434,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                         PdfContentByte cb = writer.getDirectContent();
                                         PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
                                         PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
-                                        g2d.translate(-getX(), -getY());
+                                        g2d.translate(-surroundingContainer.getX(), -surroundingContainer.getY());
                                         panelChart.getChart().draw(g2d, rec);
                                         cb.addTemplate(tp, 25, 200);
                                         g2d.dispose();
                                         doc.close();
                                         fos.close();
+                                        
                                     } catch (FileNotFoundException ex) {
                                         Logger.getLogger(CapacityTimelinePanel.class
                                                 .getName()).log(Level.SEVERE, null, ex);

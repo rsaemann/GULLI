@@ -221,7 +221,7 @@ public class ShapeEditor extends AbstractCellEditor
         DOT {
                     @Override
                     public Shape getShape() {
-                        return new Ellipse2D.Double(-1, -1, 3, 3);
+                        return new Ellipse2D.Double(-2, -2, 4, 4);
                     }
                 },
         ELLIPSE_S {

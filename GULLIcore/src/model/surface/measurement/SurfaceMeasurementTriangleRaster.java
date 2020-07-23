@@ -72,6 +72,8 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         this.measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
         this.numberOfParticleThreads = numberOfParticleThreads;
         this.measurementsInTimeinterval = new int[time.getNumberOfTimes()];
+        
+        measurementTimestamp=new long[measurementsInTimeinterval.length];
     }
 
     @Override
@@ -217,6 +219,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             }
         }
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
+        measurementTimestamp=new long[measurementsInTimeinterval.length];
     }
 
     @Override
@@ -224,7 +227,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         usedInCurrentStep = false;
         measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
-
+        measurementTimestamp=new long[measurementsInTimeinterval.length];
     }
 
     public Surface getSurface() {
@@ -284,6 +287,11 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
     @Override
     public boolean isCellContaminated(int cellIndex) {
         return measurements[cellIndex] != null;
+    }
+
+    @Override
+    public double getNumberOfParticlesInCell(int cellIndex, int timeindex, int materialIndex) {
+         return measurements[cellIndex].particlecounter[materialIndex][timeindex];
     }
 
 }

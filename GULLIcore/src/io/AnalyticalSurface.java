@@ -89,7 +89,7 @@ public class AnalyticalSurface extends Surface {
         this.velocity = new double[]{vx, vy};
     }
 
-    public void initRectangularMeasurement(double centerX,double centerY,double width, double height, double cellwidthx, double cellwidthy, double totalSeconds, double intervalSeconds) {
+    public void initRectangularMeasurement(double centerX, double centerY, double width, double height, double cellwidthx, double cellwidthy, double totalSeconds, double intervalSeconds) {
         TimeIndexContainer times = null;
         if (times == null && scenario != null) {
             if (scenario.getTimesSurface() != null) {
@@ -111,13 +111,13 @@ public class AnalyticalSurface extends Surface {
         }
 
         rectraster = SurfaceMeasurementRectangleRaster.RasterFocusOnPoint(centerX, centerY, true, cellwidthx, cellwidthy, (int) (width / cellwidthx), (int) (height / cellwidthy), 1, times);
-        if(scenario!=null){
+        if (scenario != null) {
             scenario.setMeasurementsSurface(rectraster);
         }
         this.measurementRaster = rectraster;
     }
 
-    public void addInjection(double x, double y, double timeSeconds, int numberOfParticles, double mass) {
+    public void addInjection(double x, double y, double timeSeconds, int numberOfParticles, double mass, double timestepSeconds) {
         try {
             Scenario sc = this.scenario;
             if (sc == null) {
@@ -132,7 +132,7 @@ public class AnalyticalSurface extends Surface {
             inj.setTriangleID(0);
             sc.getInjections().add(inj);
 //            System.out.println("call compute anasolution");
-            calculateAnalyticalSolution(x, y, timeSeconds, mass, diffusionCoefficient,1);
+            calculateAnalyticalSolution(x, y, timeSeconds, mass, diffusionCoefficient, timestepSeconds);
 
 //            rectraster.mass=analyticalMass;
         } catch (TransformException ex) {
@@ -140,40 +140,32 @@ public class AnalyticalSurface extends Surface {
         }
     }
 
-    private void calculateAnalyticalSolution(double x, double y, double injectiontime, double mass, double[] diffusionCoefficient,double firsttimestepS) {
+    private void calculateAnalyticalSolution(double x, double y, double injectiontime, double mass, double[] diffusionCoefficient, double firsttimestepS) {
         if (analyticalMass == null) {
-            System.out.println("initialize mass analytical raster "+rectraster.getNumberXIntervals()+", "+rectraster.getNumberYIntervals()+", "+times.getNumberOfTimes());
+            System.out.println("initialize mass analytical raster " + rectraster.getNumberXIntervals() + ", " + rectraster.getNumberYIntervals() + ", " + times.getNumberOfTimes());
             analyticalMass = new double[rectraster.getNumberXIntervals()][rectraster.getNumberYIntervals()][times.getNumberOfTimes()];
         }
         double dx = rectraster.getxIntervalWidth();
         double dy = rectraster.getYIntervalHeight();
         for (int it = 0; it < rectraster.getNumberOfTimes(); it++) {
-//            System.out.println("t="+it+" / "+rectraster.getNumberOfTimes());
-//            double maxM=0;
-//            int maxX=0,maxY=0;
             for (int ix = 0; ix < rectraster.getNumberXIntervals(); ix++) {
 
                 for (int iy = 0; iy < rectraster.getNumberYIntervals(); iy++) {
 
                     double t = times.getTimeMilliseconds(it) / 1000. - injectiontime;
-                    double powx = rectraster.getXmin() + (ix) * dx-x - velocity[0] * (t+firsttimestepS);//- x;
-                    double powy = rectraster.getYmin() + (iy) * dy-y - velocity[1] * (t+ firsttimestepS);//- y ;
-//                    System.out.println("ix=" + ix + " -> dx=" + powx);
                     if (t == 0) {
-                        t = 1;// 0.001;
+                        t =  0.0001;
                     }
-                    double mt = (mass / (4 * Math.PI * (t) * Math.sqrt(diffusionCoefficient[0] * diffusionCoefficient[1]))) * Math.exp(-(powx * powx) / (4 * diffusionCoefficient[0] * (t)) - (powy * powy) / (4 * diffusionCoefficient[1] * t));
-//                    System.out.println("it="+it+" -> t="+t);
-                    analyticalMass[ix][iy][it] += mt*dx*dy;
                     
-//                    if(maxM<mt){
-//                        maxM=mt;
-//                        maxX=ix;
-//                        maxY=iy;
-//                    }
+                    double powx = rectraster.getXmin() + (ix) * dx - x - velocity[0] * (t);//- x;
+                    double powy = rectraster.getYmin() + (iy) * dy - y - velocity[1] * (t);//- y ;
+//                    System.out.println("ix=" + ix + " -> dx=" + powx);
+
+                    double mt = (mass / (4 * Math.PI * (t) * Math.sqrt(diffusionCoefficient[0] * diffusionCoefficient[1]))) * Math.exp(-(powx * powx) / (4 * diffusionCoefficient[0] * (t)) - (powy * powy) / (4 * diffusionCoefficient[1] * t));
+                    analyticalMass[ix][iy][it] += mt * dx * dy;
+
                 }
             }
-//            System.out.println("center at it="+it+"= "+maxX+", "+maxY+"\tm="+maxM);
         }
     }
 

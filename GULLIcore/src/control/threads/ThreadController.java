@@ -82,6 +82,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     private boolean run = false;
     private boolean initialized = false;
     private static double deltaTime = 0.1;//seconds
+    private static int deltatimeMS = 100;
     private int steps = 0;
 
     public boolean paintOnMap = true;
@@ -97,6 +98,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     private double averageCalculationTime;
     private boolean calculationFinished = false;
     private static long simulationTimeMS = 0; //ms
+    private long simulationNextTimeMS = 0;
     private long simulationTimeStart = 0;
     private long simulationTimeEnd = Long.MAX_VALUE;
 
@@ -211,8 +213,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         }
 
-        barrier_sync.setSimulationtime(simulationTimeMS);
-        barrier_particle.setSimulationtime(simulationTimeMS);
+        barrier_sync.setStepStartTime(simulationTimeMS);
+        barrier_sync.setStepEndTime(simulationNextTimeMS);
+        barrier_particle.setStepStartTime(simulationTimeMS);
+        barrier_particle.setStepEndTime(simulationNextTimeMS);
         if (ArrayTimeLineMeasurementContainer.instance != null) {
             ArrayTimeLineMeasurementContainer.instance.setActualTime(simulationTimeMS);
         }
@@ -221,6 +225,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
 
         calculationLoopStarttime = System.currentTimeMillis();
+
+        barrier_sync.getThread().checkMeasurementsBeforeParticleLoop();
         calledObject = barrier_particle;
         barrier_particle.startover();
     }
@@ -328,6 +334,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             throw new SecurityException("Can not change the delta time interval while Threads are running, inconsistency warning!");
         }
         ThreadController.deltaTime = deltaTimeSeconds;
+        ThreadController.deltatimeMS = (int) (deltaTimeSeconds * 1000);
         if (ArrayTimeLineMeasurementContainer.isInitialized()) {
             ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval = ArrayTimeLineMeasurementContainer.instance.getDeltaTimeS() / ThreadController.getDeltaTime();
         }
@@ -396,7 +403,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     }
 
     /**
-     * Milliseconds of simulationtime. Attention: does not start with 0 at event
+     * Milliseconds of stepStartTime. Attention: does not start with 0 at event
      * start. Gives the real time of the event.
      *
      * @return
@@ -422,6 +429,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //        initialize();
         calculationLoopStarttime = System.currentTimeMillis();
         calledObject = barrier_particle;
+
+        barrier_sync.getThread().checkMeasurementsBeforeParticleLoop();
         barrier_particle.startover();
     }
 
@@ -432,11 +441,15 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     public void reset() {
         run = false;
         simulationTimeMS = simulationTimeStart;
+        simulationNextTimeMS = simulationTimeMS + deltatimeMS;
         nextParticleBlockStartIndex = 0;
         nextRandomNumberBlockStartIndex = 0;
         waitingParticleIndex = 0;
 //        initialize();
-        barrier_particle.setSimulationtime(simulationTimeMS);
+        barrier_particle.setStepStartTime(simulationTimeMS);
+        barrier_particle.setStepEndTime(simulationNextTimeMS);
+        barrier_sync.setStepStartTime(simulationTimeMS);
+        barrier_sync.setStepEndTime(simulationNextTimeMS);
         if (control.getScenario() != null) {
             //Reset Timelines in scenarios:
             control.getScenario().setActualTime(simulationTimeMS);
@@ -661,7 +674,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     public void setSimulationStartTime(long simulationTimeStart) {
         this.simulationTimeStart = simulationTimeStart;
         simulationTimeMS = simulationTimeStart;
-        barrier_particle.setSimulationtime(simulationTimeMS);
+        simulationNextTimeMS = simulationTimeMS + deltatimeMS;
+        barrier_particle.setStepStartTime(simulationTimeMS);
+        barrier_particle.setStepEndTime(simulationNextTimeMS);
+        barrier_sync.setStepStartTime(simulationTimeMS);
+        barrier_sync.setStepEndTime(simulationNextTimeMS);
 
         Date d3 = new Date(simulationTimeStart);
         GregorianCalendar dnorm = new GregorianCalendar();
@@ -762,7 +779,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 case PARTICLE:
                     status = 10;
                     /*@todo move particle thread after synchr.-thread. */
-                    barrier_sync.setSimulationtime(simulationTimeMS);
+                    barrier_sync.setStepStartTime(simulationTimeMS);
+                    barrier_sync.setStepEndTime(simulationNextTimeMS);
                     calledObject = barrier_sync;
                     steps++;
                     status = 11;
@@ -777,7 +795,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     calculationTimeElapsed += calcStepTime;
                     calculationLoopStarttime = System.currentTimeMillis();
 
-                    simulationTimeMS += deltaTime * 1000;
+                    simulationTimeMS = simulationNextTimeMS;
+                    simulationNextTimeMS += deltatimeMS;
                     status = 22;
                     if (simulationTimeMS > simulationTimeEnd) {
                         System.out.println("Simulation time end reached!");
@@ -828,11 +847,14 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     status = 32;
                 case HYDRODYNAMICS:
                     status = 40;
-                    barrier_particle.setSimulationtime(simulationTimeMS);
+                    barrier_particle.setStepStartTime(simulationTimeMS);
                     calledObject = barrier_particle;
                     nextParticleBlockStartIndex = 0;
                     nextRandomNumberBlockStartIndex = 0;
                     status = 42;
+                    barrier_sync.setStepStartTime(simulationTimeMS);
+                    barrier_sync.setStepEndTime(simulationNextTimeMS);
+                    barrier_sync.getThread().checkMeasurementsBeforeParticleLoop();
                     barrier_particle.startover();
                     status = 44;
                     return;

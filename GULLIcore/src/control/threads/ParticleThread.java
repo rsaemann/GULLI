@@ -140,7 +140,7 @@ public class ParticleThread extends Thread {
                 } else {
 //                    status = 35;
                     //Got valid order to threat particles.
-                    this.simulationTime = barrier.getSimulationtime();
+                    this.simulationTime = barrier.getStepStartTime();
                     this.surfcomp.setActualSimulationTime(simulationTime);
                     int from = fromto[0];
                     int toExcld = fromto[1];

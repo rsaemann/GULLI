@@ -52,7 +52,7 @@ public class SynchronizationThreadPipe extends Thread {
     private int lastWriteIndex = -1;
     private boolean openMeasurements = false;
 
-    private int lastwriteindexSurface = -1;
+    private int writeindexSurface = -1;
 
     protected Controller control;
     public int status = -1;
@@ -60,6 +60,8 @@ public class SynchronizationThreadPipe extends Thread {
     private ArrayList<ParticleMeasurement> messung;
 
     private Pipe[] pipes;
+    
+    private long lastVelocityFreez, nextVelocityDefreez;
 
     public SynchronizationThreadPipe(String string, ThreadBarrier barrier, Controller control) {
         super(string);
@@ -76,19 +78,18 @@ public class SynchronizationThreadPipe extends Thread {
             ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
             if (mcp != null) {
                 if (mcp.isTimespotmeasurement()) {
-//                    for (Pipe pipe : pipes) {
-//                        pipe.getMeasurementTimeLine().active = false;
-//                    }
                     mcp.measurementsActive = false;
                     this.openMeasurements = false;
-//                System.out.println("closed measurements");
                 } else {
-//                    for (Pipe pipe : pipes) {
-//                        if (pipe.getMeasurementTimeLine() != null) {
-//                            pipe.getMeasurementTimeLine().active = true;
-//                        }
-//                    }
                     mcp.measurementsActive = true;
+                }
+            }
+            SurfaceMeasurementRaster mcs = control.getScenario().getMeasurementsSurface();
+            if (mcs != null) {
+                if (mcs.continousMeasurements) {
+                    mcs.measurementsActive = true;
+                } else {
+                    mcs.measurementsActive = false;
                 }
             }
 
@@ -100,15 +101,15 @@ public class SynchronizationThreadPipe extends Thread {
         while (runendless) {
             if (true) {
                 try {
-                    actualSimulationTime = barrier.getSimulationtime();
+                    actualSimulationTime = barrier.getStepStartTime();
                     // Schreibe die Gesammelten Werte in die Mess-Zeitreihe der Rohre
                     ArrayTimeLineMeasurementContainer mcp = control.getScenario().getMeasurementsPipe();
                     if (mcp != null) {
                         if (mcp.isTimespotmeasurement()) {
                             if (openMeasurements) {
                                 //Were open during the current step. We can write the samples and reset the counter
-                                if(writeindex>=mcp.getNumberOfTimes()){
-                                    writeindex=0;
+                                if (writeindex >= mcp.getNumberOfTimes()) {
+                                    writeindex = 0;
                                 }
                                 for (Pipe pipe : pipes) {
                                     ArrayTimeLineMeasurement tl = pipe.getMeasurementTimeLine();
@@ -193,22 +194,40 @@ public class SynchronizationThreadPipe extends Thread {
                     SurfaceMeasurementRaster smr = control.getSurface().getMeasurementRaster();
 
                     if (smr != null) {
-                        smr.getIndexContainer().setActualTime(actualSimulationTime);
+//                        smr.getIndexContainer().setActualTime(actualSimulationTime);
                         if (smr.measurementsActive) {
-                            if (lastwriteindexSurface >= 0 && lastwriteindexSurface < smr.measurementsInTimeinterval.length) {
-                                smr.measurementsInTimeinterval[lastwriteindexSurface]++;
-                            }
+//                            if (smr.getIndexContainer().getActualTimeIndex() < writeindexSurface) {
+//                                writeindexSurface = smr.getIndexContainer().getActualTimeIndex();
+//                            }
+//                            if (writeindexSurface >= 0 && writeindexSurface < smr.measurementsInTimeinterval.length) {
+//                            System.out.println("Writeindex: " + writeindexSurface + "\t " + barrier.getStepEndTime() / 1000);
+                            smr.measurementsInTimeinterval[writeindexSurface]++;
+                            smr.measurementTimestamp[writeindexSurface] = barrier.getStepEndTime();
+////                                System.out.println("WriteindexSurface: "+writeindexSurface+" .> "+actualSimulationTime);
+//                            } else if (smr.continousMeasurements) {
+//                                if (writeindexSurface >= 0) {
+//                                    smr.measurementsInTimeinterval[writeindexSurface]++;
+//                                    smr.measurementTimestamp[writeindexSurface] = actualSimulationTime;
+//                                }
+//                            }
                         }
-                        if (smr.continousMeasurements) {
-                            smr.measurementsActive = true;
-                        } else {
-                            if (smr.getIndexContainer().getActualTimeIndex() != lastwriteindexSurface) {
-                                smr.measurementsActive = true;
-                                lastwriteindexSurface = smr.getIndexContainer().getActualTimeIndex();
-                            } else {
-                                smr.measurementsActive = false;
-                            }
-                        }
+//                        if(!smr.continousMeasurements){
+//                            
+//                        }
+//                        if (smr.continousMeasurements) {
+//                            smr.measurementsActive = true;
+//                            if (smr.getIndexContainer().getActualTimeIndex() != writeindexSurface) {
+//                                writeindexSurface = smr.getIndexContainer().getActualTimeIndex();
+//                            }
+//                        } else {
+//                            if (smr.getIndexContainer().getActualTimeIndex() != writeindexSurface) {
+////                                System.out.println("now it is "+smr.getIndexContainer().getActualTimeIndex()+", != "+writeindexSurface+"  @ "+actualSimulationTime+" activate writing");
+//                                smr.measurementsActive = true;
+//                                writeindexSurface = smr.getIndexContainer().getActualTimeIndex();
+//                            } else {
+//                                smr.measurementsActive = false;
+//                            }
+//                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -242,6 +261,73 @@ public class SynchronizationThreadPipe extends Thread {
 
     public Pipe[] getPipes() {
         return pipes;
+    }
+
+    /**
+     * Checks, if the network and surface measurements have to be enabled for
+     * the upcoming loop. THis is the case, if the loop ends INTO a new
+     * measurement timestep that should be recorded.
+     *
+     * @return
+     */
+    public boolean checkMeasurementsBeforeParticleLoop() {
+        //Pipe
+        
+        
+        //Surface
+        SurfaceMeasurementRaster smr = control.getSurface().getMeasurementRaster();
+        boolean changed = false;
+        if (smr != null) {
+            if (smr.continousMeasurements) {
+                if (!smr.measurementsActive) {
+                    changed = true;
+                    smr.measurementsActive = true;
+                }
+                writeindexSurface = smr.getIndexContainer().getTimeIndex(barrier.getStepEndTime());
+                smr.setWriteIndex(writeindexSurface);
+            } else {
+                int actual = smr.getIndexContainer().getTimeIndex(barrier.getStepStartTime());
+                int next = smr.getIndexContainer().getTimeIndex(barrier.getStepEndTime());
+                if (actual != next) {
+                    //Enable the sampling, because we want to collect the information at the end of this timestep
+                    smr.measurementsActive = true;
+
+                    writeindexSurface = next;
+                    smr.setWriteIndex(writeindexSurface);
+                    changed = true;
+                } else if (writeindexSurface > actual || writeindexSurface < 0) {
+                    //We had a reset and need put this back to 0
+                    smr.measurementsActive = true;
+                    writeindexSurface = actual;
+                    smr.setWriteIndex(writeindexSurface);
+                    changed = true;
+                } else {
+                    if (smr.measurementsActive) {
+                        smr.measurementsActive = false;
+                        changed = true;
+                    }
+                }
+                smr.getIndexContainer().setActualTime(barrier.getStepEndTime());
+            }
+        }
+        
+//        //Reset frozen velocities
+//        if(control.getSurface().timeInterpolatedValues&&!control.getSurface().spatialInterpolationVelocity){
+//            boolean defreez=false;
+//            if(actualSimulationTime<lastVelocityFreez){
+//                //There has been a reset. -> Reset the velocity calculation
+//                defreez=true;
+//            }else if(actualSimulationTime>=nextVelocityDefreez){
+//                defreez=true;
+//            }
+//            if(defreez){
+//                control.getSurface().defrostVelocities();
+//                lastVelocityFreez=actualSimulationTime;
+//                nextVelocityDefreez=actualSimulationTime+control.getSurface().velocityCacheUpdateMS;
+//            }
+//        }
+        
+        return changed;
     }
 
 }

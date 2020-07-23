@@ -70,7 +70,7 @@ public class NumberConverter {
                         continue;
                     }
                     if (searchForNumbers) {
-                        toFill[index] = parseIntegerFromToInclude(buffer, laststart, i - 1);
+                        toFill[index] = parseDoubleFromToInclude(buffer, laststart, i - 1);
                         index++;
                     }
 //                    linelength = i;
@@ -82,7 +82,7 @@ public class NumberConverter {
                         //found position to split the string
                         if (lastWasSplitter == false) {
                             //end a pattern here
-                            toFill[index] = parseIntegerFromToInclude(buffer, laststart, i - 1);
+                            toFill[index] = parseDoubleFromToInclude(buffer, laststart, i - 1);
                             index++;
                             if (index >= toFill.length) {
                                 searchForNumbers = false;
@@ -358,6 +358,7 @@ public class NumberConverter {
         long sum = 0;
         long index = 1;
         long digitindex = 0;
+        boolean negative=false;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
@@ -368,6 +369,9 @@ public class NumberConverter {
 
             int d = c - 48;//Character.digit(c, 10);
             if (d < 0 || d > 9) {
+                if(d==-3){
+                    negative=true;
+                }
                 continue;
             }
             sum += index * d;
@@ -375,9 +379,15 @@ public class NumberConverter {
         }
         if (digitindex == 0) {
             //is an integer without .
+            if(negative){
+                return (int) -sum;
+            }
             return (int) sum;
         }
         int result = (int) (sum / digitindex);
+        if(negative){
+            return -result;
+        }
         return result;
 
     }

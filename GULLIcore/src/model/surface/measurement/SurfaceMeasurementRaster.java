@@ -48,8 +48,12 @@ public abstract class SurfaceMeasurementRaster {
     public boolean continousMeasurements=true;
     
     public int[] measurementsInTimeinterval;
+    
+    public long[] measurementTimestamp;
 
     protected TimeIndexContainer times;
+    
+    protected int writeIndex=0;
 
     public abstract void measureParticle(long time, Particle particle, int threadIndex);
 
@@ -63,6 +67,9 @@ public abstract class SurfaceMeasurementRaster {
     
     public abstract double getMassInCell(int cellIndex,int timeindex,int materialIndex);
 
+    public abstract double getNumberOfParticlesInCell(int cellIndex,int timeindex,int materialIndex);
+
+    
     public abstract void setTimeContainer(TimeIndexContainer times);
 
     public TimeIndexContainer getIndexContainer() {
@@ -94,7 +101,7 @@ public abstract class SurfaceMeasurementRaster {
     public abstract void synchronizeMeasurements();
     
       public void setIntervalSeconds(double seconds, long startTime, long endTime) {
-          System.out.println("change raster interval to "+seconds);
+//          System.out.println("change raster interval to "+seconds);
         if (times!=null&&times.getDeltaTimeMS()/1000. == seconds) {
 //            System.out.println("do not change interval, same length");
             //Nothing changed
@@ -112,4 +119,10 @@ public abstract class SurfaceMeasurementRaster {
         this.setTimeContainer(new TimeIndexContainer(t));
         
     }
+
+    public void setWriteIndex(int writeIndex) {
+        this.writeIndex = writeIndex;
+    }
+      
+      
 }

@@ -62,6 +62,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         mass = new double[numberXIntervals][][][];
         particlecounter = new int[numberXIntervals][][][];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
+        measurementTimestamp = new long[measurementsInTimeinterval.length];
     }
 
     public static SurfaceMeasurementRectangleRaster SurfaceMeasurementRectangleRaster(Surface surf, int numberXInterval, int numberYInterval) {
@@ -132,7 +133,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         if (this.times == null) {
             throw new NullPointerException("TimeContainer in " + getClass() + " not set.");
         }
-        int timeIndex = this.times.getTimeIndex(time);
+        int timeIndex =  writeIndex;// this.times.getTimeIndex(time);
         int xindex = (int) ((particle.getPosition3d().x - xmin) / xIntervalWidth);
         int yindex = (int) ((particle.getPosition3d().y - ymin) / YIntervalHeight);
 
@@ -195,6 +196,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     public void setTimeContainer(TimeIndexContainer times) {
         this.times = times;
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
+
+        measurementTimestamp = new long[measurementsInTimeinterval.length];
     }
 
     public int getNumberOfMaterials() {
@@ -374,6 +377,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         mass = new double[numberXIntervals][][][];
         particlecounter = new int[numberXIntervals][][][];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
+
+        measurementTimestamp = new long[measurementsInTimeinterval.length];
     }
 
     @Override
@@ -516,6 +521,15 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 //        System.out.println("Variance center, given: "+centreX+","+centreY+"\tcalculated:"+(centerX/sumMass)+", "+(centerY/sumMass));
 //        System.out.println("Raster varaince: weightX" + weightX + ", centerX=" + centreX);
         return new double[]{weightX / sumMass, weightY / sumMass};
+    }
+
+    @Override
+    public double getNumberOfParticlesInCell(int cellIndex, int timeindex, int materialIndex) {
+
+        int x = cellIndex / numberYIntervals;
+        int y = cellIndex % numberYIntervals;
+        return particlecounter[x][y][timeindex][materialIndex];
+
     }
 
 }

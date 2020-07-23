@@ -1955,6 +1955,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return db.readOutputTimeIntervallSurface();
     }
 
+    /**
+     * The timestep length (Minutes) for the surface.
+     * @return minutes between surface timesteps
+     * @throws SQLException
+     * @throws IOException 
+     */
     public int readOutputTimeIntervallSurface() throws SQLException, IOException {
         Connection con = getConnection();
         Statement st = con.createStatement();

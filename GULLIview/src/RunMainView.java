@@ -129,7 +129,7 @@ public class RunMainView {
                     e.printStackTrace();
                 }
 
-                RandomArray.alwaysGenerateNew = false;
+                RandomArray.alwaysGenerateNew = true;
                 System.out.println("use looping arrays for random number generation.");
 
                 //Automatic start after loading loop has finished.   

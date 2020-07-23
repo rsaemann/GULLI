@@ -37,7 +37,9 @@ public abstract class ThreadBarrier<T extends Thread> implements ThreadListener<
 
     protected boolean isinitialized = false;
 
-    protected long simulationtime = 0;
+    protected long stepStartTime = 0;
+
+    protected long stepEndTime = 0;
 
     public ThreadBarrier(String name, ThreadController controller) {
         this.name = name;
@@ -52,14 +54,45 @@ public abstract class ThreadBarrier<T extends Thread> implements ThreadListener<
 
     public abstract void initialize();
 
-    public void setSimulationtime(long simulationtime) {
-        this.simulationtime = simulationtime;
+    /**
+     * The time in milliseconds in the current scenario, which is valid at the
+     * start of the simulation loop.
+     * 
+     * @param stepstartMS
+     */
+    public void setStepStartTime(long stepstartMS) {
+        this.stepStartTime = stepstartMS;
     }
 
-    public long getSimulationtime() {
-        return simulationtime;
+    /**
+     * The time in milliseconds in the current scenario, which is valid at the
+     * start of the simulation loop.
+     * @return 
+     */
+    public long getStepStartTime() {
+        return stepStartTime;
     }
 
+     /**
+     * The time in milliseconds in the current scenario, which is valid at the
+     * end of the simulation loop.
+     * 
+     * @param stependMS
+     */
+    public void setStepEndTime(long stependMS) {
+        this.stepEndTime = stependMS;
+    }
+
+    /**
+     * The time in milliseconds in the current scenario, which is valid at the
+     * end of the simulation loop.
+     * @return 
+     */
+    public long getStepEndTime() {
+        return stepEndTime;
+    }
+    
+    
     public String getName() {
         return name;
     }
