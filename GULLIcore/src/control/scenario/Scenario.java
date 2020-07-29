@@ -95,6 +95,9 @@ public abstract class Scenario {
         if (measurementsPipe != null) {
             measurementsPipe.setActualTime(time);
         }
+        if (measurementsSurface!= null) {
+            measurementsSurface.getIndexContainer().setActualTime(time);
+        }
     }
 
     public ArrayList<InjectionInformation> getInjections() {

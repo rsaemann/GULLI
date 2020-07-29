@@ -88,17 +88,17 @@ public class MultiThreadBarrier<T extends Thread> extends ThreadBarrier<T> {
     @Override
     public void startover() {
 
-        status = 100;
+//        status = 100;
 //        try {
 //            System.out.println("start as thread nr "+cyclicbarrier.await());
         lock.lock();
         try {
             synchronized (waitObject) {
-                status = 101;
+//                status = 101;
                 finished = 0;
-                status = 102;
+//                status = 102;
                 waitObject.notifyAll();
-                status = 103;
+//                status = 103;
             }
         } catch (Exception e) {
             e.printStackTrace();

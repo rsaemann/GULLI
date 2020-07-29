@@ -559,19 +559,21 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     }
 
     private double testVelocity(double[] particlevelocity) {
-        double u = Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1]));
-        if (u > 3 || u < -3) {
-            System.out.println("velocity (" + u + ")is implausible. set to +/- 3m/s [" + particlevelocity[0] + ", " + particlevelocity[1] + "] = " + Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1])));
+        double u = Math.abs(particlevelocity[0]) + Math.abs(particlevelocity[1]);
+//        double u = Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1]));
+        if (u > 5 || u < -5) {
+            u = 5;
+//            System.out.println("velocity (" + u + ")is implausible. set to +/- 3m/s [" + particlevelocity[0] + ", " + particlevelocity[1] + "] = " + Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1])));
             double veloverhaeltnis = particlevelocity[0] / particlevelocity[1];
             if (veloverhaeltnis < 1) {
-                particlevelocity[1] = 3;
-                particlevelocity[0] = 3 * veloverhaeltnis;
+                particlevelocity[1] = u*Math.signum(particlevelocity[1]);
+                particlevelocity[0] = u * veloverhaeltnis*Math.signum(particlevelocity[0]);
             } else {
-                particlevelocity[0] = 3;
-                particlevelocity[1] = 3 * (1. / veloverhaeltnis);
+                particlevelocity[0] = u*Math.signum(particlevelocity[0]);;
+                particlevelocity[1] = u * (1. / veloverhaeltnis)*Math.signum(particlevelocity[1]);
             }
 
-            u = 3;
+            
         }
         return u;
     }

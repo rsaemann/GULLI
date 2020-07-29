@@ -93,6 +93,8 @@ public class Particle {
      */
     public byte status = -1;   //-10 left simulation, -1 waiting,0=inactive, 10=pipenetwork , 20=surface, 30=Underground, 
 
+    private boolean active = false;
+
     public boolean deposited = false;
 
     /**
@@ -104,7 +106,7 @@ public class Particle {
      * Pipe/Manhole/SurfaceTriangle this particle is injected at spilltime.
      */
     public Capacity injectionSurrounding;
-    
+
     //Stores the position UTM for the injection on the surface.
     public Position injectionPosition;
 
@@ -156,7 +158,7 @@ public class Particle {
     }
 
     public boolean isInactive() {
-        return status < 1;
+        return !active;//status < 1;
     }
 
     public boolean hasLeftSimulation() {
@@ -173,7 +175,7 @@ public class Particle {
     }
 
     public boolean isActive() {
-        return status > 0;
+        return active;//status > 0;
     }
 
     public boolean isInPipeNetwork() {
@@ -190,26 +192,32 @@ public class Particle {
 
     public void setInactive() {
         this.status = 0;
+        active = false;
     }
 
     public void setInPipenetwork() {
         this.status = 10;
+        active = true;
     }
 
     public void setOnSurface() {
         this.status = 20;
+        active = true;
     }
 
     public void setInSoil() {
         this.status = 30;
+        active = true;
     }
 
     public void setWaiting() {
         this.status = -1;
+        active = false;
     }
 
     public void setLeftSimulation() {
         this.status = -10;
+        active = false;
     }
 
     public float getPosition1d_actual() {
@@ -439,10 +447,10 @@ public class Particle {
         this.position3d.x = x;
         this.position3d.y = y;
     }
-    
-    public void setPosition3D(Position utmPosition){
-        this.position3d.x=utmPosition.x;
-        this.position3d.y=utmPosition.y;
+
+    public void setPosition3D(Position utmPosition) {
+        this.position3d.x = utmPosition.x;
+        this.position3d.y = utmPosition.y;
     }
 
     public int getInjectionCellID() {
