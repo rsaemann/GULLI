@@ -43,7 +43,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     /**
      * [x-index][y-index][timeindex][materialindex]:counter
      */
-    public int[][][][] particlecounter;
+    public long[][][][] particlecounter;
 
     int numberXIntervals, numberYIntervals, numberOfMaterials;
     double xIntervalWidth, YIntervalHeight;
@@ -60,7 +60,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         this.numberYIntervals = numberYIntervals;
 
         mass = new double[numberXIntervals][][][];
-        particlecounter = new int[numberXIntervals][][][];
+        particlecounter = new long[numberXIntervals][][][];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
         measurementTimestamp = new long[measurementsInTimeinterval.length];
     }
@@ -149,7 +149,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                 synchronized (mass) {
                     if (mass[xindex] == null) {
                         mass[xindex] = new double[numberYIntervals][][];
-                        particlecounter[xindex] = new int[numberYIntervals][][];
+                        particlecounter[xindex] = new long[numberYIntervals][][];
                     }
                 }
             }
@@ -157,7 +157,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                 synchronized (mass) {
                     if (mass[xindex][yindex] == null) {
                         mass[xindex][yindex] = new double[times.getNumberOfTimes()][numberOfMaterials];
-                        particlecounter[xindex][yindex] = new int[times.getNumberOfTimes()][numberOfMaterials];
+                        particlecounter[xindex][yindex] = new long[times.getNumberOfTimes()][numberOfMaterials];
                     }
                 }
             }
@@ -233,7 +233,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
      *
      * @return number of particles in raster
      */
-    public int[][][][] getParticlecounter() {
+    public long[][][][] getParticlecounter() {
         return particlecounter;
     }
 
@@ -246,7 +246,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         return mass;
     }
 
-    public int getParticlesCounted(int xindex, int yindex, int timeindex, int materialindex) {
+    public long getParticlesCounted(int xindex, int yindex, int timeindex, int materialindex) {
         if (particlecounter == null) {
             return 0;
         }
@@ -375,7 +375,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     @Override
     public void reset() {
         mass = new double[numberXIntervals][][][];
-        particlecounter = new int[numberXIntervals][][][];
+        particlecounter = new long[numberXIntervals][][][];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
 
         measurementTimestamp = new long[measurementsInTimeinterval.length];

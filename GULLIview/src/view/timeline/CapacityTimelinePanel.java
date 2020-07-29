@@ -216,7 +216,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         initCheckboxpanel();
         setStorage(null, title);
         initChart(title);
-        addPDFexport(panelChart,this);
+        addPDFexport(panelChart, this);
         addEMFexport();
         addMatlabSeriesExport();
         addTimeSeriesExport();
@@ -475,8 +475,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             marker = null;
         }
     }
-    
-    public void updateDateAxis(TimeContainer tc){
+
+    public void updateDateAxis(TimeContainer tc) {
         if (showSimulationTime) {
 
             final long start = tc.getFirstTime();
@@ -566,7 +566,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         m_c.clear();
         m_m_sum.clear();
         m_n.clear();
-        m_p.clear();        
+        m_p.clear();
         m_p_sum.clear();
         m_p_l_sum.clear();
         m_p_l.clear();
@@ -1388,7 +1388,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
     }
 
-    public static void addPDFexport(final ChartPanel panelChart,final JComponent surroundingContainer) {
+    public static void addPDFexport(final ChartPanel panelChart, final JComponent surroundingContainer) {
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
             panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
@@ -1426,7 +1426,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                     Paint formerBackground = panelChart.getChart().getBackgroundPaint();
                                     try {
                                         panelChart.getChart().setBackgroundPaint(Color.white);
-                                        Rectangle rec = surroundingContainer.getBounds();
+                                        Rectangle rec = new Rectangle(0,0,panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
+
+                                        System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
+
                                         Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
                                         FileOutputStream fos = new FileOutputStream(output);
                                         PdfWriter writer = PdfWriter.getInstance(doc, fos);
@@ -1434,13 +1437,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                         PdfContentByte cb = writer.getDirectContent();
                                         PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
                                         PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
-                                        g2d.translate(-surroundingContainer.getX(), -surroundingContainer.getY());
+                                        g2d.translate(-surroundingContainer.getX(),0);// -surroundingContainer.getY());
                                         panelChart.getChart().draw(g2d, rec);
                                         cb.addTemplate(tp, 25, 200);
                                         g2d.dispose();
                                         doc.close();
                                         fos.close();
-                                        
+
                                     } catch (FileNotFoundException ex) {
                                         Logger.getLogger(CapacityTimelinePanel.class
                                                 .getName()).log(Level.SEVERE, null, ex);

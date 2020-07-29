@@ -1405,7 +1405,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 } else {
                                     if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
                                         color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(particlesum) / highColorCount));
-                                        } else {
+                                    } else {
                                         //Linear
                                         color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (particlesum) / highColorCount);
                                     }
@@ -2309,7 +2309,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     if (p.isOnSurface()) {
                         try {
                             if (np == null) {
-                                ParticleNodePainting pnp = new ParticleNodePainting(i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
+                                ParticleNodePainting pnp = new ParticleNodePainting(p, i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
                                 particlePaintings[i] = pnp;
                                 surfaceLayer.add(pnp);
                             } else {
@@ -2326,7 +2326,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         try {
                             Position3D pos = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual());
                             if (np == null) {
-                                ParticleNodePainting pnp = new ParticleNodePainting(i, pos.lonLatCoordinate(), chParticlesNetwork);
+                                ParticleNodePainting pnp = new ParticleNodePainting(p, i, pos.lonLatCoordinate(), chParticlesNetwork);
                                 particlePaintings[i] = pnp;
                                 networkLayer.add(pnp);
                             } else {
@@ -3445,35 +3445,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
             if (p.getClass().equals(HistoryParticle.class)) {
                 HistoryParticle hp = (HistoryParticle) p;
-                np = new ParticleNodePainting(p.getId(), new Coordinate(0, 0), chParticles) {
-                    @Override
-                    public boolean paint(Graphics2D g2) {
-                        if (p.isInactive()) {
-                            return false;
-                        }
-                        if (this.outlineShape == null || getColor() == null || getColor().color == null) {
-                            return false;
-                        }
-                        if (p.isOnSurface()) {
-                            g2.setColor(Color.green);
-                        } else {
-                            g2.setColor(Color.blue);
-                        }
-                        if (p.isDeposited()) {
-                            g2.setColor(Color.black);
-                        }
-
-                        try {
-                            super.paint(g2);
-                        } catch (OutOfMemoryError e) {
-                            System.gc();
-                            control.getThreadController().paintOnMap = false;
-                            System.err.println("Heap Space exceeded. Map repaint deactivated");
-                            e.printStackTrace();
-                        }
-                        return true;
-                    }
-                };
+                np = new ParticleNodePainting(p, p.getId(), new Coordinate(0, 0), chParticles);
 
                 np.setRadius(4);
                 np.setShapeRound(true);
@@ -3483,27 +3455,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
             } else {
 
-                np = new ParticleNodePainting(p.getId(), new Coordinate(0, 0), chParticles) {
-                    public boolean paint1(Graphics2D g2) {
-                        if (p.isInactive()) {
-                            return false;
-                        }
-                        if (this.outlineShape == null || getColor() == null || getColor().color == null) {
-                            return false;
-                        }
-
-                        if (p.isOnSurface()) {
-                            g2.setColor(Color.green);
-                        } else {
-                            g2.setColor(Color.blue);
-                        }
-                        if (p.isDeposited()) {
-                            g2.setColor(Color.black);
-                        }
-                        super.paint(g2);
-                        return true;
-                    }
-                };
+                np = new ParticleNodePainting(p,p.getId(), new Coordinate(0, 0), chParticles);
                 np.radius = 1;
             }
 
@@ -3542,9 +3494,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public class ParticleNodePainting extends NodePainting {
 
         public Coordinate longLat;
+        Particle p;
 
-        public ParticleNodePainting(long id, Coordinate position, ColorHolder color) {
+        public ParticleNodePainting(Particle p, long id, Coordinate position, ColorHolder color) {
             super(id, position, color);
+            this.p=p;
             this.longLat = position;
             this.positionWGS84 = new GeoPosition2D() {
 
@@ -3572,18 +3526,34 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
         @Override
         public GeoPosition2D getPosition() {
-            return new GeoPosition2D() {
+            return positionWGS84;
+        }
 
-                @Override
-                public double getLatitude() {
-                    return longLat.y;
-                }
-
-                @Override
-                public double getLongitude() {
-                    return longLat.x;
-                }
-            };
+        @Override
+        public boolean paint(Graphics2D g2) {
+            if (p.isInactive()) {
+                return false;
+            }
+            if (this.outlineShape == null || getColor() == null || getColor().color == null) {
+                return false;
+            }
+            if (p.isOnSurface()) {
+                g2.setColor(Color.green);
+            } else {
+                g2.setColor(Color.blue);
+            }
+            if (p.isDeposited()) {
+                g2.setColor(Color.black);
+            }
+            try {
+                super.paint(g2);
+            } catch (OutOfMemoryError e) {
+                System.gc();
+                control.getThreadController().paintOnMap = false;
+                System.err.println("Heap Space exceeded. Map repaint deactivated");
+                e.printStackTrace();
+            }
+            return true;
         }
 
         public void setLongLat(Coordinate longLat) {

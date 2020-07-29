@@ -26,6 +26,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import model.GeoPosition;
 import model.particle.Material;
+import model.surface.measurement.SurfaceMeasurementRaster;
 import model.topology.Manhole;
 import org.jfree.ui.action.ActionMenuItem;
 import org.openstreetmap.gui.jmapviewer.source.MyOSMTileSource;
@@ -129,8 +130,11 @@ public class RunMainView {
                     e.printStackTrace();
                 }
 
-                RandomArray.alwaysGenerateNew = true;
-                System.out.println("use looping arrays for random number generation.");
+                RandomArray.alwaysGenerateNew = false;
+                if (RandomArray.alwaysGenerateNew) {
+                    System.out.println("use looping arrays for random number generation.");
+                }
+                SurfaceMeasurementRaster.synchronizeMeasures=true;
 
                 //Automatic start after loading loop has finished.   
                 if (true) {

@@ -350,7 +350,7 @@ public class GeometryTools {
         s = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
 
         if (tofill == null) {
-             System.out.println("new double[] for lineintersectionTS");
+            System.out.println("new double[] for lineintersectionTS");
             return new double[]{s, t};
         } else {
             tofill[0] = s;
@@ -413,6 +413,34 @@ public class GeometryTools {
         // barycentric koordinate weighing for velocity calculation
         // x, y = triangle coordinates, p = searched point
         double[] w = new double[3];
+
+        w[0] = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
+        w[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
+        w[2] = 1 - w[0] - w[1];
+
+        double wenorm_ges = w[0] + w[1] + w[2];
+        if (wenorm_ges > 1.01 || wenorm_ges < 0.99) {
+            System.err.println("weighting is not 1!");
+        }
+        return w;
+    }
+
+    /**
+     *
+     * @param x1
+     * @param x2
+     * @param x3
+     * @param y1
+     * @param y2
+     * @param y3
+     * @param px
+     * @param py
+     * @return
+     */
+    public static double[] fillBarycentricWeighing(double[] tofill, double x1, double x2, double x3, double y1, double y2, double y3, double px, double py) {
+        // barycentric koordinate weighing for velocity calculation
+        // x, y = triangle coordinates, p = searched point
+        double[] w = tofill;
 
         w[0] = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
         w[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));

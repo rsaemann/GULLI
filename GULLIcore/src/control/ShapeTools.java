@@ -298,13 +298,13 @@ public class ShapeTools {
             GeometryFactory gf = new GeometryFactory();
             LinkedList<Polygon> rectangles = new LinkedList<>();
             for (int x = 0; x < raster.getParticlecounter().length; x++) {
-                int[][][] dim1 = raster.getParticlecounter()[x];
+                long[][][] dim1 = raster.getParticlecounter()[x];
 
                 if (dim1 == null) {
                     continue;
                 }
                 for (int y = 0; y < dim1.length; y++) {
-                    int[][] dim2 = dim1[y];
+                    long[][] dim2 = dim1[y];
 
                     if (dim2 == null) {
                         continue;

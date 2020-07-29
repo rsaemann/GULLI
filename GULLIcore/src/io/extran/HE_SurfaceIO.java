@@ -854,9 +854,9 @@ public class HE_SurfaceIO {
 
                     double max = 0;
                     for (int j = 0; j < timesteps; j++) {
-                        double mass = raster.getNumberOfParticlesInCell(mID, j, materialIndex);
-                        max = Math.max(max, mass);
-                        buffer.append(";").append(df2.format(mass));
+                        double particles = raster.getNumberOfParticlesInCell(mID, j, materialIndex);
+                        max = Math.max(max, particles);
+                        buffer.append(";").append(df2.format(particles));
                     }
                     if (max >= 1) {//Only write cell information, if there is content
                         bw.write(mID + ";");
