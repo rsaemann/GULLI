@@ -739,20 +739,20 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         @Override
         public void run() {
             while (true) {
-                status = 1;
+//                status = 1;
 
                 synchronized (this) {
-                    status = 2;
+//                    status = 2;
                     finishedLoop(barrier);
-                    status = 3;
+//                    status = 3;
                     try {
                         this.wait();
-                        status = 99;
+//                        status = 99;
                     } catch (InterruptedException ex) {
                         Logger.getLogger(ThreadController.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-                status = 100;
+//                status = 100;
             }
         }
 
@@ -774,10 +774,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             if (!run) {
                 return;
             }
-            status = 4;
+//            status = 4;
             switch (finishedBarrier) {
                 case PARTICLE:
-                    status = 10;
+//                    status = 10;
                     /*@todo move particle thread after synchr.-thread. */
                     barrier_sync.setStepStartTime(simulationTimeMS);
                     barrier_sync.setStepEndTime(simulationNextTimeMS);
@@ -785,10 +785,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     steps++;
                     status = 11;
                     barrier_sync.startover();
-                    status = 12;
+//                    status = 12;
                     return;
                 case SYNC:
-                    status = 20;
+//                    status = 20;
                     long calcStepTime = System.currentTimeMillis() - calculationLoopStarttime;
                     calculationTimeHistory[steps % calculationTimeHistory.length] = calcStepTime;
 
@@ -797,7 +797,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                     simulationTimeMS = simulationNextTimeMS;
                     simulationNextTimeMS += deltatimeMS;
-                    status = 22;
+//                    status = 22;
                     if (simulationTimeMS > simulationTimeEnd) {
                         System.out.println("Simulation time end reached!");
                         calculationFinished = true;
@@ -813,15 +813,15 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         }
 
                     }
-                    status = 24;
+//                    status = 24;
                     //Send new Timeinformation to all timelines pipe/manhole/surface/soil
                     control.getScenario().setActualTime(simulationTimeMS);
                     if (ArrayTimeLineMeasurementContainer.instance != null) {
                         ArrayTimeLineMeasurementContainer.instance.setActualTime(simulationTimeMS);
                     }
-                    status = 28;
+//                    status = 28;
                 case POSITION:
-                    status = 30;
+//                    status = 30;
                     try {
                         for (SimulationActionListener l : listener) {
                             try {
@@ -834,7 +834,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    status = 31;
+//                    status = 31;
                     if (calculationFinished) {
                         run = false;
                         System.out.println("Stopped after " + (System.currentTimeMillis() - calculationStartTime) / 1000 + "sec computation time.\telapsed calculation time=" + calculationTimeElapsed + "ms,  loops:" + steps);
@@ -844,19 +844,19 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         }
                         return;
                     }
-                    status = 32;
+//                    status = 32;
                 case HYDRODYNAMICS:
-                    status = 40;
+//                    status = 40;
                     barrier_particle.setStepStartTime(simulationTimeMS);
                     calledObject = barrier_particle;
                     nextParticleBlockStartIndex = 0;
                     nextRandomNumberBlockStartIndex = 0;
-                    status = 42;
+//                    status = 42;
                     barrier_sync.setStepStartTime(simulationTimeMS);
                     barrier_sync.setStepEndTime(simulationNextTimeMS);
                     barrier_sync.getThread().checkMeasurementsBeforeParticleLoop();
                     barrier_particle.startover();
-                    status = 44;
+//                    status = 44;
                     return;
                 default:
                     status = 50;

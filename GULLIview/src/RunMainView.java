@@ -131,10 +131,16 @@ public class RunMainView {
                 }
 
                 RandomArray.alwaysGenerateNew = false;
+<<<<<<< HEAD
                 if (RandomArray.alwaysGenerateNew) {
                     System.out.println("use looping arrays for random number generation.");
                 }
                 SurfaceMeasurementRaster.synchronizeMeasures=true;
+=======
+                if (!RandomArray.alwaysGenerateNew) {
+                    System.out.println("use looping arrays for random number generation.");
+                }
+>>>>>>> 1b5e08b96258a92cb6c59b94d1654d08f6e49748
 
                 //Automatic start after loading loop has finished.   
                 if (true) {
@@ -157,9 +163,9 @@ public class RunMainView {
                         if (mh != null) {
                             System.out.println("add 3 Injection at " + mh);
                             try {
-                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
-                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
-                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
                             } catch (NullPointerException nullPointerException) {
                                 System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
                             }

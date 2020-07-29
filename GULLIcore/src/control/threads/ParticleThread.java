@@ -123,6 +123,8 @@ public class ParticleThread extends Thread {
         //if woken up start the normal loop
         Particle p;
         int[] fromto = null;
+        int from;
+        int toExcld;
         while (runendless) {
             try {
 //                activeCalculation = true;
@@ -142,8 +144,8 @@ public class ParticleThread extends Thread {
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getStepStartTime();
                     this.surfcomp.setActualSimulationTime(simulationTime);
-                    int from = fromto[0];
-                    int toExcld = fromto[1];
+                    from = fromto[0];
+                    toExcld = fromto[1];
 //                    if (fromto[2] >= threadController.randomNumberGenerators.length) {
 //                        System.err.println("wrong index " + fromto[2] + " for particles " + fromto[0] + "-" + fromto[1] + " of total " + threadController.randomNumberGenerators.length + "   waitingindex: " + threadController.waitingParticleIndex);
 //                    }
