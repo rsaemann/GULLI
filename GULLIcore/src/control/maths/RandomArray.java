@@ -33,11 +33,12 @@ import java.util.Random;
  */
 public class RandomArray {
 
-    private final double[] gaussians, uniform;
+    private double[] gaussians = null, uniform = null;
     private int index = 0;
     private int indexU = 0;
-    private int indexRND = 0;
-    
+//    private int indexRND = 0;
+    private boolean initialized = false;
+
     /**
      * if true the random number will always be generated new. if false the
      * apriori filled array is used. The array version can have reoccuring
@@ -46,39 +47,64 @@ public class RandomArray {
      * random-algorithm is very complex.
      */
     public static boolean alwaysGenerateNew = true;
+    private final long seed;
     private Random r;
-     public static int numberOfGaussLoops=0;
-     public static int numberOfDoubleLoops=0;
+    public static int numberOfGaussLoops = 0;
+    public static int numberOfDoubleLoops = 0;
+    public final int cachesize;
 
-    public RandomArray(Random randomNumberGenerator, int numberOfValues) {
-//        System.out.println("new random array size "+numberOfValues);
-        this.r = randomNumberGenerator;
-        gaussians = new double[numberOfValues];
-        uniform = new double[numberOfValues];
-        for (int i = 0; i < gaussians.length; i++) {
-            gaussians[i] = randomNumberGenerator.nextGaussian();
+    public RandomArray(long seed, int numberOfValues) {
+        cachesize = numberOfValues;
+        this.seed = seed;
+        r = new Random(seed);
+        if (!alwaysGenerateNew) {
+
+            gaussians = new double[cachesize];
+            uniform = new double[cachesize];
+            for (int i = 0; i < gaussians.length; i++) {
+                gaussians[i] = r.nextGaussian();
+            }
+            for (int i = 0; i < uniform.length; i++) {
+                uniform[i] = r.nextDouble();
+            }
+            initialized = true;
+             r = new Random(seed);
         }
-        for (int i = 0; i < uniform.length; i++) {
-            uniform[i] = randomNumberGenerator.nextDouble();
-        }
+       
         index = 0;
         indexU = 0;
-        indexRND = 0;
+//        indexRND = 0;
+    }
+
+    private void initRandomArrays(int numberOfValues) {
+
+        r = new Random(seed);
+        gaussians = new double[cachesize];
+        uniform = new double[cachesize];
+        for (int i = 0; i < gaussians.length; i++) {
+            gaussians[i] = r.nextGaussian();
+        }
+        for (int i = 0; i < uniform.length; i++) {
+            uniform[i] = r.nextDouble();
+        }
+        initialized = true;
+
+        index = 0;
+        indexU = 0;
+//        indexRND = 0;
+        initialized = true;
     }
 
     public double nextGaussian() {
         if (alwaysGenerateNew) {
             return r.nextGaussian();
+        } else if (!initialized) {
+            initRandomArrays(cachesize);
         }
         index++;
         if (index >= gaussians.length) {
             index = 0;
             numberOfGaussLoops++;
-//            indexRND++;
-//            if(indexRND>=uniform.length){
-//                indexRND=0;
-//            }
-//            index=(int)(uniform[indexRND]*gaussians.length);
         }
 
         return gaussians[index];
@@ -87,16 +113,13 @@ public class RandomArray {
     public double nextDouble() {
         if (alwaysGenerateNew) {
             return r.nextDouble();
+        } else if (!initialized) {
+            initRandomArrays(cachesize);
         }
         indexU++;
         if (indexU >= uniform.length) {
             indexU = 0;
             numberOfDoubleLoops++;
-//           indexRND++;
-//            if(indexRND>=uniform.length){
-//                indexRND=0;
-//            }
-//            indexU=(int)(uniform[indexRND]*uniform.length);
         }
 
         return uniform[indexU];
@@ -105,9 +128,16 @@ public class RandomArray {
     public void resetIndex() {
         this.index = 0;
         this.indexU = 0;
-        this.indexRND = 0;
-        numberOfDoubleLoops=0;
-        numberOfGaussLoops=0;
+//        this.indexRND = 0;
+        numberOfDoubleLoops = 0;
+        numberOfGaussLoops = 0;
+    }
+
+    public void reset() {
+        if (alwaysGenerateNew) {
+            r = new Random(seed);
+        }
+        resetIndex();
     }
 
     public int getIndex() {
@@ -123,9 +153,14 @@ public class RandomArray {
             }
         }
         return equal;
-//        if (equal) {
-//            System.out.println("Entries are equal");
-//        }
+    }
+
+    public long getSeed() {
+        return seed;
+    }
+
+    public int getCachesize() {
+        return cachesize;
     }
 
 }

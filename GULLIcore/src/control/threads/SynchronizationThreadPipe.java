@@ -60,7 +60,7 @@ public class SynchronizationThreadPipe extends Thread {
     private ArrayList<ParticleMeasurement> messung;
 
     private Pipe[] pipes;
-    
+
     private long lastVelocityFreez, nextVelocityDefreez;
 
     public SynchronizationThreadPipe(String string, ThreadBarrier barrier, Controller control) {
@@ -194,40 +194,11 @@ public class SynchronizationThreadPipe extends Thread {
                     SurfaceMeasurementRaster smr = control.getSurface().getMeasurementRaster();
 
                     if (smr != null) {
-//                        smr.getIndexContainer().setActualTime(actualSimulationTime);
                         if (smr.measurementsActive) {
-//                            if (smr.getIndexContainer().getActualTimeIndex() < writeindexSurface) {
-//                                writeindexSurface = smr.getIndexContainer().getActualTimeIndex();
-//                            }
-//                            if (writeindexSurface >= 0 && writeindexSurface < smr.measurementsInTimeinterval.length) {
-//                            System.out.println("Writeindex: " + writeindexSurface + "\t " + barrier.getStepEndTime() / 1000);
                             smr.measurementsInTimeinterval[writeindexSurface]++;
                             smr.measurementTimestamp[writeindexSurface] = barrier.getStepEndTime();
-////                                System.out.println("WriteindexSurface: "+writeindexSurface+" .> "+actualSimulationTime);
-//                            } else if (smr.continousMeasurements) {
-//                                if (writeindexSurface >= 0) {
-//                                    smr.measurementsInTimeinterval[writeindexSurface]++;
-//                                    smr.measurementTimestamp[writeindexSurface] = actualSimulationTime;
-//                                }
-//                            }
+//                            System.out.println("Written on surface index "+writeindexSurface+" \tfor time: "+barrier.getStepEndTime());
                         }
-//                        if(!smr.continousMeasurements){
-//                            
-//                        }
-//                        if (smr.continousMeasurements) {
-//                            smr.measurementsActive = true;
-//                            if (smr.getIndexContainer().getActualTimeIndex() != writeindexSurface) {
-//                                writeindexSurface = smr.getIndexContainer().getActualTimeIndex();
-//                            }
-//                        } else {
-//                            if (smr.getIndexContainer().getActualTimeIndex() != writeindexSurface) {
-////                                System.out.println("now it is "+smr.getIndexContainer().getActualTimeIndex()+", != "+writeindexSurface+"  @ "+actualSimulationTime+" activate writing");
-//                                smr.measurementsActive = true;
-//                                writeindexSurface = smr.getIndexContainer().getActualTimeIndex();
-//                            } else {
-//                                smr.measurementsActive = false;
-//                            }
-//                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -272,8 +243,7 @@ public class SynchronizationThreadPipe extends Thread {
      */
     public boolean checkMeasurementsBeforeParticleLoop() {
         //Pipe
-        
-        
+
         //Surface
         SurfaceMeasurementRaster smr = control.getSurface().getMeasurementRaster();
         boolean changed = false;
@@ -310,23 +280,7 @@ public class SynchronizationThreadPipe extends Thread {
                 smr.getIndexContainer().setActualTime(barrier.getStepEndTime());
             }
         }
-        
-//        //Reset frozen velocities
-//        if(control.getSurface().timeInterpolatedValues&&!control.getSurface().spatialInterpolationVelocity){
-//            boolean defreez=false;
-//            if(actualSimulationTime<lastVelocityFreez){
-//                //There has been a reset. -> Reset the velocity calculation
-//                defreez=true;
-//            }else if(actualSimulationTime>=nextVelocityDefreez){
-//                defreez=true;
-//            }
-//            if(defreez){
-//                control.getSurface().defrostVelocities();
-//                lastVelocityFreez=actualSimulationTime;
-//                nextVelocityDefreez=actualSimulationTime+control.getSurface().velocityCacheUpdateMS;
-//            }
-//        }
-        
+
         return changed;
     }
 

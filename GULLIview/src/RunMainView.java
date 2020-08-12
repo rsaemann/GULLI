@@ -130,17 +130,11 @@ public class RunMainView {
                     e.printStackTrace();
                 }
 
-                RandomArray.alwaysGenerateNew = false;
-<<<<<<< HEAD
-                if (RandomArray.alwaysGenerateNew) {
-                    System.out.println("use looping arrays for random number generation.");
-                }
-                SurfaceMeasurementRaster.synchronizeMeasures=true;
-=======
+                RandomArray.alwaysGenerateNew = true;
+
                 if (!RandomArray.alwaysGenerateNew) {
                     System.out.println("use looping arrays for random number generation.");
                 }
->>>>>>> 1b5e08b96258a92cb6c59b94d1654d08f6e49748
 
                 //Automatic start after loading loop has finished.   
                 if (true) {
@@ -148,6 +142,7 @@ public class RunMainView {
                     if (true) {
                         //~90sekunden
                         ParticleSurfaceComputing2D.allowWashToPipesystem = true;
+                        ParticleSurfaceComputing2D.gradientFlowForDryCells=true;
                         ParticlePipeComputing.spillOutToSurface = true;
 
                         control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();

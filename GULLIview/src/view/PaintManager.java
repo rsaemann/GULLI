@@ -219,7 +219,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY;
+        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY, SLOPE;
     };
     private SURFACESHOW surfaceShow = SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -1465,320 +1465,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     }
                 }
                 mapViewer.recalculateShapes();
-//                mapViewer.repaint();
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
-
-//        } else if (this.surfaceShow == SURFACESHOW.WATERLEVEL1 || this.surfaceShow == SURFACESHOW.WATERLEVEL10 || this.surfaceShow == SURFACESHOW.WATERLEVEL || this.surfaceShow == SURFACESHOW.WATERLEVELMAX) {
-//            if (surface.getTimes() == null) {
-//                this.surfaceShow = SURFACESHOW.NONE;
-//                return;
-//            }
-//            try {
-//                double ii = surface.getTimes().getTimeIndexDouble(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                int in = (int) ii;
-//                int ip = in + 1;
-//                float rel = (float) (ii % 1);
-////                float[][] lvls = surface.getWaterlevels();
-//
-//                if (shownSurfaceTriangles == null) {
-//                    this.surfaceShow = SURFACESHOW.NONE;
-//                    return;
-//                }
-//
-//                new Thread() {
-//
-//                    @Override
-//                    public void run() {
-//                        int count = 0;
-//                        GeometryFactory gf = new GeometryFactory();
-//                        System.out.println("start Thread adding up to " + surface.getTriangleMids().length + " waterlevel shapes. " + (showSurfaceTriangle != null ? "triangleShow initialized" + shownSurfaceTriangles.length : " no shown triangle information"));
-//                        for (int i = 0; i < shownSurfaceTriangles.length; i++) {
-//                            final int idt = shownSurfaceTriangles[i];
-//                            count++;
-//                            if (drawTrianglesAsNodes) {
-//                                double[] pos = surface.getTriangleMids()[idt];
-//                                NodePainting np = null;
-//
-//                                try {
-//                                    if (surfaceShow == SURFACESHOW.WATERLEVEL) {
-//                                        np = new NodePainting(idt, surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1])), chTrianglesWaterlevel) {
-//
-//                                            @Override
-//                                            public boolean paint(Graphics2D g2) {
-//                                                if (showSurfaceTriangle != null && showSurfaceTriangle[idt] == false) {
-//                                                    return false; //do not draw what is not displayed
-//                                                }
-//                                                int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                                try {
-//                                                    float[] lvls = surface.getWaterlevels()[idt];
-//                                                    if (lvls == null) {
-//                                                        lvls = surface.loadWaterlevels(idt);
-//                                                    }
-//                                                    float lvl = lvls[t];
-//                                                    if (lvl < 0.01f) {
-//                                                        return false;
-//                                                    }
-////                                                System.out.println("level: " + lvl);
-//                                                    g2.setColor(interpolateColor(chTrianglesWaterlevel.getColor(), chTrianglesWaterlevel.getFillColor(), lvl / 0.5));
-//                                                    return super.paint(g2);
-//                                                } catch (Exception e) {
-//                                                    return false;
-//                                                }
-//                                            }
-//
-//                                        };
-//                                    } else if (surfaceShow == SURFACESHOW.WATERLEVEL1) {
-//                                        np = new NodePainting(i, surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1])), chTrianglesWaterlevel) {
-//
-//                                            @Override
-//                                            public boolean paint(Graphics2D g2) {
-//                                                int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                                float lvl = surface.getWaterlevels()[idt][t];
-//                                                if (lvl < 0.01f) {
-//                                                    return false;
-//                                                }
-//                                                g2.setColor(Color.blue);
-//                                                return super.paint(g2);
-//                                            }
-//
-//                                        };
-//                                    }
-//                                    if (np != null) {
-//                                        np.setRadius(2);
-//                                        mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, np);
-//                                    }
-//                                } catch (TransformException ex) {
-//                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-//                                }
-//
-//                            } else {
-//                                //Convert Coordinates
-//                                int[] nodes = null;
-//                                try {
-//                                    nodes = surface.getTriangleNodes()[idt];
-//                                    Coordinate[] coords = new Coordinate[4];
-//                                    for (int j = 0; j < 3; j++) {
-//                                        coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-//                                    }
-//                                    coords[3] = coords[0];//Close ring
-//                                    AreaPainting ap = new AreaPainting(idt, chTrianglesWaterlevel, gf.createLinearRing(coords)) {
-//                                        @Override
-//                                        public boolean paint(Graphics2D g2) {
-//                                            if (outlineShape == null) {
-//                                                return false;
-//                                            }
-//                                            int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                            float lvl = 0;
-//                                            try {
-//                                                lvl = surface.getWaterlevels()[idt][t];
-//                                            } catch (Exception e) {
-//                                                try {
-//                                                    lvl = surface.loadWaterlevels(idt)[t];
-//                                                } catch (Exception ex) {
-//                                                    System.err.println(ex.getLocalizedMessage());
-//                                                    //Could not find waterlevel information in file? add zero values
-//                                                    surface.getWaterlevels()[idt] = new float[surface.getNumberOfTimes()];
-//                                                    lvl = 0f;
-//                                                }
-//                                            }
-//                                            if (lvl < 0.01) {
-//                                                return false;
-//                                            }
-//                                            g2.setColor(interpolateColor(chTrianglesWaterlevel.getColor(), chTrianglesWaterlevel.getFillColor(), lvl / 0.5));
-//                                            g2.fill(outlineShape);
-//                                            return true;
-////                                    return super.paint(g2);
-//                                        }
-//                                    };
-//                                    mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, ap);
-//                                } catch (Exception exception) {
-//                                    System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
-//
-//                                    System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-//                                    System.err.println("Vertices= {" + nodes[0] + " , " + nodes[1] + "," + nodes[2]);
-//                                    System.err.println("number of vertices: " + surface.getVerticesPosition().length);
-////                                    throw exception;
-//                                }
-//                            }
-//                            if (count > maximumNumberOfSurfaceShapes) {
-//                                break;
-//                            }
-//                        }
-//                        System.out.println("add Surface shapes waterlevel: " + count);
-//                    }
-//
-//                }.start();
-//
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//
-//            mapViewer.recalculateShapes();
-//
-//            mapViewer.recomputeLegend();
-//        } else if (this.surfaceShow == SURFACESHOW.WATERLEVEL1) {
-//            if (surface.getTimes() == null) {
-//                this.surfaceShow = SURFACESHOW.NONE;
-//                return;
-//            }
-//            try {
-//                double ii = surface.getTimes().getTimeIndexDouble(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                int in = (int) ii;
-////                int ip = in + 1;
-////                float rel = (float) (ii % 1);
-//                float[][] lvls = surface.getWaterlevels();
-////                System.out.println("add Surface shapes waterlevel: " + lvls.length);
-//                for (int i = 0; i < lvls.length; i++) {
-//                    final int idt = i;
-//                    if (surface.getWaterlevels()[idt] != null) {
-//                        if (drawTrianglesAsNodes) {
-//                            double[] pos = surface.getTriangleMids()[i];
-//
-//                            NodePainting np = new NodePainting(i, surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1])), chTrianglesWaterlevel) {
-//
-//                                @Override
-//                                public boolean paint(Graphics2D g2) {
-//                                    int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                    float lvl = surface.getWaterlevels()[idt][t];
-//                                    if (lvl < 0.01f) {
-//                                        return false;
-//                                    }
-//                                    g2.setColor(Color.blue);
-//                                    return super.paint(g2);
-//                                }
-//
-//                            };
-//                            np.setRadius(2);
-//                            mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, np);
-//                        } else {
-//                            //Convert Coordinates
-//                            int[] nodes = null;
-//                            try {
-//                                nodes = surface.getTriangleNodes()[i];
-//                                Coordinate[] coords = new Coordinate[4];
-//                                for (int j = 0; j < 3; j++) {
-//                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][1], surface.getVerticesPosition()[nodes[j]][0]));
-//                                }
-//                                coords[3] = coords[0];//Close ring
-//                                AreaPainting ap = new AreaPainting(i, chTrianglesWaterlevel, gf.createLinearRing(coords)) {
-//                                    @Override
-//                                    public boolean paint(Graphics2D g2) {
-//                                        int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                        float lvl = surface.getWaterlevels()[idt][t];
-//                                        if (lvl < 0.01) {
-//                                            return false;
-//                                        }
-//                                        ColorHolder c = getColorHolderWaterLevelRelative(lvl);
-//                                        g2.setColor(c.getColor());
-//                                        return super.paint(g2);
-//                                    }
-//                                };
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, ap);
-//                            } catch (Exception exception) {
-//                                System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
-//
-//                                System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-//                                System.err.println("Vertices= {" + nodes[0] + " , " + nodes[1] + "," + nodes[2]);
-//                                System.err.println("number of vertices: " + surface.getVerticesPosition().length);
-//                                throw exception;
-//                            }
-//                        }
-//                    }
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            mapViewer.recalculateShapes();
-//            mapViewer.recomputeLegend();
-//        } else if (this.surfaceShow == SURFACESHOW.WATERLEVEL10) {
-//            if (surface.getTimes() == null) {
-//                this.surfaceShow = SURFACESHOW.NONE;
-//                return;
-//            }
-//            try {
-//                double ii = surface.getTimes().getTimeIndexDouble(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                int in = (int) ii;
-//                int ip = in + 1;
-//                float rel = (float) (ii % 1);
-//                float[][] lvls = surface.getWaterlevels();
-////                System.out.println("add Surface shapes waterlevel: " + lvls.length);
-//                for (int i = 0; i < lvls.length; i++) {
-//                    final int idt = i;
-//                    if (surface.getWaterlevels()[idt] == null) {
-//                        continue;
-//                    }
-//                    if (drawTrianglesAsNodes) {
-//                        double[] pos = surface.getTriangleMids()[i];
-//                        NodePainting np = new NodePainting(i, surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1])), chTrianglesWaterlevel) {
-//
-//                            @Override
-//                            public boolean paint(Graphics2D g2) {
-//                                int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                float lvl = surface.getWaterlevels()[idt][t];
-//                                if (lvl < 0.10f) {
-//                                    return false;
-//                                }
-//                                g2.setColor(chTrianglesWaterlevel.getColor());
-//                                return super.paint(g2);
-//                            }
-//
-//                        };
-//                        np.setRadius(2);
-//                        mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, np);
-//                    } else {
-//                        //Convert Coordinates
-//                        int[] nodes = null;
-//                        try {
-//                            nodes = surface.getTriangleNodes()[i];
-//                            Coordinate[] coords = new Coordinate[4];
-//                            for (int j = 0; j < 3; j++) {
-//                                coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][1], surface.getVerticesPosition()[nodes[j]][0]));
-//                            }
-//                            coords[3] = coords[0];//Close ring
-//                            AreaPainting ap = new AreaPainting(i, chTrianglesWaterlevel, gf.createLinearRing(coords)) {
-//                                @Override
-//                                public boolean paint(Graphics2D g2) {
-//                                    int t = surface.getTimes().getTimeIndex(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                                    float lvl = surface.getWaterlevels()[idt][t];
-//                                    if (lvl < 0.10) {
-//                                        return false;
-//                                    }
-//                                    ColorHolder c = getColorHolderWaterLevelRelative(lvl);
-//                                    g2.setColor(c.getColor());
-//                                    return super.paint(g2);
-//                                }
-//                            };
-//                            mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, ap);
-//                        } catch (Exception exception) {
-//                            System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
-//
-//                            System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-//                            System.err.println("Vertices= {" + nodes[0] + " , " + nodes[1] + "," + nodes[2]);
-//                            System.err.println("number of vertices: " + surface.getVerticesPosition().length);
-//                            throw exception;
-//                        }
-//                    }
-//                }
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            mapViewer.recalculateShapes();
-//            mapViewer.recomputeLegend();
         } else if (this.surfaceShow == SURFACESHOW.WATERLEVEL) {
             if (surface.getTimes() == null) {
                 this.surfaceShow = SURFACESHOW.NONE;
                 return;
             }
             try {
-//                double ii = surface.getTimes().getTimeIndexDouble(timeToShow/*ArrayTimeLinePipeContainer.instance.getActualTime()*/);
-//                int in = (int) ii;
-//                int ip = in + 1;
-//                float rel = (float) (ii % 1);
-//                float[][] lvls = surface.getWaterlevels();
-
                 if (shownSurfaceTriangles == null) {
                     this.surfaceShow = SURFACESHOW.NONE;
                     return;
@@ -2095,6 +1790,41 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             }
             mapViewer.recalculateShapes();
             mapViewer.recomputeLegend();
+        } else if (this.surfaceShow == SURFACESHOW.SLOPE) {
+            //Show Arrows of velocity
+            if (surface.triangle_downhilldirection == null) {
+                this.surfaceShow = SURFACESHOW.NONE;
+                return;
+            }
+            float slopeFactor = 5f;
+            try {
+                mapViewer.clearLayer(layerArrow);
+                for (int i = 0; i < surface.triangle_downhilldirection.length; i++) {
+                    try {
+
+                        //Triangle Arrow
+                        //on triangle
+                        if (surface.triangle_downhilldirection[i] == null) {
+                            continue;
+                        }
+                        float[] v = surface.triangle_downhilldirection[i];
+                        if (v[0] == 0 && v[1] == 0) {
+                            continue;
+                        }
+                        double[] mid = surface.getTriangleMids()[i];
+                        Coordinate midPoint = surface.getGeotools().toGlobal(new Coordinate(mid[0], mid[1]));
+                        Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(mid[0] + slopeFactor * v[0], mid[1] + slopeFactor * v[1]));
+                        ArrowPainting av = new ArrowPainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
+                        mapViewer.addPaintInfoToLayer(layerArrow, av);
+                    } catch (Exception exception) {
+                    }
+
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            mapViewer.recalculateShapes();
+            mapViewer.recomputeLegend();
         }
     }
 
@@ -2290,7 +2020,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         int nB_network = 0;
         int positionnull = 0;
         Particle[] ps = control.getThreadController().getParticles();
+
         if (ps != null) {
+//            System.out.println("update "+ps.length+" particle shapes");
             for (int i = 0; i < particlePaintings.length; i++) {
                 ParticleNodePainting np = particlePaintings[i];
                 Particle p = ps[i];
@@ -2310,6 +2042,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         try {
                             if (np == null) {
                                 ParticleNodePainting pnp = new ParticleNodePainting(p, i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
+                                System.out.println("create new chape " + i);
                                 particlePaintings[i] = pnp;
                                 surfaceLayer.add(pnp);
                             } else {
@@ -3412,7 +3145,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         mapViewer.clearLayer(this.layerParticleSurface);
         int index = 0;
         this.particlePaintings = new ParticleNodePainting[particles.size()];
-
+//        System.out.println("create shapes for "+particles.size()+" set particles");
         for (final Particle p : particles) {
             if (p.getPosition3d() == null || (Math.abs(p.getPosition3d().x) < 0.01 && Math.abs(p.getPosition3d().y) < 0.01)) {
                 Position3D pos = p.injectionSurrounding.getPosition3D(p.injectionPosition1D);
@@ -3455,7 +3188,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
             } else {
 
-                np = new ParticleNodePainting(p,p.getId(), new Coordinate(0, 0), chParticles);
+                np = new ParticleNodePainting(p, p.getId(), new Coordinate(0, 0), chParticles);
                 np.radius = 1;
             }
 
@@ -3498,7 +3231,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
         public ParticleNodePainting(Particle p, long id, Coordinate position, ColorHolder color) {
             super(id, position, color);
-            this.p=p;
+            this.p = p;
             this.longLat = position;
             this.positionWGS84 = new GeoPosition2D() {
 
@@ -3538,9 +3271,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 return false;
             }
             if (p.isOnSurface()) {
-                g2.setColor(Color.green);
+                g2.setColor(chParticlesSurface.color);
             } else {
-                g2.setColor(Color.blue);
+                g2.setColor(chParticlesNetwork.color);
             }
             if (p.isDeposited()) {
                 g2.setColor(Color.black);

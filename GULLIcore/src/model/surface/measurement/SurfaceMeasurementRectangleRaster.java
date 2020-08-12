@@ -133,7 +133,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         if (this.times == null) {
             throw new NullPointerException("TimeContainer in " + getClass() + " not set.");
         }
-        int timeIndex =  writeIndex;// this.times.getTimeIndex(time);
+        int timeIndex = writeIndex;// this.times.getTimeIndex(time);
         int xindex = (int) ((particle.getPosition3d().x - xmin) / xIntervalWidth);
         int yindex = (int) ((particle.getPosition3d().y - ymin) / YIntervalHeight);
 
@@ -183,6 +183,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             System.err.println("X index: " + xindex + "    pos.x=" + particle.getPosition3d().x + "    xmin=" + xmin + "     diff=" + ((particle.getPosition3d().x - xmin) + "    xIwidth=" + xIntervalWidth));
         }
     }
+
+   
 
     @Override
     public void setNumberOfMaterials(int numberOfMaterials) {
@@ -329,6 +331,14 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
     public Coordinate getMidCoordinate(int xindex, int yindex) {
         return new Coordinate(xmin + (xindex + 0.5) * xIntervalWidth, ymin + (yindex + 0.5) * YIntervalHeight);
+    }
+    
+     public int getXindexFor(double xcoord) {
+        return (int) ((xcoord - xmin) / xIntervalWidth);
+    }
+
+    public int getYIndexFor(double yCoord) {
+        return (int) ((yCoord - ymin) / YIntervalHeight);
     }
 
     /**

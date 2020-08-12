@@ -464,8 +464,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //                System.out.println("gradX: "+gradx+"\t:"+v1[2] +"-" +v0[2] +"/"+ (v1[0] - v0[0]));
                 float length = (float) Math.sqrt(gradx * gradx + grady * grady);
 
-                triangle_downhilldirection[i][0] = gradx / length;
-                triangle_downhilldirection[i][1] = grady / length;
+                triangle_downhilldirection[i][0] = -gradx / length;
+                triangle_downhilldirection[i][1] = -grady / length;
             } catch (Exception e) {
                 e.printStackTrace();
             }

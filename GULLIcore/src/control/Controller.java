@@ -876,7 +876,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 ((SparseTimeLinePipeContainer) scenario.getTimesPipe()).numberOfMaterials = maxMaterialID + 1;
             }
         }
-
+//        System.out.println("set new Particles "+allParticles.size());
+//        try{
+//            throw new Exception("Init particles "+allParticles.size());
+//        }catch(Exception e){
+//            e.printStackTrace();
+//        }
         this.setParticles(allParticles);
     }
 
