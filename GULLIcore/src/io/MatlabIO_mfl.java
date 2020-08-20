@@ -93,10 +93,15 @@ public class MatlabIO_mfl {
         int numberOfTimes = t2.getNumElements()+1;
         if(maxSeconds>0){
             for (int i = 0; i < numberOfTimes; i++) {
-                if(t2.getDouble(i)>maxSeconds){
-                    numberOfTimes=i;
-                    System.out.println("found last index is:"+i+" : "+t2.getDouble(i)+"s>"+maxSeconds+"s");
-                    break;
+                try {
+                    if (t2.getDouble(i) > maxSeconds) {
+                        numberOfTimes = i;
+                        System.out.println("found last index is:" + i + " : " + t2.getDouble(i) + "s>" + maxSeconds + "s");
+                        break;
+                    }
+                } catch (Exception e) {
+                    System.err.println("i="+i);
+                    e.printStackTrace();
                 }
             }
         }
@@ -290,7 +295,7 @@ public class MatlabIO_mfl {
                             
                             //Insert the amount of missing number of particles
                             int nparticles = particles - counterParticles;
-                            InjectionInformation inj = new InjectionInformation(p, /*1.-upstream%1.*/0 * dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 1.01, 0);//p.getLength() * 0.5,material,particlemass,  
+                            InjectionInformation inj = new InjectionInformation(p, /*1.-upstream%1.*/0 * dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 1, 0);//p.getLength() * 0.5,material,particlemass,  
                             counterParticles += nparticles;
                             injections.add(inj);
                         }

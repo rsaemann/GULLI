@@ -128,6 +128,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         HIDDEN, OUTER_BOTTOM, OUTER_RIGHT, INNER_TOP_LEFT, INNER_BOTTOM_LEFT, INNER_TOP_RIGHT, INNER_BOTTOM_RIGHT
     }
+    
+    public float maxLegendwith=0.4f;
 
     /**
      * Try to make JFreechart look like a matlab plot.
@@ -308,23 +310,23 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             panelChart.getChart().getLegend().setVisible(true);
         } else if (pos == LEGEND_POSITION.INNER_TOP_RIGHT) {
             panelChart.getChart().getLegend().setVisible(false);
-            XYTitleAnnotation annotation = new XYTitleAnnotation(0.99, 0.99, panelChart.getChart().getLegend(), RectangleAnchor.TOP_RIGHT);
-            annotation.setMaxWidth(0.4);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(1, 1, panelChart.getChart().getLegend(), RectangleAnchor.TOP_RIGHT);
+            annotation.setMaxWidth(maxLegendwith);
             panelChart.getChart().getXYPlot().addAnnotation(annotation);
         } else if (pos == LEGEND_POSITION.INNER_TOP_LEFT) {
             panelChart.getChart().getLegend().setVisible(false);
-            XYTitleAnnotation annotation = new XYTitleAnnotation(0.01, 0.99, panelChart.getChart().getLegend(), RectangleAnchor.TOP_LEFT);
-            annotation.setMaxWidth(0.4);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0, 1, panelChart.getChart().getLegend(), RectangleAnchor.TOP_LEFT);
+            annotation.setMaxWidth(maxLegendwith);
             panelChart.getChart().getXYPlot().addAnnotation(annotation);
         } else if (pos == LEGEND_POSITION.INNER_BOTTOM_RIGHT) {
             panelChart.getChart().getLegend().setVisible(false);
-            XYTitleAnnotation annotation = new XYTitleAnnotation(0.99, 0.01, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_RIGHT);
-            annotation.setMaxWidth(0.4);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(1, 0, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_RIGHT);
+            annotation.setMaxWidth(maxLegendwith);
             panelChart.getChart().getXYPlot().addAnnotation(annotation);
         } else if (pos == LEGEND_POSITION.INNER_BOTTOM_LEFT) {
             panelChart.getChart().getLegend().setVisible(false);
-            XYTitleAnnotation annotation = new XYTitleAnnotation(0.01, 0.01, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_LEFT);
-            annotation.setMaxWidth(0.4);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0, 0, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_LEFT);
+            annotation.setMaxWidth(maxLegendwith);
             panelChart.getChart().getXYPlot().addAnnotation(annotation);
         }
         StartParameters.setTimelinePanelLegendPosition(pos.ordinal());

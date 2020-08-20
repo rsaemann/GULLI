@@ -365,7 +365,7 @@ public class AnalyticalChannel {
         }
 
 //        System.out.println("Add "+mass+"kg to X="+distancesX[injectionElementIndex]);
-        injections.add(new InjectionInformation(pipes.get(injectionElementIndex), 0.5 * segmentlength, (float) mass, (int) (mass / massPerParticle), material, 0/*(injectionTimeIndex * timeintervallengthMS) / 1000.*/, 0/*timeintervallengthMS * 0.001*/));
+        injections.add(new InjectionInformation(pipes.get(injectionElementIndex), 0.5 * segmentlength, (float) mass, (int) (mass / massPerParticle), material, 0/*(injectionTimeIndex * timeintervallengthMS) / 1000.*/, -1/*timeintervallengthMS * 0.001*/));
 //        injections.add(new InjectionInformation(pipes.get(injectionElementIndex-1),  0*segmentlength, (float) mass*0.5f, (int) (mass*0.5 / massPerParticle), material, (injectionTimeIndex * timeintervallengthMS) / 1000., 0/*timeintervallengthMS * 0.001*/));
     }
 

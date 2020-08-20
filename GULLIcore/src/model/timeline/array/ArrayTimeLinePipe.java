@@ -15,7 +15,7 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     protected float h_max = 0, h_mean = 0;
     protected float mf_max = 0, mf_mean = 0; //massflux [kg/s]
     protected float c_max = 0, c_mean = 0; //concentration [kg/m³]
-    private long lastcallTime;
+    private long lastcallTime=Long.MIN_VALUE;
     private float vLastCall;
 
     public long getTimeMilliseconds(int timeIndex) {

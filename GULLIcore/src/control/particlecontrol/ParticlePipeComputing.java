@@ -1653,10 +1653,6 @@ public class ParticlePipeComputing {
         p.setSurrounding_actual(c);
 
         p.setPosition1d_actual(neuePosition);
-
-//        if (c.getClass().equals(Pipe.class)) {
-//            Pipe pipe = (Pipe) c;
-//        }
     }
 
     public double getDeltaTime() {

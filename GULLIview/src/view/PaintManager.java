@@ -1796,7 +1796,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 this.surfaceShow = SURFACESHOW.NONE;
                 return;
             }
-            float slopeFactor = 5f;
+            float slopeFactor = 2f;
             try {
                 mapViewer.clearLayer(layerArrow);
                 for (int i = 0; i < surface.triangle_downhilldirection.length; i++) {

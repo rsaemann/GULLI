@@ -894,7 +894,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     break;
                 }
             }
-
         }
     }
 

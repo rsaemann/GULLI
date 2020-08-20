@@ -1374,7 +1374,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        ny /= lengthNN;
 
         //Angle between normal and triangle velocity
-        float cos = (nx * vx + ny * vy) / (lengthNN * lengthVT);
+        
         float factorNonT;
         float lengthVN;
         float lengthPN;
@@ -1396,6 +1396,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             //Length VN
             lengthVN = lengthNN * lengthVT / lengthPN;
             if (lengthVN > 10 || lengthVN < -10) {
+                float cos = (nx * vx + ny * vy) / (lengthNN * lengthVT);
                 System.out.println("v=" + lengthVN + " m/s\tcos:" + cos);
             }
         }

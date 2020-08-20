@@ -86,6 +86,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public boolean enableminimumDiffusion = true;
     public boolean getTestSolutionForAnaComparison = false;
 
+    public static int maxNumberOfIterationLoops = 1000;
+
     /**
      * When active particles can go to the pipe system through inlets and
      * manholes.
@@ -110,10 +112,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private boolean gradientFlowstateActual = false;
 
     /**
-     * if false, the random variable for the random walk is only generated at
-     * the begin of the particle step and is kept if multiple cells are visited.
-     * if true (default), the random number is generated new on every visited
-     * cell during the timestep.
+     * Use the projected length along an edge if the edge cannot be passed by a
+     * particle. Otherwise, the movement stops abrupt at the edge which causes
+     * particles to be trapped when very close to an edge.
+     */
+    public static boolean slidealongEdges = true;
+    /**
+     * if false(default), the random variable for the random walk is only
+     * generated at the begin of the particle step and is kept if multiple cells
+     * are visited. if true , the random number is generated new on every
+     * visited cell during the timestep.
      */
     public static boolean multiTimeRandomisation = false;
 
@@ -281,13 +289,21 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         z1 = nextRandomGaussian();
         int status = 0;
         int vstatus = 0;
-        gradientFlowstateActual=false;
+        gradientFlowstateActual = false;
         while (timeLeft > 0) {
             particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
             if (enableDiffusion) {
                 // calculate diffusion 
 //                if (particlevelocity[0] != 0 && particlevelocity[1] != 0) {
                 totalvelocity = testVelocity(particlevelocity);
+                if (totalvelocity == 0 && gradientFlowForDryCells) {
+
+                    gradientFlowstateActual = true;
+                    totalvelocity = 0.01f;
+                    particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
+                    particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
+                    totalvelocity = testVelocity(particlevelocity);
+                }
 
                 if (multiTimeRandomisation) {
                     z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
@@ -330,10 +346,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     posxneu = (posxalt + particlevelocity[0] * timeLeft + dx * timeLeft / dt);
                     posyneu = (posyalt + particlevelocity[1] * timeLeft + dy * timeLeft / dt);
                     vstatus = 1;
-                    gradientFlowstateActual=false;
+                    gradientFlowstateActual = false;
                 } else {
                     if (gradientFlowForDryCells) {
-                        gradientFlowstateActual=true;
+                        gradientFlowstateActual = true;
                         totalvelocity = 0.01f;
                         particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
                         particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
@@ -495,16 +511,45 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 status = 1;
                 if (cellIDnew >= 0) {
 //                    test for velocity in this cell
-                    if ((preventEnteringDryCell &&!gradientFlowstateActual&& surface.getTriangleVelocity(cellIDnew, surface.getActualTimeIndex())[0] == 0.0)) {
+                    if (preventEnteringDryCell && !gradientFlowstateActual && surface.getTriangleVelocity(cellIDnew, surface.getActualTimeIndex())[0] == 0.0) {
                         //PArticle tries to move over the edge to a cell where it will get stuck
-                        lengthfactor *= 0.95;
-                        posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
-                        posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
-                        timeLeft -= 0.01 * dt;
+                        if (slidealongEdges) {
+                            double lengthV = Math.sqrt((posxneu - posxalt) * (posxneu - posxalt) + (posyneu - posyalt) * (posyneu - posyalt));
+                            double lengthE;
+                            double dsx = 0;
+                            double dsy = 0;
+                            if (bwindex == 0) {
+                                dsx = vertex2[0] - vertex1[0];
+                                dsy = vertex2[1] - vertex1[1];
+                            } else if (bwindex == 1) {
+                                dsx = vertex0[0] - vertex2[0];
+                                dsy = vertex0[1] - vertex2[1];
+                            } else if (bwindex == 2) {
+                                dsx = vertex0[0] - vertex1[0];
+                                dsy = vertex0[1] - vertex1[1];
+                            } else {
+                                System.err.println("wrong edge index " + bwindex);
+                            }
+//@TODO: Wrong projection
+                            lengthE = Math.sqrt((dsx * dsx + dsy * dsy));
+                            posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
+                            posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+
+                            double f = (1 - lengthfactor) * lengthE / lengthV;
+                            posxneu = posxneu + f * dsx;
+                            posyneu = posyneu + f * dsy;
+
+                        } else {
+
+                            lengthfactor *= 0.95;
+                            posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
+                            posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                            timeLeft -= 0.01 * dt;
+                        }
                         break;
                     }
 
-                    lengthfactor *= 1.001;//Make sure the particle is in the new cell
+//                    lengthfactor *= 1.001;//Make sure the particle is in the new cell
                     posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                     posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
                     timeLeft *= (1. - lengthfactor);
@@ -529,9 +574,18 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
                         //is in new
                         if (lengthfactor < 0.00001) {
+                            if(!enableDiffusion){
+                                if(verbose){
+                                    System.out.println("Particle "+p.getId()+" is tuck in cell "+cellID+" without diffusion. length:"+lengthfactor);
+                                    break;
+                                }
+                            }
                             timeLeft -= 0.01 * dt;
                             z1 = nextRandomGaussian();
                             z2 = nextRandomGaussian();
+                            if(verbose){
+                                System.out.println("generate new random numbers for particle "+p.getId());
+                            }
                         }
                         status = 3;
                     } else {
@@ -565,16 +619,44 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
                 } else {
                     //PArticle tries to move over the edge into an undefined area
-                    //Has to stay inside this cell!
-                    lengthfactor *= 0.95;
-                    posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
-                    posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                    if (slidealongEdges) {
+                        double lengthV = Math.sqrt((posxneu - posxalt) * (posxneu - posxalt) + (posyneu - posyalt) * (posyneu - posyalt));
+                        double lengthE;
+                        double dsx = 0;
+                        double dsy = 0;
+                        if (bwindex == 0) {
+                            dsx = vertex2[0] - vertex1[0];
+                            dsy = vertex2[1] - vertex1[1];
+                        } else if (bwindex == 1) {
+                            dsx = vertex0[0] - vertex2[0];
+                            dsy = vertex0[1] - vertex2[1];
+                        } else if (bwindex == 2) {
+                            dsx = vertex0[0] - vertex1[0];
+                            dsy = vertex0[1] - vertex1[1];
+                        } else {
+                            System.err.println("wrong edge index " + bwindex);
+                        }
+//@TODO: Wrong projection
+                        lengthE = Math.sqrt((dsx * dsx + dsy * dsy));
+                        posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
+                        posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+
+                        double f = (1 - lengthfactor) * lengthE / lengthV;
+                        posxneu = posxneu + f * dsx;
+                        posyneu = posyneu + f * dsy;
+
+                    } else {
+                        //Has to stay inside this cell!
+                        lengthfactor *= 0.95;
+                        posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
+                        posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                    }
                     break;
                 }
 
             }
             loopcounter++;
-            if (loopcounter > 1000) {
+            if (loopcounter > maxNumberOfIterationLoops) {
                 if (verbose) {
                     System.out.println("exceeded max loops (" + loopcounter + ") for particle " + p.getId() + " in cell " + cellID + " V=" + totalvelocity + "\t time left:" + timeLeft + "\t status=" + status + "  lengthfactor=" + lengthfactor + " \tvstatus:" + vstatus);
                 }
