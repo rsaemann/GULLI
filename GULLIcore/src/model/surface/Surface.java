@@ -1374,7 +1374,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        ny /= lengthNN;
 
         //Angle between normal and triangle velocity
-        
         float factorNonT;
         float lengthVN;
         float lengthPN;
@@ -2182,8 +2181,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             if (timeInterpolatedValues) {
                 float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
                 float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
-                tofillVelocity[0] = vt_t[0] * (timeinvFrac) + vt_tp[0] * timeFrac;
-                tofillVelocity[1] = vt_t[1] * (timeinvFrac) + vt_tp[1] * timeFrac;
+                tofillVelocity[0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
+                tofillVelocity[1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
             } else {
                 float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);
                 tofillVelocity[0] = vt_t[0];
@@ -2998,12 +2997,11 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         // barycentric koordinate weighing for velocity calculation
         // x, y = triangle coordinates, p = searched point
         double[] w = new double[4];
-        double atri = ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
-        w[1] = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / atri;
-        w[2] = ((py - y2) * (x0 - x2) + (x2 - px) * (y0 - y2)) / atri;
+        w[3] = ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+        w[1] = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / w[3];
+        w[2] = ((py - y2) * (x0 - x2) + (x2 - px) * (y0 - y2)) / w[3];
         w[0] = 1. - w[1] - w[2];
 
-        w[3] = atri;
         return w;
     }
 
@@ -3011,9 +3009,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         // barycentric koordinate weighing for velocity calculation
         // x, y = triangle coordinates, p = searched point
         double[] w = barycentricWeights;
-        double atri = ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
-        w[1] = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / atri;
-        w[2] = ((py - y2) * (x0 - x2) + (x2 - px) * (y0 - y2)) / atri;
+        w[0] = ((y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2));
+        w[1] = ((y1 - y2) * (px - x2) + (x2 - x1) * (py - y2)) / w[0];
+        w[2] = ((py - y2) * (x0 - x2) + (x2 - px) * (y0 - y2)) / w[0];
         w[0] = 1. - w[1] - w[2];
     }
 

@@ -86,7 +86,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public boolean enableminimumDiffusion = true;
     public boolean getTestSolutionForAnaComparison = false;
 
-    public static int maxNumberOfIterationLoops = 1000;
+    public static int maxNumberOfIterationLoops = 10000;
 
     /**
      * When active particles can go to the pipe system through inlets and
@@ -116,7 +116,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * particle. Otherwise, the movement stops abrupt at the edge which causes
      * particles to be trapped when very close to an edge.
      */
-    public static boolean slidealongEdges = true;
+    public static boolean slidealongEdges = false;
     /**
      * if false(default), the random variable for the random walk is only
      * generated at the begin of the particle step and is kept if multiple cells
@@ -130,6 +130,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     /////Arrays to be filled from other functions. so no extra allocation is needed.
     private double[] particlevelocity = new double[2];
     private final double[] temp_barycentricWeights = new double[3];
+    private final double[] temp_barycentricWeightsOld = new double[3];
     private final double[][] tempVertices = new double[3][3];
     private double[] tempDiff = new double[2];
 
@@ -147,11 +148,15 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private int loopcounter;
     private double z1, z2;
     private double sqrt2dtDx, sqrt2dtDy;
-    private double[] st01, st12, st20;
+    private double[] st01=new double[2], st12=new double[2], st20=new double[2];
     private double lengthfactor = 1;
+    private double temp_distance;
     private int bwindex = -1;
     private int cellIDnew;
-    double ds = Math.sqrt(2 * D.Dxx * dt);
+    private double ds = Math.sqrt(2 * D.Dxx * dt);
+    private double dx, dy;
+    private int vstatus = 0;
+//    private int outOfTriangleCounter = 0;
 
     public ParticleSurfaceComputing2D(Surface surface, int threadIndex) {
         this.surface = surface;
@@ -200,29 +205,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     @Override
     public void moveParticle(Particle p) {
-//        try {
-//            System.out.println("move particle");
-//            status = 0;
         checkSurrounding(p);
-//            status = 10;
-//            moveParticle2(p);
         moveParticleCellIterative(p);
 
         if (p.isOnSurface()) {
-//                status = 31;
             surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
         }
-//            status = 20;
-//            if (allowWashToPipesystem) {
-////                status = 21;
-//                washToPipesystem(p, p.surfaceCellID);
-//            }
-//            status = 30;
-
-//            status = 40;
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
     }
 
 //    /**
@@ -275,10 +263,111 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //        p.surfaceCellID = surface.getTargetTriangleID(p, p.surfaceCellID, posxalt, posyalt, posxneu, posyneu, 10, temp_barycentricWeights, tempVertices);
 //
 //    }
+    /**
+     * Calculates the new position based on the current cell flow field. Stores
+     * the result in the posxneu & posyneu variable.
+     *
+     * @return false if particle does not move;
+     */
+    public boolean calcPrePosition(Particle p) {
+        particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
+        if (enableDiffusion) {
+            // calculate diffusion 
+//                if (particlevelocity[0] != 0 && particlevelocity[1] != 0) {
+            totalvelocity = testVelocity(particlevelocity);
+            if (totalvelocity == 0 && gradientFlowForDryCells) {
+
+                gradientFlowstateActual = true;
+                totalvelocity = 0.01f;
+                particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
+                particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
+                totalvelocity = testVelocity(particlevelocity);
+            }
+
+            if (multiTimeRandomisation) {
+                z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+                z1 = nextRandomGaussian();
+            }
+//                if (false) {
+//                    //For testing 
+////                    ds=Math.sqrt(2*timeLeft*D.Dxx);
+//
+//                    posxneu = posxalt + particlevelocity[0] * timeLeft + ds * z1 * timeLeft / dt;
+//                    posyneu = posyalt + particlevelocity[1] * timeLeft + ds * z2 * timeLeft / dt;
+//
+////                    p.setPosition3D(posxneu, posyneu);
+////////                    
+////                    return;
+//                } else 
+            if (totalvelocity > 0.001) {
+                //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
+                tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
+
+                sqrt2dtDx = sqrt2dt * tempDiff[0];
+                sqrt2dtDy = sqrt2dt * tempDiff[1];
+
+                // random walk step
+                // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
+                dx = (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy);
+//                    if(p.getId()==18525&&timeLeft==dt){
+//                        System.out.println("particle "+p.getId()+" is moved dx="+dx+" with z1="+(int)(z1*1000)+", z2="+(int)(z2*1000));
+//                    }
+                dy = (particlevelocity[1] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[0] / totalvelocity) * z2 * sqrt2dtDy);
+
+//                    dx=sqrt2dtDx*z1;
+//                    dy=sqrt2dtDy*z2;
+                posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
+                posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
+//                    vstatus = 1;
+                gradientFlowstateActual = false;
+            } else {
+                if (gradientFlowForDryCells) {
+                    gradientFlowstateActual = true;
+                    totalvelocity = 0.01f;
+                    particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
+                    particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
+                    posxneu = (posxalt + particlevelocity[0]);
+                    posyneu = (posyalt + particlevelocity[1]);
+                    timeLeft -= 0.01 * dt;
+//                        vstatus = 2;
+                }
+                if (enableminimumDiffusion) {
+                    //tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
+                    sqrt2dtDx = sqrt2dt * 0.001 * timeLeft / dt;
+                    sqrt2dtDy = sqrt2dt * 0.001 * timeLeft / dt;
+
+                    // random walk simulation
+//                        double z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+//                        double z1 = nextRandomGaussian();
+                    posxneu = (posxalt + particlevelocity[0] * timeLeft + (2 * z1 * sqrt2dtDx));
+                    posyneu = (posyalt + particlevelocity[1] * timeLeft + (2 * z2 * sqrt2dtDy));
+                    timeLeft -= 0.5 * dt;
+                    vstatus = 3;
+                } else {
+                    timeLeft -= 0.1 * dt;
+                    if (!gradientFlowForDryCells) {
+                        posxneu = posxalt;
+                        posyneu = posyalt;
+                        vstatus = 4;
+                        return false;
+                    } else {
+//                        vstatus = 5;
+//                        break;
+                    }
+                }
+
+            }
+        } else {
+            posxneu = (posxalt + particlevelocity[0] * timeLeft);// only advection
+            posyneu = (posyalt + particlevelocity[1] * timeLeft);// only advection
+            vstatus = 6;
+        }
+        return true;
+    }
+
     private void moveParticleCellIterative(Particle p) {
 
         // get the particle velocity (most computation time used here)
-//        System.out.println("particle.velocity="+particlevelocity[0]+", "+particlevelocity[1]);
         posxalt = p.getPosition3d().x;
         posyalt = p.getPosition3d().y;
 
@@ -287,107 +376,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         loopcounter = 0;
         z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
         z1 = nextRandomGaussian();
-        int status = 0;
-        int vstatus = 0;
+        status = 0;
+        vstatus = 0;
         gradientFlowstateActual = false;
         while (timeLeft > 0) {
-            particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
-            if (enableDiffusion) {
-                // calculate diffusion 
-//                if (particlevelocity[0] != 0 && particlevelocity[1] != 0) {
-                totalvelocity = testVelocity(particlevelocity);
-                if (totalvelocity == 0 && gradientFlowForDryCells) {
-
-                    gradientFlowstateActual = true;
-                    totalvelocity = 0.01f;
-                    particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
-                    particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
-                    totalvelocity = testVelocity(particlevelocity);
-                }
-
-                if (multiTimeRandomisation) {
-                    z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-                    z1 = nextRandomGaussian();
-                }
-                if (false) {
-                    //For testing 
-//                    ds=Math.sqrt(2*timeLeft*D.Dxx);
-
-                    posxneu = posxalt + particlevelocity[0] * timeLeft + ds * z1 * timeLeft / dt;
-                    posyneu = posyalt + particlevelocity[1] * timeLeft + ds * z2 * timeLeft / dt;
-
-//                    p.setPosition3D(posxneu, posyneu);
-////                    
-//                    return;
-                } else if (Math.abs(totalvelocity) > 0.001) {
-//                    z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-//                    z1 = nextRandomGaussian();
-//z1=0;
-//z2=0;
-//                    p.addMovingLength(totalvelocity * dt);
-                    //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
-                    tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
-
-                    sqrt2dtDx = sqrt2dt * tempDiff[0];// * timeLeft / dt;
-                    sqrt2dtDy = sqrt2dt * tempDiff[1];// * timeLeft / dt;
-
-                    // random walk step
-//                posxneu = (posxalt + particlevelocity[0] * timeLeft + (2 * z1 * sqrt2dtDx));
-//                posyneu = (posyalt + particlevelocity[1] * timeLeft + (2 * z2 * sqrt2dtDy));
-                    // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
-                    double dx = (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy);
-//                    if(p.getId()==18525&&timeLeft==dt){
-//                        System.out.println("particle "+p.getId()+" is moved dx="+dx+" with z1="+(int)(z1*1000)+", z2="+(int)(z2*1000));
-//                    }
-                    double dy = (particlevelocity[1] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[0] / totalvelocity) * z2 * sqrt2dtDy);
-
-//                    dx=sqrt2dtDx*z1;
-//                    dy=sqrt2dtDy*z2;
-                    posxneu = (posxalt + particlevelocity[0] * timeLeft + dx * timeLeft / dt);
-                    posyneu = (posyalt + particlevelocity[1] * timeLeft + dy * timeLeft / dt);
-                    vstatus = 1;
-                    gradientFlowstateActual = false;
-                } else {
-                    if (gradientFlowForDryCells) {
-                        gradientFlowstateActual = true;
-                        totalvelocity = 0.01f;
-                        particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
-                        particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
-                        posxneu = (posxalt + particlevelocity[0]);
-                        posyneu = (posyalt + particlevelocity[1]);
-                        timeLeft -= 0.1 * dt;
-                        vstatus = 2;
-                    }
-                    if (enableminimumDiffusion) {
-                        //tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
-                        sqrt2dtDx = sqrt2dt * 0.001 * timeLeft / dt;
-                        sqrt2dtDy = sqrt2dt * 0.001 * timeLeft / dt;
-
-                        // random walk simulation
-//                        double z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-//                        double z1 = nextRandomGaussian();
-                        posxneu = (posxalt + particlevelocity[0] * timeLeft + (2 * z1 * sqrt2dtDx));
-                        posyneu = (posyalt + particlevelocity[1] * timeLeft + (2 * z2 * sqrt2dtDy));
-                        timeLeft -= 0.5 * dt;
-                        vstatus = 3;
-                    } else {
-                        timeLeft -= 0.1 * dt;
-                        if (!gradientFlowForDryCells) {
-                            posxneu = posxalt;
-                            posyneu = posyalt;
-                            vstatus = 4;
-                            break;
-                        } else {
-                            vstatus = 5;
-                            break;
-                        }
-                    }
-
-                }
-            } else {
-                posxneu = (posxalt + particlevelocity[0] * timeLeft);// only advection
-                posyneu = (posyalt + particlevelocity[1] * timeLeft);// only advection
-                vstatus = 6;
+            if (!calcPrePosition(p)) {
+                break;
             }
 
             // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
@@ -401,11 +395,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             vertex2 = surface.getVerticesPosition()[node2];
 
             //Test if new position is inside the old cell
+//            GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxalt, posyalt);
             GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
             if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
                 //Stays inside this cell
                 p.surfaceCellID = cellID;
-                p.setPosition3D(posxneu, posyneu);
+//                p.setPosition3D(posxneu, posyneu);
                 if (allowWashToPipesystem) {
                     washToPipesystem(p, cellID);
                 }
@@ -433,27 +428,31 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
              */
             lengthfactor = 1;
             bwindex = -1;
-            st01 = GeometryTools.lineIntersectionST(posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
-            st12 = GeometryTools.lineIntersectionST(posxalt, posyalt, posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
-            st20 = GeometryTools.lineIntersectionST(posxalt, posyalt, posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1]);
+//            outOfTriangleCounter = 0;
+            st01 = GeometryTools.lineIntersectionST(st01,posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
+            st12 = GeometryTools.lineIntersectionST(st12,posxalt, posyalt, posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
+            st20 = GeometryTools.lineIntersectionST(st20,posxalt, posyalt, posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1]);
 
             //if barycentric weight index 1 is negative, the partivle crossed edge opposite side 0-2 into neighbour no.1 and so on...
-            if (st12[0] > 0 && st12[0] < 1) {
+            if (st12[0] >= 0 && st12[0] <= 1) {
                 //Search for intersection between travl path and first edge
                 lengthfactor = st12[0];
                 bwindex = 0;
+//                outOfTriangleCounter++;
             }
-            if (st20[0] > 0 && st20[0] < 1) {
+            if (st20[0] >= 0 && st20[0] <= 1) {
                 if (lengthfactor > st20[0]) {
                     bwindex = 1;
                     lengthfactor = st20[0];
                 }
+//                outOfTriangleCounter++;
             }
-            if (st01[0] > 0 && st01[0] < 1) {
+            if (st01[0] >= 0 && st01[0] <= 1) {
                 if (lengthfactor > st01[0]) {
                     lengthfactor = st01[0];
                     bwindex = 2;
                 }
+//                outOfTriangleCounter++;
             }
             if (lengthfactor >= 1) {
                 if (verbose) {
@@ -540,7 +539,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                             posyneu = posyneu + f * dsy;
 
                         } else {
+//                            double distance = Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
 
+//                            lengthfactor -= 0.01 / distance; //always have a distance of 1cm from the boundary;
                             lengthfactor *= 0.95;
                             posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                             posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
@@ -554,10 +555,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
                     timeLeft *= (1. - lengthfactor);
                     cellID = cellIDnew;
-                    status = 2;
+//                    status = 2;
                     if (allowWashToPipesystem) {
-                        boolean transferedToPipe = washToPipesystem(p, cellID);
-                        if (transferedToPipe) {
+                        if (washToPipesystem(p, cellID)) {
                             return;
                         }
                     }
@@ -574,21 +574,25 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
                         //is in new
                         if (lengthfactor < 0.00001) {
-                            if(!enableDiffusion){
-                                if(verbose){
-                                    System.out.println("Particle "+p.getId()+" is tuck in cell "+cellID+" without diffusion. length:"+lengthfactor);
+                            if (!enableDiffusion) {
+                                if (verbose) {
+                                    System.out.println("Particle " + p.getId() + " is tuck in cell " + cellID + " without diffusion. length:" + lengthfactor);
                                     break;
                                 }
                             }
                             timeLeft -= 0.01 * dt;
                             z1 = nextRandomGaussian();
                             z2 = nextRandomGaussian();
-                            if(verbose){
-                                System.out.println("generate new random numbers for particle "+p.getId());
+                            if (verbose) {
+                                System.out.println("generate new random numbers for particle " + p.getId());// + "   out of triangles:" + outOfTriangleCounter);
                             }
                         }
-                        status = 3;
+//                        status = 3;
                     } else {
+//                        if (verbose) {
+//                                System.out.println("move particle closer to new cell " + cellID + "   out of triangles:" + outOfTriangleCounter + "  was in old? " + temp_barycentricWeightsOld[0] + "," + temp_barycentricWeightsOld[1] + "," + temp_barycentricWeightsOld[2]);
+//                               System.out.println("  s12=" + st12[0] +"  s20=" + st20[0] +"  s01=" + st01[0] + "  is in new " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+//                            }
                         //SOmetimes the particles jump more than the possible length inside a triangle, because only on edge is considered (e.g. at sharp angle corners. -> need to transfer the particle back into the triangle.
 //                        System.out.println("out of target cell: " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
                         if (temp_barycentricWeights[0] > -0.01 && temp_barycentricWeights[1] > -0.01 & temp_barycentricWeights[2] > -0.01) {
@@ -606,9 +610,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                                 posyneu = posyneu * 0.9 + surface.getTriangleMids()[cellID][1] * 0.1;
                                 status = 5;
                             }
-                            timeLeft -= 0.01 * dt;
+//                            timeLeft -= 0.01 * dt;
+
                         } else {
-//                            System.out.println("totally out of target. set to cell center "+ temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+                            if (verbose) {
+                                System.out.println("totally out of target. set to cell center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+                            }
                             //Particle is completely outside of this cell. Transfer it to the cell center.
 //                            System.out.println(loopcounter + ", p" + p.getId() + " is not in new one " + df.format(bwnew[0]) + ", " + df.format(bwnew[1]) + ", " + df.format(bwnew[2]));
                             posxneu = surface.getTriangleMids()[cellID][0];
@@ -620,7 +627,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 } else {
                     //PArticle tries to move over the edge into an undefined area
                     if (slidealongEdges) {
-                        double lengthV = Math.sqrt((posxneu - posxalt) * (posxneu - posxalt) + (posyneu - posyalt) * (posyneu - posyalt));
+                        temp_distance = Math.sqrt((posxneu - posxalt) * (posxneu - posxalt) + (posyneu - posyalt) * (posyneu - posyalt));
                         double lengthE;
                         double dsx = 0;
                         double dsy = 0;
@@ -641,13 +648,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                         posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
 
-                        double f = (1 - lengthfactor) * lengthE / lengthV;
+                        double f = (1 - lengthfactor) * lengthE / temp_distance;
                         posxneu = posxneu + f * dsx;
                         posyneu = posyneu + f * dsy;
 
                     } else {
                         //Has to stay inside this cell!
-                        lengthfactor *= 0.95;
+                        temp_distance = Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
+
+                        lengthfactor -= 0.01 / temp_distance;
+//                        lengthfactor *= 0.95;
                         posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                         posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
                     }
@@ -671,7 +681,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         p.surfaceCellID = cellID;
     }
 
-    private void checkSurrounding(Particle p) {
+    public void checkSurrounding(Particle p) {
 
         if (p.getPosition3d() != null && p.surfaceCellID >= 0) {
             //Everything ok.

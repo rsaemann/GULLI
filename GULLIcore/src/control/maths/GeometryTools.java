@@ -323,6 +323,32 @@ public class GeometryTools {
 
         return new double[]{s, t};
     }
+    
+        /**
+     *
+     * @param p0_x
+     * @param p0_y
+     * @param p1_x
+     * @param p1_y
+     * @param p2_x
+     * @param p2_y
+     * @param p3_x
+     * @param p3_y
+     * @return [0:factor along p0-p1,1:factor along p2-p3]
+     */
+    public static double[] lineIntersectionST(double[] tempReturn,double p0_x, double p0_y, double p1_x, double p1_y,
+            double p2_x, double p2_y, double p3_x, double p3_y) {
+        double s1_x, s1_y, s2_x, s2_y;
+        s1_x = p1_x - p0_x;
+        s1_y = p1_y - p0_y;
+        s2_x = p3_x - p2_x;
+        s2_y = p3_y - p2_y;
+
+        tempReturn[1] = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+        tempReturn[0] = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+
+        return tempReturn;
+    }
 
     /**
      *
@@ -440,17 +466,17 @@ public class GeometryTools {
     public static double[] fillBarycentricWeighing(double[] tofill, double x1, double x2, double x3, double y1, double y2, double y3, double px, double py) {
         // barycentric koordinate weighing for velocity calculation
         // x, y = triangle coordinates, p = searched point
-        double[] w = tofill;
+//        double[] w = tofill;
 
-        w[0] = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
-        w[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
-        w[2] = 1 - w[0] - w[1];
+        tofill[0] = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
+        tofill[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
+        tofill[2] = 1 - tofill[0] - tofill[1];
 
-        double wenorm_ges = w[0] + w[1] + w[2];
-        if (wenorm_ges > 1.01 || wenorm_ges < 0.99) {
-            System.err.println("weighting is not 1!");
-        }
-        return w;
+//        double wenorm_ges = tofill[0] + tofill[1] + tofill[2];
+//        if (wenorm_ges > 1.01 || wenorm_ges < 0.99) {
+//            System.err.println("weighting is not 1!");
+//        }
+        return tofill;
     }
 
     /**

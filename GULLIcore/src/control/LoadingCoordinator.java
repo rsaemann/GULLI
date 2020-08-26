@@ -239,6 +239,7 @@ public class LoadingCoordinator {
                     changedSurface = false;
                     if (loadingpipeNetwork == LOADINGSTATUS.REQUESTED) {
                         network = loadPipeNetwork();
+                        changedPipeNetwork=true;
                         if (network == null) {
                             loadingpipeNetwork = LOADINGSTATUS.ERROR;
                             System.err.println("Network could not be loaded.");
@@ -264,6 +265,7 @@ public class LoadingCoordinator {
                     // Loading Surface topology
                     if (loadingSurface == LOADINGSTATUS.REQUESTED) {
                         surface = loadSurface();
+                        changedSurface=true;
                     }
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
@@ -273,6 +275,14 @@ public class LoadingCoordinator {
                     if (changedSurface || changedPipeNetwork) {
                         if (surface != null && network != null) {
                             try {
+                                if (verbose) {
+                                    System.out.println("ReMapping surface&network");
+                                }
+                                if (changedSurface) {
+                                    manhRefs = null;
+                                    inletRefs = null;
+                                }
+                                surface.clearNamedCapacityMap();
                                 mapManholes(surface, network);
                                 mapStreetInlets(surface, network);
                             } catch (TransformException ex) {
@@ -294,10 +304,10 @@ public class LoadingCoordinator {
 
                         }
                     }
-                    if (loadingSurfaceVelocity==LOADINGSTATUS.LOADED){
-                        ParticlePipeComputing.spillOutToSurface=true;
-                    }else {
-                        ParticlePipeComputing.spillOutToSurface=false;
+                    if (loadingSurfaceVelocity == LOADINGSTATUS.LOADED) {
+                        ParticlePipeComputing.spillOutToSurface = true;
+                    } else {
+                        ParticlePipeComputing.spillOutToSurface = false;
                         System.err.println("Disabled Spill to surface because no Velocity field was loaded.");
                     }
 
@@ -700,21 +710,21 @@ public class LoadingCoordinator {
                     }
                 }
             }
-            start = System.currentTimeMillis();
-            if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
-                surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
-            } else {
-                //Create moore neighbours
-                action.description = "Create Moore Neighbours File MOORE.dat";
-                fireLoadingActionUpdate();
-                fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
-                if (!fileTriangleMooreNeighbours.exists()) {
-                    System.out.println("Create new Moore Neighbours File @" + fileTriangleMooreNeighbours);
-                    HE_SurfaceIO.writeMooreTriangleNeighbours(surf.getTriangleNodes(), surf.getVerticesPosition().length, fileTriangleMooreNeighbours);
-                    System.out.println("Created new Moore Neighbours File " + fileTriangleMooreNeighbours);
-                    surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
-                }
-            }
+//            start = System.currentTimeMillis();
+//            if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
+//                surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
+//            } else {
+//                //Create moore neighbours
+//                action.description = "Create Moore Neighbours File MOORE.dat";
+//                fireLoadingActionUpdate();
+//                fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
+//                if (!fileTriangleMooreNeighbours.exists()) {
+//                    System.out.println("Create new Moore Neighbours File @" + fileTriangleMooreNeighbours);
+//                    HE_SurfaceIO.writeMooreTriangleNeighbours(surf.getTriangleNodes(), surf.getVerticesPosition().length, fileTriangleMooreNeighbours);
+//                    System.out.println("Created new Moore Neighbours File " + fileTriangleMooreNeighbours);
+//                    surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
+//                }
+//            }
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInformation injection : manualInjections) {
                 if (injection.getPosition() != null) {
