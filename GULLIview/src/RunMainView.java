@@ -144,8 +144,10 @@ public class RunMainView {
                         ParticleSurfaceComputing2D.allowWashToPipesystem = true;
                         ParticleSurfaceComputing2D.gradientFlowForDryCells=true;
                         ParticlePipeComputing.spillOutToSurface = true;
+                        SurfaceMeasurementRaster.synchronizeMeasures=true;
 
                         control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+                        control.getScenario().getMeasurementsSurface().continousMeasurements=true;
                         System.out.println("Changed sampling to simgel sample at end of interval");
 
                         //3 injections scenario 
@@ -153,14 +155,14 @@ public class RunMainView {
                             System.err.println("There is no Pipe network for the simulation.");
                             return;
                         }
-                        int anzahl = 100000 / 3;
+                        int anzahl = 100_000 / 3;
                         Manhole mh = control.getNetwork().getManholeByName("RI09S515");
                         if (mh != null) {
                             System.out.println("add 3 Injection at " + mh);
                             try {
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
-                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl+1, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
                             } catch (NullPointerException nullPointerException) {
                                 System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
                             }

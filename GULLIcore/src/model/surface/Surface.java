@@ -202,6 +202,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     public HashMap<String, Capacity> capacityNames;
 
+    private double[][] actualVelocity;
+    private boolean[] actualVelocitySet;
+    private boolean actualVelocityUsed = false;
+
     /**
      *
      * @param vertices positions of nodes [nodecount][3]
@@ -225,6 +229,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        this.triangleCapacity = new HashMap<>(100);
 //        
 //        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
+
+        actualVelocity = new double[triangleNodes.length][2];
+        actualVelocitySet = new boolean[actualVelocity.length];
 
         this.paths = new HashMap<>(100);
         calculateDownhillSlopes();
@@ -1485,6 +1492,13 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         this.timeFrac = timeIndex % 1.;
         this.timeinvFrac = 1. - timeFrac;
         this.timeIndexInt = (int) this.timeIndex;
+//        if (actualVelocity != null) {
+//            actualVelocity = new double[triangleNodes.length][];
+//        }
+        if (actualVelocityUsed && actualVelocitySet != null) {
+            actualVelocitySet = new boolean[triangleNodes.length];
+            actualVelocityUsed = false;
+        }
     }
 
     public GeoTools getGeotools() {
@@ -2175,14 +2189,33 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     public double[] getParticleVelocity2D(Particle p, int triangleID, double[] tofillVelocity, double[] tofillBarycentric) {
         if (!spatialInterpolationVelocity) {
-            if (tofillVelocity == null) {
-                tofillVelocity = new double[2];
-            }
+//            if (tofillVelocity == null) {
+//                tofillVelocity = new double[2];
+//            }
             if (timeInterpolatedValues) {
-                float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
-                float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
-                tofillVelocity[0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
-                tofillVelocity[1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
+//                if (actualVelocity == null) {
+//                    actualVelocity = new double[triangleNodes.length][];
+//                }
+                if (!actualVelocitySet[triangleID]) {
+                    synchronized (actualVelocity[triangleID]) {
+                        if (!actualVelocitySet[triangleID]) {
+                            float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                            float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+//                            tofillVelocity[0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
+//                            tofillVelocity[1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
+                            actualVelocity[triangleID][0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
+                            actualVelocity[triangleID][1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
+
+//                            actualVelocity[triangleID][0] = tofillVelocity[0];
+//                            actualVelocity[triangleID][1] = tofillVelocity[1];
+                            actualVelocitySet[triangleID] = true;
+                            actualVelocityUsed = true;
+                        }
+                    }
+                }
+                tofillVelocity[0] = actualVelocity[triangleID][0];
+                tofillVelocity[1] = actualVelocity[triangleID][1];
+
             } else {
                 float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);
                 tofillVelocity[0] = vt_t[0];
@@ -2192,10 +2225,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
 
         double[] velocityParticle = tofillVelocity;
-        if (tofillVelocity == null) {
-//            System.out.println("create new double[2] for particle velocity on surface");
-            velocityParticle = new double[2];
-        }
+//        if (tofillVelocity == null) {
+////            System.out.println("create new double[2] for particle velocity on surface");
+//            velocityParticle = new double[2];
+//        }
         //Get node IDs for the triangle
         int t0 = triangleNodes[triangleID][0];
         int t1 = triangleNodes[triangleID][1];

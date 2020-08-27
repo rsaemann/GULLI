@@ -960,7 +960,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     public void loadSurface(Surface surface, Object caller) {
         this.surface = surface;
         if (surface != null) {
-            if (surface.getMeasurementRaster() == null) {
+            if (surface.getMeasurementRaster() == null&&surface.getTimes()!=null) {
                 surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getParticleThreads().length));
             }
         }

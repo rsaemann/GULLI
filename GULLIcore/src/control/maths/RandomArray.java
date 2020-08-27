@@ -49,17 +49,17 @@ public class RandomArray {
      */
     public static boolean alwaysGenerateNew = true;
 
-    /**
-     * Use the SplittableRandom class instead of standard math.util.Random to
-     * generate random numbers (~3x faster)
-     *
-     */
-    public static boolean fastGaussianGeneration = true;
+//    /**
+//     * Use the SplittableRandom class instead of standard math.util.Random to
+//     * generate random numbers (~3x faster)
+//     *
+//     */
+//    public static boolean fastGaussianGeneration = true;
     private boolean haveNextFastGaussian;
     private double nextFastGaussian;
 
     private final long seed;
-    private Random r;
+//    private Random r;
     private SplittableRandom sr;
     public static int numberOfGaussLoops = 0;
     public static int numberOfDoubleLoops = 0;
@@ -69,20 +69,21 @@ public class RandomArray {
     public RandomArray(long seed, int numberOfValues) {
         cachesize = numberOfValues;
         this.seed = seed;
-        r = new Random(seed);
+//        r = new Random(seed);
         sr = new SplittableRandom(seed);
         if (!alwaysGenerateNew) {
 
             gaussians = new double[cachesize];
             uniform = new double[cachesize];
             for (int i = 0; i < gaussians.length; i++) {
-                gaussians[i] = r.nextGaussian();
+                gaussians[i] = nextfastGaussian();//r.nextGaussian();
             }
             for (int i = 0; i < uniform.length; i++) {
-                uniform[i] = r.nextDouble();
+                uniform[i] = sr.nextDouble();//r.nextDouble();
             }
             initialized = true;
-            r = new Random(seed);
+//            r = new Random(seed);
+            sr = new SplittableRandom(seed);
         }
 
         index = 0;
@@ -92,16 +93,16 @@ public class RandomArray {
 
     private void initRandomArrays(int numberOfValues) {
 
-        r = new Random(seed);
+//        r = new Random(seed);
         sr = new SplittableRandom(seed);
         gaussians = new double[cachesize];
         uniform = new double[cachesize];
         for (int i = 0; i < gaussians.length; i++) {
-            if (fastGaussianGeneration) {
+//            if (fastGaussianGeneration) {
                 gaussians[i] = nextfastGaussian();
-            } else {
-                gaussians[i] = r.nextGaussian();
-            }
+//            } else {
+//                gaussians[i] = r.nextGaussian();
+//            }
         }
         for (int i = 0; i < uniform.length; i++) {
             uniform[i] = sr.nextDouble();
@@ -116,10 +117,10 @@ public class RandomArray {
 
     public double nextGaussian() {
         if (alwaysGenerateNew) {
-            if (fastGaussianGeneration) {
+//            if (fastGaussianGeneration) {
                 return nextfastGaussian();
-            }
-            return r.nextGaussian();
+//            }
+//            return r.nextGaussian();
         } else if (!initialized) {
             initRandomArrays(cachesize);
         }
@@ -134,10 +135,10 @@ public class RandomArray {
 
     public double nextDouble() {
         if (alwaysGenerateNew) {
-            if (fastGaussianGeneration) {
+//            if (fastGaussianGeneration) {
                 return sr.nextDouble();
-            }
-            return r.nextDouble();
+//            }
+//            return r.nextDouble();
         } else if (!initialized) {
             initRandomArrays(cachesize);
         }
@@ -160,7 +161,7 @@ public class RandomArray {
 
     public void reset() {
         if (alwaysGenerateNew) {
-            r.setSeed(seed);
+//            r.setSeed(seed);
             sr = new SplittableRandom(seed);
 
         }

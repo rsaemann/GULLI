@@ -326,6 +326,7 @@ public class GeometryTools {
     
         /**
      *
+     * @param tempReturn
      * @param p0_x
      * @param p0_y
      * @param p1_x
@@ -360,6 +361,7 @@ public class GeometryTools {
      * @param p2_y
      * @param p3_x
      * @param p3_y
+     * @param tofill
      * @return [0:factor along p0-p1,1:factor along p2-p3]
      */
     public static double[] lineIntersectionST(double p0_x, double p0_y, double p1_x, double p1_y,
@@ -453,6 +455,7 @@ public class GeometryTools {
 
     /**
      *
+     * @param tofill  
      * @param x1
      * @param x2
      * @param x3
@@ -461,9 +464,8 @@ public class GeometryTools {
      * @param y3
      * @param px
      * @param py
-     * @return
      */
-    public static double[] fillBarycentricWeighing(double[] tofill, double x1, double x2, double x3, double y1, double y2, double y3, double px, double py) {
+    public static void fillBarycentricWeighing(double[] tofill, double x1, double x2, double x3, double y1, double y2, double y3, double px, double py) {
         // barycentric koordinate weighing for velocity calculation
         // x, y = triangle coordinates, p = searched point
 //        double[] w = tofill;
@@ -471,12 +473,6 @@ public class GeometryTools {
         tofill[0] = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
         tofill[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
         tofill[2] = 1 - tofill[0] - tofill[1];
-
-//        double wenorm_ges = tofill[0] + tofill[1] + tofill[2];
-//        if (wenorm_ges > 1.01 || wenorm_ges < 0.99) {
-//            System.err.println("weighting is not 1!");
-//        }
-        return tofill;
     }
 
     /**

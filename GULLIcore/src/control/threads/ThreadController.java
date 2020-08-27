@@ -537,8 +537,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 if (control.getSurface().getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
                     TriangleMeasurement tm = ((SurfaceMeasurementTriangleRaster) control.getSurface().getMeasurementRaster()).monitor[pt.threadIndex];
                     System.out.println("Break lock of " + pt + "  on " + tm);
-                    if (tm != null) {
-                        tm.lock.unlock();
+                    try {
+                        if (tm != null) {
+                            tm.lock.unlock();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
             }
