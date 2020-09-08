@@ -465,14 +465,20 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 double[] v0 = vertices[triangleNodes[i][0]];
                 double[] v1 = vertices[triangleNodes[i][1]];
                 double[] v2 = vertices[triangleNodes[i][2]];
+                
+                double[] a=new double[]{v2[0]-v0[0],v1[1]-v0[1]};
+                double[] b=new double[]{v1[0]-v0[0],v1[1]-v0[1]};
+                
+                double asquare=a[0]*a[0]+a[1]*a[1];
+                double bsquare=b[0]*b[0]+b[1]*b[1];
+                
+                double x=(0.5)*(((v2[2]-v0[2])*a[0]/asquare)+(v1[2]-v0[2])*b[0]/bsquare);
+                double y=(0.5)*(((v2[2]-v0[2])*a[1]/asquare)+(v1[2]-v0[2])*b[1]/bsquare);
+                
+                double length=Math.sqrt((x*x)+(y*y));
 
-                float gradx = (float) ((v1[2] - v0[2]) / (v1[0] - v0[0]) + ((v2[2] - v0[2]) / (v2[0] - v0[0])));
-                float grady = (float) ((v1[2] - v0[2]) / (v1[1] - v0[1]) + ((v2[2] - v0[2]) / (v2[1] - v0[1])));
-//                System.out.println("gradX: "+gradx+"\t:"+v1[2] +"-" +v0[2] +"/"+ (v1[0] - v0[0]));
-                float length = (float) Math.sqrt(gradx * gradx + grady * grady);
-
-                triangle_downhilldirection[i][0] = -gradx / length;
-                triangle_downhilldirection[i][1] = -grady / length;
+                triangle_downhilldirection[i][0] = (float) (-x / length);
+                triangle_downhilldirection[i][1] = (float) (-y / length);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1258,7 +1264,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public float[] getTriangleVelocity(int triangleID, double indexDouble) {
-        return getTriangleVelocity(triangleID, indexDouble, null);
+        return getTriangleVelocity(triangleID, indexDouble, new float[2]);
     }
 
     public float[] getTriangleVelocity(int triangleID, double indexDouble, float[] tofill) {
@@ -1272,6 +1278,15 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
         tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
         return tofill;
+    }
+    
+    public void getTriangleVelocity(int triangleID, double indexDouble, double[] tofill) {
+
+        float[] lower = getTriangleVelocity(triangleID)[(int) indexDouble];
+        float[] upper = getTriangleVelocity(triangleID)[(int) indexDouble + 1];
+        float frac = (float) (indexDouble % 1f);
+        tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
+        tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
     }
 
     public float[] getTriangleVelocity(int triangleID, int timeindexInt, float frac, float[] tofill) {

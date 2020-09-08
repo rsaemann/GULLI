@@ -133,7 +133,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private ColorHolder[] chVelocity, chWaterlevels;
     private ParticleNodePainting[] particlePaintings;
     private boolean updatingParticleNodePaintings = false;
-    private ArrayList<ParticleNodePainting> arrayListSurface, arrayListNetwork;
+//    private ArrayList<ParticleNodePainting> arrayListSurface, arrayListNetwork;
+    ParticleNodePainting[] arraySurface, arrayNetwork;
     private final Coordinate zeroCoordinate = new Coordinate(0, 0, 0);
 
     public static int maximumNumberOfParticleShapes = Integer.MAX_VALUE;
@@ -163,7 +164,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     String layerHistory = "MIDS";
     public final String layerSurfaceContaminated = layerTriangle + "CONT";
     public final String layerSurfaceWaterlevel = layerTriangle + "WL";
-    public final String layerSurfaceGrid = layerTriangle + "RID";
+    public final String layerSurfaceGrid = layerTriangle + "GRID";
+    public final String layerSurfaceSlope = layerTriangle + "SLOPE";
     public final String layerSurfaceMeasurementRaster = layerTriangle + "MRaster";
     private final ColorHolder chTriangleMeasurement = new ColorHolder(Color.orange, "Triangle probe");
     private final DoubleColorHolder chTrianglesContaminated = new DoubleColorHolder(Color.orange, Color.yellow, "Surface contaminated");
@@ -200,6 +202,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public int repaintPerLoops = 300;
 
     public final Thread repaintThread;
+    public boolean pauseSimulationWhilePaining = false;
 
 //    private final ArrayList<Particle> particles = new ArrayList<>();
     /**
@@ -219,7 +222,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY, SLOPE;
+        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY, SLOPE, VERTEX_HEIGHT;
     };
     private SURFACESHOW surfaceShow = SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -1713,18 +1716,29 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 if (surface.getTriangleVelocity() != null) {
                     for (int i = 0; i < surface.triangleNodes.length; i++) {
                         if (showSurfaceTriangle != null && showSurfaceTriangle[i] == false) {
+
                             continue;
                         }
                         //Triangle Arrow
                         //on triangle
                         if (surface.getTriangleVelocity()[i] == null) {
+//                            if(i==17854){
+//                                System.out.println("velocity "+i+" is null");
+//                            }
                             continue;
                         }
                         float[] v = surface.getTriangleVelocity()[i][ti];
-                        if (Math.abs(v[0]) < 0.0001 && Math.abs(v[1]) < 0.0001) {
+                        float[] v2 = surface.getTriangleVelocity()[i][ti + 1];
+//                        if(i==17854){
+//                                System.out.println("velocity "+i+" at ["+ti+"] is ("+v[0]+", "+v[1]+")");
+//                            }
+                        if (Math.abs(v[0]) < 0.0001 && Math.abs(v[1]) < 0.0001 && Math.abs(v2[0]) < 0.0001) {
+//                            if(i==17854){
+//                                System.out.println("velocity "+i+" is very small at timeindex "+ti);
+//                            }
                             continue;
                         }
-                        float[] v2 = surface.getTriangleVelocity()[i][ti + 1];
+//                        float[] v2 = surface.getTriangleVelocity()[i][ti + 1];
                         float vx = v[0] + (v2[0] - v[0]) * frac;
                         float vy = v[1] + (v2[1] - v[1]) * frac;
 
@@ -1819,6 +1833,32 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     } catch (Exception exception) {
                     }
 
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            mapViewer.recalculateShapes();
+            mapViewer.recomputeLegend();
+        } else if (this.surfaceShow == SURFACESHOW.VERTEX_HEIGHT) {
+            //Show Arrows of velocity
+            if (surface.vertices == null) {
+                this.surfaceShow = SURFACESHOW.NONE;
+                return;
+            }
+            try {
+                mapViewer.clearLayer(layerArrow);
+                for (int i = 0; i < surface.getTriangleNodes().length; i++) {
+                    for (int j = 0; j < 3; j++) {
+
+                        int id = surface.getTriangleNodes()[i][j];
+                        try {
+                            double[] mid = surface.vertices[id];
+                            Coordinate midPoint = surface.getGeotools().toGlobal(new Coordinate(mid[0], mid[1]));
+                            LabelPainting av = new LabelPainting(id, chSpillover, new GeoPosition(midPoint), new String[]{mid[2] + ""});
+                            mapViewer.addPaintInfoToLayer(layerLabelWaterlevel, av);
+                        } catch (Exception exception) {
+                        }
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -2004,16 +2044,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             networkLayer.setVisibleInLegende(true);
             networkLayer.setVisibleInMap(true);
         }
-        surfaceLayer.clear();
-        networkLayer.clear();
-        if (arrayListNetwork == null) {
-            arrayListNetwork = new ArrayList<>(particlePaintings.length);
-        }
-        if (arrayListSurface == null) {
-            arrayListSurface = new ArrayList<>(particlePaintings.length);
-        }
-        arrayListNetwork.clear();
-        arrayListSurface.clear();
+//        surfaceLayer.clear();
+//        networkLayer.clear();
+//        if (arrayListNetwork == null) {
+//            arrayListNetwork = new ArrayList<>(particlePaintings.length);
+//        }
+//        if (arrayListSurface == null) {
+//            arrayListSurface = new ArrayList<>(particlePaintings.length);
+//        }
+//        arrayListNetwork.clear();
+//        arrayListSurface.clear();
 
 //        Iterator<NodePainting> it = particlePaintings.iterator();
         int nb_surface = 0;
@@ -2022,18 +2062,17 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         Particle[] ps = control.getThreadController().getParticles();
 
         if (ps != null) {
+            if (arraySurface == null || arraySurface.length != ps.length) {
+                arraySurface = new ParticleNodePainting[ps.length];
+                arrayNetwork = new ParticleNodePainting[ps.length];
+                networkLayer.setPaintElements(arrayNetwork);//arrayListNetwork.toArray(new ParticleNodePainting[arrayListNetwork.size()]));
+                surfaceLayer.setPaintElements(arraySurface);//arrayListSurface.toArray(new ParticleNodePainting[arrayListSurface.size()]));
+            }
 //            System.out.println("update "+ps.length+" particle shapes");
             for (int i = 0; i < particlePaintings.length; i++) {
                 ParticleNodePainting np = particlePaintings[i];
                 Particle p = ps[i];
-//            NodePainting np = it.next();
-//            if (i % 10000 == 0) {
-//                System.out.println("particle " + i);
-//            }
-                // TODO: only update the shapes position instead of creaing alwas a new version.
                 if (p.isActive()) {
-//                System.out.println("First surface particle " + p.isActive() + "   where?" + p.getSurrounding_actual() + "  surface?" + p.isOnSurface() + "  id:" + p.surfaceCellID+"  position:"+ p.getPosition3d());
-
                     if (p.getPosition3d() == null || Double.isNaN(p.getPosition3d().x)) {
                         positionnull++;
                         continue;
@@ -2042,18 +2081,21 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         try {
                             if (np == null) {
                                 ParticleNodePainting pnp = new ParticleNodePainting(p, i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
-                                System.out.println("create new chape " + i);
+//                                System.out.println("create new chape " + i);
                                 particlePaintings[i] = pnp;
                                 surfaceLayer.add(pnp);
+                                arraySurface[nb_surface] = pnp;
                             } else {
                                 geoToolsSurface.toGlobal(p.getPosition3d(), np.longLat, true);
                                 np.setColor(chParticlesSurface);
                                 np.updateFromCoordinate();
-                                arrayListSurface.add(np);
+//                                arrayListSurface.add(np);
+                                arraySurface[nb_surface] = np;
                             }
+
                             nb_surface++;
                         } catch (Exception ex) {
-//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     } else {
                         try {
@@ -2062,13 +2104,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 ParticleNodePainting pnp = new ParticleNodePainting(p, i, pos.lonLatCoordinate(), chParticlesNetwork);
                                 particlePaintings[i] = pnp;
                                 networkLayer.add(pnp);
+                                arrayNetwork[nB_network] = pnp;
                             } else {
                                 //only change coordinate
                                 np.longLat = pos.lonLatCoordinate();
 //                            geoToolsNetwork.toGlobal(pos.get3DCoordinate(), np.longLat, true);
                                 np.setColor(chParticlesNetwork);
                                 np.updateFromCoordinate();
-                                arrayListNetwork.add(np);
+//                                arrayListNetwork.add(np);
+                                arrayNetwork[nB_network] = np;
                             }
 
                             nB_network++;
@@ -2080,10 +2124,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     np.setColor(null);
                 }
             }
-        }
 
-        networkLayer.setPaintElements(arrayListNetwork.toArray(new ParticleNodePainting[arrayListNetwork.size()]));
-        surfaceLayer.setPaintElements(arrayListSurface.toArray(new ParticleNodePainting[arrayListSurface.size()]));
+        }
 
 //        surfaceLayer.flush();
 //        System.out.println("surface:" + surface + ", netweork:" + network + ",  kaputt:" + positionnull + "  " + surfaceLayer.size() + "+" + networkLayer.size());
@@ -2635,7 +2677,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         this.surfaceShow = surfaceshow;
         this.mapViewer.clearLayer(layerSurfaceContaminated);
         this.mapViewer.clearLayer(layerSurfaceWaterlevel);
-        this.mapViewer.clearLayer(layerSurfaceGrid);
+
+        if (surfaceshow != SURFACESHOW.GRID) {
+            this.mapViewer.clearLayer(layerSurfaceGrid);
+        }
         this.mapViewer.clearLayer(layerSurfaceMeasurementRaster);
         this.mapViewer.clearLayer(layerLabelWaterlevel);
 
@@ -2941,6 +2986,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         if (this.surfaceShow == SURFACESHOW.WATERLEVEL) {
             //Will draw themselfs dependent on actual time
             return;
+        } else if (this.surfaceShow == SURFACESHOW.GRID) {
+            //Will draw themselfs dependent on actual time
+            return;
         }
         this.setSurfaceShow(surfaceShow);
     }
@@ -3094,11 +3142,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     @Override
     public void simulationSTEPFINISH(long loop, Object caller) {
         if (loop % repaintPerLoops == 0) {
-            synchronized (repaintThread) {
-                //run garbage collector to prevent hanging on stopped Particlethreads. They are stopped by the GC and are sometimes not correctly reinitialized (locks on MeasurementRaster.TriangleMeasurements are not correctly released).
-//                System.gc();
-
-                repaintThread.notifyAll();
+            if (pauseSimulationWhilePaining) {
+                orderParticlesPainting();
+                mapViewer.recalculateShapes();
+                updateLabel();
+                mapViewer.repaint();
+            } else {
+                synchronized (repaintThread) {
+                    repaintThread.notifyAll();
+                }
             }
         }
     }
@@ -3275,9 +3327,13 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             } else {
                 g2.setColor(chParticlesNetwork.color);
             }
+            if (p.drymovement) {
+                g2.setColor(Color.red);
+            }
             if (p.isDeposited()) {
                 g2.setColor(Color.black);
             }
+
             try {
                 super.paint(g2);
             } catch (OutOfMemoryError e) {

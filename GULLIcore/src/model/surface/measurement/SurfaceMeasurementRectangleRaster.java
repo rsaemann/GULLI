@@ -170,7 +170,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                         particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
                     } catch (Exception e) {
                         //this arrays seems not to be initialized by another thread. wait some time for completion.
-                        Thread.sleep(10);
+                        Thread.sleep(20);
+                        if(particlecounter[xindex][yindex]!=null)
                         particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
                     }
                 }

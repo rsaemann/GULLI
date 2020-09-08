@@ -316,13 +316,28 @@ public class GeoTools {
     }
 
     public void toGlobal(Coordinate geomUTM, Coordinate global, boolean longitudeFirst) throws TransformException {
+       
         JTS.transform(geomUTM, global, transform_utm2wgs);
+        
         if (longitudeFirst == globalLongitudeFirst) {
             //Nothing to change
         } else {
             double x = global.x;
             global.x = global.y;
             global.y = x;
+        }
+    }
+    
+     public void toGlobal(double[] geomUTM, double[] global, boolean longitudeFirst) throws TransformException {
+       
+        transform_utm2wgs.transform(geomUTM, 0, global, 0, 1);
+        
+        if (longitudeFirst == globalLongitudeFirst) {
+            //Nothing to change
+        } else {
+            double x = global[0];
+            global[0] = global[1];
+            global[0] = x;
         }
     }
 

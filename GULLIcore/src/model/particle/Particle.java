@@ -92,6 +92,8 @@ public class Particle {
      * -1:waiting, 0:inactive; 10: pipenetwork 20:surface; 30:underground.
      */
     public byte status = -1;   //-10 left simulation, -1 waiting,0=inactive, 10=pipenetwork , 20=surface, 30=Underground, 
+    
+    public boolean drymovement=false;
 
     private boolean active = false;
 

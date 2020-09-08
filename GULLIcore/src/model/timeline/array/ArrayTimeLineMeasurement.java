@@ -107,6 +107,13 @@ public class ArrayTimeLineMeasurement {
 
     }
 
+    /**
+     * The mass in kg in the whole pipe at this timestamp.
+     * If continuous sampling is enabled, this calculates the mean mass of the sampling interval.
+     * @param temporalIndex
+     * @param materialIndex
+     * @return mass of this material
+     */
     public float getMass(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
         float mass = (float) (container.mass_type[index][materialIndex] / (container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));

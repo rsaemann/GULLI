@@ -83,10 +83,30 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     protected DiffusionCalculator2D D = new DiffusionCalculator2D();
     public boolean enableDiffusion = true;
-    public boolean enableminimumDiffusion = true;
+    public boolean enableminimumDiffusion = false;
     public boolean getTestSolutionForAnaComparison = false;
 
-    public static int maxNumberOfIterationLoops = 10000;
+    /**
+     * if true the velocity in a cell is calculated at the entrance time. This
+     * is slower than using the time of the movement step start.
+     */
+    public static boolean useSubdividedTimestamps = true;
+
+    /**
+     * If a velocity is larger than this value, the speed is limited to this
+     * value [meters / second]
+     */
+    public static double maxVelocity = 5;
+
+    /**
+     * minimum velocity [m/s] if particles are in cells with slower velocity,
+     * the slope direction is used with this speed.
+     */
+    public static double dryFlowVelocity = 0.005;
+    
+    public static double dryWaterlevel=0.005;
+
+    public static int maxNumberOfIterationLoops = 1000;
 
     /**
      * When active particles can go to the pipe system through inlets and
@@ -127,12 +147,21 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     public static int numberOfErrors = 0;
 
+    /**
+     * Create new random numbers for the random walk step every movement step
+     */
+    public static boolean randomizeEveryLoop = false;
+
     /////Arrays to be filled from other functions. so no extra allocation is needed.
     private double[] particlevelocity = new double[2];
     private final double[] temp_barycentricWeights = new double[3];
     private final double[] temp_barycentricWeightsOld = new double[3];
     private final double[][] tempVertices = new double[3][3];
     private double[] tempDiff = new double[2];
+    private double[] tempProjection = new double[2];
+    private float[] tempVelocity = new float[2];
+
+    private double[] tempPosLow = new double[3], tempPosUp = new double[3];
 
     private double posxalt, posyalt, posxneu, posyneu, totalvelocity, timeLeft;
 
@@ -156,6 +185,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double ds = Math.sqrt(2 * D.Dxx * dt);
     private double dx, dy;
     private int vstatus = 0;
+
+    private boolean calculateVelocityPosition = true;
+    private boolean isprojecting = false;
 //    private int outOfTriangleCounter = 0;
 
     public ParticleSurfaceComputing2D(Surface surface, int threadIndex) {
@@ -267,44 +299,69 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * Calculates the new position based on the current cell flow field. Stores
      * the result in the posxneu & posyneu variable.
      *
+     * @param p
      * @return false if particle does not move;
      */
     public boolean calcPrePosition(Particle p) {
-        particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
-        if (enableDiffusion) {
-            // calculate diffusion 
-//                if (particlevelocity[0] != 0 && particlevelocity[1] != 0) {
-            totalvelocity = testVelocity(particlevelocity);
-            if (totalvelocity == 0 && gradientFlowForDryCells) {
-
-                gradientFlowstateActual = true;
-                totalvelocity = 0.01f;
-                particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
-                particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
-                totalvelocity = testVelocity(particlevelocity);
-            }
-
-//            if (multiTimeRandomisation) {
-//                z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-//                z1 = nextRandomGaussian();
+        if (useSubdividedTimestamps) {
+            double timeIndexD = surface.getTimeIndexDouble((long) (surface.getActualTime() + (dt - timeLeft) * 1000));
+//            System.out.println("P="+p.getId());
+//            if (p.getId() == 121650) {
+//                System.out.print("loop " + loopcounter + " timeleft: " + timeLeft + "  time: " + (long) (surface.getActualTime() + (dt - timeLeft) * 1000) + "\t-> index: " + timeIndexD);
 //            }
-//                if (false) {
-//                    //For testing 
-////                    ds=Math.sqrt(2*timeLeft*D.Dxx);
+            surface.getTriangleVelocity(cellID, timeIndexD, particlevelocity);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);           
+        } else {
+            particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
+        }
+
+        totalvelocity = testVelocity(particlevelocity);
+//        if (p.getId() == 121650) {
+//            System.out.println("\tv=" + totalvelocity);
+//        }
+        if (enableDiffusion) {
+            // calculate with diffusion 
+            if (totalvelocity < dryFlowVelocity) {
+                if (gradientFlowForDryCells) {
+                    gradientFlowstateActual = true;
+                    totalvelocity = dryFlowVelocity;
+                    particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
+                    particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
+                    posxneu = (posxalt + particlevelocity[0] * timeLeft);// only advection
+                    posyneu = (posyalt + particlevelocity[1] * timeLeft);// only advection
+                }
+                p.drymovement = true;
+            } else {
+                gradientFlowstateActual = false;
+                p.drymovement = false;
+//            }
 //
-//                    posxneu = posxalt + particlevelocity[0] * timeLeft + ds * z1 * timeLeft / dt;
-//                    posyneu = posyalt + particlevelocity[1] * timeLeft + ds * z2 * timeLeft / dt;
-//
-////                    p.setPosition3D(posxneu, posyneu);
-////////                    
-////                    return;
-//                } else 
-            if (totalvelocity > 0.001) {
+////            if (multiTimeRandomisation) {
+////                z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+////                z1 = nextRandomGaussian();
+////            }
+////            if (true) {
+////                //For testing constant flowfield
+//////                    ds=Math.sqrt(2*timeLeft*D.Dxx);
+////
+////                posxneu = posxalt + particlevelocity[0] * timeLeft + ds * z1 * timeLeft / dt;
+////                posyneu = posyalt + particlevelocity[1] * timeLeft + ds * z2 * timeLeft / dt;
+////
+////                p.setPosition3D(posxneu, posyneu);
+//////////                    
+////                return false;
+////            } else
+//            if (totalvelocity > 0.001) {
+
                 //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
                 tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
 
                 sqrt2dtDx = sqrt2dt * tempDiff[0];
                 sqrt2dtDy = sqrt2dt * tempDiff[1];
+
+                if (loopcounter==1||randomizeEveryLoop) {
+                    z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+                    z1 = nextRandomGaussian();
+                }
 
                 // random walk step
                 // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991"
@@ -317,49 +374,67 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
                 posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
 
-                gradientFlowstateActual = false;
-            } else {
+            }
+//        }
+//        else {
+////                p.drymovement = true;
+//                if (gradientFlowForDryCells) {
+//                    gradientFlowstateActual = true;
+//                    totalvelocity = dryFlowVelocity;
+//                    particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
+//                    particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
+//                    posxneu = (posxalt + particlevelocity[0]);
+//                    posyneu = (posyalt + particlevelocity[1]);
+//                    timeLeft -= 0.01 * dt;
+////                        vstatus = 2;
+//                } else {
+//                    return false;
+//                }
+//                if (enableminimumDiffusion) {
+//                    //tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
+//                    sqrt2dtDx = sqrt2dt * 0.001 * timeLeft / dt;
+//                    sqrt2dtDy = sqrt2dt * 0.001 * timeLeft / dt;
+//
+//                    // random walk simulation
+////                        double z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+////                        double z1 = nextRandomGaussian();
+//                    posxneu = (posxalt + particlevelocity[0] * timeLeft + (2 * z1 * sqrt2dtDx));
+//                    posyneu = (posyalt + particlevelocity[1] * timeLeft + (2 * z2 * sqrt2dtDy));
+//                    timeLeft -= 0.5 * dt;
+//                    vstatus = 3;
+//                } else {
+//                    //No diffusion, 
+//                    timeLeft -= 0.01 * dt;
+//                    if (gradientFlowForDryCells) {
+//                        posxneu = posxalt;
+//                        posyneu = posyalt;
+//                        vstatus = 4;
+//                        return false;
+//                    } else {
+////                        vstatus = 5;
+////                        break;
+//                    }
+//                }
+
+//            }
+        } else {
+            if (totalvelocity < dryFlowVelocity) {
                 if (gradientFlowForDryCells) {
                     gradientFlowstateActual = true;
-                    totalvelocity = 0.01f;
+                    totalvelocity = dryFlowVelocity;
                     particlevelocity[0] = surface.getTriangle_downhilldirection()[cellID][0] * totalvelocity;
                     particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
-                    posxneu = (posxalt + particlevelocity[0]);
-                    posyneu = (posyalt + particlevelocity[1]);
-                    timeLeft -= 0.01 * dt;
-//                        vstatus = 2;
                 }
-                if (enableminimumDiffusion) {
-                    //tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
-                    sqrt2dtDx = sqrt2dt * 0.001 * timeLeft / dt;
-                    sqrt2dtDy = sqrt2dt * 0.001 * timeLeft / dt;
-
-                    // random walk simulation
-//                        double z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-//                        double z1 = nextRandomGaussian();
-                    posxneu = (posxalt + particlevelocity[0] * timeLeft + (2 * z1 * sqrt2dtDx));
-                    posyneu = (posyalt + particlevelocity[1] * timeLeft + (2 * z2 * sqrt2dtDy));
-                    timeLeft -= 0.5 * dt;
-                    vstatus = 3;
-                } else {
-                    timeLeft -= 0.1 * dt;
-                    if (!gradientFlowForDryCells) {
-                        posxneu = posxalt;
-                        posyneu = posyalt;
-                        vstatus = 4;
-                        return false;
-                    } else {
-//                        vstatus = 5;
-//                        break;
-                    }
-                }
-
+                p.drymovement = true;
+            } else {
+                p.drymovement = false;
+                gradientFlowstateActual = false;
             }
-        } else {
             posxneu = (posxalt + particlevelocity[0] * timeLeft);// only advection
             posyneu = (posyalt + particlevelocity[1] * timeLeft);// only advection
             vstatus = 6;
         }
+
         return true;
     }
 
@@ -372,16 +447,29 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         timeLeft = dt;
         cellID = p.surfaceCellID;
         loopcounter = 0;
-        z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
-        z1 = nextRandomGaussian();
+//        z2 = nextRandomGaussian();           // random number to simulate random walk (lagrangean transport)
+//        z1 = nextRandomGaussian();
         status = 0;
+        calculateVelocityPosition = true;
+        isprojecting = false;
 //        vstatus = 0;
         gradientFlowstateActual = false;
         while (timeLeft > 0) {
-
-            if (!calcPrePosition(p)) {
+            loopcounter++;
+            if (loopcounter > maxNumberOfIterationLoops) {
+                if (verbose) {
+                    System.out.println("exceeded max loops (" + loopcounter + ") for particle " + p.getId() + " in cell " + cellID + " V=" + totalvelocity + "\t time left:" + timeLeft + "\t status=" + status + "  lengthfactor=" + lengthfactor + " \tvstatus:" + vstatus + "  projecting?" + isprojecting);
+                }
                 break;
             }
+
+            if (calculateVelocityPosition) {
+
+                if (!calcPrePosition(p)) {
+                    return;
+                }
+            }
+            calculateVelocityPosition = true;
 
             // Berechnung: welches ist das neue triangle, die funktion "getTargetTriangleID" setzt ggf. auch die x und y werte der position2d neu
             // da eine Veränderung durch Modellränder vorkommen kann
@@ -393,42 +481,15 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             vertex1 = surface.getVerticesPosition()[node1];
             vertex2 = surface.getVerticesPosition()[node2];
 
-//            //Test if new position is inside the old cell
-//            GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxalt, posyalt);
-//            if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
-//                System.out.println(loopcounter + "  was    not in old " + temp_barycentricWeightsOld[0] + ", " + temp_barycentricWeightsOld[1] + ", " + temp_barycentricWeightsOld[2]);
-//
-//                posxalt = posxalt * 0.9 + surface.getTriangleMids()[cellID][0] * 0.1;
-//                posyalt = posyalt * 0.9 + surface.getTriangleMids()[cellID][1] * 0.1;
-//                GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxalt, posyalt);
-//                if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
-//                    System.out.println(loopcounter + "  is still not in old " + temp_barycentricWeightsOld[0] + ", " + temp_barycentricWeightsOld[1] + ", " + temp_barycentricWeightsOld[2]);
-//                }
-//            }
             GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
             if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
                 //Stays inside this cell
                 p.surfaceCellID = cellID;
-//                p.setPosition3D(posxneu, posyneu);
                 if (allowWashToPipesystem) {
                     washToPipesystem(p, cellID);
                 }
                 break;
             }
-//            if (Double.isNaN(temp_barycentricWeights[0])) {
-//                //on an edge
-//                if (verbose) {
-//                    System.out.println("On an edge. to target cell center");
-//                }
-//                posxneu = surface.getTriangleMids()[p.surfaceCellID][0];
-//                posyneu = surface.getTriangleMids()[p.surfaceCellID][1];
-//                cellID = p.surfaceCellID;
-//                if (allowWashToPipesystem) {
-//                    washToPipesystem(p, cellID);
-//                }
-//                break;
-//            }
-            //else it is somewhere outside the cell. We have to transform it back to the edge
             /**
              * The lengthfactor multiplied with the movement vector hits exactly
              * the edge of the cell.
@@ -465,11 +526,14 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //                System.out.println("moveto center in loop " + loopcounter + "  " + st12[0] + ", " + st20[0] + ", " + st01[0] + ";\t bw:" + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
                 posxneu = posxneu * 0.9 + surface.getTriangleMids()[cellID][0] * 0.1;
                 posyneu = posyneu * 0.9 + surface.getTriangleMids()[cellID][1] * 0.1;
-                GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
-                if (temp_barycentricWeights[0] < 0 || temp_barycentricWeights[1] < 0 || temp_barycentricWeights[2] < 0) {
+                GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
+                if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
+//                    if (verbose) {
+//temp_distance=Math.sqrt(posxneu)
                     if (verbose) {
-                        System.out.println("reset to cell center");
+                        System.out.println("reset to cell center of " + cellID + " in loop " + loopcounter + "  BWs were:" + temp_barycentricWeights[0] + ", " + temp_barycentricWeights[1] + ", " + temp_barycentricWeights[2] + " \t ST:" + st12[0] + ", " + st20[0] + ", " + st01[0] + ", ");
                     }
+//                    }
                     //Particle is somewhere far away from its cell. reset the position to cell center.
                     posxneu = surface.getTriangleMids()[cellID][0];
                     posyneu = surface.getTriangleMids()[cellID][1];
@@ -478,6 +542,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 if (allowWashToPipesystem) {
                     washToPipesystem(p, cellID);
                 }
+                status = 30;
                 break;
             } else {
                 //this is the edge to the new cell no.?
@@ -526,122 +591,169 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 if (cellIDnew >= 0) {
                     status = 1;
 //                    test for velocity in this cell
-                    if (preventEnteringDryCell && !gradientFlowstateActual && surface.getTriangleVelocity(cellIDnew, surface.getActualTimeIndex())[0] == 0.0) {
-                        //PArticle tries to move over the edge to a cell where it will get stuck
-                        if (slidealongEdges) {
-                            double lengthV = Math.sqrt((posxneu - posxalt) * (posxneu - posxalt) + (posyneu - posyalt) * (posyneu - posyalt));
-                            double lengthE;
-                            double dsx = 0;
-                            double dsy = 0;
-                            if (bwindex == 0) {
-                                dsx = vertex2[0] - vertex1[0];
-                                dsy = vertex2[1] - vertex1[1];
-                            } else if (bwindex == 1) {
-                                dsx = vertex0[0] - vertex2[0];
-                                dsy = vertex0[1] - vertex2[1];
-                            } else if (bwindex == 2) {
-                                dsx = vertex0[0] - vertex1[0];
-                                dsy = vertex0[1] - vertex1[1];
-                            } else {
-                                System.err.println("wrong edge index " + bwindex);
+                    if (preventEnteringDryCell && !gradientFlowstateActual) {
+                        int timeIndex = surface.getTimeIndex((long) (surface.getActualTime() + (dt - timeLeft) * 1000));
+                        tempVelocity = surface.getTriangleVelocity(cellIDnew, timeIndex);
+                        if (tempVelocity[0] == 0 && tempVelocity[1] == 0) {
+                            tempVelocity = surface.getTriangleVelocity(cellIDnew, timeIndex + 1);
+                            if (tempVelocity[0] == 0 && tempVelocity[1] == 0) {
+                                //PArticle tries to move over the edge to a cell where it will get stuck
+                                if (slidealongEdges && !isprojecting) {
+                                    double f;
+                                    if (bwindex == 0) {
+                                        f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1], tempProjection);
+                                        tempPosLow = vertex1;
+                                        tempPosUp = vertex2;
+                                    } else if (bwindex == 1) {
+                                        f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1], tempProjection);
+                                        tempPosLow = vertex2;
+                                        tempPosUp = vertex0;
+                                    } else if (bwindex == 2) {
+                                        f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1], tempProjection);
+                                        tempPosLow = vertex0;
+                                        tempPosUp = vertex1;
+                                    } else {
+                                        System.err.println("wrong edge index " + bwindex);
+                                        f = 0;
+                                    }
+                                    if (f < 0) {
+                                        cellIDnew = surface.getNeighbours()[cellID][(bwindex + 2) % 3];
+                                        if (cellIDnew >= 0) {
+                                            //transfere a bit to the direction of the cell center
+                                            posxneu = tempPosLow[0] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][0];
+                                            posyneu = tempPosLow[1] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][1];
+                                        } else { //Stay inside this cell. move abit away from the edge
+                                            calculateVelocityPosition = false;
+                                            isprojecting = true;
+                                            status = 1001;
+                                            posxneu = tempProjection[0];
+                                            posyneu = tempProjection[1];
+                                            continue;
+                                        }
+                                    } else if (f > 1) {
+                                        cellIDnew = surface.getNeighbours()[cellID][(bwindex + 1) % 3];
+                                        if (cellIDnew >= 0) {
+                                            //transfere a bit to the direction of the cell center
+                                            posxneu = tempPosUp[0] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][0];
+                                            posyneu = tempPosUp[1] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][1];
+                                        } else {
+                                            calculateVelocityPosition = false;
+                                            isprojecting = true;
+                                            status = 1001;
+                                            posxneu = tempProjection[0];
+                                            posyneu = tempProjection[1];
+                                            continue;
+                                        }
+                                    } else {
+                                        //Stay inside this cell. move abit away from the edge
+                                        posxneu = tempProjection[0] * 0.99 + 0.01 * surface.getTriangleMids()[cellID][0];
+                                        posyneu = tempProjection[1] * 0.99 + 0.01 * surface.getTriangleMids()[cellID][1];
+                                        p.surfaceCellID = cellID;
+                                        p.setPosition3D(posxneu, posyneu);
+                                        return;
+                                    }
+
+                                    calculateVelocityPosition = false;
+                                    isprojecting = true;
+                                    status = 100;
+                                    continue;
+                                } else {
+                                    temp_distance = totalvelocity * timeLeft;//Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
+
+                                    lengthfactor -= 0.01 / temp_distance; //always have a distance of 1cm from the boundary;
+                                    lengthfactor *= 0.95;
+                                    posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
+                                    posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                                    timeLeft -= (1. - lengthfactor);
+                                    status = 11;
+                                    break;
+                                }
                             }
-//@TODO: Wrong projection
-                            lengthE = Math.sqrt((dsx * dsx + dsy * dsy));
-                            posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
-                            posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
-
-                            double f = (1 - lengthfactor) * lengthE / lengthV;
-                            posxneu = posxneu + f * dsx;
-                            posyneu = posyneu + f * dsy;
-                            status = 10;
-                        } else {
-                            temp_distance = totalvelocity * timeLeft;//Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
-
-                            lengthfactor -= 0.01 / temp_distance; //always have a distance of 1cm from the boundary;
-                            lengthfactor *= 0.95;
-                            posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
-                            posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
-                            timeLeft -= (1. - lengthfactor);
-                            status = 11;
                         }
-                        break;
                     }
 
-                    lengthfactor *= 1.01;//Make sure the particle is in the new cell
+                    if (!isprojecting) {
+                        lengthfactor *= 1.01;//Make sure the particle is in the new cell
+                    }
                     posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                     posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
                     timeLeft *= (1. - lengthfactor);
-                    cellID = cellIDnew;
+//                    cellID = cellIDnew;
                     status = 2;
                     if (allowWashToPipesystem) {
-                        if (washToPipesystem(p, cellID)) {
+                        if (washToPipesystem(p, cellIDnew)) {
                             return;
                         }
                     }
 
                     //test if new cell contains position
-                    node0 = surface.getTriangleNodes()[cellID][0];
-                    node1 = surface.getTriangleNodes()[cellID][1];
-                    node2 = surface.getTriangleNodes()[cellID][2];
+                    node0 = surface.getTriangleNodes()[cellIDnew][0];
+                    node1 = surface.getTriangleNodes()[cellIDnew][1];
+                    node2 = surface.getTriangleNodes()[cellIDnew][2];
 
                     vertex0 = surface.getVerticesPosition()[node0];
                     vertex1 = surface.getVerticesPosition()[node1];
                     vertex2 = surface.getVerticesPosition()[node2];
                     GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
                     if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
+                        cellID = cellIDnew;
                         //is in new
-                        if (lengthfactor < 0.00001) {
-                            if (!enableDiffusion) {
-                                if (verbose) {
-                                    System.out.println("Particle " + p.getId() + " is stuck in cell " + cellID + " without diffusion. length:" + lengthfactor);
-                                    break;
-                                }
-                            }
-                            timeLeft -= 0.01 * dt;
-                            z1 = nextRandomGaussian();
-                            z2 = nextRandomGaussian();
-                            if (verbose) {
-                                System.out.println("generate new random numbers for particle " + p.getId());// + "   out of triangles:" + outOfTriangleCounter);
-                            }
+                        if (lengthfactor < 0.0001) {
+//                            if (!enableDiffusion) {
+//                                if (verbose) {
+//                                    System.out.println("Particle " + p.getId() + " is stuck in cell " + cellID + " without diffusion. length:" + lengthfactor);
+//                                    break;
+//                                }
+//                            }
+//                            if(verbose){
+//                                System.out.println(p.getId()+" Stuck in "+cellID+" lengthfactor:" +lengthfactor+ "\ts12=" + st12[0] +"  s20=" + st20[0] +"  s01=" + st01[0] + "  is in new " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+////                           
+//                            }
+//                            z1 = nextRandomGaussian();
+//                            z2 = nextRandomGaussian();
+                            status = 25;
+//                            isprojecting = false;
+                            break;
+//                            timeLeft -= 0.01 * dt;
+//                            
+//                            if (verbose) {
+//                                System.out.println("generate new random numbers for particle " + p.getId());// + "   out of triangles:" + outOfTriangleCounter);
+//                            }
                         }
+                        isprojecting = false;
                         status = 3;
                     } else {
 //                        System.out.println("is not yet in new cell");
-//                        if (verbose) {
-//                                System.out.println("move particle closer to new cell " + cellID + "   out of triangles:" + outOfTriangleCounter + "  was in old? " + temp_barycentricWeightsOld[0] + "," + temp_barycentricWeightsOld[1] + "," + temp_barycentricWeightsOld[2]);
-//                               System.out.println("  s12=" + st12[0] +"  s20=" + st20[0] +"  s01=" + st01[0] + "  is in new " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
-//                            }
                         //SOmetimes the particles jump more than the possible length inside a triangle, because only on edge is considered (e.g. at sharp angle corners. -> need to transfer the particle back into the triangle.
 //                        System.out.println("out of target cell: " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
-                        if (temp_barycentricWeights[0] > -0.01 && temp_barycentricWeights[1] > -0.01 & temp_barycentricWeights[2] > -0.01) {
+                        if (temp_barycentricWeights[0] > -0.1 && temp_barycentricWeights[1] > -0.1 & temp_barycentricWeights[2] > -0.1) {
                             //Particle is very close to this cell, but not yet inside.
                             //give it a small jump towards the center
-                            posxneu = posxneu * 0.95 + surface.getTriangleMids()[cellID][0] * 0.05;
-                            posyneu = posyneu * 0.95 + surface.getTriangleMids()[cellID][1] * 0.05;
+                            posxneu = posxneu * 0.95 + surface.getTriangleMids()[cellIDnew][0] * 0.05;
+                            posyneu = posyneu * 0.95 + surface.getTriangleMids()[cellIDnew][1] * 0.05;
                             GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
                             if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
 //                                System.out.println("slightly pushed towards new center");
+                                cellID = cellIDnew;
                                 status = 4;
                             } else {
-                                System.out.println("roughly pushed to new center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
-                                posxneu = posxneu * 0.8 + surface.getTriangleMids()[cellID][0] * 0.2;
-                                posyneu = posyneu * 0.8 + surface.getTriangleMids()[cellID][1] * 0.2;
+                                if (verbose) {
+                                    System.out.println("roughly pushed to new center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+                                }
+                                posxneu = posxneu * 0.8 + surface.getTriangleMids()[cellIDnew][0] * 0.2;
+                                posyneu = posyneu * 0.8 + surface.getTriangleMids()[cellIDnew][1] * 0.2;
                                 status = 5;
-//                                GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
-//                                
-//                                    System.out.println("-  > pushed to new center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
-
+                                cellID = cellIDnew;
                             }
-//                            timeLeft -= 0.01 * dt;
-
                         } else {
                             if (verbose) {
-                                System.out.println("totally out of target. set to cell center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+                                System.out.println("totally out of target. set to cell center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2] + "  was peojected?" + isprojecting);
                             }
+                            cellID = cellIDnew;
                             //Particle is completely outside of this cell. Transfer it to the cell center.
 //                            System.out.println(loopcounter + ", p" + p.getId() + " is not in new one " + df.format(bwnew[0]) + ", " + df.format(bwnew[1]) + ", " + df.format(bwnew[2]));
-                            posxneu = surface.getTriangleMids()[cellID][0];
-                            posyneu = surface.getTriangleMids()[cellID][1];
+//                            posxneu = surface.getTriangleMids()[cellID][0];
+//                            posyneu = surface.getTriangleMids()[cellID][1];
                             status = 6;
                             break;
                         }
@@ -649,53 +761,95 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
                 } else {
                     //PArticle tries to move over the edge into an undefined area
-                    if (slidealongEdges) {
-                        temp_distance = Math.sqrt((posxneu - posxalt) * (posxneu - posxalt) + (posyneu - posyalt) * (posyneu - posyalt));
-                        double lengthE;
-                        double dsx = 0;
-                        double dsy = 0;
+                    if (slidealongEdges && !isprojecting) {
+                        double f;
                         if (bwindex == 0) {
-                            dsx = vertex2[0] - vertex1[0];
-                            dsy = vertex2[1] - vertex1[1];
+                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1], tempProjection);
+                            tempPosLow = vertex1;
+                            tempPosUp = vertex2;
                         } else if (bwindex == 1) {
-                            dsx = vertex0[0] - vertex2[0];
-                            dsy = vertex0[1] - vertex2[1];
+                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1], tempProjection);
+                            tempPosLow = vertex2;
+                            tempPosUp = vertex0;
                         } else if (bwindex == 2) {
-                            dsx = vertex0[0] - vertex1[0];
-                            dsy = vertex0[1] - vertex1[1];
+                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1], tempProjection);
+                            tempPosLow = vertex0;
+                            tempPosUp = vertex1;
                         } else {
                             System.err.println("wrong edge index " + bwindex);
+                            f = 0;
                         }
-//@TODO: Wrong projection
-                        lengthE = Math.sqrt((dsx * dsx + dsy * dsy));
-                        posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
-                        posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                        if (f < 0) {
+                            cellIDnew = surface.getNeighbours()[cellID][(bwindex + 2) % 3];
+                            //transfere a bit to the direction of the cell center
+                            posxneu = tempPosLow[0] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][0];
+                            posyneu = tempPosLow[1] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][1];
+                        } else if (f > 1) {
+                            cellIDnew = surface.getNeighbours()[cellID][(bwindex + 1) % 3];
+                            //transfere a bit to the direction of the cell center
+                            posxneu = tempPosUp[0] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][0];
+                            posyneu = tempPosUp[1] * 0.99 + 0.01 * surface.getTriangleMids()[cellIDnew][1];
+                        } else {
+                            //Stay inside this cell. move abit away from the edge
+                            posxneu = tempProjection[0] * 0.99 + 0.01 * surface.getTriangleMids()[cellID][0];
+                            posyneu = tempProjection[1] * 0.99 + 0.01 * surface.getTriangleMids()[cellID][1];
+                            p.setPosition3D(posxneu, posyneu);
+                            p.surfaceCellID = cellID;
+                            return;
+                        }
 
-                        double f = (1 - lengthfactor) * lengthE / temp_distance;
-                        posxneu = posxneu + f * dsx;
-                        posyneu = posyneu + f * dsy;
-                        status = 7;
+                        calculateVelocityPosition = false;
+                        isprojecting = true;
+                        status = 123;
+                        continue;
                     } else {
-                        //Has to stay inside this cell!totalvelocity*timeLeft;//
-                        temp_distance = Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
+                        temp_distance = totalvelocity * timeLeft;//Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
 
-                        lengthfactor -= 0.01 / temp_distance;
-//                        lengthfactor *= 0.95;
+                        lengthfactor -= 0.01 / temp_distance; //always have a distance of 1cm from the boundary;
+                        lengthfactor *= 0.95;
                         posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                         posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
-                        status = 8;
+                        timeLeft -= (1. - lengthfactor);
+                        status = 15;
+                        break;
                     }
-                    break;
+//                    if (slidealongEdges) {
+//                        double f = 0;
+//                        if (bwindex == 0) {
+//                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1], tempProjection);
+//                        } else if (bwindex == 1) {
+//                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1], tempProjection);
+//                        } else if (bwindex == 2) {
+//                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1], tempProjection);
+//                        } else {
+//                            System.err.println("wrong edge index " + bwindex);
+//                        }
+//
+////                            GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], tempProjection[0], tempProjection[1]);
+////                            System.out.println("After projection: " + temp_barycentricWeights[0] + ", " + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+//                        posxneu = tempProjection[0] * 0.9 + 0.1 * surface.getTriangleMids()[cellID][0];
+//                        posyneu = tempProjection[1] * 0.9 + 0.1 * surface.getTriangleMids()[cellID][1];
+//
+//                        isprojecting = true;
+//                        calculateVelocityPosition = false;
+//                        status = 7;
+//                        continue;
+//
+//                    } else {
+//                        //Has to stay inside this cell!totalvelocity*timeLeft;//
+//                        temp_distance = Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
+//
+//                        lengthfactor -= 0.01 / temp_distance;
+////                        lengthfactor *= 0.95;
+//                        posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
+//                        posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+//                        status = 8;
+//                    }
+//                    break;
                 }
-                status = 9;
+//                status = 9;
             }
-            loopcounter++;
-            if (loopcounter > maxNumberOfIterationLoops) {
-                if (verbose) {
-                    System.out.println("exceeded max loops (" + loopcounter + ") for particle " + p.getId() + " in cell " + cellID + " V=" + totalvelocity + "\t time left:" + timeLeft + "\t status=" + status + "  lengthfactor=" + lengthfactor + " \tvstatus:" + vstatus);
-                }
-                break;
-            }
+
             posxalt = posxneu;
             posyalt = posyneu;
 //            p.surfaceCellID = surface.getTargetTriangleID(p, p.surfaceCellID, posxalt, posyalt, posxneu, posyneu, 10, temp_barycentricWeights, tempVertices);
@@ -706,16 +860,38 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
         if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
 //            System.out.println(loopcounter +" s="+status+ "  will not be in " + temp_barycentricWeightsOld[0] + ", " + temp_barycentricWeightsOld[1] + ", " + temp_barycentricWeightsOld[2]);
-
-            posxneu = posxneu * 0.1 + surface.getTriangleMids()[cellID][0] * 0.9;
-            posyneu = posyneu * 0.1 + surface.getTriangleMids()[cellID][1] * 0.9;
+            //search for triangle, which uncludes the particle
+//            cellIDnew = surface.crawlNearestTriangle(posxneu, posyneu, cellID);
+//            if (cellIDnew >= 0) {
+//                node0 = surface.getTriangleNodes()[cellIDnew][0];
+//                node1 = surface.getTriangleNodes()[cellIDnew][1];
+//                node2 = surface.getTriangleNodes()[cellIDnew][2];
+//
+//                vertex0 = surface.getVerticesPosition()[node0];
+//                vertex1 = surface.getVerticesPosition()[node1];
+//                vertex2 = surface.getVerticesPosition()[node2];
+//                GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
+//                if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
+////                    System.out.println("Is not in new " + cellIDnew + " " + temp_barycentricWeightsOld[0] + "," + temp_barycentricWeightsOld[1] + "," + temp_barycentricWeightsOld[2]);
+//                } else {
+////                    System.out.println("found new particle cell");
+//                    cellID = cellIDnew;
+//                    p.setPosition3D(posxneu, posyneu);
+//                    p.surfaceCellID = cellID;
+//                    return;
+//                }
+//            }
+            posxneu = posxneu * 0.8 + surface.getTriangleMids()[cellID][0] * 0.2;
+            posyneu = posyneu * 0.8 + surface.getTriangleMids()[cellID][1] * 0.2;
             GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
             if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
-                posxneu = posxneu * 0.9 + surface.getTriangleMids()[cellID][0] * 0.1;
-                posyneu = posyneu * 0.9 + surface.getTriangleMids()[cellID][1] * 0.1;
+                posxneu = posxneu * 0.5 + surface.getTriangleMids()[cellID][0] * 0.5;
+                posyneu = posyneu * 0.5 + surface.getTriangleMids()[cellID][1] * 0.5;
                 GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
                 if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
-                    System.out.println(loopcounter + "  will still not be in " + temp_barycentricWeightsOld[0] + ", " + temp_barycentricWeightsOld[1] + ", " + temp_barycentricWeightsOld[2]);
+                    if (verbose) {
+                        System.out.println(loopcounter + "  will still not be in " + temp_barycentricWeightsOld[0] + ", " + temp_barycentricWeightsOld[1] + ", " + temp_barycentricWeightsOld[2]);
+                    }
                     posxneu = surface.getTriangleMids()[cellID][0];
                     posyneu = surface.getTriangleMids()[cellID][1];
                 }
@@ -757,8 +933,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     try {
                         Coordinate utm = surface.getGeotools().toUTM(st.getPosition3D(0).lonLatCoordinate(), false);
                         pos = new Coordinate(utm.x, utm.y, st.getPosition3D(0).z);
+
                     } catch (TransformException ex) {
-                        Logger.getLogger(ParticleSurfaceComputing2D.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(ParticleSurfaceComputing2D.class
+                                .getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             } else if ((p.getSurrounding_actual() instanceof SurfaceTrianglePath)) {
@@ -772,8 +950,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         Coordinate utm = surface.getGeotools().toUTM(mh.getPosition().lonLatCoordinate(), false);
                         System.out.println("Converted manhole to " + utm);
                         pos = new Coordinate(utm.x, utm.y, mh.getSurface_height());
+
                     } catch (TransformException ex) {
-                        Logger.getLogger(ParticleSurfaceComputing2D.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(ParticleSurfaceComputing2D.class
+                                .getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             } else {
@@ -789,14 +969,17 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     }
 
     public double testVelocity(double[] particlevelocity) {
+//        if (particlevelocity[0] == 0 && particlevelocity[1] == 0) {
+//            return 0;
+//        }
 //        double u = Math.abs(particlevelocity[0]) + Math.abs(particlevelocity[1]);
-        double u = Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1]));
-        if (u > 5 || u < -5) {
+        totalvelocity = Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1]));
+        if (totalvelocity > maxVelocity) {
             //Normalise velocity to maximum posible 5 m/s;
-            double factor = 5. / u;
+            double factor = maxVelocity / totalvelocity;
             particlevelocity[0] *= factor;
             particlevelocity[1] *= factor;
-            u = 5;
+            totalvelocity = maxVelocity;
 //            System.out.println("velocity (" + u + ")is implausible. set to +/- 3m/s [" + particlevelocity[0] + ", " + particlevelocity[1] + "] = " + Math.sqrt((particlevelocity[0] * particlevelocity[0]) + (particlevelocity[1] * particlevelocity[1])));
 //            double veloverhaeltnis = particlevelocity[0] / particlevelocity[1];
 //            if (veloverhaeltnis < 1) {
@@ -808,7 +991,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //            }
 
         }
-        return u;
+        return totalvelocity;
     }
 
     /**

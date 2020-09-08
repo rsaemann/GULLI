@@ -542,6 +542,40 @@ public class GeometryTools {
 
         return afactor * Math.sqrt(sqralength);
     }
+    
+    /**
+     * 
+     * @param pointX
+     * @param pointY
+     * @param lineStartX
+     * @param lineStartY
+     * @param lineEndX
+     * @param lineEndY
+     * @param projectedpoint double[2] array to be filled with x and y coordinate of the projection
+     */
+    public static double projectPointToLine(double pointX,double pointY,double lineStartX,double lineStartY,double lineEndX,double lineEndY,double[] projectedpoint){
+        double ex=pointX-lineStartX;
+        double ey=pointY-lineStartY;
+        
+        double ax=lineEndX-lineStartX;
+        double ay=lineEndY-lineStartY;
+        
+        double f=(ex*ax+ey*ay)/(ax*ax+ay*ay);
+        
+//        double sum=ex*ax+ey*ay;
+//        
+//        double length=Math.sqrt(ax*ax+ay*ay);
+//        
+//        double f=sum/length;
+//        
+        projectedpoint[0]=lineStartX+ax*f;
+        projectedpoint[1]=lineStartY+ay*f;
+        
+//        projectedpoint[0]=
+        
+        return f;
+        
+    }
 
 //    public static void main(String[] args) {
 //        double[] p0 = new double[]{0, 0};
