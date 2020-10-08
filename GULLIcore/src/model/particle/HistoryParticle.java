@@ -5,6 +5,7 @@
  */
 package model.particle;
 
+import control.particlecontrol.injection.ParticleInjection;
 import java.util.LinkedList;
 import model.topology.Capacity;
 
@@ -17,16 +18,12 @@ public class HistoryParticle extends Particle {
 
     protected LinkedList<Capacity> history = new LinkedList<>();
 
-    public HistoryParticle(Capacity injectionSurrounding, double injectionPosition1D) {
-        super(injectionSurrounding, injectionPosition1D);
+    public HistoryParticle(Material material, ParticleInjection injectionInformation, float mass, long injectionTime) {
+        super(material, injectionInformation, mass, injectionTime);
     }
 
-    public HistoryParticle(Capacity injectionSurrounding, double injectionPosition1D, long injectionTime) {
-        super(injectionSurrounding, injectionPosition1D, injectionTime);
-    }
-
-    public HistoryParticle(Capacity injectionSurrounding, double injectionPosition1D, long injectionTime, float mass_kg) {
-        super(injectionSurrounding, injectionPosition1D, injectionTime, mass_kg);
+    public HistoryParticle(Material material, ParticleInjection injectionInformation, float mass) {
+        super(material, injectionInformation, mass);
     }
 
     public void addToHistory(Capacity cap) {

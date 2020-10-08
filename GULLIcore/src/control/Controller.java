@@ -32,6 +32,10 @@ import control.listener.ParticleListener;
 import control.multievents.PipeResultData;
 import control.particlecontrol.DiffusionCalculator2D;
 import control.particlecontrol.ParticleSurfaceComputing2D;
+import control.particlecontrol.injection.ManholeInjection;
+import control.particlecontrol.injection.ParticleInjection;
+import control.particlecontrol.injection.PipeInjection;
+import control.particlecontrol.injection.SurfaceInjection;
 import control.scenario.injection.InjectionInformation;
 import control.scenario.Scenario;
 import control.threads.ParticleThread;
@@ -177,8 +181,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     public void setDispersionCoefficientSurface(double K) {
         try {
             for (ParticleThread particleThread : threadController.getParticleThreads()) {
-                DiffusionCalculator2D d = ((ParticleSurfaceComputing2D) particleThread.getSurfaceComputing()).getDiffusionCalculator();
-                d.directD = new double[]{K, K, K};
+                ParticleSurfaceComputing2D psc = (ParticleSurfaceComputing2D) particleThread.getSurfaceComputing();
+                psc.enableDiffusion=true;
+                psc.getDiffusionCalculator().setDirectDiffusion(K, K, K);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -212,107 +217,104 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         currentAction.progress = 1;
     }
 
-    /**
-     * @param numberOfParticles
-     * @param startCapacity
-     * @param position1d
-     * @param material
-     * @return
-     */
-    private ArrayList<Particle> createParticlesAtStart(int numberOfParticles, Capacity startCapacity, double position1d, Material material) {
-        if (startCapacity == null) {
-            throw new IllegalArgumentException("Initial Capacity is null!");
-        }
-        ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
-        for (int i = 0; i < numberOfParticles; i++) {
-
-            Particle p;
-            if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-                p = new HistoryParticle(startCapacity, position1d);
-            } else {
-                p = new Particle(startCapacity, position1d);
-            }
-            p.setSurrounding_actual(startCapacity);
-            p.setPosition1d_actual(position1d);
-            p.setPosition3d(p.getSurrounding_actual().getPosition3D(position1d));
-            p.setMaterial(material);
-
-            list.add(p);
-        }
-        return list;
-    }
-
-    /**
-     * @param numberOfParticles
-     * @param massPerParticle
-     * @param startCapacity
-     * @param position1d
-     * @param material
-     * @param injectionDateTime
-     * @return
-     */
-    private ArrayList<Particle> createParticlesAtTime(int numberOfParticles, double massPerParticle, Capacity startCapacity, double position1d, Material material, long injectionDateTime) {
-        if (startCapacity == null) {
-            throw new IllegalArgumentException("Initial Capacity is null!");
-        }
-        ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
-        for (int i = 0; i < numberOfParticles; i++) {
-            Particle p;
-            if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-                p = new HistoryParticle(startCapacity, position1d, injectionDateTime, (float) massPerParticle);
-            } else {
-                p = new Particle(startCapacity, position1d, injectionDateTime, (float) massPerParticle);
-            }
-            p.setMaterial(material);
-            list.add(p);
-        }
-        return list;
-    }
-
-    /**
-     * @deprecated used for former comparison between particles and analystical
-     * solution
-     * @param c_ini
-     * @param dispersionCoefficient
-     * @param startCapacity
-     * @param position1d
-     * @param material
-     * @param starttime
-     * @param endtime
-     */
-    private void computeAnalyticalSolution(double c_ini, double dispersionCoefficient, Capacity startCapacity, double position1d, Material material, long starttime, long endtime) {
-        //Calculate the analytical solution
-        double numberOfParticles = c_ini;
-        Manhole root;
-        if (startCapacity instanceof Manhole) {
-            root = (Manhole) startCapacity;
-        } else if (startCapacity instanceof Pipe) {
-            root = (Manhole) ((Pipe) startCapacity).getStartConnection().getManhole();
-        } else {
-            System.out.println("Can not compute analytical Solution for Capacity of type " + startCapacity.getClass());
-            return;
-        }
-        ArrayList<Pair<Manhole, Double>> tree = GraphSearch.findLongestPaths(root);
-        double v;// = 0.1965;//stamp.getValues().getVelocity();
-        double dt = (-starttime + endtime) / 1000.;
-
-        double K = dispersionCoefficient;
-        for (Pair<Manhole, Double> tree1 : tree) {
-            for (Connection connection : tree1.first.getConnections()) {
-                Connection_Manhole_Pipe connectionP = (Connection_Manhole_Pipe) connection;
-
-                if (connectionP.isStartOfPipe()) {
-                    Pipe p = connectionP.getPipe();
-
-                    double x0 = tree1.second; //Distanz von Start
-                    double x1 = tree1.second + p.getLength() * 0.5; //Distanz von Start
-                    double x2 = tree1.second + p.getLength(); //Distanz von Start
-
-                }
-            }
-        }
-    }
-
+//    /**
+//     * @param numberOfParticles
+//     * @param startCapacity
+//     * @param position1d
+//     * @param material
+//     * @return
+//     */
+//    private ArrayList<Particle> createParticlesAtStart(int numberOfParticles, Capacity startCapacity, double position1d, Material material) {
+//        if (startCapacity == null) {
+//            throw new IllegalArgumentException("Initial Capacity is null!");
+//        }
+//        ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
+//        for (int i = 0; i < numberOfParticles; i++) {
+//
+//            Particle p;
+//            if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
+//                p = new HistoryParticle(startCapacity, position1d);
+//            } else {
+//                p = new Particle(startCapacity, position1d);
+//            }
+//            p.setSurrounding_actual(startCapacity);
+//            p.setPosition1d_actual(position1d);
+//            p.setPosition3d(p.getSurrounding_actual().getPosition3D(position1d));
+//            p.setMaterial(material);
+//
+//            list.add(p);
+//        }
+//        return list;
+//    }
+//    /**
+//     * @param numberOfParticles
+//     * @param massPerParticle
+//     * @param startCapacity
+//     * @param position1d
+//     * @param material
+//     * @param injectionDateTime
+//     * @return
+//     */
+//    private ArrayList<Particle> createParticlesAtTime(int numberOfParticles, double massPerParticle, Capacity startCapacity, double position1d, Material material, long injectionDateTime) {
+//        if (startCapacity == null) {
+//            throw new IllegalArgumentException("Initial Capacity is null!");
+//        }
+//        ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
+//        for (int i = 0; i < numberOfParticles; i++) {
+//            Particle p;
+//            if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
+//                p = new HistoryParticle(startCapacity, position1d, injectionDateTime, (float) massPerParticle);
+//            } else {
+//                p = new Particle(startCapacity, position1d, injectionDateTime, (float) massPerParticle);
+//            }
+//            p.setMaterial(material);
+//            list.add(p);
+//        }
+//        return list;
+//    }
+//    /**
+//     * @deprecated used for former comparison between particles and analystical
+//     * solution
+//     * @param c_ini
+//     * @param dispersionCoefficient
+//     * @param startCapacity
+//     * @param position1d
+//     * @param material
+//     * @param starttime
+//     * @param endtime
+//     */
+//    private void computeAnalyticalSolution(double c_ini, double dispersionCoefficient, Capacity startCapacity, double position1d, Material material, long starttime, long endtime) {
+//        //Calculate the analytical solution
+//        double numberOfParticles = c_ini;
+//        Manhole root;
+//        if (startCapacity instanceof Manhole) {
+//            root = (Manhole) startCapacity;
+//        } else if (startCapacity instanceof Pipe) {
+//            root = (Manhole) ((Pipe) startCapacity).getStartConnection().getManhole();
+//        } else {
+//            System.out.println("Can not compute analytical Solution for Capacity of type " + startCapacity.getClass());
+//            return;
+//        }
+//        ArrayList<Pair<Manhole, Double>> tree = GraphSearch.findLongestPaths(root);
+//        double v;// = 0.1965;//stamp.getValues().getVelocity();
+//        double dt = (-starttime + endtime) / 1000.;
+//
+//        double K = dispersionCoefficient;
+//        for (Pair<Manhole, Double> tree1 : tree) {
+//            for (Connection connection : tree1.first.getConnections()) {
+//                Connection_Manhole_Pipe connectionP = (Connection_Manhole_Pipe) connection;
+//
+//                if (connectionP.isStartOfPipe()) {
+//                    Pipe p = connectionP.getPipe();
+//
+//                    double x0 = tree1.second; //Distanz von Start
+//                    double x1 = tree1.second + p.getLength() * 0.5; //Distanz von Start
+//                    double x2 = tree1.second + p.getLength(); //Distanz von Start
+//
+//                }
+//            }
+//        }
+//    }
     /**
      * Linear interpolates the intensity of the particles
      *
@@ -326,10 +328,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param endIntensity [kg/s]
      * @return
      */
-    private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, Capacity startCapacity, Material material, double starttimeAfterScenarioStart, double duration, double startIntensity, double endIntensity) {
-        if (startCapacity == null) {
-            throw new IllegalArgumentException("Initial Capacity is null!");
-        }
+    private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, ParticleInjection injectionCapacityInformation, Material material, double starttimeAfterScenarioStart, double duration, double startIntensity, double endIntensity) {
+
         long scenarioStarttime = 0;
         if (scenario != null) {
             scenarioStarttime = scenario.getStartTime();
@@ -339,11 +339,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             //Instant injection
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle particle;
+                long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L);
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-                    particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L), (float) massPerParticle);
+                    particle = new HistoryParticle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 } else {
-                    long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L);
-                    particle = new Particle(startCapacity, 0, injectiontime, (float) massPerParticle);
+                    particle = new Particle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 }
                 particle.setMaterial(material);
                 particle.setWaiting();
@@ -354,7 +354,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         double s = (endIntensity - startIntensity) / duration;
         //if slope is 0 we can use the constant injection
         if (Math.abs(s) < 0.000001) {
-            return createParticlesOverTimespan(numberOfParticles, massPerParticle, startCapacity, material, starttimeAfterScenarioStart, duration);
+            return createParticlesOverTimespan(numberOfParticles, massPerParticle, injectionCapacityInformation, material, starttimeAfterScenarioStart, duration);
         }
         if (s > 0) {
             //increasing injection
@@ -369,12 +369,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 Particle particle;
                 double q = -i * 2. * massPerParticle / (s);
                 double t = (-p + Math.sqrt(p * p - q)) * factor;
+                long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L);
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-                    particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
+                    particle = new HistoryParticle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 } else {
-//                    System.out.println(i + ": " + t + "\t q=" + q + "  mass/P:" + massPerParticle + "   duration:" + duration);
-                    long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L);
-                    particle = new Particle(startCapacity, 0, injectiontime, (float) massPerParticle);
+                    particle = new Particle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 }
                 particle.setMaterial(material);
                 particle.setWaiting();
@@ -393,12 +392,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 Particle particle;
                 double q = -(numberOfParticles - i) * massPerParticle * 2. / (Math.abs(s));
                 double t = duration - (-p - Math.sqrt(p * p - q)) * factor;
+                long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L);
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-                    particle = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
+                    particle = new HistoryParticle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 } else {
-//                    System.out.println(i + ": " + t + "\t q=" + q + "  mass/P:" + massPerParticle + "   duration:" + duration);
-                    long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L);
-                    particle = new Particle(startCapacity, 0, injectiontime, (float) massPerParticle);
+                    particle = new Particle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 }
                 particle.setMaterial(material);
                 particle.setWaiting();
@@ -409,10 +407,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         return list;
     }
 
-    private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, Capacity startCapacity, Material material, double starttimeAfterScenarioStart, double duration) {
-        if (startCapacity == null) {
-            throw new IllegalArgumentException("Initial Capacity is null!");
-        }
+    private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, ParticleInjection injectionCapacityInformation, Material material, double starttimeAfterScenarioStart, double duration) {
         long scenarioStarttime = 0;
         if (scenario != null) {
             scenarioStarttime = scenario.getStartTime();
@@ -424,10 +419,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle p;
+                long time = (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L);
                 if (intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
-                    p = new HistoryParticle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
+                    p = new HistoryParticle(material, injectionCapacityInformation, (float) massPerParticle, time);
                 } else {
-                    p = new Particle(startCapacity, 0, (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L), (float) massPerParticle);
+                    p = new Particle(material, injectionCapacityInformation, (float) massPerParticle, time);
                 }
                 p.setMaterial(material);
                 p.setWaiting();
@@ -717,6 +713,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
         int counter = 0;
+        Particle.resetCounterID();
         for (InjectionInformation injection : scenario.getInjections()) {
             counter++;
             currentAction.description = "Injection spill " + counter + "/" + scenario.getInjections().size();
@@ -843,25 +840,48 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
+                    injection.setPosition(injectionposition);
+                }
+                ParticleInjection pi = null;
+                if (injection.spillOnSurface()) {
+                    SurfaceInjection si = new SurfaceInjection(surface, surfaceCell);
+                    pi = si;
+                } else if (injection.spillInManhole()) {
+                    if (injection.getCapacity() instanceof Manhole) {
+                        ManholeInjection mhi = new ManholeInjection((Manhole) injection.getCapacity());
+                        pi = mhi;
+                    } else if (injection.getCapacity() instanceof Pipe) {
+                        PipeInjection ppi = new PipeInjection((Pipe) injection.getCapacity(), injection.getPosition1D());
+                        pi = ppi;
+                    }
+                }
+                if (pi == null) {
+                    System.err.println("DO not know how to inject " + injection);
+                    continue;
                 }
                 for (int i = 0; i < injection.getNumberOfIntervals(); i++) {
-                    if (injection.spillOnSurface()) {
-                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
-                        for (Particle p : ps) {
-                            p.setInjectionCellID(surfaceCell);
-//                            System.out.println("Spill on position " + p.injectionSurrounding);
-                            if (injectionposition!=null){
-                                p.injectionPosition=injectionposition;
-                            }
-                        }
-                        allParticles.addAll(ps);
-                    } else {
-                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
-                        for (Particle p : ps) {
-                            p.injectionPosition1D = (float) injection.getPosition1D();
-                        }
-                        allParticles.addAll(ps);
-                    }
+                    ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), pi, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
+                    allParticles.addAll(ps);
+//                    if (injection.spillOnSurface()) {
+//                        SurfaceInjection si = new SurfaceInjection(surface, surfaceCell);
+//                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), si, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
+////                        for (Particle p : ps) {
+//////                            p.setInjectionCellID(surfaceCell);
+////////                            System.out.println("Spill on position " + p.injectionSurrounding);
+//////                            if (injectionposition != null) {
+//////                                p.injectionPosition = injectionposition;
+//////                            }
+////                        }
+//                        allParticles.addAll(ps);
+//                    } else {
+//                        ParticleInjection pi;
+//                        if(c )
+//                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
+//                        for (Particle p : ps) {
+//                            p.injectionPosition1D = (float) injection.getPosition1D();
+//                        }
+//                        allParticles.addAll(ps);
+//                    }
 
                 }
             }
@@ -876,13 +896,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 ((SparseTimeLinePipeContainer) scenario.getTimesPipe()).numberOfMaterials = maxMaterialID + 1;
             }
         }
-//        System.out.println("set new Particles "+allParticles.size());
-//        try{
-//            throw new Exception("Init particles "+allParticles.size());
-//        }catch(Exception e){
-//            e.printStackTrace();
-//        }
-        this.setParticles(allParticles);
+        this.setParticles(allParticles);      
     }
 
     @Override
@@ -960,7 +974,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     public void loadSurface(Surface surface, Object caller) {
         this.surface = surface;
         if (surface != null) {
-            if (surface.getMeasurementRaster() == null&&surface.getTimes()!=null) {
+            if (surface.getMeasurementRaster() == null && surface.getTimes() != null) {
                 surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getParticleThreads().length));
             }
         }

@@ -30,8 +30,8 @@ public class ShapeEditor extends AbstractCellEditor
 //    JDialog dialog;
     int row;
 //    protected static final String EDIT = "edit";
-    private static float radius_s = 3;
-    private static float radius_m = 5;
+    private static float radius_s = 2.5f;
+    private static float radius_m = 4.5f;
     private static float radius_l = 8;
     public static final Shape[] availableShapes = initShapes2();
     public static final SHAPES[] available_SHAPES = initShapes();
@@ -221,7 +221,7 @@ public class ShapeEditor extends AbstractCellEditor
         DOT {
                     @Override
                     public Shape getShape() {
-                        return new Ellipse2D.Double(-2, -2, 4, 4);
+                        return new Ellipse2D.Double(-1.5, -1.5, 3, 3);
                     }
                 },
         ELLIPSE_S {

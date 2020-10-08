@@ -475,16 +475,16 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     continue;
                 }
                 p.setSurrounding_actual(null);
-                p.setPosition1d_actual(p.injectionPosition1D);
-                p.surfaceCellID = p.getInjectionCellID();
+//                p.setPosition1d_actual(p.injectionPosition1D);
+//                p.surfaceCellID = p.getInjectionCellID();
                 if (p.getClass().equals(HistoryParticle.class)) {
                     ((HistoryParticle) p).clearHistory();
                 }
-                p.deposited = false;
+//                p.deposited = false;
                 p.toPipenetwork = null;
                 p.toSoil = null;
                 p.toSurface = null;
-                p.posToSurface = 0;
+//                p.posToSurface = 0;
                 p.resetMovementLengths();
                 p.setWaiting();
             }

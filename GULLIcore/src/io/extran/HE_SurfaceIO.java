@@ -815,8 +815,11 @@ public class HE_SurfaceIO {
             }
             bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
             bw.newLine();
+             bw.write("CellCount:" + surface.getMeasurementRaster().getNumberOfCells());
+            bw.newLine();
             bw.write("ParticleCount:" + numberOfParticles);
             bw.newLine();
+            
             bw.write("Contaminant category:" + materialIndex);
             bw.newLine();
             bw.write("Timesteps:" + numberofIntervals);

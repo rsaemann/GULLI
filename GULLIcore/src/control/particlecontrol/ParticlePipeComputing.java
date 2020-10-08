@@ -1182,7 +1182,7 @@ public class ParticlePipeComputing {
                                 p.setOnSurface();
                                 p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                                 p.toSurface = mh;
-                                p.posToSurface = (float) p.getTravelledPathLength();
+//                                p.posToSurface = (float) p.getTravelledPathLength();
                                 if (p.getClass().equals(HistoryParticle.class)) {
                                     ((HistoryParticle) p).addToHistory(surface);
                                 }
@@ -1416,9 +1416,10 @@ public class ParticlePipeComputing {
         }
         //Skip dry condition 
         if (c.getWaterlevel() < FlowCalculatorMixed.dryWaterlevel) {
+//            System.out.println("waterlevel Particle in "+c.getWaterHeight());
             return;
         }
-
+//        System.out.println("3 Particle in "+p.getSurrounding_actual());
         if (useDeposition) {
             //Test for deposition
             if (p.isDeposited()) {
@@ -1553,7 +1554,7 @@ public class ParticlePipeComputing {
                         p.setOnSurface();
                         p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                         p.toSurface = mh;
-                        p.posToSurface = (float) p.getTravelledPathLength();
+//                        p.posToSurface = (float) p.getTravelledPathLength();
                         if (p.getClass().equals(HistoryParticle.class)) {
                             ((HistoryParticle) p).addToHistory(surface);
                         }

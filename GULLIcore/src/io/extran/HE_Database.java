@@ -1278,6 +1278,20 @@ public class HE_Database implements SparseTimeLineDataProvider {
     }
 
     public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net) throws FileNotFoundException, IOException, SQLException {
+        return applyTimelines(net, 0);
+    }
+
+    /**
+     * TImelines will show the event time, if subtracted time is 0. Can subtract
+     * a time, to make all timelines start at 0
+     *
+     * @param net
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws SQLException
+     */
+    public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net, long timesubtraction) throws FileNotFoundException, IOException, SQLException {
 
         ArrayTimeLinePipeContainer container;
         con = getConnection();
@@ -1312,7 +1326,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 } else {
                     times[i] = res.getTimestamp(1).getTime();
                 }
-
+                times[i] -= timesubtraction;
                 i++;
             }
             container = new ArrayTimeLinePipeContainer(times, net.getPipes().size());
@@ -1336,7 +1350,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Manhole mh = null;
                 while (res.next()) {
                     int heID = res.getInt(1);
-                    String heName = res.getString(2);
+//                    String heName = res.getString(2);
                     float h = res.getFloat(6);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
@@ -1370,7 +1384,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Manhole mh = null;
                 while (res.next()) {
                     int heID = res.getInt(1);
-                    String heName = res.getString(2);
+//                    String heName = res.getString(2);
                     float outflow = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
@@ -1462,6 +1476,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 } else {
                     time = res.getTimestamp(3).getTime();
                 }
+                time -= timesubtraction;
                 double frachtrate = res.getDouble(4);
                 double concentration = res.getDouble(5);
                 if (id != heID) {
@@ -1483,9 +1498,19 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return new Pair<>(container, manholeContainer);
     }
 
-    public ArrayTimeLineManholeContainer applyTimelinesManholes(Collection<? extends StorageVolume> manholes) throws SQLException, IOException, Exception {
+    /**
+     *
+     * @param manholes
+     * @param shiftToZeroTime start the event at 0. if false use the original
+     * event time
+     * @return
+     * @throws SQLException
+     * @throws IOException
+     * @throws Exception
+     */
+    public ArrayTimeLineManholeContainer applyTimelinesManholes(Collection<? extends StorageVolume> manholes, boolean shiftToZeroTime) throws SQLException, IOException, Exception {
 
-        long[] times = loadTimeStepsNetwork();
+        long[] times = loadTimeStepsNetwork(shiftToZeroTime);
 
         ArrayTimeLineManholeContainer manholeContainer = new ArrayTimeLineManholeContainer(times, manholes.size());
         int i = 0;
@@ -1957,9 +1982,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     /**
      * The timestep length (Minutes) for the surface.
+     *
      * @return minutes between surface timesteps
      * @throws SQLException
-     * @throws IOException 
+     * @throws IOException
      */
     public int readOutputTimeIntervallSurface() throws SQLException, IOException {
         Connection con = getConnection();
@@ -2735,11 +2761,48 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return concentration;
     }
 
-    @Override
-    public long[] loadTimeStepsNetwork() {
+    public long getStartTimeNetwork() {
         try {
             Statement st = getConnection().createStatement();
             ResultSet res;
+            res = st.executeQuery("SELECT MIN(ZEITPUNKT) FROM LAU_GL_EL;");
+
+            long time = 0;
+            while (res.next()) {
+                if (isSQLite) {
+                    time = sqliteDateTimeFormat.parse(res.getString(1)).getTime();
+                } else {
+                    time = res.getTimestamp(1).getTime();
+                }
+            }
+            return time;
+        } catch (IOException ex) {
+            throw new NullPointerException(ex.getMessage());
+        } catch (SQLException ex) {
+            throw new NullPointerException(ex.getMessage());
+        } catch (ParseException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return 0;
+    }
+
+    @Override
+    public long[] loadTimeStepsNetwork(boolean startAtZero) {
+        try {
+            Statement st = getConnection().createStatement();
+            ResultSet res;
+            long shift = 0;
+            if (startAtZero) {
+                res = st.executeQuery("SELECT MIN(ZEITPUNKT) FROM LAU_GL_EL;");
+                while (res.next()) {
+                    if (isSQLite) {
+                        shift = sqliteDateTimeFormat.parse(res.getString(1)).getTime();
+                    } else {
+                        shift = res.getTimestamp(1).getTime();
+                    }
+                }
+            }
+
             res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL;");
             res.next();
             int zeiteintraege = res.getInt(1);
@@ -2753,9 +2816,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
             int i = 0;
             while (res.next()) {
                 if (isSQLite) {
-                    times[i] = sqliteDateTimeFormat.parse(res.getString(1)).getTime();
+                    times[i] = sqliteDateTimeFormat.parse(res.getString(1)).getTime() - shift;
                 } else {
-                    times[i] = res.getTimestamp(1).getTime();
+                    times[i] = res.getTimestamp(1).getTime() - shift;
                 }
                 i++;
             }

@@ -51,8 +51,8 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     public String[] namesMaterials;
 
-    public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider) {
-        super(dataprovider.loadTimeStepsNetwork());
+    public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider,boolean shiftTimesToZero) {
+        super(dataprovider.loadTimeStepsNetwork(shiftTimesToZero));
         this.dataprovider = dataprovider;
         hasReferencePollution = dataprovider.hasTimeLineMass();
         namesMaterials = dataprovider.loadNamesMaterials();

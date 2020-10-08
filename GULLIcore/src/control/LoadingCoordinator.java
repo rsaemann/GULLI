@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -188,6 +189,12 @@ public class LoadingCoordinator {
 
     protected Network network;
 
+    /**
+     * If true, each event starts at 0 ms if false, the real time of the event
+     * is used;
+     */
+    public boolean zeroTimeStart = true;
+
     public LoadingCoordinator(Controller control) {
         this.control = control;
         this.addActioListener(control);
@@ -239,7 +246,7 @@ public class LoadingCoordinator {
                     changedSurface = false;
                     if (loadingpipeNetwork == LOADINGSTATUS.REQUESTED) {
                         network = loadPipeNetwork();
-                        changedPipeNetwork=true;
+                        changedPipeNetwork = true;
                         if (network == null) {
                             loadingpipeNetwork = LOADINGSTATUS.ERROR;
                             System.err.println("Network could not be loaded.");
@@ -251,7 +258,7 @@ public class LoadingCoordinator {
                     scenario = null;
 
                     if (loadingPipeResult == LOADINGSTATUS.REQUESTED) {
-                        loadPipeVelocities(network);
+                        loadPipeVelocities(network, zeroTimeStart);
                     }
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
@@ -265,7 +272,7 @@ public class LoadingCoordinator {
                     // Loading Surface topology
                     if (loadingSurface == LOADINGSTATUS.REQUESTED) {
                         surface = loadSurface();
-                        changedSurface=true;
+                        changedSurface = true;
                     }
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
@@ -451,7 +458,7 @@ public class LoadingCoordinator {
      *
      * @param nw
      */
-    private boolean loadPipeVelocities(Network nw) {
+    private boolean loadPipeVelocities(Network nw, boolean startAtZeroTime) {
         loadingPipeResult = LOADINGSTATUS.LOADING;
         action.description = "Load pipe velocities";
         action.progress = 0;
@@ -491,9 +498,17 @@ public class LoadingCoordinator {
                         he_injection = new ArrayList<>(0);
                     }
 //                    System.out.println("loaded " + he_injection.size() + " from database");
-                    long[] times = resultDatabase.loadTimeStepsNetwork();
+                    long[] times = resultDatabase.loadTimeStepsNetwork(startAtZeroTime);
                     long scenariostart = times[0];
                     long scenarioEnd = times[times.length - 1];
+//                    if (startAtZeroTime) {
+//                        for (int i = 0; i < times.length; i++) {
+//                            times[i] -= scenariostart;
+//                        }
+//                        scenarioEnd -= scenariostart;
+//                        scenariostart = 0;
+//                    }
+
                     long starttime = System.currentTimeMillis();
                     int materialnumber = 0;
                     for (HEInjectionInformation in : he_injection) {
@@ -623,7 +638,7 @@ public class LoadingCoordinator {
                         }
                         action.description = "Load downstream pipe velocities";
                         //Request Timelines for pipes and manholes & Create Timeindex container
-                        Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(nw, resultDatabase, pipesToLoad, manholesToLoad);
+                        Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(nw, resultDatabase, pipesToLoad, manholesToLoad, zeroTimeStart);
                         if (verbose) {
                             System.out.println(getClass() + ": Loaded sparsecontainer " + ((System.currentTimeMillis() - starttime) + "ms."));
                         }
@@ -639,8 +654,14 @@ public class LoadingCoordinator {
                     Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> p;
                     action.description = "Load all pipe velocities";
                     if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-
-                        p = resultDatabase.applyTimelines(nw);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
+                        if (zeroTimeStart) {
+                            long start = resultDatabase.getStartTimeNetwork();
+//                            System.out.println("Event starts at "+start +" -> "+new Date(start));
+                            p = resultDatabase.applyTimelines(nw, start);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
+                        } else {
+//                            System.err.println("No zero start command");
+                            p = resultDatabase.applyTimelines(nw);
+                        }
                         scenarioName = resultDatabase.readResultname();
                     } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
                         scenarioName = fileMainPipeResult.getName();
@@ -1267,7 +1288,32 @@ public class LoadingCoordinator {
     public FileContainer findDependentFiles(File pipeResult, boolean requestSurface) throws IOException, SQLException {
 
         boolean oldFilecorrespondsPipeNetwork = false, oldFilecorrespondsSurfaceTopology = false, oldFilecorrespondsSurfaceWaterlevel = false;
-        File bestFilePipeNetwork = null, bestFileSurfacdirectory = null, bestFileSurfaceWaterlevel = null, bestPipeResultFile = pipeResult;
+        File bestFilePipeNetwork = null, bestFileSurfacdirectory = null, bestFileSurfaceHydraulics = null, bestPipeResultFile = pipeResult;
+
+        if (pipeResult.isDirectory()) {
+            bestPipeResultFile = null;
+            for (File listFile : pipeResult.listFiles()) {
+                if (listFile.isFile()) {
+                    String name = listFile.getName().toLowerCase();
+                    if (name.endsWith("idbr")) {
+                        //HE 8+ result
+                        bestPipeResultFile = listFile;
+                        break;
+                    } else if (name.endsWith("idbf")) {
+                        //HE 7 result
+                        bestPipeResultFile = listFile;
+                        break;
+                    } else if (name.endsWith("rpt")) {
+                        //SWMM result
+                        bestPipeResultFile = listFile;
+                        break;
+                    }
+                }
+            }
+        }
+        if (bestPipeResultFile == null) {
+            throw new FileNotFoundException(pipeResult + " is not a File with hydraulic results of the pipesystem.");
+        }
 
         try {
             bestFilePipeNetwork = LoadingCoordinator.findCorrespondingPipeNetworkFile(bestPipeResultFile);
@@ -1290,37 +1336,46 @@ public class LoadingCoordinator {
         }
 
         //Find corresponding surface topology file
-        try {
-            bestFileSurfacdirectory = LoadingCoordinator.findCorrespondingSurfaceDirectory(bestPipeResultFile);
-            if (bestFileSurfacdirectory != null) {
-                //Test if actual file is already loaded
-                if (control.getSurface() != null) {
-                    int oldnumber = control.getSurface().size();
-                    File trimod2File = new File(bestFileSurfacdirectory.getAbsolutePath() + File.separator + "trimod2.dat");
-                    int newnumber = HE_SurfaceIO.readNumberOfTriangles(trimod2File);
-                    if (oldnumber == newnumber) {
-                        //Seems to be identical to the already loaded surface.
-                        oldFilecorrespondsSurfaceTopology = true;
-                        if (verbose) {
-                            System.out.println("Number of Triangles identical, no need to load again.");
-                        }
-                        //Do not need to be loaded again
-                    } else {
-                        if (verbose) {
-                            System.out.println("Surface: loaded: " + oldnumber + " triangles, new:" + newnumber);
+        if (requestSurface) {
+            try {
+                bestFileSurfacdirectory = LoadingCoordinator.findCorrespondingSurfaceDirectory(bestPipeResultFile);
+                if (verbose) {
+                    System.out.println("Surface directory: " + bestFileSurfacdirectory);
+                }
+                if (bestFileSurfacdirectory != null) {
+                    //Test if actual file is already loaded
+                    if (control.getSurface() != null) {
+                        int oldnumber = control.getSurface().size();
+                        File trimod2File = new File(bestFileSurfacdirectory.getAbsolutePath() + File.separator + "trimod2.dat");
+                        int newnumber = HE_SurfaceIO.readNumberOfTriangles(trimod2File);
+                        if (oldnumber == newnumber) {
+                            //Seems to be identical to the already loaded surface.
+                            oldFilecorrespondsSurfaceTopology = true;
+                            if (verbose) {
+                                System.out.println("Number of Triangles identical, no need to load again.");
+                            }
+                            //Do not need to be loaded again
+                        } else {
+                            if (verbose) {
+                                System.out.println("Surface: loaded: " + oldnumber + " triangles, new:" + newnumber);
+                            }
                         }
                     }
                 }
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
-        } catch (Exception exception) {
-            exception.printStackTrace();
+
+            try {
+                bestFileSurfaceHydraulics = LoadingCoordinator.findCorrespondingWaterlevelFile(bestPipeResultFile);
+                if (verbose) {
+                    System.out.println("Surface hydraulics: " + bestFileSurfaceHydraulics);
+                }
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
         }
-        try {
-            bestFileSurfaceWaterlevel = LoadingCoordinator.findCorrespondingWaterlevelFile(bestPipeResultFile);
-        } catch (Exception exception) {
-            exception.printStackTrace();
-        }
-        FileContainer fc = new FileContainer(pipeResult, bestFilePipeNetwork, bestFileSurfaceWaterlevel, bestFileSurfacdirectory, null);
+        FileContainer fc = new FileContainer(bestPipeResultFile, bestFilePipeNetwork, bestFileSurfaceHydraulics, bestFileSurfacdirectory, null);
         fc.setPipeNetworkLoaded(oldFilecorrespondsPipeNetwork);
         fc.setPipeResultLoaded(false);
         fc.setSurfaceResultLoaded(oldFilecorrespondsSurfaceWaterlevel);
@@ -1566,6 +1621,12 @@ public class LoadingCoordinator {
         public File getInlets() {
             return inlets;
         }
+
+        @Override
+        public String toString() {
+            return "FileContainer{" + "pipeResult=" + pipeResult + ", pipeNetwork=" + pipeNetwork + ", surfaceResult=" + surfaceResult + ", surfaceDirectory=" + surfaceDirectory + ", inlets=" + inlets + ", pipeResultLoaded=" + pipeResultLoaded + ", pipeNetworkLoaded=" + pipeNetworkLoaded + ", surfaceResultLoaded=" + surfaceResultLoaded + ", surfaceTopologyLoaded=" + surfaceTopologyLoaded + '}';
+        }
+
     }
 
     public static TimeIndexContainer createTimeContainer(long start, long end, int numbertimesteps) {
@@ -1579,7 +1640,11 @@ public class LoadingCoordinator {
     }
 
     public static Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> sparseLoadTimelines(Network network, SparseTimeLineDataProvider dataprovider, Collection<Pipe> pipes, Collection<StorageVolume> manholes) throws Exception {
-        SparseTimeLinePipeContainer container = new SparseTimeLinePipeContainer(dataprovider.loadTimeStepsNetwork());
+        return sparseLoadTimelines(network, dataprovider, pipes, manholes, false);
+    }
+
+    public static Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> sparseLoadTimelines(Network network, SparseTimeLineDataProvider dataprovider, Collection<Pipe> pipes, Collection<StorageVolume> manholes, boolean zeroTimeStart) throws Exception {
+        SparseTimeLinePipeContainer container = new SparseTimeLinePipeContainer(dataprovider.loadTimeStepsNetwork(zeroTimeStart));
         container.setDataprovider(dataprovider);
         //clear all old timelines
         for (Pipe pipe : network.getPipes()) {
@@ -1592,7 +1657,7 @@ public class LoadingCoordinator {
                 pipe.setStatusTimeLine(new SparseTimelinePipe(container, pipe));
             }
         }
-        SparseTimeLineManholeContainer mcontainer = new SparseTimeLineManholeContainer(dataprovider.loadTimeStepsNetwork());
+        SparseTimeLineManholeContainer mcontainer = new SparseTimeLineManholeContainer(dataprovider.loadTimeStepsNetwork(zeroTimeStart));
         mcontainer.setDataprovider(dataprovider);
         //clear all old timelines
         for (Manhole manhole : network.getManholes()) {
@@ -1684,5 +1749,27 @@ public class LoadingCoordinator {
      */
     public String getResultName() {
         return resultName;
+    }
+
+    public void setFilesToLoad(FileContainer files) {
+        if (files.pipeNetwork != null) {
+            this.setPipeNetworkFile(files.pipeNetwork);
+            changedPipeNetwork = true;
+        }
+        if (this.fileMainPipeResult != files.pipeResult) {
+            this.setPipeResultsFile(files.pipeResult, true);
+        }
+        if (files.surfaceDirectory != null) {
+            if (this.fileSurfaceCoordsDAT != files.surfaceDirectory) {
+                try {
+                    this.setSurfaceTopologyDirectory(files.surfaceDirectory);
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+        if (files.surfaceResult != null) {
+            this.setSurfaceWaterlevelFile(files.surfaceResult);
+        }
     }
 }

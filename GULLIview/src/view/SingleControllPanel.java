@@ -133,7 +133,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JCheckBox checkMeasureResidenceTimePipe;
     private JFormattedTextField textMeasurementSecondsSurface;
     private JCheckBox checkMeasureContinouslySurface;
-//    private JCheckBox checkMeasureResidenceTimeSurface;
+    private JCheckBox checkMeasureSynchronisedSurface;
 
     private JButton buttonFileStreetinlets;
     private JLabel labelCurrentAction;
@@ -342,10 +342,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         JPanel panelMcheckSurface = new JPanel(new GridLayout(1, 1));
         checkMeasureContinouslySurface = new JCheckBox("Time continous", false);
         checkMeasureContinouslySurface.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
+        checkMeasureSynchronisedSurface = new JCheckBox("Synchronize", SurfaceMeasurementRaster.synchronizeMeasures);
+        checkMeasureSynchronisedSurface.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
 
 //        checkMeasureResidenceTimeSurface = new JCheckBox("Residence", false);
 //        checkMeasureResidenceTimeSurface.setToolTipText("<html><b>true</b>: Sample all visited capacities. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
         panelMcheckSurface.add(checkMeasureContinouslySurface);
+        panelMcheckSurface.add(checkMeasureSynchronisedSurface);
 //        panelMcheckSurface.add(checkMeasureResidenceTimeSurface);
         panelMeasurementsSurface.add(panelMcheckSurface, BorderLayout.SOUTH);
         panelMeasurement.add(panelMeasurementsSurface);
@@ -358,6 +361,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     checkMeasureContinouslySurface.setSelected(false);
                 }
                 textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
+
             }
         }
 
@@ -999,6 +1003,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
                     control.getScenario().getMeasurementsSurface().continousMeasurements = checkMeasureContinouslySurface.isSelected();
                 }
+            }
+        });
+
+        checkMeasureSynchronisedSurface.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SurfaceMeasurementRaster.synchronizeMeasures = checkMeasureSynchronisedSurface.isSelected();
             }
         });
 

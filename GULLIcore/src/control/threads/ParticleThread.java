@@ -5,6 +5,9 @@ import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing;
 import control.particlecontrol.ParticleSurfaceComputing1D;
 import control.particlecontrol.ParticleSurfaceComputing2D;
+import control.particlecontrol.injection.ManholeInjection;
+import control.particlecontrol.injection.PipeInjection;
+import control.particlecontrol.injection.SurfaceInjection;
 import java.util.ArrayList;
 import model.particle.Particle;
 import model.surface.Surface;
@@ -158,6 +161,9 @@ public class ParticleThread extends Thread {
                             p = threadController.particles[i];
                         } catch (Exception e) {
                             System.err.println("tc:" + threadController);
+                            if (threadController.particles == null) {
+                                break;
+                            }
                             System.err.println("tc.particles:" + threadController.particles);
                             e.printStackTrace();
                             continue;
@@ -169,28 +175,52 @@ public class ParticleThread extends Thread {
                                 //All further particles area also waiting. Break the loop here.
                                 break;
                             } else {
-                                if (p.injectionSurrounding instanceof Surface) {//.getClass().equals(Surface.class)) {
+                                if (p.getInjectionInformation().spillOnSurface()) {
+                                    SurfaceInjection si = (SurfaceInjection) p.getInjectionInformation();
+                                    p.setSurrounding_actual(si.getInjectionCapacity());
+                                    p.surfaceCellID = (int) si.getInjectionCellID();
+                                    p.setPosition3D(si.getInjectionPosition()[0], si.getInjectionPosition()[1]);
                                     p.setOnSurface();
-                                    p.surfaceCellID = p.getInjectionCellID();
-                                    if (p.injectionPosition == null) {
-                                        double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
-                                        p.setPosition3D(pos[0], pos[1]);
+                                } else if (p.getInjectionInformation().spillinPipesystem()) {
+                                    if (p.getInjectionInformation().getClass() == PipeInjection.class) {
+                                        PipeInjection pi = (PipeInjection) p.getInjectionInformation();
+                                        p.setSurrounding_actual(pi.getInjectionCapacity());
+                                        p.setPosition1d_actual(pi.getDistanceAlongPipeMeter());
+                                        p.setInPipenetwork();
+                                    } else if (p.getInjectionInformation().getClass() == ManholeInjection.class) {
+                                        ManholeInjection mhi = (ManholeInjection) p.getInjectionInformation();
+                                        p.setSurrounding_actual(mhi.getInjectionCapacity());
+                                        p.setPosition1d_actual(0);
+                                        p.setPosition3D(mhi.getInjectionCapacity().getPosition());
+                                        p.setInPipenetwork();
                                     } else {
-                                        p.setPosition3D(p.injectionPosition.x, p.injectionPosition.y);
-                                    }
-                                } else if (p.injectionSurrounding.getClass().equals(SurfaceTriangle.class)) {
-                                    p.setOnSurface();
-                                    p.surfaceCellID = p.getInjectionCellID();
-                                    if (p.injectionPosition == null) {
-                                        p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
-                                    } else {
-                                        p.setPosition3D(p.injectionPosition.x, p.injectionPosition.y);
+                                        System.err.println("Do not know injection information " + p.getInjectionInformation());
                                     }
                                 } else {
-                                    p.setInPipenetwork();
-                                    p.setPosition1d_actual(p.injectionPosition1D);
+                                    System.err.println("Do not know where to spill " + p.getInjectionInformation());
                                 }
-                                p.setSurrounding_actual(p.injectionSurrounding);
+//                                if (p.injectionSurrounding instanceof Surface) {//.getClass().equals(Surface.class)) {
+//                                    p.setOnSurface();
+//                                    p.surfaceCellID = p.getInjectionCellID();
+//                                    if (p.injectionPosition == null) {
+//                                        double[] pos = ((Surface) p.injectionSurrounding).getTriangleMids()[p.getInjectionCellID()];
+//                                        p.setPosition3D(pos[0], pos[1]);
+//                                    } else {
+//                                        p.setPosition3D(p.injectionPosition.x, p.injectionPosition.y);
+//                                    }
+//                                } else if (p.injectionSurrounding.getClass().equals(SurfaceTriangle.class)) {
+//                                    p.setOnSurface();
+//                                    p.surfaceCellID = p.getInjectionCellID();
+//                                    if (p.injectionPosition == null) {
+//                                        p.setPosition3d(p.injectionSurrounding.getPosition3D(0));
+//                                    } else {
+//                                        p.setPosition3D(p.injectionPosition.x, p.injectionPosition.y);
+//                                    }
+//                                } else {
+//                                    p.setInPipenetwork();
+//                                    p.setPosition1d_actual(p.injectionPosition1D);
+//                                }
+//                                p.setSurrounding_actual(p.injectionSurrounding);
                             }
                         }
                         //check if it has been initialized from waiting list yet

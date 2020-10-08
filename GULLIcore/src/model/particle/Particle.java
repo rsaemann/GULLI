@@ -6,6 +6,7 @@
 package model.particle;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import control.particlecontrol.injection.ParticleInjection;
 import model.topology.Capacity;
 import model.topology.Position;
 import model.topology.Position3D;
@@ -38,14 +39,6 @@ public class Particle {
     protected Capacity surrounding_actual;
 
     /**
-     * The Volumen, that contains this particle.
-     */
-//    protected Capacity surrounding_past;
-    /**
-     * Each particle represents a volume.
-     */
-//    public static double massPerParticle = 1;
-    /**
      * Mass of this one particle [kg];
      */
     public float particleMass = 0;//(float) massPerParticle;
@@ -54,22 +47,11 @@ public class Particle {
      */
     protected Coordinate position3d = new Coordinate(0, 0, 0);
 
-//    /**
-//     * The position above sea level.
-//     */
-//    protected float height;
     /**
      * Position in a capacity, especially a pipe, along the axis
      */
     protected float position1d_actual;
-//    /**
-//     * Position in 2d space
-//     */
-//    protected Position3D position2d_actual;
-    /**
-     * Position in a capacity, especially a pipe, along the axis
-     */
-//    protected double position1d_past;
+
     /**
      * Velocity [m/s] along the pipe-axis.
      */
@@ -81,46 +63,44 @@ public class Particle {
      */
     protected float moveLengthCummulative = 0;
 
-    /**
-     * Length of movement along the path. Sum of absolute stepsize. Negative
-     * movement added as positive.
-     */
-    protected float moveLengthAbsolute = 0;
-
+//    /**
+//     * Length of movement along the path. Sum of absolute stepsize. Negative
+//     * movement added as positive.
+//     */
+//    protected float moveLengthAbsolute = 0;
     /**
      * Status to determine the domain of the particle. -10:leftSimulation,
      * -1:waiting, 0:inactive; 10: pipenetwork 20:surface; 30:underground.
      */
     public byte status = -1;   //-10 left simulation, -1 waiting,0=inactive, 10=pipenetwork , 20=surface, 30=Underground, 
-    
-    public boolean drymovement=false;
 
+    public boolean drymovement = false;
     private boolean active = false;
-
     public boolean deposited = false;
-
     /**
      * time when the particle is set to active.
      */
     protected long injectionTime = 0;
 
     /**
-     * Pipe/Manhole/SurfaceTriangle this particle is injected at spilltime.
+     * Information about the WHERE of the initial spill/injection
      */
-    public Capacity injectionSurrounding;
-
-    //Stores the position UTM for the injection on the surface.
-    public Position injectionPosition;
-
-    public float injectionPosition1D;
-
-    public Capacity toSurface, toPipenetwork, toSoil;
+    protected ParticleInjection injectionInformation;
 
     /**
-     * Position along travellength, when the particle was spilled out.
+     * Pipe/Manhole/SurfaceTriangle this particle is injected at spilltime.
      */
-    public float posToSurface = 0;
+//    public Capacity injectionSurrounding;
+//    protected int injectionCellID = -1;
+    //Stores the position UTM for the injection on the surface.
+//    public Position injectionPosition;
+//    public float injectionPosition1D;
+    public Capacity toSurface, toPipenetwork, toSoil;
 
+//    /**
+//     * Position along travellength, when the particle was spilled out.
+//     */
+//    public float posToSurface = 0;
     /**
      * When the particle was spilled to the surface.
      */
@@ -131,8 +111,6 @@ public class Particle {
      */
     public int surfaceCellID = -1;
 
-    protected int injectionCellID = -1;
-
     /**
      * If particle stays on this cell, do not count it again.
      */
@@ -140,27 +118,37 @@ public class Particle {
 
 //    public final ArrayList<Shortcut> usedShortcuts=new ArrayList<>(0);
 //    public float ds=0;
-    public Particle(Capacity injectionSurrounding, double injectionPosition1D) {
-        this.injectionSurrounding = injectionSurrounding;
-        this.injectionPosition1D = (float) injectionPosition1D;
-    }
-
-    public Particle(Capacity injectionSurrounding, double injectionPosition1D, long injectionTime) {
-        this(injectionSurrounding, injectionPosition1D);
+//    public Particle(Capacity injectionSurrounding, double injectionPosition1D) {
+//        this.injectionSurrounding = injectionSurrounding;
+//        this.injectionPosition1D = (float) injectionPosition1D;
+//    }
+//
+//    public Particle(Capacity injectionSurrounding, double injectionPosition1D, long injectionTime) {
+//        this(injectionSurrounding, injectionPosition1D);
+//        this.injectionTime = injectionTime;
+//    }
+//
+    public Particle(Material material, ParticleInjection injectionInformation, float mass, long injectionTime) {
+        this(material, injectionInformation, mass);
         this.injectionTime = injectionTime;
     }
 
-    public Particle(Capacity injectionSurrounding, double injectionPosition1D, long injectionTime, float mass_kg) {
-        this(injectionSurrounding, injectionPosition1D, injectionTime);
-        this.particleMass = mass_kg;
+    public Particle(Material material, ParticleInjection injectionInformation, float mass) {
+        this.material = material;
+        this.injectionInformation = injectionInformation;
+        this.particleMass = mass;
     }
 
     public static void resetCounterID() {
         counterID = 0;
     }
 
+    public ParticleInjection getInjectionInformation() {
+        return injectionInformation;
+    }
+
     public boolean isInactive() {
-        return !active;//status < 1;
+        return !active;//status < 1;//
     }
 
     public boolean hasLeftSimulation() {
@@ -177,7 +165,7 @@ public class Particle {
     }
 
     public boolean isActive() {
-        return active;//status > 0;
+        return active;//status > 0;//
     }
 
     public boolean isInPipeNetwork() {
@@ -364,7 +352,7 @@ public class Particle {
 //        this.moveLengthCummulative += ds;
 //    }
     public void addMovingLength(double ds) {
-        this.moveLengthAbsolute += Math.abs(ds);
+//        this.moveLengthAbsolute += Math.abs(ds);
         this.moveLengthCummulative += (ds);
     }
 
@@ -374,7 +362,8 @@ public class Particle {
      * @return
      */
     public float getMoveLength() {
-        return moveLengthAbsolute;
+        return moveLengthCummulative;
+//        return moveLengthAbsolute;
     }
 
 //    public long getActivationTime() {
@@ -404,15 +393,25 @@ public class Particle {
     }
 
     public boolean isDeposited() {
-        return this.deposited;
+        return this.deposited;//status == 11;//
     }
 
     public void setDeposited(boolean deposited) {
+//        status = 11;
         this.deposited = deposited;
     }
 
+    public void setDrySurfaceMovement(boolean dryMoved) {
+//        status=22;
+        this.drymovement = dryMoved;
+    }
+
+    public boolean isDrySurfaceMovement() {
+        return this.drymovement;//status == 22;
+    }
+
     public void resetMovementLengths() {
-        this.moveLengthAbsolute = 0;
+//        this.moveLengthAbsolute = 0;
         this.moveLengthCummulative = 0;
     }
 
@@ -455,12 +454,14 @@ public class Particle {
         this.position3d.y = utmPosition.y;
     }
 
-    public int getInjectionCellID() {
-        return injectionCellID;
+//    public int getInjectionCellID() {
+//        return injectionCellID;
+//    }
+//
+//    public void setInjectionCellID(int injectionCellID) {
+//        this.injectionCellID = injectionCellID;
+//    }
+    public static long getMaxID() {
+        return counterID;
     }
-
-    public void setInjectionCellID(int injectionCellID) {
-        this.injectionCellID = injectionCellID;
-    }
-
 }

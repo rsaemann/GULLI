@@ -47,6 +47,7 @@ import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.ArrayTimeLinePipe;
 import model.timeline.array.ArrayTimeLinePipeContainer;
+import model.timeline.sparse.SparseTimelinePipe;
 import model.topology.Capacity;
 import model.topology.Pipe;
 import model.topology.StorageVolume;
@@ -116,9 +117,9 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     XYSeries m_p = new XYSeries(new SeriesKey("#Particles", "n", "-", Color.magenta));
     XYSeries m_c = new XYSeries(new SeriesKey("Concentration ptcl", "", "kg/m³", Color.black, AxisKey.CONCENTRATION()));
     XYSeries m_m = new XYSeries(new SeriesKey("Mass ptcl", "", "kg", Color.red, new AxisKey("Mass")));
-    XYSeries m_m_sma = new XYSeries(new SeriesKey("Mass ptcl SMA", "", "kg", new Color(250,200,200), new AxisKey("Mass")));
+    XYSeries m_m_sma = new XYSeries(new SeriesKey("Mass ptcl SMA", "", "kg", new Color(250, 200, 200), new AxisKey("Mass")));
     XYSeries m_MassFlux = new XYSeries(new SeriesKey("Massflux ptcl", "", "kg/s", Color.orange, new AxisKey("Massflux")));
-    
+
     XYSeries m_vol = new XYSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan));
     XYSeries m_n = new XYSeries(new SeriesKey("#Samples per Interval", "", "-", Color.lightGray));
     /**
@@ -290,7 +291,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         float[] massFlux = instance.getMassFluxForTimeIndex(ind, 0);
         float[] cs = instance.getConcentrationForTimeIndex(ind, 0);
         float[] vol = instance.getVolumesForTimeIndex(ind);
-        float[] q=instance.getDischargeForTimeIndex(ind);
+        float[] q = instance.getDischargeForTimeIndex(ind);
 //        System.out.println("timeindex: " + ind);
 //        System.out.println(getClass() + ":: ArrayTimeLinePipeContainer.distance=" + instance.distance);
         if (instance.distance != null) {
@@ -335,14 +336,14 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             //System.out.println("distances: " + container.distance.length);
             for (int i = 0; i < ArrayTimeLineMeasurementContainer.distance.length; i++) {
                 float d = ArrayTimeLineMeasurementContainer.distance[i];
-                
+
                 m_p.addOrUpdate(d, ps[i]);
                 m_m.addOrUpdate(d, mass[i]);
                 m_c.addOrUpdate(d, cs[i]);
                 m_n.addOrUpdate(d, ns[i]);
-                m_MassFlux.addOrUpdate(d, mass[i]*q[i]);
+                m_MassFlux.addOrUpdate(d, mass[i] * q[i]);
             }
-            m_m_sma = createMovingaverageCentral(m_m, 10, "10 mean Mass",m_m_sma);
+            m_m_sma = createMovingaverageCentral(m_m, 10, "10 mean Mass", m_m_sma);
 
             if (moment1_refvorgabe.getMaxY() > 0) {
                 this.collection.addSeries(moment1_refvorgabe);
@@ -386,7 +387,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 //                this.collection.addSeries(c100);
 //            }
             if (m_m.getMaxY() > 0) {
-                
+
                 this.collection.addSeries(m_MassFlux);
                 this.collection.addSeries(m_m);
                 this.collection.addSeries(m_m_sma);
@@ -1150,8 +1151,10 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             if (c instanceof Pipe) {
                 Pipe p = (Pipe) c;
                 this.measurementContainer = p.getMeasurementTimeLine().getContainer();
-                this.referenceContainer = ((ArrayTimeLinePipe) p.getStatusTimeLine()).container;
-                buildPipeSpaceline(referenceContainer, 0);
+                if (p.getStatusTimeLine() instanceof ArrayTimeLinePipe) {
+                    this.referenceContainer = ((ArrayTimeLinePipe) p.getStatusTimeLine()).container;
+                    buildPipeSpaceline(referenceContainer, 0);
+                }
             }
         }
     }

@@ -1378,6 +1378,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
         };
         this.add(panelChart, BorderLayout.CENTER);
+        panelChart.setMaximumDrawHeight((int) (250));
+        panelChart.setMaximumDrawWidth((int) (500));
     }
 
     private void updateChart(String title) {

@@ -222,7 +222,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY, SLOPE, VERTEX_HEIGHT;
+        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, HEATMAP_LIN_BAGATELL, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY, SLOPE, VERTEX_HEIGHT;
     };
     private SURFACESHOW surfaceShow = SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -1275,7 +1275,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 e.printStackTrace();
             }
 
-        } else if (this.surfaceShow == SURFACESHOW.HEATMAP_LIN || this.surfaceShow == SURFACESHOW.HEATMAP_LOG) {
+        } else if (this.surfaceShow == SURFACESHOW.HEATMAP_LIN || this.surfaceShow == SURFACESHOW.HEATMAP_LOG || this.surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
             try {
                 if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
                     SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
@@ -1298,28 +1298,53 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             highColorCount = Math.log10(totalparticleCount);
                         }
 
+                        double totalmeasurements = 0;
+                        for (int i = 0; i < raster.measurementTimestamp.length; i++) {
+                            totalmeasurements += raster.measurementTimestamp[i];
+                        }
+                        if (totalmeasurements < 1) {
+                            System.err.println("No measurements.");
+                            return;
+                        }
 //                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
+                        int bagatell = (int) (0.0001 * totalparticleCount);
+                        int nbMaterials = raster.getNumberOfMaterials();
+                        int nbtimes = raster.measurementTimestamp.length;
+                        System.out.println("Bagatellgrenze: " + bagatell);
                         for (int i = 0; i < raster.getMeasurements().length; i++) {
                             TriangleMeasurement triangleMeasurement = raster.getMeasurements()[i];
                             if (triangleMeasurement == null) {
                                 continue;
                             }
 //                            int i = (int) tri.getTriangleID();
-                            int massSum = 0;
-                            for (int[] mass : triangleMeasurement.getParticlecount()) {//.getMass()
-                                for (int c : mass) {
-                                    massSum += c;
+                            int ptclSum = 0;
+                            int timesum = 0;
+                            for (int t = 0; t < nbtimes; t++) {
+                                timesum = 0;
+                                for (int m = 0; m < nbMaterials; m++) {
+                                    timesum += triangleMeasurement.getParticlecount()[m][t];
                                 }
+                                if (surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
+                                    if (timesum / nbtimes <= bagatell) {
+//                                        System.out.println(+timesum+" / "+nbtimes+" = "+(timesum / nbtimes));
+                                        continue;
+                                    }
+                                }
+                                ptclSum += timesum;
                             }
                             Color color;
-                            if (massSum == 0) {
+                            if (ptclSum == 0) {
                                 color = null;
+                                continue;
                             } else {
+
                                 if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
-                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(massSum) / highColorCount));
+                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(ptclSum) / highColorCount));
                                 } else {
                                     //Linear
-                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (massSum) / highColorCount);
+
+                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (ptclSum) / highColorCount);
+
                                 }
                             }
                             if (color != null) {
@@ -2044,33 +2069,22 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             networkLayer.setVisibleInLegende(true);
             networkLayer.setVisibleInMap(true);
         }
-//        surfaceLayer.clear();
-//        networkLayer.clear();
-//        if (arrayListNetwork == null) {
-//            arrayListNetwork = new ArrayList<>(particlePaintings.length);
-//        }
-//        if (arrayListSurface == null) {
-//            arrayListSurface = new ArrayList<>(particlePaintings.length);
-//        }
-//        arrayListNetwork.clear();
-//        arrayListSurface.clear();
-
-//        Iterator<NodePainting> it = particlePaintings.iterator();
         int nb_surface = 0;
         int nB_network = 0;
         int positionnull = 0;
         Particle[] ps = control.getThreadController().getParticles();
-
         if (ps != null) {
-            if (arraySurface == null || arraySurface.length != ps.length) {
+            if (arraySurface == null || arraySurface.length != ps.length || surfaceLayer.getElements().length != arraySurface.length) {
                 arraySurface = new ParticleNodePainting[ps.length];
                 arrayNetwork = new ParticleNodePainting[ps.length];
                 networkLayer.setPaintElements(arrayNetwork);//arrayListNetwork.toArray(new ParticleNodePainting[arrayListNetwork.size()]));
                 surfaceLayer.setPaintElements(arraySurface);//arrayListSurface.toArray(new ParticleNodePainting[arrayListSurface.size()]));
             }
-//            System.out.println("update "+ps.length+" particle shapes");
             for (int i = 0; i < particlePaintings.length; i++) {
                 ParticleNodePainting np = particlePaintings[i];
+                if (np == null) {
+                    break;
+                }
                 Particle p = ps[i];
                 if (p.isActive()) {
                     if (p.getPosition3d() == null || Double.isNaN(p.getPosition3d().x)) {
@@ -2117,20 +2131,14 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
                             nB_network++;
                         } catch (Exception ex) {
-//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
                 } else {
                     np.setColor(null);
                 }
             }
-
         }
-
-//        surfaceLayer.flush();
-//        System.out.println("surface:" + surface + ", netweork:" + network + ",  kaputt:" + positionnull + "  " + surfaceLayer.size() + "+" + networkLayer.size());
-//        mapViewer.recalculateShapes();
-//        mapViewer.repaint();
     }
 
     public void initColorHolderArray(ColorHolder[] colorholders, Color low, Color high) {
@@ -2232,15 +2240,14 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         return chVelocity[Math.min(100, Math.max(0, percent))];
     }
 
-    public NodePainting getParticlePainting(long id) {
-        for (NodePainting particlePainting : particlePaintings) {
-            if (particlePainting.getId() == id) {
-                return particlePainting;
-            }
-        }
-        return null;
-    }
-
+//    public NodePainting getParticlePainting(long id) {
+//        for (NodePainting particlePainting : particlePaintings) {
+//            if (particlePainting.getId() == id) {
+//                return particlePainting;
+//            }
+//        }
+//        return null;
+//    }
     @Override
     public void selectLocationID(Object o, String string, long id) {
         if (selectedLayer != null && selectedLayer.equals(string) && selectedID == id) {
@@ -3196,36 +3203,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         mapViewer.clearLayer(this.layerParticleNetwork);
         mapViewer.clearLayer(this.layerParticleSurface);
         int index = 0;
-        this.particlePaintings = new ParticleNodePainting[particles.size()];
-//        System.out.println("create shapes for "+particles.size()+" set particles");
+        this.particlePaintings = new ParticleNodePainting[Math.min(particles.size(), maximumNumberOfParticleShapes)];
         for (final Particle p : particles) {
-            if (p.getPosition3d() == null || (Math.abs(p.getPosition3d().x) < 0.01 && Math.abs(p.getPosition3d().y) < 0.01)) {
-                Position3D pos = p.injectionSurrounding.getPosition3D(p.injectionPosition1D);
-                if (pos == null) {
-                    if (p.injectionSurrounding instanceof Surface) {
-                        Surface surf = (Surface) p.injectionSurrounding;
-                        double[] utm = surf.getTriangleMids()[p.getInjectionCellID()];
-                        p.setPosition3D(utm[0], utm[1], utm[2]);
-                    }
-                }
+            if (index > maximumNumberOfParticleShapes - 1) {
+                break;
             }
-//            Coordinate globalCoordinate;
-//
-//            if (p.isOnSurface()) {
-//                try {
-//                    globalCoordinate = geoToolsSurface.toGlobal(p.getPosition3d(), true);
-//
-//                } catch (TransformException ex) {
-//                    Logger.getLogger(PaintManager.class
-//                            .getName()).log(Level.SEVERE, null, ex);
-//                    globalCoordinate = null;
-//                }
-//            } else if (p.isInPipeNetwork()) {
-//                globalCoordinate = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()).get3DCoordinate();
-//
-//            } else {
-//                globalCoordinate = zeroCoordinate;
-//            }
             ParticleNodePainting np;
 
             if (p.getClass().equals(HistoryParticle.class)) {
@@ -3234,12 +3216,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
                 np.setRadius(4);
                 np.setShapeRound(true);
-//                if (showParticles) {
-//                    mapViewer.addPaintInfoToLayer(layerParticle, np);
-//                }
-
             } else {
-
                 np = new ParticleNodePainting(p, p.getId(), new Coordinate(0, 0), chParticles);
                 np.radius = 1;
             }
@@ -3323,13 +3300,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 return false;
             }
             if (p.isOnSurface()) {
-                g2.setColor(chParticlesSurface.color);
+                if (p.isDrySurfaceMovement()) {
+                    g2.setColor(Color.orange);
+                } else {
+                    g2.setColor(chParticlesSurface.color);
+                }
             } else {
                 g2.setColor(chParticlesNetwork.color);
             }
-            if (p.drymovement) {
-                g2.setColor(Color.red);
-            }
+
             if (p.isDeposited()) {
                 g2.setColor(Color.black);
             }

@@ -288,6 +288,7 @@ public class SynchronizationThreadPipe extends Thread {
                 }
 
             } else {
+                writeindex = mp.getIndexForTime(barrier.stepEndTime);
                 //Sample all the time
                 if (!mp.measurementsActive) {
                     mp.measurementsActive = true;

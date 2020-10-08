@@ -63,7 +63,7 @@ public class Timeline_IO {
             bw.newLine();
             bw.write("ContinuousSampling:"+!tlm.getContainer().isTimespotmeasurement());
             bw.newLine();
-            bw.write("TimeMS,Massflux[kg/s]");
+            bw.write("TimeMS;Massflux[kg/s]");
             bw.newLine();
             bw.append("***");
             for (int i = 0; i < times.length; i++) {
@@ -71,7 +71,6 @@ public class Timeline_IO {
                 bw.append(times[i]+";");
                 double discharge =tls.getVelocity(tls.getTimeContainer().getTimeIndex(times[i])) / pipe.getLength();//1/s
                 bw.append(pipe.getMeasurementTimeLine().getMass(i, materialindex)*discharge+"");
-                bw.newLine();
             }
             bw.flush();
             fw.flush();

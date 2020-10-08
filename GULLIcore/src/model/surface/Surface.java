@@ -1782,20 +1782,20 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         stat.number_of_particles++;
         stat.sum_traveltime += traveltime;
         stat.sum_mass += p.particleMass;
-        stat.sum_travelLength += p.getTravelledPathLength() - p.posToSurface;
+//        stat.sum_travelLength += p.getTravelledPathLength() - p.posToSurface;
 
         stat.minTravelTime = Math.min(stat.minTravelTime, traveltime);
         stat.maxTravelTime = Math.max(stat.maxTravelTime, traveltime);
 
-        stat.minTravelLength = Math.min(stat.minTravelLength, p.getTravelledPathLength() - p.posToSurface);
-        stat.maxTravelLength = Math.max(stat.maxTravelLength, p.getTravelledPathLength() - p.posToSurface);
+//        stat.minTravelLength = Math.min(stat.minTravelLength, p.getTravelledPathLength() - p.posToSurface);
+//        stat.maxTravelLength = Math.max(stat.maxTravelLength, p.getTravelledPathLength() - p.posToSurface);
 
-        if (sourcesForSpilloutParticles.containsKey(p.injectionSurrounding)) {
-            Integer counter = sourcesForSpilloutParticles.get(p.injectionSurrounding);
+        if (sourcesForSpilloutParticles.containsKey(p.getInjectionInformation().getInjectionCapacity())){//.injectionSurrounding)) {
+            Integer counter = sourcesForSpilloutParticles.get(p.getInjectionInformation().getInjectionCapacity());
             int ineu = counter + 1;
-            sourcesForSpilloutParticles.put(p.injectionSurrounding, ineu);
+            sourcesForSpilloutParticles.put(p.getInjectionInformation().getInjectionCapacity(), ineu);
         } else {
-            sourcesForSpilloutParticles.put(p.injectionSurrounding, 1);
+            sourcesForSpilloutParticles.put(p.getInjectionInformation().getInjectionCapacity(), 1);
         }
     }
 

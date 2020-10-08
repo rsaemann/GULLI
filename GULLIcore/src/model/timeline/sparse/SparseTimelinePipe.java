@@ -163,6 +163,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
 //        }
         lock.lock();
 //        System.out.println(pipeName+"entered , waiting: "+lock.getQueueLength());
+       
         try {
             if (this.actualTimestamp == container.getActualTime()) {
 //                System.out.println(pipeName+"already calculated ");

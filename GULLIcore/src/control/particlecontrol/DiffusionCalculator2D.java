@@ -27,7 +27,7 @@ import model.surface.Surface;
 
 /**
  *
- * @author riss
+ * @author riss, saemann
  */
 public class DiffusionCalculator2D {
 
@@ -247,6 +247,15 @@ public class DiffusionCalculator2D {
     public void setDiffusionType(DIFFTYPE str) {
         this.diffType = str;
 
+    }
+
+    public void setDirectDiffusion(double dxx, double dyy, double dxy) {
+        this.setDiffusionType(DIFFTYPE.D);
+        this.Dxx = dxx;
+        this.Dyy = dyy;
+        this.Dxy = dxy;
+        this.directD = new double[]{dxx, dyy,0};
+        this.directSqrtD = new double[]{Math.sqrt(dxx), Math.sqrt(dyy),0};
     }
 
     public class NoDiffusionStringException extends Exception {
