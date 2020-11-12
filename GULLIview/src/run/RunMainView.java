@@ -1,3 +1,5 @@
+package run;
+
 
 import com.vividsolutions.jts.geom.Geometry;
 import control.Controller;
@@ -9,6 +11,7 @@ import control.maths.RandomArray;
 import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing2D;
 import control.scenario.injection.InjectionInformation;
+import control.threads.ThreadController;
 import io.GeoJSON_IO;
 import io.Geopackage_IO;
 import io.extran.HE_GDB_IO;
@@ -75,6 +78,7 @@ public class RunMainView {
         //Zeitschrittweite für Partikalbewegung setzen (Sekunden)
         //Set Deltatime for the particlesimulation (in seconds)
         control.getThreadController().setDeltaTime(1);
+        ThreadController.pauseRevokerThread=true;
 
         //Benutzeroberfläche Hintergrundkarte anpassen.
         //Set the Background map for the main frame.

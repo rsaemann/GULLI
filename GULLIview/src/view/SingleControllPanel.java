@@ -32,9 +32,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Level;
@@ -148,10 +150,23 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     protected Thread updateThread;
 
     protected PipeThemeLayer activePipeThemeLayer;
+    protected SimpleDateFormat dateFormat;
+    protected DecimalFormat dfParticles = new DecimalFormat("#");
 
     public SingleControllPanel(final ThreadController controller, final Controller control, final JFrame frame, PaintManager pm) {
         super();
         layout = new BoxLayout(this, BoxLayout.Y_AXIS);
+        dateFormat = new SimpleDateFormat();
+        try {
+            dateFormat.setTimeZone(StartParameters.formatTimeZone);
+        } catch (Exception e) {
+        }
+        DecimalFormatSymbols dfsymb = new DecimalFormatSymbols(StartParameters.formatLocale);
+        dfsymb.setGroupingSeparator(' ');
+       
+        dfParticles = new DecimalFormat("#,###", dfsymb);
+        dfParticles.setGroupingSize(3);
+
         this.setLayout(layout);
         initLoadingIcons();
         this.paintManager = pm;
@@ -729,12 +744,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         //Update thread to show information about running simulation. e.g. number of active particles
         new Thread("GUI SimulationInformation Update") {
-            GregorianCalendar actual = new GregorianCalendar();
+            GregorianCalendar actual = new GregorianCalendar(StartParameters.formatTimeZone);
             StringBuilder timeelapsed = new StringBuilder(30);
             boolean juststopped = false;
+            double seconds, minutes, hours;
 
             @Override
             public void run() {
+
                 while (true) {
                     try {
                         if (!controller.isSimulating() && wasrunning) {
@@ -744,10 +761,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         if (controller.isSimulating() || juststopped) {
                             labelCalculationPerStep.setText(controller.getAverageCalculationTime() + "");
                             labelCalculationTime.setText(controller.getElapsedCalculationTime() / 1000 + "");
-                            labelCalculationSteps.setText(controller.getSteps() + "");
-                            double seconds = ((controller.getSimulationTime() - controller.getSimulationStartTime()) / 1000L);
-                            double minutes = seconds / 60.;
-                            double hours = minutes / 60.;
+                            labelCalculationSteps.setText(dfParticles.format(controller.getSteps()));
+                            seconds = ((controller.getSimulationTime() - controller.getSimulationStartTime()) / 1000L);
+                            minutes = seconds / 60.;
+                            hours = minutes / 60.;
                             timeelapsed.delete(0, timeelapsed.capacity());
                             if (hours > 0) {
                                 timeelapsed.append((int) hours).append("h ");
@@ -799,13 +816,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 actual.setTimeInMillis(controller.getSimulationTime());
                                 labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
 
-                                labelParticleActive.setText(controller.getNumberOfActiveParticles() + "");
-                                labelParticlesTotal.setText("/ " + controller.getNumberOfTotalParticles());
-
                             }
                         }
-                        labelParticleActive.setText(controller.getNumberOfActiveParticles() + "");
-                        labelParticlesTotal.setText("/ " + controller.getNumberOfTotalParticles());
+                        labelParticleActive.setText(dfParticles.format(controller.getNumberOfActiveParticles()));
+                        labelParticlesTotal.setText("/ " + dfParticles.format(controller.getNumberOfTotalParticles()));
                         juststopped = false;
                         wasrunning = controller.isSimulating();
                         Thread.sleep(500);
@@ -1205,9 +1219,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             public void stateChanged(ChangeEvent ce) {
                 long time = (long) (controller.getSimulationStartTime() + (controller.getSimulationTimeEnd() - controller.getSimulationStartTime()) * (sliderTimeShape.getValue() / (double) sliderTimeShape.getMaximum()));
                 paintManager.setTimeToShow(time);
-                if (control.getSingleEventInputData() != null) {
-                    control.getSingleEventInputData().getManholeTimeline().setActualTime(time);
-                    control.getSingleEventInputData().getPipeTimeline().setActualTime(time);
+                if (control.getPipeResultData() != null) {
+                    control.getPipeResultData().getManholeTimeline().setActualTime(time);
+                    control.getPipeResultData().getPipeTimeline().setActualTime(time);
                 }
                 if (control.getScenario() != null) {
                     control.getScenario().setActualTime(time);
@@ -1651,17 +1665,17 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             public void run() {
                 while (!isInterrupted()) {
                     try {
-                        GregorianCalendar start = new GregorianCalendar();
+                        GregorianCalendar start = new GregorianCalendar(StartParameters.formatTimeZone);
                         start.setTimeInMillis(controler.getSimulationStartTime());
-                        GregorianCalendar end = new GregorianCalendar();
+                        GregorianCalendar end = new GregorianCalendar(StartParameters.formatTimeZone);
                         end.setTimeInMillis(controler.getSimulationTimeEnd());
 
                         longerThan1Day = false;
                         if (start.get(GregorianCalendar.DAY_OF_YEAR) != start.get(GregorianCalendar.DAY_OF_YEAR) || start.get(GregorianCalendar.YEAR) != start.get(GregorianCalendar.YEAR)) {
                             longerThan1Day = true;
                         }
-                        labelStarttime.setToolTipText(new Date(controler.getSimulationStartTime()).toString());
-                        labelEndtime.setToolTipText(new Date(controler.getSimulationTimeEnd()).toString());
+                        labelStarttime.setToolTipText(dateFormat.format(controler.getSimulationStartTime()));
+                        labelEndtime.setToolTipText(dateFormat.format(controler.getSimulationTimeEnd()));
                         if (longerThan1Day) {
                             labelStarttime.setText(start.get(GregorianCalendar.DAY_OF_MONTH) + "." + (start.get(GregorianCalendar.MONTH) + 1) + " ");
                             labelEndtime.setText(end.get(GregorianCalendar.DAY_OF_MONTH) + "." + (end.get(GregorianCalendar.MONTH) + 1) + " ");
@@ -1751,41 +1765,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                         textSeed.setText(control.getThreadController().getSeed() + "");
 
-//                            if (lc.isLoading()) {
-//                                if (progressLoading == null) {
-//                                    progressLoading = new JProgressBar();
-//                                    progressLoading.setBackground(getLoadingColor(LoadingCoordinator.LOADINGSTATUS.LOADING));
-//                                }
-//
-//                                progressLoading.setIndeterminate(true);
-//                                panelLoadingStatus.remove(buttonStartLoading);
-//                                panelLoadingStatus.remove(buttonStartReloadingAll);
-//                                panelLoadingStatus.add(progressLoading, BorderLayout.CENTER);
-//                                panelLoadingStatus.add(buttonCancelLoading, BorderLayout.EAST);
-//                                if (lc.action != null && !lc.action.description.equals(labelCurrentAction.getText())) {
-//                                    labelCurrentAction.setText(lc.action.description);
-//                                    startUpdateThread();
-//                                }
-//                                panelLoadingStatus.revalidate();
-//                                panelLoading.revalidate();
-//                                panelLoadingStatus.repaint();
-//                            } else {
-//                                if (progressLoading != null) {
-//                                    panelLoadingStatus.remove(progressLoading);
-//                                    panelLoadingStatus.remove(buttonCancelLoading);
-//                                    panelLoadingStatus.add(buttonStartLoading, BorderLayout.EAST);
-//                                    panelLoadingStatus.add(buttonStartReloadingAll, BorderLayout.WEST);
-//                                }
-//                                labelCurrentAction.setText(currentAction.toString());
-//                                panelLoadingStatus.revalidate();
-//                                panelLoading.revalidate();
-//                                panelLoadingStatus.repaint();
-//                            }
                         textTimeStep.setText(ThreadController.getDeltaTime() + "");
                         checkUpdateIntervall.setSelected(controler.paintOnMap);
 
-                        labelParticleActive.setText(controler.getNumberOfActiveParticles() + "");
-                        labelParticlesTotal.setText("/ " + controler.getNumberOfTotalParticles());
+                        labelParticleActive.setText(dfParticles.format(control.getThreadController().getNumberOfActiveParticles()));
+                        labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
 
                         buttonRun.setEnabled((control.getNetwork() != null || control.getSurface() != null) && !control.getLoadingCoordinator().isLoading());
 
@@ -1882,7 +1866,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     BoxLayout layout = new BoxLayout(panelInjections, BoxLayout.Y_AXIS);
                     panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
                     try {
+                        int maxnumber = 50;
                         for (final InjectionInformation inj : injections) {
+                            maxnumber--;
+                            if (maxnumber < 0) {
+//                                System.err.println("Will not show more than 50 ");
+                                break;
+                            }
                             InjectionPanel ip = new InjectionPanel(inj, mapViewer, paintManager);
                             panelInjections.add(ip);
 

@@ -28,7 +28,7 @@ import control.Controller;
 import control.listener.LoadingActionListener;
 import control.listener.SimulationActionListener;
 import control.listener.ParticleListener;
-import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import control.scenario.Scenario;
 import control.scenario.injection.InjectionInformation;
 import java.util.ArrayList;
@@ -136,7 +136,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     /**
      * Generating Random numbers must always happen for the same particles.
      */
-    protected RandomArray[] randomNumberGenerators;
+    protected RandomGenerator[] randomNumberGenerators;
     private ReentrantLock lock = new ReentrantLock();
     //number of particles to be treted by one thread
     protected int treatblocksize = 1000;
@@ -249,8 +249,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         if (randomNumberGenerators != null) {
             Random r = new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomArray newField = new RandomArray(r.nextLong(), (int) (treatblocksize * 10 + 19));
-                randomNumberGenerators[i] = newField;
+                RandomGenerator newGen=new RandomGenerator(r.nextLong());// newField = new RandomArray(r.nextLong(), (int) (treatblocksize * 10 + 19));
+                randomNumberGenerators[i] = newGen;
             }
         }
     }
@@ -368,7 +368,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
     private void recalculateRandomNumberGenerators() {
         if (particles != null) {
-            randomNumberGenerators = new RandomArray[this.particles.length / treatblocksize + 1];
+            randomNumberGenerators = new RandomGenerator[this.particles.length / treatblocksize + 1];
         }
     }
 
@@ -490,7 +490,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             }
         }
 //        setSeed(seed);
-        for (RandomArray rng : randomNumberGenerators) {
+        for (RandomGenerator rng : randomNumberGenerators) {
             rng.reset();
         }
         if (control.getSurface() != null) {

@@ -623,6 +623,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         ap.arrowheadvisibleFromZoom = 200;
                     }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
+                    
+                    try {
+                        if (pipe.getEndConnection().getManhole().isSetAsOutlet()) {
+                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), MapViewer.COLORHOLDER_LABEL, list.get(list.size() - 1), "Outlet: " + pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength()) + " kg");
+                            mapViewer.addPaintInfoToLayer("OutletMass", lp);
+                        }
+                        
+                    } catch (Exception e) {
+                    }
                 } else if (pipeShow == PIPESHOW.VELOCITY) {
                     ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
                         @Override
@@ -2113,6 +2122,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         }
                     } else {
                         try {
+                            if(p.getSurrounding_actual()==null)continue;
                             Position3D pos = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual());
                             if (np == null) {
                                 ParticleNodePainting pnp = new ParticleNodePainting(p, i, pos.lonLatCoordinate(), chParticlesNetwork);

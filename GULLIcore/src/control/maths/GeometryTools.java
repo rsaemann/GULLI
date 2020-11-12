@@ -323,8 +323,8 @@ public class GeometryTools {
 
         return new double[]{s, t};
     }
-    
-        /**
+
+    /**
      *
      * @param tempReturn
      * @param p0_x
@@ -337,7 +337,7 @@ public class GeometryTools {
      * @param p3_y
      * @return [0:factor along p0-p1,1:factor along p2-p3]
      */
-    public static double[] lineIntersectionST(double[] tempReturn,double p0_x, double p0_y, double p1_x, double p1_y,
+    public static double[] lineIntersectionST(double[] tempReturn, double p0_x, double p0_y, double p1_x, double p1_y,
             double p2_x, double p2_y, double p3_x, double p3_y) {
         double s1_x, s1_y, s2_x, s2_y;
         s1_x = p1_x - p0_x;
@@ -455,7 +455,7 @@ public class GeometryTools {
 
     /**
      *
-     * @param tofill  
+     * @param tofill
      * @param x1
      * @param x2
      * @param x3
@@ -542,39 +542,41 @@ public class GeometryTools {
 
         return afactor * Math.sqrt(sqralength);
     }
-    
+
     /**
-     * 
+     *
      * @param pointX
      * @param pointY
      * @param lineStartX
      * @param lineStartY
      * @param lineEndX
      * @param lineEndY
-     * @param projectedpoint double[2] array to be filled with x and y coordinate of the projection
+     * @param projectedpoint double[2] array to be filled with x and y
+     * coordinate of the projection
+     * @return length factor along the line, where the projected point is
+     * located
      */
-    public static double projectPointToLine(double pointX,double pointY,double lineStartX,double lineStartY,double lineEndX,double lineEndY,double[] projectedpoint){
-        double ex=pointX-lineStartX;
-        double ey=pointY-lineStartY;
-        
-        double ax=lineEndX-lineStartX;
-        double ay=lineEndY-lineStartY;
-        
-        double f=(ex*ax+ey*ay)/(ax*ax+ay*ay);
-        
+    public static double projectPointToLine(double pointX, double pointY, double lineStartX, double lineStartY, double lineEndX, double lineEndY, double[] projectedpoint) {
+        double ex = pointX - lineStartX;
+        double ey = pointY - lineStartY;
+
+        double ax = lineEndX - lineStartX;
+        double ay = lineEndY - lineStartY;
+
+        double f = (ex * ax + ey * ay) / (ax * ax + ay * ay);
+
 //        double sum=ex*ax+ey*ay;
 //        
 //        double length=Math.sqrt(ax*ax+ay*ay);
 //        
 //        double f=sum/length;
 //        
-        projectedpoint[0]=lineStartX+ax*f;
-        projectedpoint[1]=lineStartY+ay*f;
-        
+        projectedpoint[0] = lineStartX + ax * f;
+        projectedpoint[1] = lineStartY + ay * f;
+
 //        projectedpoint[0]=
-        
         return f;
-        
+
     }
 
 //    public static void main(String[] args) {

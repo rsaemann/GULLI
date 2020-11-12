@@ -88,6 +88,22 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         return smr;
     }
 
+    public static SurfaceMeasurementRectangleRaster SurfaceMeasurementRectangleRaster(Surface surf, double dx, double dy) {
+        double minX = Double.POSITIVE_INFINITY, maxX = Double.NEGATIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
+
+        for (double[] vertex : surf.getVerticesPosition()) {
+            minX = Math.min(minX, vertex[0]);
+            maxX = Math.max(maxX, vertex[0]);
+            minY = Math.min(minY, vertex[1]);
+            maxY = Math.max(maxY, vertex[1]);
+        }
+
+        int numx = (int) ((maxX - minX) / dx + 1);
+        int numy = (int) ((maxY - minY) / dy + 1);
+        return new SurfaceMeasurementRectangleRaster(minX, minY, numx, numy, dx, dy, surf.getNumberOfMaterials(), surf.getTimes());
+    }
+
     /**
      *
      * @param x
@@ -128,6 +144,9 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             return;
         }
         if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
+            return;
+        }
+        if(measureSpilloutParticlesOnly&&particle.toSurface==null){
             return;
         }
         if (this.times == null) {
@@ -171,8 +190,9 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                     } catch (Exception e) {
                         //this arrays seems not to be initialized by another thread. wait some time for completion.
                         Thread.sleep(20);
-                        if(particlecounter[xindex][yindex]!=null)
-                        particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                        if (particlecounter[xindex][yindex] != null) {
+                            particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                        }
                     }
                 }
             } else {
@@ -184,8 +204,6 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             System.err.println("X index: " + xindex + "    pos.x=" + particle.getPosition3d().x + "    xmin=" + xmin + "     diff=" + ((particle.getPosition3d().x - xmin) + "    xIwidth=" + xIntervalWidth));
         }
     }
-
-   
 
     @Override
     public void setNumberOfMaterials(int numberOfMaterials) {
@@ -333,8 +351,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     public Coordinate getMidCoordinate(int xindex, int yindex) {
         return new Coordinate(xmin + (xindex + 0.5) * xIntervalWidth, ymin + (yindex + 0.5) * YIntervalHeight);
     }
-    
-     public int getXindexFor(double xcoord) {
+
+    public int getXindexFor(double xcoord) {
         return (int) ((xcoord - xmin) / xIntervalWidth);
     }
 

@@ -2,6 +2,7 @@ package view.timeline;
 
 import control.Controller;
 import control.StartParameters;
+import control.listener.CapacitySelectionListener;
 import io.timeline.TimeSeries_IO;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -21,18 +22,23 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.TransferHandler;
 import model.topology.Capacity;
 import org.jfree.data.time.TimeSeries;
+import view.ViewController;
 import view.timeline.customCell.StrokeEditor;
 
 /**
+ * A frem to display the measured and hydraulic timelines of pipes and manholes
+ * together with a table panel to control the layout of the plot.
  *
  * @author saemann
  */
@@ -40,15 +46,19 @@ public class EditorTableFrame extends JFrame {
 
     TimeSeriesEditorTablePanel tablePanel;
     CapacityTimelinePanel timelinePanel;
+    JPanel panelSouth;
     JSplitPane splitpane;
+    OutflowMinimizerPanel panelMinimizer;
+    ViewController viewController;
 
     public EditorTableFrame() {
-        this(null, null);
+        this(null, null, null);
     }
 
-    public EditorTableFrame(String title, Controller control) throws HeadlessException {
+    public EditorTableFrame(String title, Controller control, ViewController vc) throws HeadlessException {
         super("Graphs");
         this.setLayout(new BorderLayout());
+        this.viewController = vc;
         tablePanel = new TimeSeriesEditorTablePanel();
         tablePanel.setMinimumSize(new Dimension(100, 100));
         timelinePanel = new CapacityTimelinePanel(title, control);
@@ -57,11 +67,13 @@ public class EditorTableFrame extends JFrame {
         timelinePanel.collection = tablePanel.getTable().collection;
         tablePanel.setTimelinePanel(timelinePanel);
 
-        splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, timelinePanel, tablePanel);
+        panelSouth = new JPanel(new BorderLayout());
+        panelSouth.add(tablePanel, BorderLayout.CENTER);
+        splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, timelinePanel, panelSouth);
         this.setBounds(200, 200, (int) StartParameters.getTimelinepanelWidth(), (int) StartParameters.getTimelinepanelHeight());
         this.add(splitpane, BorderLayout.CENTER);
         this.setVisible(true);
-        splitpane.setDividerLocation((int)StartParameters.getTimelinepanelSplitposition());
+        splitpane.setDividerLocation((int) StartParameters.getTimelinepanelSplitposition());
         this.revalidate();
 //        System.out.println("Timelinepanel.collection="+timelinePanel.getCollection());
 //        System.out.println("Editorpanel  .collection=" + tablePanel.getTable().collection);
@@ -236,6 +248,36 @@ public class EditorTableFrame extends JFrame {
         };
         this.addComponentListener(ca);
         timelinePanel.addComponentListener(ca);
+
+        JMenu menu_minimizer = new JMenu("Outflow");
+        menu.add(menu_minimizer);
+        final JCheckBoxMenuItem checkMinimizer = new JCheckBoxMenuItem("Minimizer", false);
+        menu_minimizer.add(checkMinimizer);
+        checkMinimizer.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (checkMinimizer.isSelected()) {
+                    if (panelMinimizer == null) {
+                        panelMinimizer = new OutflowMinimizerPanel();
+                        if (viewController != null) {
+                            viewController.getPaintManager().addCapacitySelectionListener(new CapacitySelectionListener() {
+                                @Override
+                                public void selectCapacity(Capacity c, Object caller) {
+                                    panelMinimizer.setCapacity(c);
+                                }
+                            });
+                        }
+                    }
+                    panelSouth.add(panelMinimizer, BorderLayout.EAST);
+                    panelMinimizer.panel = timelinePanel;
+                    panelMinimizer.setCapacity(timelinePanel.actualShown);
+                } else {
+                    panelSouth.remove(panelMinimizer);
+                }
+                panelSouth.revalidate();
+            }
+        });
+        menu.revalidate();
     }
 
     public CapacityTimelinePanel getTimelinePanel() {

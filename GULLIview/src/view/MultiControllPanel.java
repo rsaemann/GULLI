@@ -67,19 +67,19 @@ public class MultiControllPanel extends JPanel {
         if (panelFiles.getComponentCount() > 0) {
             panelFiles.removeAll();
         }
-        if (!control.getMultiInputData().isEmpty()) {
-            PipeResultData se = control.getSingleEventInputData();
-            boolean found = false;
-            for (PipeResultData input : inputs) {
-                if (input.getFile().equals(se.getFile())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                inputs.add(0, se);
-            }
-        }
+//        if (!control.getMultiInputData().isEmpty()) {
+//            PipeResultData se = control.getSingleEventInputData();
+//            boolean found = false;
+//            for (PipeResultData input : inputs) {
+//                if (input.getFile().equals(se.getFile())) {
+//                    found = true;
+//                    break;
+//                }
+//            }
+//            if (!found) {
+//                inputs.add(0, se);
+//            }
+//        }
         for (final PipeResultData input : inputs) {
             final JPanel panel = new JPanel(new BorderLayout());
             panel.setBorder(new TitledBorder(input.getName()));
@@ -199,11 +199,11 @@ public class MultiControllPanel extends JPanel {
                 activeList.add(input);
             }
         }
-        if (!activeList.isEmpty()) {
-            control.getMultiInputData().clear();
-            control.getMultiInputData().addAll(activeList);
-            control.updatedInputData();
-        }
+//        if (!activeList.isEmpty()) {
+//            control.getMultiInputData().clear();
+//            control.getMultiInputData().addAll(activeList);
+//            control.updatedInputData();
+//        }
 
         updating = false;
         if (askToUpdate) {

@@ -23,7 +23,6 @@
  */
 package control.maths;
 
-import java.util.Random;
 import java.util.SplittableRandom;
 
 /**
@@ -192,6 +191,10 @@ public class RandomArray {
         return cachesize;
     }
 
+    /**
+     * Inspired by https://gist.github.com/brendano/4561065
+     * @return 
+     */
     public double nextfastGaussian() {
         if (!haveNextFastGaussian) {
             v1 = sr.nextDouble();

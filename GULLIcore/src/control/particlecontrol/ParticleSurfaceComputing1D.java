@@ -24,6 +24,7 @@
 package control.particlecontrol;
 
 import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import control.threads.ThreadController;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
@@ -52,7 +53,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      * A random variable to generate decisions. Should be reset at each new
      * start of a simulation.
      */
-    protected RandomArray random;
+    protected RandomGenerator random;
 
 //    /**
 //     * Seed used for generating the same random numbers for each run.
@@ -359,7 +360,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
     }
 
     @Override
-    public void setRandomNumberGenerator(RandomArray rd) {
+    public void setRandomNumberGenerator(RandomGenerator rd) {
         this.random = rd;
     }
 

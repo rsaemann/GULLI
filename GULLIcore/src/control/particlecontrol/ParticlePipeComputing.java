@@ -24,6 +24,7 @@
 package control.particlecontrol;
 
 import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import control.threads.ThreadController;
 import model.particle.HistoryParticle;
 import model.particle.Particle;
@@ -107,7 +108,7 @@ public class ParticlePipeComputing {
      * [m/s] minimum Velocity even in perfect horizontal pipes
      */
 //    public double minimumVelocity = 0.009;
-    private RandomArray rand;
+    private RandomGenerator rand;
 
 //    public RandomDistribution randDist;
 //    private ParticleThread thread;
@@ -1675,7 +1676,7 @@ public class ParticlePipeComputing {
         return spillOutToSurface;
     }
 
-    public void setRandomNumberGenerator(RandomArray rd) {
+    public void setRandomNumberGenerator(RandomGenerator rd) {
         this.rand = rd;
 //        this.randDist.setRandomGenerator(rand);
     }

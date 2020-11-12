@@ -472,7 +472,7 @@ public class LoadingCoordinator {
             boolean loaded = false;
             try { //clear other results
                 if (clearOtherResults) {
-                    control.getMultiInputData().clear();
+//                    control.getMultiInputData().clear();
                     control.getThreadController().cleanFromParticles();
                 }
 
@@ -673,7 +673,7 @@ public class LoadingCoordinator {
                     timeContainerManholes = p.second;
                     PipeResultData data = new PipeResultData(fileMainPipeResult, fileMainPipeResult.getName(), p.first, p.second);
                     //Add only this result information
-                    control.getMultiInputData().add(0, data);
+                    control.setPipeResultData(data);
                 }
 
                 if (cancelLoading) {

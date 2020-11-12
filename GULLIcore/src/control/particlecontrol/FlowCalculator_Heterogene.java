@@ -24,6 +24,7 @@
 package control.particlecontrol;
 
 import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import model.particle.Particle;
 import model.surface.SurfaceTrianglePath;
 import model.topology.Capacity;
@@ -47,7 +48,7 @@ public class FlowCalculator_Heterogene extends FlowCalculatorMixed {
     }
 
     @Override
-    public boolean particleIsDepositing(Particle particle, Capacity capacity, RandomArray random) {
+    public boolean particleIsDepositing(Particle particle, Capacity capacity, RandomGenerator random) {
         // P=1-(v_pipe²/v_deposit²)
 
         if (capacity instanceof Pipe) {
@@ -68,7 +69,7 @@ public class FlowCalculator_Heterogene extends FlowCalculatorMixed {
     }
 
     @Override
-    public boolean particleIsEroding(Particle particle, Capacity capacity, RandomArray random) {
+    public boolean particleIsEroding(Particle particle, Capacity capacity, RandomGenerator random) {
         if (capacity instanceof Pipe) {
             double r = random.nextDouble();
             double v_p = ((Pipe) capacity).getStatusTimeLine().getVelocity();

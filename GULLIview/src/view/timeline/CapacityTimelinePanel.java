@@ -56,6 +56,7 @@ import javax.swing.JTextField;
 import model.particle.Material;
 import model.surface.Surface;
 import model.surface.SurfaceTriangle;
+import model.surface.measurement.SurfaceMeasurementRaster;
 import model.surface.measurement.TriangleMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLinePipe;
@@ -128,8 +129,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         HIDDEN, OUTER_BOTTOM, OUTER_RIGHT, INNER_TOP_LEFT, INNER_BOTTOM_LEFT, INNER_TOP_RIGHT, INNER_BOTTOM_RIGHT
     }
-    
-    public float maxLegendwith=0.4f;
+
+    public float maxLegendwith = 0.4f;
 
     /**
      * Try to make JFreechart look like a matlab plot.
@@ -356,8 +357,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //        if (container == null || (container.length == 1 && container[0] == null)) {
 //            this.container = new ArrayTimeLinePipeContainer[]{ArrayTimeLinePipeContainer.instance};
 //        }
-
-        container = controller.getMultiInputData();
+        container = new ArrayList<PipeResultData>(1);
+        container.add(controller.getPipeResultData());
+//        container = controller.getMultiInputData();
         if (t != null && t.isAlive()) {
             System.out.println(this.getClass() + ":: interrupt TimelineThread " + t.toString());
             try {
@@ -564,6 +566,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         hpipe.clear();
         refMassfluxTotal.clear();
         refConcentrationTotal.clear();
+        m_massflux.clear();
+        for (TimeSeries timeSeries : massFlux_Type) {
+            timeSeries.clear();
+        }
+        for (TimeSeries timeSeries : concentration_Type) {
+            timeSeries.clear();
+        }
         m_m.clear();
         m_c.clear();
         m_m_sum.clear();
@@ -684,7 +693,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             long moveVisiblePointToIntervalMid = 0;
             if (!tlm.getContainer().isTimespotmeasurement()) {
                 moveVisiblePointToIntervalMid = (long) (-tlm.getContainer().getDeltaTimeS() * 500);
-//                System.out.println("moved points . timespot: "+tlm.getContainer().isTimespotmeasurement());
             }
 
             for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
@@ -705,12 +713,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
 
                 RegularTimePeriod time = new Second(d);
-//                double mass = 0.0;
-//                for (int j = 0; j < tlm.getContainer()..length; j++) {
-//                    int ti = j * tlm.getContainer().getNumberOfTimes() + i;
-//                    mass += tlm.getMass(ti);
-//                }
-//                System.out.println(tlm.getContainer().samplesInTimeInterval[i]+" samples at time index "+i+" : "+tlm.getContainer().measurementTimes[i]/1000+"s");
 
                 if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
                     ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
@@ -722,11 +724,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         double m = tlm.getContainer().mass_total[ti];
                         mass += m;
                     }
-                    mass /= tlm.getContainer().samplesInTimeInterval[i]/*samplesPerTimeinterval*/;
+                    mass /= tlm.getContainer().samplesInTimeInterval[i];
                     moment0_particleMass.addOrUpdate(time, mass);
 
                     double m1 = tlm.getContainer().getMomentum1_xm(i);
-//                    System.out.println("Moment1 (t="+i+")= "+m);
                     if (!Double.isNaN(m1) && m1 > 0) {
                         moment1_messung.addOrUpdate(time, m1);
                         if (cont.moment1 != null) {
@@ -748,49 +749,23 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 mref = cont.moment1[refTimeIndexInt] * (1 - refFrac) + cont.moment1[refTimeIndexInt + 1] * (refFrac);
                                 m2ref = cont.moment2[refTimeIndexInt] * (1 - refFrac) + cont.moment2[refTimeIndexInt + 1] * (refFrac);
                             }
-//                            System.out.println("mref [" + refTimeIndex + "] " + mref + "    bei " + time);
                             if (i > -1 && mref > 0 && !Double.isNaN(mref)) {
-//                                if (i == 1) {
-////                                    offset = mref - m1;
-//                                }
-                                moment1_delta.addOrUpdate(time, m1 - mref /*+ offset*/);
-//                                if (mref != 0) {
-                                moment1_delta_relative.addOrUpdate(time, (m1 - mref /*+ offset*/) / mref);
-//                                }
+                                moment1_delta.addOrUpdate(time, m1 - mref);
+                                moment1_delta_relative.addOrUpdate(time, (m1 - mref) / mref);
 
                                 double m2 = tlm.getContainer().getMomentum2_xm(i, m1);
                                 moment2_mess.addOrUpdate(time, m2);
 
-                                //System.out.println("frac: "+refFrac+" index: "+refTimeIndex);
                                 moment2_ref.addOrUpdate(time, m2ref);
-                                double delta2 = m2 - m2ref;// + offset2;
+                                double delta2 = m2 - m2ref;
 
                                 moment2_delta.addOrUpdate(time, delta2);
                                 if (i >= 0 && m2ref != 0) {
                                     moment2_delta_relative.addOrUpdate(time, delta2 / m2ref);
-                                    //Second approach gives same results 
-//                                    //Varianz via second approach
-//                                    double sum2 = 0.0;
-//                                    double sum1 = 0.0;
-//                                    for (int j = 0; j < cont.distance.length; j++) {
-//                                        int ti = j * tlm.getContainer().getNumberOfTimes() + i;
-//                                        float dist = cont.distance[j];
-//                                        double m = tlm.getContainer().mass_total[ti];
-//                                        sum1 += dist * m;
-//                                        sum2 += dist * dist * m;
-//                                    }
-//                                    double mom1 = sum1 / mass;
-//                                    double var = (sum2 / mass) - (mom1 * mom1);
-//                                    moment2_variance.addOrUpdate(time, var);
-//                                    moment0_particleMass.addOrUpdate(time, mass);
-//                                    System.out.println("var (t=" + time + ") = " + var + "\tmass(" + i + ")=" + mass);
                                 }
                             }
                         }
-                    } else {
-                        // System.out.println("momentum is  "+m1);
                     }
-
                 }
 
                 float vol_c = tlm.getVolume(i);
@@ -1015,6 +990,109 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     }
 
+    private void buildSurfaceCellTimeline(int sampleID, int triangleID, Surface surface) {
+        this.collection.removeAllSeries();
+        if (sampleID >= 0) {
+            // Measurements
+            int numberOfMaterials = surface.getMeasurementRaster().getNumberOfMaterials();
+
+            TimeSeries[] mass = new TimeSeries[numberOfMaterials];//(new SeriesKey("Mass", "m", "kg", Color.orange, new AxisKey("m")), "kg", "Time");
+            TimeSeries[] count = new TimeSeries[numberOfMaterials];//(new SeriesKey("Particles", "N", " ", Color.orange, new AxisKey("N")), " ", "Time");
+
+            TimeSeries mass_sum = new TimeSeries(new SeriesKey("Mass \u03a3", "\u03a3m", "kg", new Color(255, 120, 0), new AxisKey("m", "Mass [kg]")), "kg", "Time");
+            TimeSeries count_sum = new TimeSeries(new SeriesKey("Particles \u03a3", "\u03a3N", " ", Color.magenta, new AxisKey("N", "Count")), " ", "Time");
+            for (int i = 0; i < count.length; i++) {
+                count[i] = new TimeSeries(new SeriesKey("Particles (" + i + ")", "N(" + i + ")", " ", Color.orange, new AxisKey("N", "Count")), " ", "Time");
+                mass[i] = new TimeSeries(new SeriesKey("Mass (" + i + ")", "m(" + i + ")", "kg", Color.PINK, new AxisKey("m", "Mass")), "kg", "Time");
+            }
+            TimeIndexContainer timecontainer = surface.getMeasurementRaster().getIndexContainer();
+            SurfaceMeasurementRaster raster = surface.getMeasurementRaster();
+
+            double timescale = 1;
+            if (raster.continousMeasurements) {
+                timescale = ThreadController.getDeltaTime() / (timecontainer.getDeltaTimeMS() / 1000.);
+            }
+
+            for (int i = 0; i < timecontainer.getNumberOfTimes(); i++) {
+                Date d;
+                if (showSimulationTime) {
+                    d = new Date(calcSimulationTime(timecontainer.getTimeMilliseconds(i), timecontainer.getTimeMilliseconds(0)));
+                } else {
+                    d = new Date(timecontainer.getTimeMilliseconds(i));
+                }
+                RegularTimePeriod time = new Millisecond(d);
+                double mass_s = 0;
+                int count_s = 0;
+                for (int m = 0; m < numberOfMaterials; m++) {
+                    double t_m = raster.getMassInCell(sampleID, i, m) * timescale;
+                    double t_n = raster.getNumberOfParticlesInCell(sampleID, i, m) * timescale;
+                    mass[m].addOrUpdate(time, t_m);
+                    count[m].addOrUpdate(time, t_n);
+                    mass_s += t_m;
+                    count_s += t_n;
+                }
+                mass_sum.addOrUpdate(time, mass_s * timescale);
+                count_sum.addOrUpdate(time, count_s * timescale);
+            }
+
+            if (numberOfMaterials > 1) {
+                this.collection.addSeries(mass_sum);
+                this.collection.addSeries(count_sum);
+            }
+            for (int i = 0; i < numberOfMaterials; i++) {
+                this.collection.addSeries(mass[i]);
+                this.collection.addSeries(count[i]);
+            }
+        }
+        if (triangleID >= 0) {
+            if (controller != null && controller.getSurface() != null) {
+                //Status timeline of triangle might have another timecontainer than measurements
+                TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan, new AxisKey("h", "Waterlevel [m]")), "m", "Time");
+                TimeSeries v = new TimeSeries(new SeriesKey("Velocity", "v", "m/s", Color.red, new AxisKey("v", "Velocity [m/s]")), "m/s", "Time");
+                Surface surf = controller.getSurface();
+                float[] wl = null;
+                if (controller.getSurface().getWaterlevels() != null) {
+                    wl = controller.getSurface().getWaterlevels()[triangleID];
+                }
+                float[][] vxy = null;
+                if (controller.getSurface().getTriangleVelocity() != null) {
+                    vxy = controller.getSurface().getTriangleVelocity()[triangleID];
+                }
+                if (wl != null) {
+                    for (int i = 0; i < wl.length; i++) {
+                        Date d;
+                        if (showSimulationTime) {
+                            d = new Date(calcSimulationTime(surf.getTimes().getTimeMilliseconds(i), surf.getTimes().getTimeMilliseconds(0)));
+                        } else {
+                            d = new Date(surf.getTimes().getTimeMilliseconds(i));
+                        }
+                        RegularTimePeriod time = new Millisecond(d);
+                        if (wl != null) {
+                            lvl.addOrUpdate(time, wl[i]);
+                        }
+                        if (vxy != null) {
+                            //Calculate result velocity
+                            float[] vexy = vxy[i];
+                            double vres = Math.sqrt(vexy[0] * vexy[0] + vexy[1] * vexy[1]);
+                            v.addOrUpdate(time, vres);
+                        }
+
+                    }
+                }
+                if (!lvl.isEmpty()) {
+                    this.collection.addSeries(lvl);
+                    StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lvl.getKey()).name, false);
+
+                }
+                if (!v.isEmpty()) {
+                    this.collection.addSeries(v);
+                    StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v.getKey()).name, false);
+                }
+            }
+        }
+
+    }
+
     private void buildTriangleMeasurementTimeline(TriangleMeasurement triM, Surface surface) {
 
         //Status timeline of triangle might have another timecontainer than measurements
@@ -1177,6 +1255,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         numberUsedDataSetSlots = 0;
         yAxisMap.clear();
+
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
         int indexDataset = 0;
         int indexSeries = 0;
@@ -1430,7 +1509,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                     Paint formerBackground = panelChart.getChart().getBackgroundPaint();
                                     try {
                                         panelChart.getChart().setBackgroundPaint(Color.white);
-                                        Rectangle rec = new Rectangle(0,0,panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
+                                        Rectangle rec = new Rectangle(0, 0, panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
 
                                         System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
 
@@ -1441,7 +1520,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                         PdfContentByte cb = writer.getDirectContent();
                                         PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
                                         PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
-                                        g2d.translate(-surroundingContainer.getX(),0);// -surroundingContainer.getY());
+                                        g2d.translate(-surroundingContainer.getX(), 0);// -surroundingContainer.getY());
                                         panelChart.getChart().draw(g2d, rec);
                                         cb.addTemplate(tp, 25, 200);
                                         g2d.dispose();

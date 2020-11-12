@@ -24,6 +24,7 @@
 package control.particlecontrol;
 
 import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import model.particle.Particle;
 import model.surface.Surface;
 
@@ -51,5 +52,5 @@ public interface ParticleSurfaceComputing {
 
     public String reportCalculationStatus();
 
-    public void setRandomNumberGenerator(RandomArray rd);
+    public void setRandomNumberGenerator(RandomGenerator rd);
 }

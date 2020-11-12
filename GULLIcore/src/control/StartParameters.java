@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,8 +64,9 @@ public class StartParameters {
 
     public static File fileStartParameter = new File(getProgramDirectory(), "GULLI.ini");
     private static boolean isloaded = loadStartParameter();
-    
-    public static Locale formatLocale=Locale.US;
+
+    public static Locale formatLocale = Locale.US;
+    public static TimeZone formatTimeZone = TimeZone.getTimeZone("UTC");
 
     public static boolean loadStartParameter() {
         try {
@@ -86,7 +88,7 @@ public class StartParameters {
                     streetinletsPath = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("startFile=")) {
                     startFilePath = line.substring(line.indexOf("=") + 1);
-                    System.out.println("startfile read from ini is:'"+startFilePath+"'");
+                    System.out.println("startfile read from ini is:'" + startFilePath + "'");
                 } else if (line.startsWith("subsurfaceVTU=")) {
                     pathUndergroundVTU = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("mapFrame")) {
@@ -393,7 +395,9 @@ public class StartParameters {
         if (timelineVisibility.containsKey(timelineName)) {
             return false;
         }
-        if(timelineName==null)return false;
+        if (timelineName == null) {
+            return false;
+        }
         timelineVisibility.put(timelineName, visible);
         return true;
     }

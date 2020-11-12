@@ -24,6 +24,7 @@
 package control.particlecontrol;
 
 import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import model.particle.Particle;
 import model.topology.Capacity;
 import model.topology.Connection_Manhole;
@@ -69,17 +70,17 @@ public class FlowCalculatorMixed implements FlowCalculator {
     }
 
     @Override
-    public boolean particleIsDepositing(Particle particle, Capacity capacity, RandomArray random) {
+    public boolean particleIsDepositing(Particle particle, Capacity capacity, RandomGenerator random) {
         return false;
     }
 
     @Override
-    public boolean particleIsEroding(Particle particle, Capacity capacity, RandomArray random) {
+    public boolean particleIsEroding(Particle particle, Capacity capacity, RandomGenerator random) {
         return true;
     }
 
     @Override
-    public Connection_Manhole whichConnection(Manhole mh, RandomArray probability, boolean forward) {
+    public Connection_Manhole whichConnection(Manhole mh, RandomGenerator probability, boolean forward) {
 
         if (mh.getWaterlevel() < dryWaterlevel) {
             if (verbose) {

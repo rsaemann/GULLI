@@ -30,7 +30,6 @@ import control.Action.Action;
 import control.listener.LoadingActionListener;
 import control.listener.ParticleListener;
 import control.multievents.PipeResultData;
-import control.particlecontrol.DiffusionCalculator2D;
 import control.particlecontrol.ParticleSurfaceComputing2D;
 import control.particlecontrol.injection.ManholeInjection;
 import control.particlecontrol.injection.ParticleInjection;
@@ -45,7 +44,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import model.GeoPosition;
 import model.particle.HistoryParticle;
 import model.particle.Material;
 import model.particle.Particle;
@@ -56,16 +54,12 @@ import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.timeline.array.TimeIndexContainer;
 import model.timeline.sparse.SparseTimeLinePipeContainer;
 import model.topology.Capacity;
-import model.topology.Connection;
-import model.topology.Connection_Manhole_Pipe;
 import model.topology.Manhole;
 import model.topology.Network;
 import model.topology.measurement.ParticleMeasurementSegment;
 import model.topology.Pipe;
 import model.topology.Position;
 import model.topology.Position3D;
-import model.topology.graph.GraphSearch;
-import model.topology.graph.Pair;
 import model.topology.measurement.ParticleMeasurementSection;
 import org.opengis.referencing.operation.TransformException;
 
@@ -76,14 +70,32 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class Controller implements SimulationActionListener, LoadingActionListener {
 
+    /**
+     * The pipe network elements (Manholes, Pipes)
+     */
     private Network network;
+    /**
+     * The surface topology (Triangle cell elements, street Inlets)
+     */
     private Surface surface;
+    /**
+     * Stores information about the event time and the timestep size of the
+     * timelines
+     */
     private Scenario scenario;
+    /**
+     * Holds the timeline values for the network elements
+     */
+    private PipeResultData pipeResultData;
 
     private final ThreadController threadController;
     private final LoadingCoordinator loadingCoordinator;
 
-    private final ArrayList<PipeResultData> multiInputData = new ArrayList<>(1);
+    /**
+     * Set the number of CPU cores, that will not be used for the simulation
+     * before calling the constructor.
+     */
+    public static int NumberOfUnusedCores = 0;
 
     private final ArrayList<LoadingActionListener> actionListener = new ArrayList<>(2);
     private final ArrayList<ParticleListener> particleListener = new ArrayList<>(2);
@@ -101,12 +113,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     public Controller() throws Exception {
         int numberOfCores = Runtime.getRuntime().availableProcessors();
-//        numberOfCores=1;
-        threadController = new ThreadController(Math.max(1, numberOfCores), this);
+        threadController = new ThreadController(Math.max(1, numberOfCores - NumberOfUnusedCores), this);
 
         threadController.addSimulationListener(this);
         loadingCoordinator = new LoadingCoordinator(this);
-
     }
 
     public boolean addActioListener(LoadingActionListener listener) {
@@ -145,6 +155,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
     }
 
+    /**
+     * Import the loaded network and sitributes this information to all
+     * simulation modules that need to know about
+     *
+     * @param newNetwork
+     */
     protected void importNetwork(Network newNetwork) {
         currentAction.description = "import network";
         currentAction.startTime = System.currentTimeMillis();
@@ -182,7 +198,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         try {
             for (ParticleThread particleThread : threadController.getParticleThreads()) {
                 ParticleSurfaceComputing2D psc = (ParticleSurfaceComputing2D) particleThread.getSurfaceComputing();
-                psc.enableDiffusion=true;
+                psc.enableDiffusion = true;
                 psc.getDiffusionCalculator().setDirectDiffusion(K, K, K);
             }
         } catch (Exception e) {
@@ -896,30 +912,29 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 ((SparseTimeLinePipeContainer) scenario.getTimesPipe()).numberOfMaterials = maxMaterialID + 1;
             }
         }
-        this.setParticles(allParticles);      
+        this.setParticles(allParticles);
     }
 
     @Override
     public void simulationFINISH(boolean timeOut, boolean particlesOut) {
     }
 
-    public ArrayList<PipeResultData> getMultiInputData() {
-        return multiInputData;
-    }
-
-    public void updatedInputData() {
-        if (multiInputData.isEmpty()) {
-            return;
-        }
-    }
-
-    public PipeResultData getSingleEventInputData() {
-        if (multiInputData.isEmpty()) {
-            return null;
-        }
-        return multiInputData.get(0);
-    }
-
+//    public ArrayList<PipeResultData> getMultiInputData() {
+//        return multiInputData;
+//    }
+//
+//    public void updatedInputData() {
+//        if (multiInputData.isEmpty()) {
+//            return;
+//        }
+//    }
+//
+//    public PipeResultData getSingleEventInputData() {
+//        if (multiInputData.isEmpty()) {
+//            return null;
+//        }
+//        return multiInputData.get(0);
+//    }
     public Surface getSurface() {
         return surface;
     }
@@ -984,6 +999,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             fireAction(currentAction);
             ll.loadSurface(surface, caller);
         }
+    }
+
+    public void setPipeResultData(PipeResultData data) {
+        this.pipeResultData = data;
+    }
+
+    public PipeResultData getPipeResultData() {
+        return this.pipeResultData;
     }
 
 }

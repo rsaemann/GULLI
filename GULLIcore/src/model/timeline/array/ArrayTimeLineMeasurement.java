@@ -53,12 +53,11 @@ public class ArrayTimeLineMeasurement {
 //     * if not active, then no information is collected and stored.
 //     */
 //    public boolean active = true;
-    
     private int spatialIndex;
 
     public ArrayTimeLineMeasurement(ArrayTimeLineMeasurementContainer container, int spatialIndex) {
         this.container = container;
-        this.spatialIndex=spatialIndex;
+        this.spatialIndex = spatialIndex;
         this.startIndex = container.getNumberOfTimes() * spatialIndex;
         if (useIDsharpParticleCounting) {
             particles = new HashSet<>(0);
@@ -68,7 +67,7 @@ public class ArrayTimeLineMeasurement {
     }
 
     private int getIndex(int temporalIndex) {
-        int i = container.getNumberOfTimes() * spatialIndex+temporalIndex;//startIndex + temporalIndex;
+        int i = container.getNumberOfTimes() * spatialIndex + temporalIndex;//startIndex + temporalIndex;
 //        if (i >= container.getn) {
 //            System.err.println(this.getClass() + ":Index out of Bounds: temporalIndex:" + temporalIndex + " + startindex: " + startIndex + " = " + i + ">= " + ArrayTimeLineMeasurement.counts.length);
 //        }
@@ -77,8 +76,12 @@ public class ArrayTimeLineMeasurement {
 
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
-
-        return (float) (container.mass_total[index] / (container.volumes[index] * container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
+        //mass and volume are both sums of the interval samples and therefore do not have to be divided by the number of samples
+        float c= (float) (container.mass_total[index] / (container.volumes[index]));
+//       if(temporalIndex==30){
+//           System.out.println("Mass: "+container.mass_total[index]+"  / ( Vol: "+container.volumes[index]+" * samples²: "+container.samplesInTimeInterval[temporalIndex]+") = "+c);
+//       }
+        return c;
         /*container.particles[index] * Particle.massPerParticle*/
         /**
          * container.counts[index]
@@ -108,8 +111,10 @@ public class ArrayTimeLineMeasurement {
     }
 
     /**
-     * The mass in kg in the whole pipe at this timestamp.
-     * If continuous sampling is enabled, this calculates the mean mass of the sampling interval.
+     * The mass in kg in the whole pipe at this timestamp. If continuous
+     * sampling is enabled, this calculates the mean mass of the sampling
+     * interval.
+     *
      * @param temporalIndex
      * @param materialIndex
      * @return mass of this material
@@ -120,6 +125,30 @@ public class ArrayTimeLineMeasurement {
 //        System.out.println("mass at ti="+temporalIndex+": mass="+container.mass_type[index][materialIndex]+", smples: "+container.samplesInTimeInterval[temporalIndex]);
         return mass;
 
+    }
+
+    /**
+     * Total passed mass. Can be negative, if mass flux is directed reverse to
+     * pipe orientation.
+     *
+     * @param tl Timeline containing the velocity information
+     * @param pipeLength in meter
+     * @return kg of passed mass during the whole simulation.
+     */
+    public float getTotalMass(TimeLinePipe tl, float pipeLength) {
+        float massSum = 0;
+        for (int i = 1; i < container.getNumberOfTimes(); i++) {
+            if (container.samplesInTimeInterval[i] < 1) {
+                continue;
+            }
+            int index = getIndex(i);
+            float temp_mass = (float) (container.mass_total[index] / (container.samplesInTimeInterval[i]));
+            float discharge = tl.getVelocity(tl.getTimeContainer().getTimeIndex(container.getTimeMillisecondsAtIndex(i))) / pipeLength;
+            float dt = (container.getMeasurementTimestampAtTimeIndex(i) - container.getMeasurementTimestampAtTimeIndex(i - 1)) / 1000.f;
+            massSum += temp_mass * discharge * dt;
+
+        }
+        return massSum;
     }
 
     public float getParticles(int temporalIndex) {

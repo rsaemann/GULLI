@@ -81,4 +81,42 @@ public class Timeline_IO {
         }
     }
     
+       public static void writePipeTimelineCSV_Concentration(File outputfile,Pipe pipe,String simulationName,int materialindex){
+        if(pipe==null)throw new NullPointerException("Pipe is null");
+        if(pipe.getMeasurementTimeLine()==null){
+            throw new NullPointerException("Pipe "+pipe.getName()+" has no timeline.");
+        }
+        ArrayTimeLineMeasurement tlm = pipe.getMeasurementTimeLine();
+        try {
+            FileWriter fw=new FileWriter(outputfile);
+            BufferedWriter bw=new BufferedWriter(fw);
+            bw.write("Pipe:"+pipe.getName());
+            bw.newLine();
+            bw.write("Simulation:"+simulationName);
+            bw.newLine();
+            bw.write("Type:Concentration");
+            bw.newLine();
+            bw.write("Materialindex:"+materialindex);
+            bw.newLine();
+            long[] times=pipe.getMeasurementTimeLine().getContainer().measurementTimes;
+            bw.write("Times:"+times.length);
+            bw.newLine();
+            bw.write("ContinuousSampling:"+!tlm.getContainer().isTimespotmeasurement());
+            bw.newLine();
+            bw.write("TimeMS;Concentration[kg/m³]");
+            bw.newLine();
+            bw.append("***");
+            for (int i = 0; i < times.length; i++) {
+                bw.newLine();
+                bw.append(times[i]+";");
+                bw.append(pipe.getMeasurementTimeLine().getConcentrationOfType(i, materialindex)+"");
+            }
+            bw.flush();
+            fw.flush();
+            bw.close();
+            fw.close();
+        } catch (IOException ex) {
+            Logger.getLogger(Timeline_IO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }

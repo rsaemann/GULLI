@@ -1,6 +1,8 @@
 package model.timeline.array;
 
 import control.threads.ThreadController;
+import model.topology.Network;
+import model.topology.Pipe;
 
 /**
  * Container holding the measurement timeline values for the samples taken in
@@ -19,7 +21,9 @@ public class ArrayTimeLineMeasurementContainer {
      */
     public float[] mass_total;
     /**
-     * mass of different types of contaminants [timeindex][contaminantIndex]
+     * mass of different types of contaminants [timeindex][contaminantIndex] raw
+     * value. must be divided by the number of samples to get the value for the
+     * interval
      */
     public float[][] mass_type;
     public int[] particles_visited;
@@ -73,6 +77,32 @@ public class ArrayTimeLineMeasurementContainer {
         ArrayTimeLineMeasurementContainer container = new ArrayTimeLineMeasurementContainer(times, numberOfPipes, numberOfContaminantTypes);
         instance = container;
         return container;
+    }
+
+    public ArrayTimeLineMeasurementContainer(Network network, long intervalMilliseconds, long starttime, long endtime, int numberOfMaterials) {
+        long durationMS = endtime - starttime;
+
+        boolean fits = durationMS % intervalMilliseconds == 0;
+        int numberOfIntervals = (int) (durationMS / intervalMilliseconds);
+        if (!fits) {
+            numberOfIntervals++;
+        }
+        long[] times = new long[numberOfIntervals];
+        for (int i = 0; i < times.length; i++) {
+            times[i] = starttime + intervalMilliseconds * i;
+        }
+        times[times.length - 1] = endtime;
+
+        this.times = new TimeContainer(times);
+        initialize(times.length, network.getPipes().size(), numberOfMaterials);
+        int i = 0;
+        for (Pipe pipe : network.getPipes()) {
+            if (pipe.getMeasurementTimeLine() == null) {
+                pipe.setMeasurementTimeLine(new ArrayTimeLineMeasurement(this, i));
+            }
+            i++;
+        }
+        ArrayTimeLineMeasurementContainer.instance = this;
     }
 
     public ArrayTimeLineMeasurementContainer(long[] times, int numberOfCapacities, int numberOfContaminantTypes) {

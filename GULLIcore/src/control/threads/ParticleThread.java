@@ -1,6 +1,6 @@
 package control.threads;
 
-import control.maths.RandomArray;
+import control.maths.RandomGenerator;
 import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing;
 import control.particlecontrol.ParticleSurfaceComputing1D;
@@ -11,7 +11,6 @@ import control.particlecontrol.injection.SurfaceInjection;
 import java.util.ArrayList;
 import model.particle.Particle;
 import model.surface.Surface;
-import model.surface.SurfaceTriangle;
 import model.topology.measurement.ParticleMeasurement;
 
 /**
@@ -32,7 +31,7 @@ public class ParticleThread extends Thread {
     public int particleID = -1;
     public Particle particle;
 
-    private ParticleSurfaceComputing surfcomp;
+    private ParticleSurfaceComputing2D surfcomp;
     public int status = -1;
 
     private long simulationTime;
@@ -75,29 +74,29 @@ public class ParticleThread extends Thread {
         this.pc.setSurface(surface, surface != null);
     }
 
-    public void setSurfaceComputing1D() {
-        if (surfcomp == null) {
-            surfcomp = new ParticleSurfaceComputing1D(null, Thread.activeCount());
-        } else if (!(surfcomp instanceof ParticleSurfaceComputing1D)) {
-            surfcomp = new ParticleSurfaceComputing1D(surfcomp.getSurface());
-        }
-        if (surfcomp != null) {
-            surfcomp.setDeltaTimestep(pc.getDeltaTime());
-        }
-    }
+//    public void setSurfaceComputing1D() {
+//        if (surfcomp == null) {
+//            surfcomp = new ParticleSurfaceComputing1D(null, Thread.activeCount());
+//        } else if (!(surfcomp instanceof ParticleSurfaceComputing1D)) {
+//            surfcomp = new ParticleSurfaceComputing1D(surfcomp.getSurface());
+//        }
+//        if (surfcomp != null) {
+//            surfcomp.setDeltaTimestep(pc.getDeltaTime());
+//        }
+//    }
 
-    public void setSurfaceComputing2D() {
-        if (surfcomp == null) {
-            surfcomp = new ParticleSurfaceComputing2D(null, threadIndex);
-        } else if (!(surfcomp instanceof ParticleSurfaceComputing2D)) {
-            surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface(), threadIndex);
-        }
-        if (surfcomp != null) {
-            surfcomp.setDeltaTimestep(pc.getDeltaTime());
-        }
-    }
+//    public void setSurfaceComputing2D() {
+//        if (surfcomp == null) {
+//            surfcomp = new ParticleSurfaceComputing2D(null, threadIndex);
+//        } else if (!(surfcomp instanceof ParticleSurfaceComputing2D)) {
+//            surfcomp = new ParticleSurfaceComputing2D(surfcomp.getSurface(), threadIndex);
+//        }
+//        if (surfcomp != null) {
+//            surfcomp.setDeltaTimestep(pc.getDeltaTime());
+//        }
+//    }
 
-    public void setSurfaceComputing(ParticleSurfaceComputing sc) {
+    public void setSurfaceComputing(ParticleSurfaceComputing2D sc) {
         this.surfcomp = sc;
         if (surfcomp != null) {
             surfcomp.setDeltaTimestep(pc.getDeltaTime());
@@ -109,7 +108,7 @@ public class ParticleThread extends Thread {
      *
      * @return
      */
-    public ParticleSurfaceComputing getSurfaceComputing() {
+    public ParticleSurfaceComputing2D getSurfaceComputing() {
         return surfcomp;
     }
 
@@ -152,7 +151,7 @@ public class ParticleThread extends Thread {
 //                    if (fromto[2] >= threadController.randomNumberGenerators.length) {
 //                        System.err.println("wrong index " + fromto[2] + " for particles " + fromto[0] + "-" + fromto[1] + " of total " + threadController.randomNumberGenerators.length + "   waitingindex: " + threadController.waitingParticleIndex);
 //                    }
-                    RandomArray random = threadController.randomNumberGenerators[fromto[2]];
+                    RandomGenerator random = threadController.randomNumberGenerators[fromto[2]];
                     this.pc.setRandomNumberGenerator(random);
                     this.surfcomp.setRandomNumberGenerator(random);
 //                    status = 2;

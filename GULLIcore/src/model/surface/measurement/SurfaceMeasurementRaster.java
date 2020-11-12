@@ -38,6 +38,8 @@ public abstract class SurfaceMeasurementRaster {
      * if particles have lower travel length than this, they are not measured.
      */
     public static double minTravelLengthToMeasure = 0;
+    
+    public static boolean measureSpilloutParticlesOnly=false;
 
     public static boolean countStayingParticle = true;
 
@@ -58,6 +60,8 @@ public abstract class SurfaceMeasurementRaster {
     public abstract void measureParticle(long time, Particle particle, int threadIndex);
 
     public abstract void setNumberOfMaterials(int numberOfMaterials);
+    
+    public abstract int getNumberOfMaterials();
     
     public abstract int getNumberOfCells();
     
