@@ -38,42 +38,45 @@ public abstract class SurfaceMeasurementRaster {
      * if particles have lower travel length than this, they are not measured.
      */
     public static double minTravelLengthToMeasure = 0;
-    
-    public static boolean measureSpilloutParticlesOnly=false;
+
+    /**
+     * If enabled, only particles, that have been to the pipesystem before are
+     * measured on the surface.
+     */
+    public static boolean measureSpilloutParticlesOnly = false;
 
     public static boolean countStayingParticle = true;
 
     public static boolean synchronizeMeasures = true;
-    
-    public boolean measurementsActive=true;
-    
-    public boolean continousMeasurements=true;
-    
+
+    public boolean measurementsActive = true;
+
+    public boolean continousMeasurements = true;
+
     public int[] measurementsInTimeinterval;
-    
+
     public long[] measurementTimestamp;
 
     protected TimeIndexContainer times;
-    
-    protected int writeIndex=0;
+
+    protected int writeIndex = 0;
 
     public abstract void measureParticle(long time, Particle particle, int threadIndex);
 
     public abstract void setNumberOfMaterials(int numberOfMaterials);
-    
+
     public abstract int getNumberOfMaterials();
-    
+
     public abstract int getNumberOfCells();
-    
+
     public abstract boolean isCellContaminated(int cellIndex);
-    
+
     public abstract Coordinate getCenterOfCell(int cellindex);
-    
-    public abstract double getMassInCell(int cellIndex,int timeindex,int materialIndex);
 
-    public abstract double getNumberOfParticlesInCell(int cellIndex,int timeindex,int materialIndex);
+    public abstract double getMassInCell(int cellIndex, int timeindex, int materialIndex);
 
-    
+    public abstract double getNumberOfParticlesInCell(int cellIndex, int timeindex, int materialIndex);
+
     public abstract void setTimeContainer(TimeIndexContainer times);
 
     public TimeIndexContainer getIndexContainer() {
@@ -83,12 +86,13 @@ public abstract class SurfaceMeasurementRaster {
     public int status = -1;
 
     public int[] statuse;// = new int[8];
-   
+
     public abstract void reset();
-    
+
     /**
      * Initialize the threadsafe component.
-     * @param threadCount 
+     *
+     * @param threadCount
      */
     public abstract void setNumberOfThreads(int threadCount);
 
@@ -103,10 +107,10 @@ public abstract class SurfaceMeasurementRaster {
      * simulation loop.
      */
     public abstract void synchronizeMeasurements();
-    
-      public void setIntervalSeconds(double seconds, long startTime, long endTime) {
+
+    public void setIntervalSeconds(double seconds, long startTime, long endTime) {
 //          System.out.println("change raster interval to "+seconds);
-        if (times!=null&&times.getDeltaTimeMS()/1000. == seconds) {
+        if (times != null && times.getDeltaTimeMS() / 1000. == seconds) {
 //            System.out.println("do not change interval, same length");
             //Nothing changed
             return;
@@ -121,12 +125,11 @@ public abstract class SurfaceMeasurementRaster {
 //        TimeContainer tc = new TimeContainer(t);
 //        double samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
         this.setTimeContainer(new TimeIndexContainer(t));
-        
+
     }
 
     public void setWriteIndex(int writeIndex) {
         this.writeIndex = writeIndex;
     }
-      
-      
+
 }

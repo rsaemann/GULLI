@@ -316,9 +316,9 @@ public class GeoTools {
     }
 
     public void toGlobal(Coordinate geomUTM, Coordinate global, boolean longitudeFirst) throws TransformException {
-       
+
         JTS.transform(geomUTM, global, transform_utm2wgs);
-        
+
         if (longitudeFirst == globalLongitudeFirst) {
             //Nothing to change
         } else {
@@ -327,11 +327,27 @@ public class GeoTools {
             global.y = x;
         }
     }
-    
-     public void toGlobal(double[] geomUTM, double[] global, boolean longitudeFirst) throws TransformException {
-       
+
+    public void toGlobal(Coordinate geomUTM, Coordinate global, double[] tempstorage, boolean longitudeFirst) throws TransformException {
+        tempstorage[0] = geomUTM.x;
+        tempstorage[1] = geomUTM.y;
+        transform_utm2wgs.transform(tempstorage, 0, tempstorage, 0, 1);
+
+        if (longitudeFirst == globalLongitudeFirst) {
+            //Nothing to change
+            global.x=tempstorage[0];
+            global.y=tempstorage[1];
+        } else {
+            global.x=tempstorage[1];
+            global.y=tempstorage[0];
+        }
+//        System.out.println(geomUTM+" \t-> "+global);
+    }
+
+    public void toGlobal(double[] geomUTM, double[] global, boolean longitudeFirst) throws TransformException {
+
         transform_utm2wgs.transform(geomUTM, 0, global, 0, 1);
-        
+
         if (longitudeFirst == globalLongitudeFirst) {
             //Nothing to change
         } else {

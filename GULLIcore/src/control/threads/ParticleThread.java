@@ -165,7 +165,7 @@ public class ParticleThread extends Thread {
                             }
                             System.err.println("tc.particles:" + threadController.particles);
                             e.printStackTrace();
-                            continue;
+                            break;
                         }
 //                        this.particleID = p.getId();
                         if (p.isWaiting()) {
@@ -177,8 +177,8 @@ public class ParticleThread extends Thread {
                                 if (p.getInjectionInformation().spillOnSurface()) {
                                     SurfaceInjection si = (SurfaceInjection) p.getInjectionInformation();
                                     p.setSurrounding_actual(si.getInjectionCapacity());
-                                    p.surfaceCellID = (int) si.getInjectionCellID();
-                                    p.setPosition3D(si.getInjectionPosition()[0], si.getInjectionPosition()[1]);
+                                    p.surfaceCellID = (int) si.getInjectionCellID(p.getId());
+                                    p.setPosition3D(si.getInjectionPosition(p.getId()));
                                     p.setOnSurface();
                                 } else if (p.getInjectionInformation().spillinPipesystem()) {
                                     if (p.getInjectionInformation().getClass() == PipeInjection.class) {

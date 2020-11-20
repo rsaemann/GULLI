@@ -20,7 +20,6 @@ import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
@@ -33,7 +32,7 @@ import model.topology.Manhole;
  *
  * @author saemann
  */
-public class InjectionPanel extends JPanel {
+public class InjectionPanelPointlocation extends JPanel {
 
     protected InjectionInformation info;
 
@@ -58,8 +57,12 @@ public class InjectionPanel extends JPanel {
     protected MapViewer map;
     protected PaintManager paintManager;
     protected JButton buttonSetPosition;
+    
+    protected InjectionPanelPointlocation(){
+        
+    }
 
-    protected InjectionPanel(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
+    protected InjectionPanelPointlocation(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super(new GridLayout(5, 2));
         this.setBorder(new LineBorder(Color.darkGray, 1, true));
 
@@ -219,6 +222,7 @@ public class InjectionPanel extends JPanel {
                     info.setPosition(p);
                     info.setCapacity(null);
                     info.setTriangleID(-1);
+                    info.spillOnSurface=checkSurface.isSelected();
                     System.out.println("clicked on " + latlon);
                 }
                 map.removeMouseListener(this);
@@ -240,7 +244,7 @@ public class InjectionPanel extends JPanel {
         }
     }
 
-    public InjectionPanel(MapViewer map) {
+    public InjectionPanelPointlocation(MapViewer map) {
         this(null, map, null);
 
     }
@@ -260,7 +264,7 @@ public class InjectionPanel extends JPanel {
             public void mouseMoved(MouseEvent me) {
                 if (paintManager != null) {
 //                     System.out.println("call "+info.getId()+" of "+PaintManager.layerInjectionLocation);
-                    paintManager.selectLocationID(InjectionPanel.this, PaintManager.layerInjectionLocation, info.getId());
+                    paintManager.selectLocationID(InjectionPanelPointlocation.this, PaintManager.layerInjectionLocation, info.getId());
                 }
             }
         });

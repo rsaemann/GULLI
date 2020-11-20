@@ -31,6 +31,7 @@ import control.listener.LoadingActionListener;
 import control.listener.ParticleListener;
 import control.multievents.PipeResultData;
 import control.particlecontrol.ParticleSurfaceComputing2D;
+import control.particlecontrol.injection.ArealInjection;
 import control.particlecontrol.injection.ManholeInjection;
 import control.particlecontrol.injection.ParticleInjection;
 import control.particlecontrol.injection.PipeInjection;
@@ -730,80 +731,88 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
         int counter = 0;
         Particle.resetCounterID();
+//        System.out.println("Injections: " + scenario.getInjections().size());
         for (InjectionInformation injection : scenario.getInjections()) {
             counter++;
-            currentAction.description = "Injection spill " + counter + "/" + scenario.getInjections().size();
+//            currentAction.description = "Injection spill " + counter + "/" + scenario.getInjections().size();
             currentAction.hasProgress = true;
             currentAction.progress = counter / (float) scenario.getInjections().size();
             fireAction(currentAction);
-
+//            System.out.println(counter + ": " + injection);
             //find capacity
             Capacity c = null;
             int surfaceCell = -1;
             Position position = null;
             double pipeposition = 0;
             if (injection.spillOnSurface()) {
-                if (getSurface() == null) {
-                    continue;
-                }
-                c = getSurface();
-                if (injection.getPosition() != null) {
-                    Coordinate utm;
-                    try {
-                        utm = getSurface().getGeotools().toUTM(injection.getPosition());
-                        position = new Position(injection.getPosition().getLongitude(), injection.getPosition().getLatitude(), utm.x, utm.y);
-                    } catch (TransformException ex) {
-                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
+                if (injection.spilldistributed) {
 
-                if (injection.getTriangleID() >= 0) {
-                    surfaceCell = injection.getTriangleID();
-                } else if (injection.getCapacityName() != null) {
-                    if (network != null) {
-                        Capacity tempC = network.getPipeByName(injection.getCapacityName());
-                        if (tempC == null) {
-                            tempC = network.getCapacityByName(injection.getCapacityName());
+                } else {
+                    //Point location spill
+                    //Search for the position
+                    if (getSurface() == null) {
+                        continue;
+                    }
+                    c = getSurface();
+                    injection.setCapacity(c);
+                    if (injection.getPosition() != null) {
+                        Coordinate utm;
+                        try {
+                            utm = getSurface().getGeotools().toUTM(injection.getPosition());
+                            position = new Position(injection.getPosition().getLongitude(), injection.getPosition().getLatitude(), utm.x, utm.y);
+                        } catch (TransformException ex) {
+                            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                         }
-                        if (tempC != null) {
-                            if (tempC instanceof Manhole) {
-                                Manhole mh = (Manhole) tempC;
-                                if (mh.getSurfaceTriangleID() >= 0) {
-                                    surfaceCell = mh.getSurfaceTriangleID();
+                    }
+
+                    if (injection.getTriangleID() >= 0) {
+                        surfaceCell = injection.getTriangleID();
+                    } else if (injection.getCapacityName() != null) {
+                        if (network != null) {
+                            Capacity tempC = network.getPipeByName(injection.getCapacityName());
+                            if (tempC == null) {
+                                tempC = network.getCapacityByName(injection.getCapacityName());
+                            }
+                            if (tempC != null) {
+                                if (tempC instanceof Manhole) {
+                                    Manhole mh = (Manhole) tempC;
+                                    if (mh.getSurfaceTriangleID() >= 0) {
+                                        surfaceCell = mh.getSurfaceTriangleID();
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                if (surfaceCell < 0) {
-                    if (position != null) {
-                        //Try to find correct triangle at existing coordinates
-                        int id = getSurface().findContainingTriangle(position.x, position.y, 50);
-                        if (id >= 0) {
-                            surfaceCell = id;
+                    if (surfaceCell < 0) {
+                        if (position != null) {
+                            //Try to find correct triangle at existing coordinates
+                            int id = getSurface().findContainingTriangle(position.x, position.y, 50);
+                            if (id >= 0) {
+                                surfaceCell = id;
+                            }
                         }
                     }
-                }
-                if (position == null || surfaceCell >= 0) {
-                    try {
-                        double[] utm = getSurface().getTriangleMids()[surfaceCell];
-                        Coordinate wgs84 = getSurface().getGeotools().toGlobal(new Coordinate(utm[0], utm[1]), true);
-                        position = new Position(wgs84.x, wgs84.y, utm[0], utm[1]);
-                    } catch (TransformException ex) {
-                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                    if (position == null || surfaceCell >= 0) {
+                        try {
+                            double[] utm = getSurface().getTriangleMids()[surfaceCell];
+                            Coordinate wgs84 = getSurface().getGeotools().toGlobal(new Coordinate(utm[0], utm[1]), true);
+                            position = new Position(wgs84.x, wgs84.y, utm[0], utm[1]);
+                        } catch (TransformException ex) {
+                            Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
-                }
-                if (c == null) {
-                    System.err.println("Cannot find surface for injection " + injection);
-                    continue;
-                }
-                if (position == null) {
-                    System.err.println("Cannot find position for injection " + injection);
-                    continue;
-                }
-                if (surfaceCell < 0) {
-                    System.err.println("Cannot find surface cell for injection " + injection);
-                    continue;
+                    if (c == null) {
+                        System.err.println("Cannot find surface for injection " + injection);
+                        continue;
+                    }
+                    if (position == null) {
+                        System.err.println("Cannot find position for injection " + injection);
+                        continue;
+                    }
+                    if (surfaceCell < 0) {
+                        System.err.println("Cannot find surface cell for injection " + injection);
+                        continue;
+                    }
                 }
             } else {
                 //Spill to pipesystem
@@ -820,10 +829,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         c = getNetwork().getCapacityByName(injection.getCapacityName());
                         if (c == null) {
                             System.err.println("Cannot find Capacity with name '" + injection.getCapacityName() + "' for injection " + injection);
+                        } else {
+                            injection.setCapacity(c);
                         }
+
                     }
                     if (c == null && injection.getPosition() != null) {
                         c = getNetwork().getManholeNearPositionLatLon(injection.getPosition());
+                        injection.setCapacity(c);
                     }
                 }
                 if (c == null) {
@@ -860,8 +873,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 }
                 ParticleInjection pi = null;
                 if (injection.spillOnSurface()) {
-                    SurfaceInjection si = new SurfaceInjection(surface, surfaceCell);
-                    pi = si;
+                    if (injection.spilldistributed) {
+//                        System.out.println("Add areal injection ");
+                        ArealInjection ai = new ArealInjection(surface);
+                        pi = ai;
+                    } else {
+                        SurfaceInjection si = new SurfaceInjection(surface, surfaceCell);
+                        pi = si;
+                    }
                 } else if (injection.spillInManhole()) {
                     if (injection.getCapacity() instanceof Manhole) {
                         ManholeInjection mhi = new ManholeInjection((Manhole) injection.getCapacity());
@@ -878,27 +897,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 for (int i = 0; i < injection.getNumberOfIntervals(); i++) {
                     ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), pi, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
                     allParticles.addAll(ps);
-//                    if (injection.spillOnSurface()) {
-//                        SurfaceInjection si = new SurfaceInjection(surface, surfaceCell);
-//                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), si, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
-////                        for (Particle p : ps) {
-//////                            p.setInjectionCellID(surfaceCell);
-////////                            System.out.println("Spill on position " + p.injectionSurrounding);
-//////                            if (injectionposition != null) {
-//////                                p.injectionPosition = injectionposition;
-//////                            }
-////                        }
-//                        allParticles.addAll(ps);
-//                    } else {
-//                        ParticleInjection pi;
-//                        if(c )
-//                        ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), c, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
-//                        for (Particle p : ps) {
-//                            p.injectionPosition1D = (float) injection.getPosition1D();
-//                        }
-//                        allParticles.addAll(ps);
-//                    }
-
+                    if (pi instanceof ArealInjection) {
+                        ((ArealInjection) pi).setParticleIDs(ps.get(0).getId(), ps.get(ps.size() - 1).getId());
+                    }
                 }
             }
             injection.resetChanged();
@@ -913,6 +914,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             }
         }
         this.setParticles(allParticles);
+        currentAction.description = "Injections recalculated";
+        currentAction.hasProgress = true;
+        currentAction.progress = 1;
+        fireAction(currentAction);
     }
 
     @Override

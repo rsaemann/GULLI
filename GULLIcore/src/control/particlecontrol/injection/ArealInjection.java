@@ -24,51 +24,44 @@
 package control.particlecontrol.injection;
 
 import model.surface.Surface;
-import model.topology.Capacity;
 
 /**
- * Holds Information about the injection Position of particles.
- * @author Sämann
+ * Stores the injection position of multiple particles. e.g. for diffusive pollution
+ * @author saemann
  */
-public class SurfaceInjection implements ParticleInjection{
+public class ArealInjection extends SurfaceInjection {
     
-    protected Surface surface;
-    protected long cellID;
-    protected double[] position;
-
-    public SurfaceInjection(Surface surface, long cellID, double[] position) {
-        this.surface = surface;
-        this.cellID = cellID;
-        this.position = position;
-    }
-
-    public SurfaceInjection(Surface surface, long cellID) {
-        this(surface,cellID, surface.getTriangleMids()[(int)cellID]);
+    protected int firstID=-1,lastID=-1;
+    
+    public ArealInjection(Surface surface) {
+        super(surface, 0);
     }
     
+    public void setParticleIDs(int firstID, int lastID){
+        this.firstID=firstID;
+        this.lastID=lastID;
+    }
     
-
     @Override
-    public boolean spillOnSurface() {
-       return true;
+    public double[] getInjectionPosition(int particleID) {
+        return surface.getTriangleMids()[(int)getInjectionCellID(particleID)];
     }
 
     @Override
-    public boolean spillinPipesystem() {
-        return false;
+    public long getInjectionCellID(int particleID) {
+//        System.out.println("Request Particle "+particleID+"'s Cell iD. first: "+firstID);
+        try {
+            return (long) ((surface.getTriangleMids().length-1) * ((particleID - firstID) / (double) (lastID - firstID)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
+    
+    
 
-    @Override
-    public Capacity getInjectionCapacity() {
-       return surface;
-    }
+   
     
-    public long getInjectionCellID(int particleID){
-        return cellID;
-    }
     
-    public double[] getInjectionPosition(int particleID){
-        return position;
-    }
     
 }

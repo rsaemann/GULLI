@@ -597,6 +597,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         counterGetFeature = 0;
         GeoFieldValue gv = null;
         GeoTable table = (GeoTable) layer;
+//        table.open();
 
         long upperID = maxTriangleID;
         int lowerBound = 0;
@@ -691,7 +692,9 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 if (gv == null || gv.intValue() != id) {
                     throw new IDnotFoundException(id);
                 }
-                return table.getFeature(requestedFeatureID);
+                GeoFeature ft = table.getFeature(requestedFeatureID);
+//                table.close();
+                return ft;
             }
         } catch (IOException ex) {
             throw new IDnotFoundException(id);

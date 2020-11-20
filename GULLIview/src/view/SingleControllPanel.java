@@ -5,6 +5,7 @@ import control.Controller;
 import control.LoadingCoordinator;
 import control.StartParameters;
 import control.listener.LoadingActionListener;
+import control.listener.SimulationActionListener;
 import control.particlecontrol.ParticlePipeComputing;
 import control.particlecontrol.ParticleSurfaceComputing;
 import control.particlecontrol.ParticleSurfaceComputing2D;
@@ -29,6 +30,7 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import static java.lang.Thread.sleep;
 import java.net.URL;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
@@ -72,6 +74,7 @@ import javax.swing.filechooser.FileFilter;
 import model.particle.Material;
 import model.surface.Surface;
 import model.surface.measurement.SurfaceMeasurementRaster;
+import model.timeline.array.ArrayTimeLineMeasurement;
 import model.timeline.array.ArrayTimeLineMeasurementContainer;
 import model.topology.Network;
 import org.jfree.data.time.TimeSeries;
@@ -87,7 +90,7 @@ import view.video.GIFVideoCreator;
  *
  * @author saemann
  */
-public class SingleControllPanel extends JPanel implements LoadingActionListener {
+public class SingleControllPanel extends JPanel implements LoadingActionListener, SimulationActionListener {
 
     private MapViewer mapViewer;
     private PaintManager paintManager;
@@ -103,9 +106,12 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JPanel panelLoading;
     private JPanel panelLoadingStatus, panelLoadingStatusStart, panelLoadingStatusStop;
     private JPanel panelTimeSlide;
+    protected GregorianCalendar calStart = new GregorianCalendar(StartParameters.formatTimeZone);
+    protected GregorianCalendar calEnd = new GregorianCalendar(StartParameters.formatTimeZone);
+    protected GregorianCalendar calActual = new GregorianCalendar(StartParameters.formatTimeZone);
     private JLabel labelStarttime, labelEndtime, labelactualTime;
     private JLabel labelParticleActive, labelParticlesTotal;
-    private JProgressBar sliderTimeManual;
+    private JProgressBar progressSimulation;
     private JProgressBar progressLoading;
     private boolean longerThan1Day = false;
     private JCheckBox checkVelocityFunction;
@@ -116,16 +122,19 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JButton buttonFileSurface, buttonFileWaterdepths;
 
     private boolean wasrunning = false;
-    private final JCheckBox checkUpdateIntervall;
+    private final JCheckBox checkDrawUpdateIntervall;
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
 
-    private JButton newInjectionButton;
+    private JButton newInjectionPointButton;
+    private JButton newInjectionAreaButton;
     private JButton buttonShowRaingauge;
     private JButton buttonLoadAllPipeTimelines;
 
-    private JPanel panelInjections;
+    private JPanel panelInjection;
+    private JPanel panelInjectionList;
+    private JPanel panelInjectionButtons;
 
     private ImageIcon iconError, iconLoading, iconPending;
 
@@ -136,6 +145,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JFormattedTextField textMeasurementSecondsSurface;
     private JCheckBox checkMeasureContinouslySurface;
     private JCheckBox checkMeasureSynchronisedSurface;
+    private JCheckBox checkMeasureSynchronisedPipe;
 
     private JButton buttonFileStreetinlets;
     private JLabel labelCurrentAction;
@@ -148,14 +158,18 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     protected final String updatethreadBarrier = new String("UPDATETHREADBARRIERSINGLECONTROLPANEL");
     protected long updateThreadUpdateIntervalMS = 1000;
     protected Thread updateThread;
+    StringBuilder timeelapsed = new StringBuilder(30);
 
     protected PipeThemeLayer activePipeThemeLayer;
     protected SimpleDateFormat dateFormat;
     protected DecimalFormat dfParticles = new DecimalFormat("#");
 
+    protected JFrame frame;
+
     public SingleControllPanel(final ThreadController controller, final Controller control, final JFrame frame, PaintManager pm) {
         super();
         layout = new BoxLayout(this, BoxLayout.Y_AXIS);
+        this.frame = frame;
         dateFormat = new SimpleDateFormat();
         try {
             dateFormat.setTimeZone(StartParameters.formatTimeZone);
@@ -163,7 +177,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         }
         DecimalFormatSymbols dfsymb = new DecimalFormatSymbols(StartParameters.formatLocale);
         dfsymb.setGroupingSeparator(' ');
-       
+
         dfParticles = new DecimalFormat("#,###", dfsymb);
         dfParticles.setGroupingSize(3);
 
@@ -173,8 +187,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.mapViewer = pm.getMapViewer();
         tabs = new JTabbedPane();
         panelTabLoading = new JPanel(new BorderLayout());
-        BoxLayout layoutLoading = new BoxLayout(panelTabLoading, BoxLayout.Y_AXIS);
-        panelTabLoading.setLayout(layoutLoading);
+//        BoxLayout layoutLoading = new BoxLayout(panelTabLoading, BoxLayout.Y_AXIS);
+//        panelTabLoading.setLayout(layoutLoading);
         tabs.add("Input", panelTabLoading);
         panelTabSimulation = new JPanel(new BorderLayout());
         BoxLayout layoutSimulation = new BoxLayout(panelTabSimulation, BoxLayout.Y_AXIS);
@@ -186,6 +200,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.control = control;
         this.control.addActioListener(this);
         this.control.getLoadingCoordinator().addActioListener(this);
+        this.controler.addSimulationListener(this);
         this.buttonRun = new JToggleButton(">");
         this.buttonRun.setToolTipText("Start Simulation");
         if (control.getNetwork() == null) {
@@ -235,18 +250,22 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         //Loading buttons
         buildFilesLoadingPanel();
-        panelTabLoading.add(panelLoading);
+        panelTabLoading.add(panelLoading, BorderLayout.NORTH);
 
         //InjectionInformation
-        panelInjections = new JPanel(new BorderLayout());
+        panelInjection = new JPanel(new BorderLayout());
+        panelInjectionList = new JPanel(new BorderLayout());
+        JScrollPane scrollinjections = new JScrollPane(panelInjectionList);
+        panelInjection.add(scrollinjections, BorderLayout.CENTER);
+        panelInjection.setBorder(new TitledBorder("Injections"));
 
-        JScrollPane scrollinjections = new JScrollPane(panelInjections);
-        panelInjections.setBorder(new TitledBorder("Injections"));
+        panelInjectionButtons = new JPanel(new GridLayout(1, 2));
+        panelInjection.add(panelInjectionButtons, BorderLayout.SOUTH);
 
         //Add Injection via button
-        newInjectionButton = new JButton("New Injection");
-        panelInjections.add(newInjectionButton);
-        newInjectionButton.addActionListener(new ActionListener() {
+        newInjectionPointButton = new JButton("New Point Injection");
+        panelInjectionButtons.add(newInjectionPointButton);
+        newInjectionPointButton.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent ae) {
@@ -254,12 +273,29 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 control.getLoadingCoordinator().addManualInjection(ininfo);
                 control.recalculateInjections();
                 SingleControllPanel.this.updateGUI();
+                panelInjectionList.revalidate();
             }
         });
 
-//        scrollinjections.setMaximumSize(new Dimension(100, 200));
-        panelTabLoading.add(scrollinjections);
-        panelTabLoading.add(newInjectionButton);
+        newInjectionAreaButton = new JButton("New Diffusive Injection");
+        panelInjectionButtons.add(newInjectionAreaButton);
+        newInjectionAreaButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                InjectionInformation ininfo = new InjectionInformation(control.getSurface(), 0, 1, 10000, new Material("diffusiv", 1000, true), 0, 1);
+                ininfo.spilldistributed = true;
+                ininfo.spillOnSurface = true;
+                ininfo.setTriangleID(0);
+                control.getLoadingCoordinator().addManualInjection(ininfo);
+                control.recalculateInjections();
+                SingleControllPanel.this.updateGUI();
+                panelInjectionList.revalidate();
+            }
+        });
+
+        panelTabLoading.add(panelInjection, BorderLayout.CENTER);
+//        panelTabLoading.add(newInjectionPointButton);
         // SImulation Parameter
         JPanel panelParameter = new JPanel(new GridLayout(4, 1));
         panelParameter.setBorder(new TitledBorder("Parameter"));
@@ -319,15 +355,20 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         panelMsec.add(textMeasurementSecondsPipe, BorderLayout.CENTER);
         panelMeasurementsPipe.add(panelMsec, BorderLayout.NORTH);
-        JPanel panelMcheck = new JPanel(new GridLayout(1, 2));
+        JPanel panelMcheck = new JPanel(new GridLayout(1, 3));
         checkMeasureContinouslyPipe = new JCheckBox("Time contin.", false);
         checkMeasureContinouslyPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
 
         checkMeasureResidenceTimePipe = new JCheckBox("Space contin.", false);
         checkMeasureResidenceTimePipe.setToolTipText("<html><b>true</b>: Sample all visited capacities. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
 
+        checkMeasureSynchronisedPipe = new JCheckBox("Synchronize", ArrayTimeLineMeasurement.synchronizeMeasures);
+        checkMeasureSynchronisedPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
+
         panelMcheck.add(checkMeasureContinouslyPipe);
         panelMcheck.add(checkMeasureResidenceTimePipe);
+        panelMcheck.add(checkMeasureSynchronisedPipe);
+        
         panelMeasurementsPipe.add(panelMcheck, BorderLayout.SOUTH);
         panelMeasurement.add(panelMeasurementsPipe);
         panelTabSimulation.add(panelMeasurement);
@@ -395,15 +436,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.labelEndtime.setHorizontalAlignment(SwingConstants.RIGHT);
         this.labelactualTime = new JLabel("slider");
         this.labelactualTime.setHorizontalAlignment(SwingConstants.CENTER);
-        this.sliderTimeManual = new JProgressBar();
-        this.sliderTimeManual.setMaximum(1000);
-        this.sliderTimeManual.setMinimum(0);
-        this.sliderTimeManual.setValue(0);
+        this.progressSimulation = new JProgressBar();
+        this.progressSimulation.setMaximum(100);
+        this.progressSimulation.setMinimum(0);
+        this.progressSimulation.setValue(0);
         JPanel panelTimes = new JPanel(new GridLayout(1, 3));
 //        this.sliderTimeManual.setEnabled(false);
-        this.sliderTimeManual.setStringPainted(true);
+        this.progressSimulation.setStringPainted(true);
         this.labelSimulationTime = new JLabel();
-        this.panelTimeSlide.add(sliderTimeManual, BorderLayout.NORTH);
+        this.panelTimeSlide.add(progressSimulation, BorderLayout.NORTH);
         panelTimes.add(labelStarttime, BorderLayout.WEST);
         panelTimes.add(labelactualTime, BorderLayout.CENTER);
         panelTimes.add(labelEndtime, BorderLayout.EAST);
@@ -591,47 +632,46 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         });
         initFileButtonPopupMenu(buttonFileSurface);
 
-        buttonFileStreetinlets.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                String folder = ".";
-                final JFileChooser fc = new JFileChooser(folder) {
-                    @Override
-                    public boolean accept(File file) {
-                        if (file.isDirectory()) {
-                            return true;
-                        }
-                        if (file.getName().endsWith(".shp")) {
-                            return true;
-                        }
-                        return false;
-                    }
-                };
-                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-
-                int n = fc.showOpenDialog(SingleControllPanel.this);
-                if (n == fc.APPROVE_OPTION) {
-                    new Thread("Select Streetinlets file") {
-
-                        @Override
-                        public void run() {
-
-                            try {
-                                control.getLoadingCoordinator().setFileStreetInletsSHP(fc.getSelectedFile());
-                                buttonFileStreetinlets.setToolTipText("Street Inlets: " + fc.getSelectedFile().getAbsolutePath());
-                                updateGUI();
-                            } catch (Exception ex) {
-                                Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-
-                    }.start();
-
-                }
-            }
-        });
-
+//        buttonFileStreetinlets.addActionListener(new ActionListener() {
+//
+//            @Override
+//            public void actionPerformed(ActionEvent ae) {
+//                String folder = ".";
+//                final JFileChooser fc = new JFileChooser(folder) {
+//                    @Override
+//                    public boolean accept(File file) {
+//                        if (file.isDirectory()) {
+//                            return true;
+//                        }
+//                        if (file.getName().endsWith(".shp")) {
+//                            return true;
+//                        }
+//                        return false;
+//                    }
+//                };
+//                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//
+//                int n = fc.showOpenDialog(SingleControllPanel.this);
+//                if (n == fc.APPROVE_OPTION) {
+//                    new Thread("Select Streetinlets file") {
+//
+//                        @Override
+//                        public void run() {
+//
+//                            try {
+//                                control.getLoadingCoordinator().setFileStreetInletsSHP(fc.getSelectedFile());
+//                                buttonFileStreetinlets.setToolTipText("Street Inlets: " + fc.getSelectedFile().getAbsolutePath());
+//                                updateGUI();
+//                            } catch (Exception ex) {
+//                                Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
+//                        }
+//
+//                    }.start();
+//
+//                }
+//            }
+//        });
         buttonFileWaterdepths.addActionListener(new ActionListener() {
 
             @Override
@@ -744,8 +784,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         //Update thread to show information about running simulation. e.g. number of active particles
         new Thread("GUI SimulationInformation Update") {
-            GregorianCalendar actual = new GregorianCalendar(StartParameters.formatTimeZone);
-            StringBuilder timeelapsed = new StringBuilder(30);
+
             boolean juststopped = false;
             double seconds, minutes, hours;
 
@@ -754,74 +793,49 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                 while (true) {
                     try {
-                        if (!controller.isSimulating() && wasrunning) {
-                            juststopped = true;
+//                        if (!controller.isSimulating() && wasrunning) {
+//                            juststopped = true
+//                        }
+
+                        if (controller.isSimulating()) {
+                            updateSimulationRunInformation();
                         }
+//                            if (!wasrunning && frame != null) {
+//                                frame.setTitle("> Run Control");
+////                                sliderTimeShape.setEnabled(false);
+//                                wasrunning = true;
+//                                buttonRun.setSelected(true);
+//                                buttonPause.setSelected(false);
+//                                textTimeStep.setEditable(false);
+//                                textDispersionPipe.setEditable(false);
+//                                textDispersionSurface.setEditable(false);
+//                                textSeed.setEditable(false);
+//                            }
+////                            frame.setTitle("> " + (int) (((controller.getSimulationTime() - controller.getSimulationStartTime()) * 100 + 0.5) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))) + "% Run Control");
+//
+//                        }
+//                        if (juststopped) {
+//                            if (frame != null) {
 
-                        if (controller.isSimulating() || juststopped) {
-                            labelCalculationPerStep.setText(controller.getAverageCalculationTime() + "");
-                            labelCalculationTime.setText(controller.getElapsedCalculationTime() / 1000 + "");
-                            labelCalculationSteps.setText(dfParticles.format(controller.getSteps()));
-                            seconds = ((controller.getSimulationTime() - controller.getSimulationStartTime()) / 1000L);
-                            minutes = seconds / 60.;
-                            hours = minutes / 60.;
-                            timeelapsed.delete(0, timeelapsed.capacity());
-                            if (hours > 0) {
-                                timeelapsed.append((int) hours).append("h ");
-                            }
-                            if (minutes > 0) {
-                                timeelapsed.append((int) minutes % 60).append("m ");
-                            }
-                            if (seconds > 0) {
-                                if ((int) seconds % 60 < 10) {
-                                    timeelapsed.append("0");
-                                }
-                                timeelapsed.append((int) seconds % 60).append("s ");
-                            }
-                            sliderTimeManual.setValue((int) (0.5 + sliderTimeManual.getMaximum() * (controller.getSimulationTime() - controller.getSimulationStartTime()) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))));
-                            timeelapsed.append(" = ").append(seconds).append("s");
-                            labelSimulationTime.setText(timeelapsed.toString());
-
-                            if (!wasrunning && frame != null) {
-                                frame.setTitle("> Run Control");
-//                                sliderTimeShape.setEnabled(false);
-                                wasrunning = true;
-                                buttonRun.setSelected(true);
-                                buttonPause.setSelected(false);
-                                textTimeStep.setEditable(false);
-                                textDispersionPipe.setEditable(false);
-                                textDispersionSurface.setEditable(false);
-                                textSeed.setEditable(false);
-                            }
-                            frame.setTitle("> " + (int) (((controller.getSimulationTime() - controller.getSimulationStartTime()) * 100 + 0.5) / (double) ((controller.getSimulationTimeEnd() - controller.getSimulationStartTime()))) + "% Run Control");
-                            actual.setTimeInMillis(controller.getSimulationTime());
-                            labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
-
-                        }
-                        if (juststopped) {
-                            if (frame != null) {
-                                buttonRun.setSelected(false);
-                                buttonPause.setSelected(true);
-                                frame.setTitle("|| Stop Control");
-                                if (sliderTimeShape != null) {
-                                    sliderTimeShape.setEnabled(true);
-                                }
+//                                frame.setTitle("|| Stop Control");
+//                                if (sliderTimeShape != null) {
+//                                    sliderTimeShape.setEnabled(true);
+//                                }
 //                                control.timelinePanel.removeMarker();
-                                wasrunning = false;
-                                textTimeStep.setEditable(true);//!controler.isSimulating());
-                                textDispersionPipe.setEditable(true);//!controler.isSimulating());
-                                textDispersionSurface.setEditable(true);//!controler.isSimulating());
-                                textSeed.setEditable(true);
-
-                                actual.setTimeInMillis(controller.getSimulationTime());
-                                labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
-
-                            }
-                        }
-                        labelParticleActive.setText(dfParticles.format(controller.getNumberOfActiveParticles()));
-                        labelParticlesTotal.setText("/ " + dfParticles.format(controller.getNumberOfTotalParticles()));
-                        juststopped = false;
-                        wasrunning = controller.isSimulating();
+//                                wasrunning = false;
+//                                textTimeStep.setEditable(true);//!controler.isSimulating());
+//                                textDispersionPipe.setEditable(true);//!controler.isSimulating());
+//                                textDispersionSurface.setEditable(true);//!controler.isSimulating());
+//                                textSeed.setEditable(true);
+//
+//                                actual.setTimeInMillis(controller.getSimulationTime());
+//                                labelactualTime.setText(actual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (actual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (actual.get(GregorianCalendar.MINUTE)) + " ");
+//                            }
+//                        }
+//                        labelParticleActive.setText(dfParticles.format(controller.getNumberOfActiveParticles()));
+//                        labelParticlesTotal.setText("/ " + dfParticles.format(controller.getNumberOfTotalParticles()));
+//                        juststopped = false;
+//                        wasrunning = controller.isSimulating();
                         Thread.sleep(500);
                     } catch (InterruptedException ex) {
                         Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
@@ -964,6 +978,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
             }
         });
+        
+         checkMeasureSynchronisedPipe.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ArrayTimeLineMeasurement.synchronizeMeasures = checkMeasureSynchronisedPipe.isSelected();
+
+            }
+        });
+
 
         textMeasurementSecondsPipe.addFocusListener(new FocusAdapter() {
             @Override
@@ -1073,14 +1096,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         ///// Panel VIEW
         JPanel panelView = new JPanel(new BorderLayout());
         panelView.setBorder(new TitledBorder("Draw Update"));
-        checkUpdateIntervall = new JCheckBox("Update View 1/", controller.paintOnMap);
+        checkDrawUpdateIntervall = new JCheckBox("Update View 1/", controller.paintOnMap);
         final JTextField textUpdateLoops = new JTextField(controller.paintingInterval + "");
-        checkUpdateIntervall.addActionListener(new ActionListener() {
+        checkDrawUpdateIntervall.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent ae) {
-                controller.paintOnMap = checkUpdateIntervall.isSelected();
-                if (checkUpdateIntervall.isSelected()) {
+                controller.paintOnMap = checkDrawUpdateIntervall.isSelected();
+                if (checkDrawUpdateIntervall.isSelected()) {
                     try {
                         int loops = Integer.parseInt(textUpdateLoops.getText());
                         controller.paintingInterval = loops;
@@ -1095,7 +1118,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         });
         panelView.setPreferredSize(new Dimension(220, 50));
         panelView.setMaximumSize(new Dimension(400, 50));
-        panelView.add(checkUpdateIntervall, BorderLayout.WEST);
+        panelView.add(checkDrawUpdateIntervall, BorderLayout.WEST);
 
         textUpdateLoops.addKeyListener(new KeyAdapter() {
             @Override
@@ -1465,6 +1488,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JPanel buildFilesLoadingPanel() {
         //Pipenetwork File 
         panelLoading = new JPanel();
+        panelLoading.setPreferredSize(new Dimension(100, 250));
+        panelLoading.setMinimumSize(new Dimension(100, 220));
         panelLoading.setLayout(new BoxLayout(panelLoading, BoxLayout.Y_AXIS));
         panelLoading.setBorder(new TitledBorder("Files & Loading"));
 
@@ -1479,6 +1504,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         //Buttons to select files
         //Pipe Network 
         JPanel panelNetwork = new JPanel(new GridLayout(2, 1));
+        panelNetwork.setPreferredSize(new Dimension(200, 90));
         panelNetwork.setBorder(new TitledBorder("Pipe Network"));
         this.buttonFileNetwork = new JButton("Network Topology");
 //        panelNetwork.add(new JLabel("Pipe Network "), BorderLayout.WEST);
@@ -1494,64 +1520,38 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //        this.initTransferHandlerFile(panelFile);
 
         //Surface Panel
-        JPanel panelSurface = new JPanel(new GridLayout(3, 1));
+        JPanel panelSurface = new JPanel(new GridLayout(2, 1));
+        panelSurface.setPreferredSize(new Dimension(200, 90));
         panelSurface.setBorder(new TitledBorder("Surface"));
-        JPanel panelStreetInlets = new JPanel(new BorderLayout());
-        this.buttonFileStreetinlets = new JButton("StreetInlets Position");
-        this.buttonFileStreetinlets.setToolTipText("Shapefile with Point locations of streetinlets. Link between Surface and Pipes are auto created.");
-        final JCheckBox checkStreetInlets = new JCheckBox(" Active", true);
-        checkStreetInlets.setToolTipText("Switch simulation transport on surface.");
-        panelStreetInlets.add(checkStreetInlets, BorderLayout.WEST);
-        panelStreetInlets.add(buttonFileStreetinlets, BorderLayout.CENTER);
-        panelSurface.add(panelStreetInlets);
-        checkStreetInlets.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                if (checkStreetInlets.isSelected()) {
-//                    if (control.getLoadingCoordinator().getFileSurfaceTriangleIndicesDAT() != null && control.getLoadingCoordinator().getLoadingSurface() != LoadingCoordinator.LOADINGSTATUS.LOADED) {
-//                        try {
-//                            control.getLoadingCoordinator().setSurfaceTopologyDirectory(control.getLoadingCoordinator().getFileSurfaceTriangleIndicesDAT());
-//                        } catch (FileNotFoundException ex) {
-//                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
-//                        }
+//        JPanel panelStreetInlets = new JPanel(new BorderLayout());
+//        this.buttonFileStreetinlets = new JButton("StreetInlets Position");
+//        this.buttonFileStreetinlets.setToolTipText("Shapefile with Point locations of streetinlets. Link between Surface and Pipes are auto created.");
+//        final JCheckBox checkStreetInlets = new JCheckBox(" Active", true);
+//        checkStreetInlets.setToolTipText("Switch simulation transport on surface.");
+//        panelStreetInlets.add(checkStreetInlets, BorderLayout.WEST);
+//        panelStreetInlets.add(buttonFileStreetinlets, BorderLayout.CENTER);
+//        panelSurface.add(panelStreetInlets);
+//        checkStreetInlets.addActionListener(new ActionListener() {
+//
+//            @Override
+//            public void actionPerformed(ActionEvent ae) {
+//                if (checkStreetInlets.isSelected()) {
+//                    if (control.getSurface() != null) {
+//                        controler.loadSurface(control.getSurface(), ae);
 //                    }
-//                    if (control.getLoadingCoordinator().getFileSurfaceWaterlevels() != null && control.getLoadingCoordinator().getLoadingSurfaceVelocity() != LoadingCoordinator.LOADINGSTATUS.LOADED) {
-//                        control.getLoadingCoordinator().setSurfaceWaterlevelFile(control.getLoadingCoordinator().getFileSurfaceWaterlevels());
-//                    }
-                    if (control.getSurface() != null) {
-                        controler.loadSurface(control.getSurface(), ae);
-                    }
-                } else {
-                    controler.loadSurface(null, SingleControllPanel.this);
-//                    control.getLoadingCoordinator().stopLoadingSurfaceGrid();
-//                    control.getLoadingCoordinator().stopLoadingSurfaceVelocity();
-                }
-//                updateGUI();
-            }
-        });
+//                } else {
+//                    controler.loadSurface(null, SingleControllPanel.this);
+//                }
+//            }
+//        });
 
-//        checkStreetInlets.setEnabled(false);
-//        panelLoading.add(panelStreetInlets);
         //Surface File
-//        JPanel panelSurfaceGrid = new JPanel(new BorderLayout());
         this.buttonFileSurface = new JButton("Surface Grid");
         panelSurface.add(buttonFileSurface);
-//        JCheckBox checkSurfaceGrid = new JCheckBox("Surface Grid", true);
-//        checkSurfaceGrid.setEnabled(false);
-//        panelSurfaceGrid.add(checkSurfaceGrid, BorderLayout.WEST);
-//        panelSurfaceGrid.add(buttonFileSurface, BorderLayout.CENTER);
-//        panelLoading.add(panelSurfaceGrid);
 
         //Surface Velocity/Waterlevel
-//        JPanel panelSurfaceVelocity = new JPanel(new BorderLayout());
         this.buttonFileWaterdepths = new JButton("Velocity / Waterlevel");
         panelSurface.add(buttonFileWaterdepths);
-//        JCheckBox checkSurfaceVelocity = new JCheckBox("Surface Velocity", true);
-//        checkSurfaceVelocity.setEnabled(false);
-//        panelSurfaceVelocity.add(checkSurfaceVelocity, BorderLayout.WEST);
-//        panelSurfaceVelocity.add(buttonFileWaterdepths, BorderLayout.CENTER);
-//        panelLoading.add(panelSurfaceVelocity);
         // Row Velocity loading gdb/WL
         radioVelocityGDB = new JRadioButton("GDB", control.getLoadingCoordinator().isLoadGDBVelocity());
         radioVelocityGDB.setToolTipText("Prioritise loading surface velocities directly from GDB file.");
@@ -1563,7 +1563,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         JPanel panelRadiobuttons = new JPanel(new BorderLayout());
         panelRadiobuttons.add(radioVelocityWL, BorderLayout.WEST);
         panelRadiobuttons.add(radioVelocityGDB, BorderLayout.EAST);
-//        panelSurface.add(panelRadiobuttons);
         radioVelocityGDB.addActionListener(new ActionListener() {
 
             @Override
@@ -1641,22 +1640,264 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     @Override
     public void actionFired(Action action, Object source) {
         this.currentAction = action;
-        updateGUI();
+        updateEditableState();
+        updateLoadingState();
+        updateScenarioInformation();
+        if (action.parent == null && action.progress == 1) {
+            updatePanelInjections();
+        }
     }
 
     @Override
     public void loadNetwork(Network network, Object caller) {
-        updateGUI();
+        updateLoadingState();
+        updateScenarioInformation();
     }
 
     @Override
     public void loadSurface(Surface surface, Object caller) {
-        updateGUI();
+        updateLoadingState();
+        updateScenarioInformation();
     }
 
     @Override
     public void loadScenario(Scenario scenario, Object caller) {
-        updateGUI();
+        updateEditableState();
+        updateLoadingState();
+        updateScenarioInformation();
+        updatePanelInjections();
+        updateSimulationRunInformation();
+    }
+
+    public void updateLoadingState() {
+        LoadingCoordinator lc = control.getLoadingCoordinator();
+
+        buttonFileNetwork.setBackground(getLoadingColor(lc.getLoadingpipeNetwork()));
+        buttonFileNetwork.setIcon(getLoadingIcon(lc.getLoadingpipeNetwork()));
+        if (lc.getFileNetwork() != null) {
+            buttonFileNetwork.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileNetwork().getAbsolutePath());
+        } else {
+            buttonFileNetwork.setToolTipText("Not set");
+        }
+
+        buttonFilePipeResult.setBackground(getLoadingColor(lc.getLoadingPipeResult()));
+        buttonFilePipeResult.setIcon(getLoadingIcon(lc.getLoadingPipeResult()));
+        if (lc.getFilePipeResultIDBF() != null) {
+            buttonFilePipeResult.setToolTipText(lc.getLoadingPipeResult() + ": " + lc.getFilePipeResultIDBF().getAbsolutePath());
+            if (lc.getLoadingPipeResult() == LoadingCoordinator.LOADINGSTATUS.LOADED) {
+            }
+        } else {
+            buttonFilePipeResult.setToolTipText("Not set");
+        }
+
+        buttonFileSurface.setBackground(getLoadingColor(lc.getLoadingSurface()));
+        buttonFileSurface.setIcon(getLoadingIcon(lc.getLoadingSurface()));
+        if (lc.getFileSurfaceTriangleIndicesDAT() != null) {
+            buttonFileSurface.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileSurfaceTriangleIndicesDAT().getParent());
+        } else {
+            buttonFileSurface.setToolTipText("Not set");
+        }
+
+//        buttonFileStreetinlets.setBackground(getLoadingColor(lc.getLoadingStreetInlets()));
+//        buttonFileStreetinlets.setIcon(getLoadingIcon(lc.getLoadingStreetInlets()));
+//        if (lc.getFileStreetInletsSHP() != null) {
+//            buttonFileStreetinlets.setToolTipText(lc.getLoadingStreetInlets() + ": " + lc.getFileStreetInletsSHP().getAbsolutePath());
+//        } else {
+//            buttonFileStreetinlets.setToolTipText("Not set");
+//        }
+        buttonFileWaterdepths.setBackground(getLoadingColor(lc.getLoadingSurfaceVelocity()));
+        buttonFileWaterdepths.setIcon(getLoadingIcon(lc.getLoadingSurfaceVelocity()));
+        if (lc.getFileSurfaceWaterlevels() != null) {
+            buttonFileWaterdepths.setToolTipText(lc.getLoadingSurfaceVelocity() + ": " + lc.getFileSurfaceWaterlevels().getAbsolutePath());
+        } else {
+            buttonFileWaterdepths.setToolTipText("Not set");
+        }
+
+        if (lc.isLoading()) {
+
+            progressLoading.setVisible(true);
+            if (currentAction != null) {
+                labelCurrentAction.setText(currentAction.toString());
+                progressLoading.setIndeterminate(!currentAction.hasProgress);
+                if (currentAction.hasProgress) {
+                    progressLoading.setValue((int) (currentAction.progress * 100));
+                }
+            } else {
+                labelCurrentAction.setText("No Action. Still Loading.");
+                progressLoading.setIndeterminate(true);
+            }
+            if (!panelLoadingStatusStop.isShowing()) {
+                panelLoadingStatus.removeAll();
+                panelLoadingStatus.add(panelLoadingStatusStop);
+                panelLoadingStatusStop.revalidate();
+                panelLoadingStatus.revalidate();
+                panelLoadingStatus.repaint();
+            }
+
+//            revalidate();
+//            try {
+//                sleep(updateThreadUpdateIntervalMS);
+//            } catch (Exception e) {
+//
+//            }
+        } else {
+            //Reset the layout to non-working style
+            progressLoading.setIndeterminate(false);
+            progressLoading.setValue(0);
+            progressLoading.setStringPainted(false);
+            labelCurrentAction.setText("");
+            progressLoading.setVisible(false);
+            if (!panelLoadingStatusStart.isShowing()) {
+                panelLoadingStatus.removeAll();
+                panelLoadingStatus.add(panelLoadingStatusStart);
+                panelLoadingStatusStart.revalidate();
+                panelLoadingStatus.revalidate();
+            }
+            panelLoadingStatus.repaint();
+//            revalidate();
+
+        }
+
+//        panelLoadingStatusStart.revalidate();
+//        panelLoadingStatusStop.revalidate();
+        panelLoading.revalidate();
+        panelButtons.revalidate();
+    }
+
+    /**
+     * Update of the GUI elements showing the fixed scenario information. Time +
+     * Injection information. This only needs to be called before the simulation
+     * starts, because all information should be unchanged during the simulation
+     */
+    public void updateScenarioInformation() {
+        calStart.setTimeInMillis(controler.getSimulationStartTime());
+        calEnd.setTimeInMillis(controler.getSimulationTimeEnd());
+        longerThan1Day = false;
+        if (calStart.get(GregorianCalendar.DAY_OF_YEAR) != calEnd.get(GregorianCalendar.DAY_OF_YEAR) || calStart.get(GregorianCalendar.YEAR) != calEnd.get(GregorianCalendar.YEAR)) {
+            longerThan1Day = true;
+        }
+        labelStarttime.setToolTipText(dateFormat.format(controler.getSimulationStartTime()));
+        labelEndtime.setToolTipText(dateFormat.format(controler.getSimulationTimeEnd()));
+        if (longerThan1Day) {
+            labelStarttime.setText(calStart.get(GregorianCalendar.DAY_OF_MONTH) + "." + (calStart.get(GregorianCalendar.MONTH) + 1) + " ");
+            labelEndtime.setText(calEnd.get(GregorianCalendar.DAY_OF_MONTH) + "." + (calEnd.get(GregorianCalendar.MONTH) + 1) + " ");
+        } else {
+            labelStarttime.setText("");
+            labelEndtime.setText("");
+        }
+        labelStarttime.setText(labelStarttime.getText() + calStart.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calStart.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calStart.get(GregorianCalendar.MINUTE)) + " ");
+        labelEndtime.setText(labelEndtime.getText() + calEnd.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calEnd.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calEnd.get(GregorianCalendar.MINUTE)) + " ");
+
+        if (control != null && control.getScenario() != null) {
+            if (control.getScenario().getMeasurementsPipe() != null) {
+                ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
+                if (mpc.isTimespotmeasurement()) {
+                    checkMeasureContinouslyPipe.setSelected(false);
+                } else {
+                    checkMeasureContinouslyPipe.setSelected(true);
+                }
+                checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
+                textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
+            }
+            if (control.getScenario().getMeasurementsSurface() != null) {
+                SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
+                if (mpc.continousMeasurements) {
+                    checkMeasureContinouslySurface.setSelected(true);
+                } else {
+                    checkMeasureContinouslySurface.setSelected(false);
+                }
+                textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
+            }
+        }
+
+        textSeed.setText(control.getThreadController().getSeed() + "");
+
+        textTimeStep.setText(ThreadController.getDeltaTime() + "");
+        checkDrawUpdateIntervall.setSelected(controler.paintOnMap);
+
+        labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
+
+    }
+
+    public void updateSimulationRunInformation() {
+        labelParticleActive.setText(dfParticles.format(control.getThreadController().getNumberOfActiveParticles()));
+
+        labelCalculationPerStep.setText(controler.getAverageCalculationTime() + "");
+        labelCalculationTime.setText(controler.getElapsedCalculationTime() / 1000 + "");
+        labelCalculationSteps.setText(dfParticles.format(controler.getSteps()));
+        long seconds = ((controler.getSimulationTime() - controler.getSimulationStartTime()) / 1000L);
+        double minutes = seconds / 60.;
+        double hours = minutes / 60.;
+        timeelapsed.delete(0, timeelapsed.capacity());
+        if (hours > 0) {
+            timeelapsed.append((int) hours).append("h ");
+        }
+        if (minutes > 0) {
+            timeelapsed.append((int) minutes % 60).append("m ");
+        }
+        if (seconds > 0) {
+            if ((int) seconds % 60 < 10) {
+                timeelapsed.append("0");
+            }
+            timeelapsed.append((int) seconds % 60).append("s ");
+        }
+        int percent = (int) (0.5 + 100 * (controler.getSimulationTime() - controler.getSimulationStartTime()) / (double) ((controler.getSimulationTimeEnd() - controler.getSimulationStartTime())));
+        progressSimulation.setValue(percent);
+        timeelapsed.append(" = ").append(seconds).append("s");
+        labelSimulationTime.setText(timeelapsed.toString());
+
+        calActual.setTimeInMillis(controler.getSimulationTime());
+        labelactualTime.setText(calActual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calActual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calActual.get(GregorianCalendar.MINUTE)) + " ");
+
+        if (frame != null) {
+            if (controler.isSimulating()) {
+                frame.setTitle(">" + percent + "% Run");
+            }
+        }
+
+    }
+
+    /**
+     * Changes the editable state of buttons according to the current state of
+     * the simulation. Some Values should net be changed during the simulation.
+     */
+    public void updateEditableState() {
+        buttonRun.setEnabled((control.getNetwork() != null || control.getSurface() != null) && !control.getLoadingCoordinator().isLoading());
+
+        if (controler.isSimulating()) {
+            textTimeStep.setEditable(false);
+            textDispersionPipe.setEditable(false);
+            textDispersionSurface.setEditable(false);
+            textMeasurementSecondsPipe.setEditable(false);
+            textMeasurementSecondsSurface.setEditable(false);
+            textSeed.setEditable(false);
+            textTimeStep.setEditable(false);
+            checkMeasureContinouslyPipe.setEnabled(false);
+            checkMeasureContinouslySurface.setEnabled(false);
+            checkMeasureResidenceTimePipe.setEnabled(false);
+            checkMeasureSynchronisedSurface.setEnabled(false);
+            checkMeasureSynchronisedPipe.setEnabled(false);
+            buttonPause.setSelected(false);
+            buttonRun.setSelected(true);
+
+        } else {
+            textTimeStep.setEditable(true);
+            textDispersionPipe.setEditable(true);
+            textDispersionSurface.setEditable(true);
+            textMeasurementSecondsPipe.setEditable(true);
+            textMeasurementSecondsSurface.setEditable(true);
+            textSeed.setEditable(true);
+            textTimeStep.setEditable(true);
+            checkMeasureContinouslyPipe.setEnabled(true);
+            checkMeasureContinouslySurface.setEnabled(true);
+            checkMeasureResidenceTimePipe.setEnabled(true);
+            checkMeasureSynchronisedSurface.setEnabled(true);
+            checkMeasureSynchronisedPipe.setEnabled(true);
+
+            buttonRun.setSelected(false);
+            buttonPause.setSelected(true);
+        }
+
     }
 
     private void startGUIUpdateThread() {
@@ -1665,118 +1906,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             public void run() {
                 while (!isInterrupted()) {
                     try {
-                        GregorianCalendar start = new GregorianCalendar(StartParameters.formatTimeZone);
-                        start.setTimeInMillis(controler.getSimulationStartTime());
-                        GregorianCalendar end = new GregorianCalendar(StartParameters.formatTimeZone);
-                        end.setTimeInMillis(controler.getSimulationTimeEnd());
+                        updateLoadingState();
+                        updateScenarioInformation();
+                        updateSimulationRunInformation();
+                        updatePanelInjections();
+                        updateEditableState();
+//                        sliderTimeManual.setValue(0);
 
-                        longerThan1Day = false;
-                        if (start.get(GregorianCalendar.DAY_OF_YEAR) != start.get(GregorianCalendar.DAY_OF_YEAR) || start.get(GregorianCalendar.YEAR) != start.get(GregorianCalendar.YEAR)) {
-                            longerThan1Day = true;
-                        }
-                        labelStarttime.setToolTipText(dateFormat.format(controler.getSimulationStartTime()));
-                        labelEndtime.setToolTipText(dateFormat.format(controler.getSimulationTimeEnd()));
-                        if (longerThan1Day) {
-                            labelStarttime.setText(start.get(GregorianCalendar.DAY_OF_MONTH) + "." + (start.get(GregorianCalendar.MONTH) + 1) + " ");
-                            labelEndtime.setText(end.get(GregorianCalendar.DAY_OF_MONTH) + "." + (end.get(GregorianCalendar.MONTH) + 1) + " ");
-                        } else {
-                            labelStarttime.setText("");
-                            labelEndtime.setText("");
-                        }
-                        labelStarttime.setText(labelStarttime.getText() + start.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (start.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (start.get(GregorianCalendar.MINUTE)) + " ");
-                        labelEndtime.setText(labelEndtime.getText() + end.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (end.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (end.get(GregorianCalendar.MINUTE)) + " ");
-
-                        sliderTimeManual.setValue(0);
-                        LoadingCoordinator lc = control.getLoadingCoordinator();
-
-                        buttonFileNetwork.setBackground(getLoadingColor(lc.getLoadingpipeNetwork()));
-                        buttonFileNetwork.setIcon(getLoadingIcon(lc.getLoadingpipeNetwork()));
-                        if (lc.getFileNetwork() != null) {
-                            buttonFileNetwork.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileNetwork().getAbsolutePath());
-                        } else {
-                            buttonFileNetwork.setToolTipText("Not set");
-                        }
-
-                        buttonFilePipeResult.setBackground(getLoadingColor(lc.getLoadingPipeResult()));
-                        buttonFilePipeResult.setIcon(getLoadingIcon(lc.getLoadingPipeResult()));
-                        if (lc.getFilePipeResultIDBF() != null) {
-                            buttonFilePipeResult.setToolTipText(lc.getLoadingPipeResult() + ": " + lc.getFilePipeResultIDBF().getAbsolutePath());
-                            if (lc.getLoadingPipeResult() == LoadingCoordinator.LOADINGSTATUS.LOADED) {
-                            }
-                        } else {
-                            buttonFilePipeResult.setToolTipText("Not set");
-                        }
-
-                        buttonFileSurface.setBackground(getLoadingColor(lc.getLoadingSurface()));
-                        buttonFileSurface.setIcon(getLoadingIcon(lc.getLoadingSurface()));
-                        if (lc.getFileSurfaceTriangleIndicesDAT() != null) {
-                            buttonFileSurface.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileSurfaceTriangleIndicesDAT().getParent());
-                        } else {
-                            buttonFileSurface.setToolTipText("Not set");
-                        }
-
-                        buttonFileStreetinlets.setBackground(getLoadingColor(lc.getLoadingStreetInlets()));
-                        buttonFileStreetinlets.setIcon(getLoadingIcon(lc.getLoadingStreetInlets()));
-                        if (lc.getFileStreetInletsSHP() != null) {
-                            buttonFileStreetinlets.setToolTipText(lc.getLoadingStreetInlets() + ": " + lc.getFileStreetInletsSHP().getAbsolutePath());
-                        } else {
-                            buttonFileStreetinlets.setToolTipText("Not set");
-                        }
-
-                        buttonFileWaterdepths.setBackground(getLoadingColor(lc.getLoadingSurfaceVelocity()));
-                        buttonFileWaterdepths.setIcon(getLoadingIcon(lc.getLoadingSurfaceVelocity()));
-                        if (lc.getFileSurfaceWaterlevels() != null) {
-                            buttonFileWaterdepths.setToolTipText(lc.getLoadingSurfaceVelocity() + ": " + lc.getFileSurfaceWaterlevels().getAbsolutePath());
-                        } else {
-                            buttonFileWaterdepths.setToolTipText("Not set");
-                        }
-
-//                        if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-//                            ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
-//                            if (mpc.isTimespotmeasurement()) {
-//                                checkMeasureContinously.setSelected(false);
-//                            } else {
-//                                checkMeasureContinously.setSelected(true);
-//                            }
-//                            checkMeasureResidenceTime.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-//                            textMeasurementSeconds.setValue(mpc.getDeltaTimeS());
-//                        }
-                        if (control != null && control.getScenario() != null) {
-                            if (control.getScenario().getMeasurementsPipe() != null) {
-                                ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
-                                if (mpc.isTimespotmeasurement()) {
-                                    checkMeasureContinouslyPipe.setSelected(false);
-                                } else {
-                                    checkMeasureContinouslyPipe.setSelected(true);
-                                }
-                                checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-                                textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
-                            }
-                            if (control.getScenario().getMeasurementsSurface() != null) {
-                                SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
-                                if (mpc.continousMeasurements) {
-                                    checkMeasureContinouslySurface.setSelected(true);
-                                } else {
-                                    checkMeasureContinouslySurface.setSelected(false);
-                                }
-                                textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
-                            }
-                        }
-
-                        textSeed.setText(control.getThreadController().getSeed() + "");
-
-                        textTimeStep.setText(ThreadController.getDeltaTime() + "");
-                        checkUpdateIntervall.setSelected(controler.paintOnMap);
-
-                        labelParticleActive.setText(dfParticles.format(control.getThreadController().getNumberOfActiveParticles()));
-                        labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
-
-                        buttonRun.setEnabled((control.getNetwork() != null || control.getSurface() != null) && !control.getLoadingCoordinator().isLoading());
-
-                        textTimeStep.setEditable(!controler.isSimulating());
-                        textDispersionPipe.setEditable(!controler.isSimulating());
-                        textDispersionSurface.setEditable(!controler.isSimulating());
-
+//                        textTimeStep.setEditable(!controler.isSimulating());
+//                        textDispersionPipe.setEditable(!controler.isSimulating());
+//                        textDispersionSurface.setEditable(!controler.isSimulating());
                         //Information about shapes
                         if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
                             if (panelShapePipe.getBorder() instanceof TitledBorder) {
@@ -1789,49 +1928,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             }
                         }
 //                            System.out.println("stop is showing? " + panelLoadingStatusStop.isShowing() + "  visible? " + panelLoadingStatusStop.isVisible() + "  is valid? " + panelLoadingStatusStop.isValid());
-                        if (!panelLoadingStatusStop.isShowing()) {
-                            panelLoadingStatus.removeAll();
-                            panelLoadingStatus.add(panelLoadingStatusStop);
-                        }
-
-                        updatePanelInjectuions();
-
-                        if (control.getLoadingCoordinator().isLoading()) {
-                            if (currentAction != null) {
-                                labelCurrentAction.setText(currentAction.toString());
-                                progressLoading.setIndeterminate(!currentAction.hasProgress);
-                                if (currentAction.hasProgress) {
-                                    progressLoading.setValue((int) (currentAction.progress * 100));
-                                }
-                            } else {
-                                labelCurrentAction.setText("No Action. Still Loading.");
-                                progressLoading.setIndeterminate(true);
-                            }
-                            panelLoadingStatus.revalidate();
-                            revalidate();
-                            try {
-                                sleep(updateThreadUpdateIntervalMS);
-                            } catch (Exception e) {
-
-                            }
-                        } else {
-//                            System.out.println("Park update thread");
-                            //Reset the layout to non-working style
-                            progressLoading.setIndeterminate(false);
-                            progressLoading.setValue(0);
-                            progressLoading.setStringPainted(false);
-                            labelCurrentAction.setText("");
-                            panelLoadingStatus.removeAll();
-                            panelLoadingStatus.add(panelLoadingStatusStart);
-                            revalidate();
-                            synchronized (updatethreadBarrier) {
-                                updatethreadBarrier.wait();
+                        synchronized (updatethreadBarrier) {
+                            updatethreadBarrier.wait();
 //                                System.out.println("update thread revoken");
-                            }
                         }
 
-                        panelLoadingStatusStart.revalidate();
-                        panelLoadingStatusStop.revalidate();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -1842,67 +1943,159 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         updateThread.start();
     }
 
-    private void updatePanelInjectuions() {
+    private void updatePanelInjections() {
         //Update Injections Information
-        if (control.getLoadingCoordinator() == null || control.getLoadingCoordinator().getInjections() == null) {
-//                            System.out.println("remove Injections");
-            panelInjections.removeAll();
-        }
+//        if (control.getLoadingCoordinator() == null || control.getLoadingCoordinator().getInjections() == null) {
+        panelInjectionList.removeAll();
+//        }
 
         if (control.getLoadingCoordinator() != null && control.getLoadingCoordinator().getInjections() != null) {
 
-            if (control.getLoadingCoordinator().getInjections().size() != panelInjections.getComponentCount() - 1) {
-
-                if (panelInjections.getBorder() != null && panelInjections.getBorder() instanceof TitledBorder) {
-                    ((TitledBorder) panelInjections.getBorder()).setTitle(control.getLoadingCoordinator().getInjections().size() + " Injections");
-                }
-//                                System.out.println("new size: injections: " + (control.getLoadingCoordinator().getInjections().size()) + "  componennts: " + panelInjections.getComponentCount());
-                panelInjections.removeAll();
-                ArrayList<InjectionInformation> injections = control.getLoadingCoordinator().getInjections();
-                if (injections.isEmpty()) {
-                    panelInjections.setLayout(new BorderLayout());
-                    panelInjections.add(new JLabel("No Injections"), BorderLayout.NORTH);
-                } else {
-                    BoxLayout layout = new BoxLayout(panelInjections, BoxLayout.Y_AXIS);
-                    panelInjections.setLayout(layout);//new GridLayout(injections.size()+1, 1));
-                    try {
-                        int maxnumber = 50;
-                        for (final InjectionInformation inj : injections) {
-                            maxnumber--;
-                            if (maxnumber < 0) {
+//            if (control.getLoadingCoordinator().getInjections().size() != panelInjectionList.getComponentCount()) {
+            if (panelInjection.getBorder() != null && panelInjection.getBorder() instanceof TitledBorder) {
+                ((TitledBorder) panelInjection.getBorder()).setTitle(control.getLoadingCoordinator().getInjections().size() + " Injections");
+            }
+//                panelInjectionList.removeAll();
+            ArrayList<InjectionInformation> injections = control.getLoadingCoordinator().getInjections();
+            if (injections.isEmpty()) {
+                panelInjectionList.setLayout(new BorderLayout());
+                ((TitledBorder) panelInjection.getBorder()).setTitle("No injections defined");
+                panelInjection.setPreferredSize(new Dimension(100, 60));
+//                    panelInjectionList.add(new JLabel("No Injections"), BorderLayout.NORTH);
+            } else {
+                panelInjection.setPreferredSize(new Dimension(100, 200));
+                BoxLayout layout = new BoxLayout(panelInjectionList, BoxLayout.Y_AXIS);
+                panelInjectionList.setLayout(layout);//new GridLayout(injections.size()+1, 1));
+                try {
+                    int maxnumber = 50;
+                    for (final InjectionInformation inj : injections) {
+                        maxnumber--;
+                        if (maxnumber < 0) {
 //                                System.err.println("Will not show more than 50 ");
-                                break;
-                            }
-                            InjectionPanel ip = new InjectionPanel(inj, mapViewer, paintManager);
-                            panelInjections.add(ip);
-
-                            //Create popup to delete this injection 
-                            JPopupMenu popup = new JPopupMenu();
-                            JMenuItem itemdelete = new JMenuItem("Delete from list");
-                            popup.add(itemdelete);
-                            itemdelete.addActionListener(new ActionListener() {
-
-                                @Override
-                                public void actionPerformed(ActionEvent ae) {
-                                    control.getLoadingCoordinator().getInjections().remove(inj);
-                                    control.recalculateInjections();
-                                    SingleControllPanel.this.updateGUI();
-                                }
-                            });
-                            ip.setComponentPopupMenu(popup);
+                            break;
                         }
-                    } catch (Exception e) {
-                    }
+                        //Create popup to delete this injection 
+                        JPopupMenu popup = new JPopupMenu();
+                        JMenuItem itemdelete = new JMenuItem("Delete from list");
+                        popup.add(itemdelete);
+                        itemdelete.addActionListener(new ActionListener() {
 
+                            @Override
+                            public void actionPerformed(ActionEvent ae) {
+                                control.getLoadingCoordinator().getInjections().remove(inj);
+                                control.recalculateInjections();
+                                SingleControllPanel.this.updateGUI();
+                            }
+                        });
+                        if (inj.spilldistributed) {
+                            InjectionPanelAreal ipa = new InjectionPanelAreal(inj, mapViewer, paintManager);
+                            ipa.setComponentPopupMenu(popup);
+                            panelInjectionList.add(ipa);
+                        } else {
+                            InjectionPanelPointlocation ip = new InjectionPanelPointlocation(inj, mapViewer, paintManager);
+                            ip.setComponentPopupMenu(popup);
+                            panelInjectionList.add(ip);
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
+//            } else {
+////                System.out.println("anzahl injections hat sich nicht geändert : " + control.getLoadingCoordinator().getInjections().size() + " / " + panelInjectionList.getComponentCount());
+//            }
         } else {
-            panelInjections.setLayout(new BorderLayout());
-            panelInjections.add(new JLabel("Injections = null"));
-
+//            panelInjectionList.setLayout(new BorderLayout());
+//            panelInjectionList.add(new JLabel("Injections = null"));
+            ((TitledBorder) panelInjection.getBorder()).setTitle("No injections defined");
+            panelInjection.setPreferredSize(new Dimension(100, 60));
+            panelInjection.setMinimumSize(new Dimension(100, 60));
         }
+        panelInjectionList.revalidate();
+        panelInjectionList.repaint();
+    }
 
-        panelInjections.revalidate();
+    @Override
+    public void simulationINIT(Object caller) {
+        updateEditableState();
+        if (frame != null) {
+            frame.setTitle("|| Stop");
+        }
+        buttonRun.setSelected(false);
+        buttonPause.setSelected(true);
+        updatePanelInjections();
+    }
+
+    @Override
+    public void simulationSTART(Object caller) {
+        updateEditableState();
+        if (frame != null) {
+            frame.setTitle(">");
+        }
+        buttonPause.setSelected(false);
+        buttonRun.setSelected(true);
+//        System.out.println("Called SingleControlPanel.simulationStart   Runbutton.selected=" + buttonRun.isSelected());
+
+    }
+
+    @Override
+    public void simulationSTEPFINISH(long loop, Object caller) {
+    }
+
+    @Override
+    public void simulationPAUSED(Object caller) {
+        updateEditableState();
+        if (frame != null) {
+            frame.setTitle("|| Pause");
+        }
+        buttonRun.setSelected(false);
+        buttonPause.setSelected(true);
+//        System.out.println("Called SingleControlPanel.simulationPAUSED   Runbutton.selected=" + buttonRun.isSelected());
+    }
+
+    @Override
+    public void simulationRESUMPTION(Object caller) {
+        updateEditableState();
+        buttonPause.setSelected(false);
+        buttonRun.setSelected(true);
+//        System.out.println("Called SingleControlPanel.simulationRESUMPTION   Runbutton.selected=" + buttonRun.isSelected());
+    }
+
+    @Override
+    public void simulationSTOP(Object caller) {
+        updateEditableState();
+        if (frame != null) {
+            frame.setTitle("|| Stop");
+        }
+        buttonRun.setSelected(false);
+        buttonPause.setSelected(true);
+//        System.out.println("Called SingleControlPanel.simulationSTOP  Runbutton.selected=" + buttonRun.isSelected());
+    }
+
+    @Override
+    public void simulationFINISH(boolean timeOut, boolean particlesOut) {
+        updateEditableState();
+        updateScenarioInformation();
+        updateSimulationRunInformation();
+        if (frame != null) {
+            frame.setTitle(">| Fin");
+        }
+        buttonRun.setSelected(false);
+        buttonPause.setSelected(true);
+//        System.out.println("Called SingleControlPanel.simulationFINISHED   Runbutton.selected=" + buttonRun.isSelected());
+    }
+
+    @Override
+    public void simulationRESET(Object caller) {
+        updateEditableState();
+        updateScenarioInformation();
+        updateSimulationRunInformation();
+        updatePanelInjections();
+        if (frame != null) {
+            frame.setTitle("|< Reset");
+        }
+        buttonRun.setSelected(false);
+        buttonPause.setSelected(true);
     }
 
 }

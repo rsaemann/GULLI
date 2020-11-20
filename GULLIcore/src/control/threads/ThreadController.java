@@ -228,6 +228,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
         barrier_sync.getThread().checkMeasurementsBeforeParticleLoop();
         calledObject = barrier_particle;
+        for (SimulationActionListener l : listener) {
+            try {
+                l.simulationSTART(this);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         barrier_particle.startover();
     }
 
@@ -237,6 +244,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public void stop() {
         run = false;
+         for (SimulationActionListener l : listener) {
+                try {
+                    l.simulationSTOP(this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
     }
 
     /**
@@ -249,7 +263,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         if (randomNumberGenerators != null) {
             Random r = new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
-                RandomGenerator newGen=new RandomGenerator(r.nextLong());// newField = new RandomArray(r.nextLong(), (int) (treatblocksize * 10 + 19));
+                RandomGenerator newGen = new RandomGenerator(r.nextLong());// newField = new RandomArray(r.nextLong(), (int) (treatblocksize * 10 + 19));
                 randomNumberGenerators[i] = newGen;
             }
         }
@@ -504,9 +518,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         waitingParticleIndex = 0;
         checkWaitingParticleIndex();
 
-        for (SimulationActionListener l : listener) {
-            l.simulationRESET(this);
-        }
+         for (SimulationActionListener l : listener) {
+                try {
+                    l.simulationRESET(this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
     }
 
     /**
@@ -650,6 +668,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             barrier_particle.initialize();
 //            barrier_positionUpdate.initialize();
             barrier_sync.initialize();
+            for (SimulationActionListener l : listener) {
+                try {
+                    l.simulationINIT(this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
             return;
         }
     }

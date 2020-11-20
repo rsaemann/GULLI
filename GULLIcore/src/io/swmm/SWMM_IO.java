@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.GeoPosition2D;
@@ -66,6 +67,8 @@ public class SWMM_IO {
     };
 
     public FLOW_UNITS flowunits = FLOW_UNITS.CMS;
+    public GregorianCalendar calStart = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+    public GregorianCalendar calEnd = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
     public HashMap<String, Raingage> raingages;
     public HashMap<String, Subcatchment> subcatchments;
     public HashMap<String, SubArea> subareas;
@@ -82,6 +85,7 @@ public class SWMM_IO {
     public HashMap<String, List<Coordinate>> polygons;
     public HashMap<String, Profile> profiles;
     public HashMap<String, XSection> xSections;
+    public HashMap<String, Timeseries> timeseries;
     public HashMap<String, String> tags;
     public HashMap<String, Infiltration> infiltrations;
 
@@ -109,9 +113,6 @@ public class SWMM_IO {
                     } else if (line.toUpperCase().equals("[RAINGAGES]")) {
                         readRaingages(br);
                         System.out.println(raingages.size() + " raingages read:");
-                        for (Raingage value : raingages.values()) {
-                            System.out.println("   " + value.name);
-                        }
                     } else if (line.toUpperCase().equals("[SUBCATCHMENTS]")) {
                         readSubcatchments(br);
                         System.out.println(subcatchments.size() + " subcatchments read");
@@ -145,6 +146,9 @@ public class SWMM_IO {
                         br.reset();
                         readProfiles(br);
                         System.out.println(profiles.size() + " profiles + " + xSections.size() + " xsections read");
+                    } else if (line.toUpperCase().equals("[TIMESERIES]")) {
+                        readTimeseries(br);
+                        System.out.println(raingages.size() + " timeseries read");
                     } else if (line.toUpperCase().equals("[TAGS]")) {
                         readTags(br);
                         System.out.println(tags.size() + " Tags read");
@@ -277,7 +281,11 @@ public class SWMM_IO {
                         continue;
                     }
                     Manhole mh = new Manhole(buildPosition(utm, utm2wgs/*, utm42wgs*/), p.getKey(), mh_profile);
-                    mh.setTop_height((float) p.getValue().invert);
+                    if (p.getValue().type.equals("OVERFLOW")) {
+                        mh.setTop_height((float) (p.getValue().invert + p.getValue().param1));
+                    } else if (p.getValue().type.equals("WEIR")) {
+                        mh.setTop_height((float) (p.getValue().invert + p.getValue().param4));
+                    }
                     mh.setSurface_height(mh.getTop_height());
                     mh.setSole_height((float) (p.getValue().invert));
                     nodes.put(p.getKey(), mh);
@@ -602,6 +610,28 @@ public class SWMM_IO {
                 } else {
                     System.err.println(key + "=" + value + " not recognized.");
                 }
+            } else if (key.startsWith("START_DATE")) {
+                String[] p = value.split("/");
+                calStart.set(Calendar.YEAR, Integer.parseInt(p[2]));
+                calStart.set(Calendar.MONTH, Integer.parseInt(p[0]) - 1);
+                calStart.set(Calendar.DAY_OF_MONTH, Integer.parseInt(p[1]));
+            } else if (key.startsWith("START_TIME")) {
+                String[] p = value.split(":");
+                calStart.set(Calendar.HOUR_OF_DAY, Integer.parseInt(p[0]));
+                calStart.set(Calendar.MINUTE, Integer.parseInt(p[1]));
+                calStart.set(Calendar.SECOND, Integer.parseInt(p[2]));
+                calStart.set(Calendar.MILLISECOND, 0);
+            } else if (key.startsWith("END_DATE")) {
+                String[] p = value.split("/");
+                calEnd.set(Calendar.YEAR, Integer.parseInt(p[2]));
+                calEnd.set(Calendar.MONTH, Integer.parseInt(p[0]) - 1);
+                calEnd.set(Calendar.DAY_OF_MONTH, Integer.parseInt(p[1]));
+            } else if (key.startsWith("END_TIME")) {
+                String[] p = value.split(":");
+                calEnd.set(Calendar.HOUR_OF_DAY, Integer.parseInt(p[0]));
+                calEnd.set(Calendar.MINUTE, Integer.parseInt(p[1]));
+                calEnd.set(Calendar.SECOND, Integer.parseInt(p[2]));
+                calEnd.set(Calendar.MILLISECOND, 0);
             }
         }
     }
@@ -647,6 +677,40 @@ public class SWMM_IO {
                 intervallMinutes += Integer.parseInt(ip[0]) * 60;//hours
                 Raingage r = new Raingage(name, format, intervallMinutes, Double.parseDouble(scf), source, sourcename);
                 raingages.put(name, r);
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+    }
+
+    private void readTimeseries(BufferedReader br) throws IOException {
+        String line = "";
+        String[] parts;
+        String name, filepath;
+        timeseries = new HashMap<>();
+        while (br.ready()) {
+            br.mark(4000);
+            line = br.readLine();
+            if (line.startsWith("[")) {
+                br.reset();
+                return;
+            }
+            if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.isEmpty()) {
+                continue;
+            }
+            try {
+                String newline = line.replaceAll(" +", " ").trim();
+                parts = newline.split(" ");
+                if (parts.length < 2) {
+                    continue;
+                }
+                name = parts[0];
+                filepath = parts[1];
+                Timeseries r = new Timeseries(name, filepath);
+                timeseries.put(name, r);
             } catch (Exception exception) {
                 exception.printStackTrace();
             }
@@ -756,7 +820,11 @@ public class SWMM_IO {
             hydcon = parts[2];
             drytime = parts[3];
 
-            Infiltration infil = new Infiltration(name, Integer.parseInt(curvenum), Float.parseFloat(hydcon), Integer.parseInt(drytime));
+            int number = Integer.parseInt(curvenum);
+            float hydroCon = Float.parseFloat(hydcon);
+            float dryduration = Float.parseFloat(drytime);
+
+            Infiltration infil = new Infiltration(name, number, hydroCon, dryduration);
             infiltrations.put(name, infil);
         }
     }
@@ -804,61 +872,50 @@ public class SWMM_IO {
         while (br.ready()) {
             br.mark(4000);
             line = br.readLine();
+
+//            if (line.startsWith(";;-")) {
+//                String[] l = line.split(" ");
+//                partends = new int[l.length];
+//                int start = 0;
+//                for (int i = 0; i < l.length; i++) {
+//                    partends[i] = start + l[i].length();
+//                    start += l[i].length() + 1;
+//                }
+//                break;
+//            }
             if (line.startsWith("[")) {
                 br.reset();
                 return;
             }
-            if (line.startsWith(";;-")) {
-                String[] l = line.split(" ");
-                partends = new int[l.length];
-                int start = 0;
-                for (int i = 0; i < l.length; i++) {
-                    partends[i] = start + l[i].length();
-                    start += l[i].length() + 1;
-                }
-                break;
+            if (line.startsWith(";;")) {
+                continue;
             }
-        }
-        try {
-            while (br.ready()) {
-                br.mark(4000);
-                line = br.readLine();
-                if (line.startsWith("[")) {
-                    br.reset();
-                    return;
-                }
-                if (line.startsWith(";;")) {
-                    continue;
-                }
-                if (line.isEmpty()) {
-                    continue;
-                }
+            if (line.isEmpty()) {
+                continue;
+            }
 
-                line = line.replaceAll(" +", " ").trim();
-                parts = line.split(" ");
-                boolean gate = false;
-                try {
-                    name = parts[0].trim();//line.substring(0, partends[0]).trim();
-                    invert = parts[1].trim();// line.substring(partends[0] + 1, partends[1]).trim();
-                    type = parts[2].trim();//line.substring(partends[1] + 1, partends[2]).trim();
-                    data = parts[3].trim();//line.substring(partends[2] + 1, partends[3]);
-                    if (parts.length > 4) {
-                        gated = parts[4].trim();//line.substring(partends[3] + 1, Math.min(line.length(), partends[4])).trim();
-                        if (gated.toLowerCase().equals("yes")) {
-                            gate = true;
-                        }
+            line = line.replaceAll(" +", " ").trim();
+            parts = line.split(" ");
+            boolean gate = false;
+            try {
+                name = parts[0].trim();//line.substring(0, partends[0]).trim();
+                invert = parts[1].trim();// line.substring(partends[0] + 1, partends[1]).trim();
+                type = parts[2].trim();//line.substring(partends[1] + 1, partends[2]).trim();
+                data = parts[3].trim();//line.substring(partends[2] + 1, partends[3]);
+                if (parts.length > 4) {
+                    gated = parts[4].trim();//line.substring(partends[3] + 1, Math.min(line.length(), partends[4])).trim();
+                    if (gated.toLowerCase().equals("yes")) {
+                        gate = true;
                     }
+                }
 
 //            System.out.println("'"+name+"' '"+invert+"' '"+type+"' '"+data+"' '"+gated+"'");
-                    Outfall j = new Outfall(name, Double.parseDouble(invert), type, data, gate);
-                    outfalls.put(name, j);
-                } catch (Exception exception) {
-                    System.err.println("Problem with line '" + line + "' <-" + parts.length + " parts of '" + line + "'");
-                }
+                Outfall j = new Outfall(name, Double.parseDouble(invert), type, data, gate);
+                outfalls.put(name, j);
+            } catch (Exception exception) {
+                System.err.println("Problem with line '" + line + "' <-" + parts.length + " parts of '" + line + "'");
             }
-        } catch (Exception exception) {
-            System.err.println("Problem with line '" + line + "'");
-            throw exception;
+
         }
     }
 
@@ -891,7 +948,7 @@ public class SWMM_IO {
             elevation = parts[1];
             link = parts[2];
             type = parts[3];
-            param1 = 0;
+            param1 = 0; //depth
             param2 = 0;
             param3 = 0;
             param4 = 0;
@@ -1544,9 +1601,9 @@ public class SWMM_IO {
         String subCatchment;
         int curveNumber;
         float hydraulicConductivity;
-        int dryTime;
+        float dryTime;
 
-        public Infiltration(String subCatchment, int curveNumber, float hydraulicConductivity, int dryTime) {
+        public Infiltration(String subCatchment, int curveNumber, float hydraulicConductivity, float dryTime) {
             this.subCatchment = subCatchment;
             this.curveNumber = curveNumber;
             this.hydraulicConductivity = hydraulicConductivity;
@@ -1582,6 +1639,27 @@ public class SWMM_IO {
             this.geom3 = geom3;
             this.geom4 = geom4;
             this.barrels = barrels;
+        }
+
+    }
+
+    public class Timeseries {
+
+        public String name;
+        public String filepath;
+        public boolean accessible = false;
+        public long[] times;
+        public double[] precipitation;
+
+        public Timeseries(String name, String filepath) {
+            this.name = name;
+            this.filepath = filepath;
+            try {
+                if (new File(filepath).exists()) {
+                    accessible = true;
+                }
+            } catch (Exception e) {
+            }
         }
 
     }

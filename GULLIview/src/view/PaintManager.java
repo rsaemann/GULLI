@@ -623,13 +623,13 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         ap.arrowheadvisibleFromZoom = 200;
                     }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
-                    
+
                     try {
                         if (pipe.getEndConnection().getManhole().isSetAsOutlet()) {
                             LabelPainting lp = new LabelPainting(pipe.getAutoID(), MapViewer.COLORHOLDER_LABEL, list.get(list.size() - 1), "Outlet: " + pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength()) + " kg");
                             mapViewer.addPaintInfoToLayer("OutletMass", lp);
                         }
-                        
+
                     } catch (Exception e) {
                     }
                 } else if (pipeShow == PIPESHOW.VELOCITY) {
@@ -2089,6 +2089,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 networkLayer.setPaintElements(arrayNetwork);//arrayListNetwork.toArray(new ParticleNodePainting[arrayListNetwork.size()]));
                 surfaceLayer.setPaintElements(arraySurface);//arrayListSurface.toArray(new ParticleNodePainting[arrayListSurface.size()]));
             }
+            double[] tempstorage=new double[2];
             for (int i = 0; i < particlePaintings.length; i++) {
                 ParticleNodePainting np = particlePaintings[i];
                 if (np == null) {
@@ -2103,13 +2104,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     if (p.isOnSurface()) {
                         try {
                             if (np == null) {
-                                ParticleNodePainting pnp = new ParticleNodePainting(p, i, geoToolsSurface.toGlobal(p.getPosition3d(), true), chParticlesSurface);
+                                Coordinate c = new Coordinate();
+                                geoToolsSurface.toGlobal(p.getPosition3d(), c,tempstorage, true);
+                                ParticleNodePainting pnp = new ParticleNodePainting(p, i, c, chParticlesSurface);
 //                                System.out.println("create new chape " + i);
                                 particlePaintings[i] = pnp;
                                 surfaceLayer.add(pnp);
                                 arraySurface[nb_surface] = pnp;
                             } else {
-                                geoToolsSurface.toGlobal(p.getPosition3d(), np.longLat, true);
+                                geoToolsSurface.toGlobal(p.getPosition3d(), np.longLat,tempstorage, true);
                                 np.setColor(chParticlesSurface);
                                 np.updateFromCoordinate();
 //                                arrayListSurface.add(np);
@@ -2122,7 +2125,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         }
                     } else {
                         try {
-                            if(p.getSurrounding_actual()==null)continue;
+                            if (p.getSurrounding_actual() == null) {
+                                continue;
+                            }
                             Position3D pos = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual());
                             if (np == null) {
                                 ParticleNodePainting pnp = new ParticleNodePainting(p, i, pos.lonLatCoordinate(), chParticlesNetwork);

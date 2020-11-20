@@ -460,22 +460,25 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     public void calculateDownhillSlopes() {
         triangle_downhilldirection = new float[triangleNodes.length][2];
+        double[] v0, v1, v2, a=new double[2], b=new double[2];
         for (int i = 0; i < triangleNodes.length; i++) {
             try {
-                double[] v0 = vertices[triangleNodes[i][0]];
-                double[] v1 = vertices[triangleNodes[i][1]];
-                double[] v2 = vertices[triangleNodes[i][2]];
-                
-                double[] a=new double[]{v2[0]-v0[0],v1[1]-v0[1]};
-                double[] b=new double[]{v1[0]-v0[0],v1[1]-v0[1]};
-                
-                double asquare=a[0]*a[0]+a[1]*a[1];
-                double bsquare=b[0]*b[0]+b[1]*b[1];
-                
-                double x=(0.5)*(((v2[2]-v0[2])*a[0]/asquare)+(v1[2]-v0[2])*b[0]/bsquare);
-                double y=(0.5)*(((v2[2]-v0[2])*a[1]/asquare)+(v1[2]-v0[2])*b[1]/bsquare);
-                
-                double length=Math.sqrt((x*x)+(y*y));
+                v0 = vertices[triangleNodes[i][0]];
+                v1 = vertices[triangleNodes[i][1]];
+                v2 = vertices[triangleNodes[i][2]];
+
+                a[0]=v2[0] - v0[0];
+                a[1]=v1[1] - v0[1];
+                b[0]=v1[0] - v0[0];
+                b[1]=v1[1] - v0[1];
+
+                double asquare = a[0] * a[0] + a[1] * a[1];
+                double bsquare = b[0] * b[0] + b[1] * b[1];
+
+                double x = (0.5) * (((v2[2] - v0[2]) * a[0] / asquare) + (v1[2] - v0[2]) * b[0] / bsquare);
+                double y = (0.5) * (((v2[2] - v0[2]) * a[1] / asquare) + (v1[2] - v0[2]) * b[1] / bsquare);
+
+                double length = Math.sqrt((x * x) + (y * y));
 
                 triangle_downhilldirection[i][0] = (float) (-x / length);
                 triangle_downhilldirection[i][1] = (float) (-y / length);
@@ -1279,7 +1282,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
         return tofill;
     }
-    
+
     public void getTriangleVelocity(int triangleID, double indexDouble, double[] tofill) {
 
         float[] lower = getTriangleVelocity(triangleID)[(int) indexDouble];
@@ -1789,8 +1792,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
 //        stat.minTravelLength = Math.min(stat.minTravelLength, p.getTravelledPathLength() - p.posToSurface);
 //        stat.maxTravelLength = Math.max(stat.maxTravelLength, p.getTravelledPathLength() - p.posToSurface);
-
-        if (sourcesForSpilloutParticles.containsKey(p.getInjectionInformation().getInjectionCapacity())){//.injectionSurrounding)) {
+        if (sourcesForSpilloutParticles.containsKey(p.getInjectionInformation().getInjectionCapacity())) {//.injectionSurrounding)) {
             Integer counter = sourcesForSpilloutParticles.get(p.getInjectionInformation().getInjectionCapacity());
             int ineu = counter + 1;
             sourcesForSpilloutParticles.put(p.getInjectionInformation().getInjectionCapacity(), ineu);

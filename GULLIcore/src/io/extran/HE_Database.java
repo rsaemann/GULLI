@@ -41,6 +41,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Locale;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -132,6 +134,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * Can parse text based timestamps in sqlite format.
      */
     public final DateFormat sqliteDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final DateFormat sqliteDateTimeFormatUTC=sqlUTCFormat();// 
 
     public static boolean register() {
 
@@ -507,6 +510,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
 //        }
         throw new NullPointerException("Could not create a new Connection to the HYSTEM EXTRAN database.");
+    }
+    
+     private static DateFormat sqlUTCFormat() {
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+        return df;
     }
 
     /**

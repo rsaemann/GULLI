@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import model.GeoPosition2D;
 import model.particle.Material;
+import model.surface.Surface;
 import model.timeline.TimedValue;
 import model.topology.Capacity;
 import model.topology.Manhole;
@@ -82,6 +83,7 @@ public class InjectionInformation implements InjectionInfo {
     protected Capacity capacity;
     protected GeoPosition2D position;
     protected int triangleID = -1;
+    public boolean spilldistributed = false;
     protected double position1D;
     protected boolean changed = false;
 
@@ -159,6 +161,8 @@ public class InjectionInformation implements InjectionInfo {
             this.position = capacity.getPosition3D(0);
             if (capacity instanceof Manhole || capacity instanceof Pipe) {
                 this.spillOnSurface = false;
+            }else  if(capacity instanceof Surface){
+                this.spillOnSurface=true;
             }
         }
     }
@@ -399,7 +403,6 @@ public class InjectionInformation implements InjectionInfo {
     public void setCapacityName(String capacityName) {
         this.capacityName = capacityName;
     }
-
 
     /**
      * Position along pipe axis in meter
