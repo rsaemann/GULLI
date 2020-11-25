@@ -8,7 +8,7 @@ import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.listener.CapacitySelectionListener;
-import com.saemann.gulli.view.org.freehep.graphicsio.emf.EMFGraphics2DX;
+import org.freehep.graphicsio.emf.EMFGraphics2DX;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;

@@ -1,6 +1,6 @@
 package com.saemann.gulli.view.model.surface;
 
-import static com.saemann.gulli.core.io.SHP_IO_GULLI.transform;
+import com.saemann.gulli.core.io.SHP_IO_GULLI;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -9,7 +9,6 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.operation.union.CascadedPolygonUnion;
-import control.LocationIDListener;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -56,6 +55,7 @@ import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.view.view.PaintManager;
+import control.LocationIDListener;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.FeatureIterator;
@@ -284,7 +284,7 @@ public class SurfaceTools implements LocationIDListener {
                 }
                 punkteCounter++;
                 Coordinate c = new Coordinate((ix * breite / lengthX) + utmXmin, (iy * hoehe / lengthY) + utmYmin);
-                Point wgs = transform(gf.createPoint(c), utm32wgs);
+                Point wgs = SHP_IO_GULLI.transform(gf.createPoint(c), utm32wgs);
                 int cindex = (int) (((z - zmin) * ch.length) / (zmax - zmin));
 
                 ColorHolder h = ch[cindex];
@@ -842,7 +842,7 @@ public class SurfaceTools implements LocationIDListener {
                     if (a.geomUTMOuterBoundary == null) {
                         a.geomUTMOuterBoundary = buildOuterPolygon(a.points);
                     }
-                    AreaPainting ap = new AreaPainting(a.id, chi, transform(a.geomUTMOuterBoundary, utm32wgs));
+                    AreaPainting ap = new AreaPainting(a.id, chi, SHP_IO_GULLI.transform(a.geomUTMOuterBoundary, utm32wgs));
                     frame.mapViewer.addPaintInfoToLayer(layerSurfaceArea, ap);
                     counter++;
                 }
@@ -862,7 +862,7 @@ public class SurfaceTools implements LocationIDListener {
                 SurfaceLocalMinimumArea a = it.next();
                 //Niedrigsten Punkt bauen
                 ColorHolder chn = new ColorHolder(Color.MAGENTA);
-                NodePainting np = new NodePainting(a.id, transform(gf.createPoint(a.points.getFirst().coordUTM), utm32wgs).getCoordinate(), chn);
+                NodePainting np = new NodePainting(a.id, SHP_IO_GULLI.transform(gf.createPoint(a.points.getFirst().coordUTM), utm32wgs).getCoordinate(), chn);
                 frame.mapViewer.addPaintInfoToLayer("N", np);
 
             } catch (MismatchedDimensionException ex) {
@@ -899,7 +899,7 @@ public class SurfaceTools implements LocationIDListener {
 //                    }
 //                }
                 //Niedrigsten Punkt bauen
-                NodePainting np = new NodePainting(a.id, transform(nip.coordUTM, utm32wgs), chn);
+                NodePainting np = new NodePainting(a.id, SHP_IO_GULLI.transform(nip.coordUTM, utm32wgs), chn);
 //                System.out.println("niedrigster Punkt");
                 frame.mapViewer.addPaintInfoToLayer("FN", np);
 
@@ -936,11 +936,11 @@ public class SurfaceTools implements LocationIDListener {
                     DoubleColorHolder chi = new DoubleColorHolder(Color.white, ac, "Abflussflächen");
                     if (onlyCalculateConvexHull) {
                         a.geomUTMOuterBoundary = buildConvexHull(points);
-                        AreaPainting ap = new AreaPainting(a.id, chi, transform(a.geomUTMOuterBoundary, utm32wgs));
+                        AreaPainting ap = new AreaPainting(a.id, chi, SHP_IO_GULLI.transform(a.geomUTMOuterBoundary, utm32wgs));
                         frame.mapViewer.addPaintInfoToLayer(layerFlowArea, ap);
                     } else {
                         a.geomUTMOuterBoundary = buildOuterPolygon(points);
-                        AreaPainting ap = new AreaPainting(a.id, chi, transform(((Polygon) a.geomUTMOuterBoundary).getExteriorRing(), utm32wgs));
+                        AreaPainting ap = new AreaPainting(a.id, chi, SHP_IO_GULLI.transform(((Polygon) a.geomUTMOuterBoundary).getExteriorRing(), utm32wgs));
                         frame.mapViewer.addPaintInfoToLayer(layerFlowArea, ap);
                     }
 
@@ -974,7 +974,7 @@ public class SurfaceTools implements LocationIDListener {
                 if (wfa.floodPoints.size() > 0) {
                     wfa.geomUTM = buildOuterPolygon(wfa.floodPoints);
                     DoubleColorHolder chi = new DoubleColorHolder(Color.CYAN, fillColor, "Pfützen");
-                    AreaPainting ap = new AreaPainting(wfa.id, chi, transform(wfa.geomUTM, utm32wgs));
+                    AreaPainting ap = new AreaPainting(wfa.id, chi, SHP_IO_GULLI.transform(wfa.geomUTM, utm32wgs));
                     frame.mapViewer.addPaintInfoToLayer(layerFloodArea, ap);
                     zaehler++;
 
@@ -1311,7 +1311,7 @@ public class SurfaceTools implements LocationIDListener {
                     Coordinate cmh = new Coordinate(mh.getPosition().x, mh.getPosition().y);
                     if (a.floodArea != null && a.floodArea.geomUTM != null && a.floodArea.geomUTM.contains(gf.createPoint(cmh))) {
                         //Einleitung
-                        ArrowPainting ap = new ArrowPainting(mh.getAutoID(), new Coordinate[]{transform(a.floodArea.floodPoints.getFirst().coordUTM, utm32wgs), transform(cmh, utm32wgs)}, chAustritt);
+                        ArrowPainting ap = new ArrowPainting(mh.getAutoID(), new Coordinate[]{SHP_IO_GULLI.transform(a.floodArea.floodPoints.getFirst().coordUTM, utm32wgs), SHP_IO_GULLI.transform(cmh, utm32wgs)}, chAustritt);
                         frame.mapViewer.addPaintInfoToLayer(layerEinleitung, ap);
                     } else {
                         //Ausfluss
@@ -1337,14 +1337,14 @@ public class SurfaceTools implements LocationIDListener {
                                 if (lm == null || lm.coordUTM == null || counter > 1000) {
                                     //Tiefster Punkt gefunden
                                     LineString ls = gf.createLineString(coordinates.toArray(new Coordinate[coordinates.size()]));
-                                    ArrowPainting ap = new ArrowPainting(mh.getAutoID(), transform(ls, utm32wgs), chAustritt);
+                                    ArrowPainting ap = new ArrowPainting(mh.getAutoID(), SHP_IO_GULLI.transform(ls, utm32wgs), chAustritt);
                                     frame.mapViewer.addPaintInfoToLayer(layerAustritt, ap);
                                     break;
                                 }
                                 coordinates.add(lm.coordUTM);
                             }
                         } else {
-                            ArrowPainting ap = new ArrowPainting(mh.getAutoID(), new Coordinate[]{transform(cmh, utm32wgs), transform(a.points.getFirst().coordUTM, utm32wgs)}, chAustritt);
+                            ArrowPainting ap = new ArrowPainting(mh.getAutoID(), new Coordinate[]{SHP_IO_GULLI.transform(cmh, utm32wgs), SHP_IO_GULLI.transform(a.points.getFirst().coordUTM, utm32wgs)}, chAustritt);
                             frame.mapViewer.addPaintInfoToLayer(layerAustritt, ap);
                         }
                     }
@@ -1379,7 +1379,7 @@ public class SurfaceTools implements LocationIDListener {
                 }
                 pos[i] = path.getTarget().coordUTM;
                 pathIDMap.put(id, path);
-                ArrowPainting ap = new ArrowPainting(id, transform(pos, utm32wgs), ch);
+                ArrowPainting ap = new ArrowPainting(id, SHP_IO_GULLI.transform(pos, utm32wgs), ch);
                 if (path.getStart().surfaceArea.waterHeight >= path.activatingWaterheightAtStart) {
                     //Overrun Path is active
                     ap.setColor(cha);
@@ -1418,8 +1418,8 @@ public class SurfaceTools implements LocationIDListener {
 
                 Coordinate start = punkte[i][j].coordUTM;
                 Coordinate ziel = zielt.coordUTM;
-                start = transform(start, utm32wgs);
-                ziel = transform(ziel, utm32wgs);
+                start = SHP_IO_GULLI.transform(start, utm32wgs);
+                ziel = SHP_IO_GULLI.transform(ziel, utm32wgs);
 
                 ArrowPainting ap = new ArrowPainting(i * lengthY + j, new Coordinate[]{start, ziel}, chArrow);
                 frame.mapViewer.addPaintInfoToLayer(layerFlowArrow, ap);
@@ -1440,8 +1440,8 @@ public class SurfaceTools implements LocationIDListener {
                 Coordinate start = surfaceFlowArea.points.getFirst().coordUTM;
 
                 Coordinate ziel = surfaceFlowArea.points.getFirst().lowerPointFlood.coordUTM;
-                start = transform(start, utm32wgs);
-                ziel = transform(ziel, utm32wgs);
+                start = SHP_IO_GULLI.transform(start, utm32wgs);
+                ziel = SHP_IO_GULLI.transform(ziel, utm32wgs);
 
                 ArrowPainting ap = new ArrowPainting(surfaceFlowArea.id, new Coordinate[]{start, ziel}, chArrow);
                 frame.mapViewer.addPaintInfoToLayer(layerFlowArrowFlood, ap);
@@ -1511,7 +1511,7 @@ public class SurfaceTools implements LocationIDListener {
                 for (int j = -1; j < 2; j++) {
                     try {
                         Coordinate c = new Coordinate(((x + i) * breite / lengthX) + utmXmin, ((y + j) * hoehe / lengthY) + utmYmin);
-                        Coordinate c1 = transform(c, utm32wgs);
+                        Coordinate c1 = SHP_IO_GULLI.transform(c, utm32wgs);
                         String str = "HeightPoint(" + l + ");(" + (x + i) + "," + (y + j) + ");;maxH = " + df4.format(maximum[x + i][y + j]) + ";minH = " + df4.format(minimum[x + i][y + j]);
                         LabelPainting lp = new LabelPainting((i + 1) * 3 + j, chInfo, new model.GeoPosition(c1), str.split(";"));
                         frame.mapViewer.addPaintInfoToLayer(labelInfoString, lp);

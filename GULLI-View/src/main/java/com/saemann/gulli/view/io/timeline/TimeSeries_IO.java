@@ -29,6 +29,7 @@ import org.jfree.data.time.TimeSeriesDataItem;
 import com.saemann.gulli.view.view.timeline.AxisKey;
 import com.saemann.gulli.view.view.timeline.SeriesKey;
 import com.saemann.gulli.view.view.timeline.customCell.ShapeEditor.SHAPES;
+import org.jfree.data.category.CategoryDataset;
 
 /**
  * Load an Save Timeseries for JFreeChart Panel. Used in the TimelinePanel to
@@ -394,4 +395,152 @@ public class TimeSeries_IO {
         os.close();
 
     }
+    
+    public static void saveCategoryDataset(File file, CategoryDataset dataset, String name) throws FileNotFoundException, IOException {
+        OutputStream os = new FileOutputStream(file);
+        OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("UTF-8"));
+        BufferedWriter bw = new BufferedWriter(osw);
+        bw.write("name ;" + name + "\n");
+
+        bw.write("#cols;" + dataset.getColumnCount() + "\n");
+        bw.write("#rows;" + dataset.getRowCount() + "\n");
+        bw.write("rowLb");
+        for (int i = 0; i < dataset.getRowCount(); i++) {
+            bw.write(";" + dataset.getRowKey(i).toString());
+        }
+        bw.write("\n***data cols\n");
+
+        for (int i = 0; i < dataset.getColumnCount(); i++) {
+
+            bw.write(dataset.getColumnKey(i).toString());
+            for (int j = 0; j < dataset.getRowCount(); j++) {
+                bw.write(";" + dataset.getValue(j, i));
+            }
+            bw.newLine();
+        }
+        bw.write("end");
+        bw.flush();
+        bw.close();
+        osw.close();
+        os.close();
+    }
+    
+    public static void saveCategoryDataset(File file, DefaultBoxAndWhiskerCategoryDataset dataset, String name) throws FileNotFoundException, IOException {
+        OutputStream os = new FileOutputStream(file);
+        OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("UTF-8"));
+        BufferedWriter bw = new BufferedWriter(osw);
+        bw.write("name ;" + name + "\n");
+
+        bw.write("#cols;" + dataset.getColumnCount() + "\n");
+        bw.write("#rows;" + dataset.getRowCount() + "\n");
+        bw.write("rowLb");
+        for (int i = 0; i < dataset.getRowCount(); i++) {
+            bw.write(";" + dataset.getRowKey(i).toString());
+        }
+        bw.write("\n***data cols\n");
+
+        for (int i = 0; i < dataset.getColumnCount(); i++) {
+
+            bw.write(dataset.getColumnKey(i).toString());
+            for (int j = 0; j < dataset.getRowCount(); j++) {
+                bw.write(";" + dataset.getValue(j, i));
+            }
+            bw.newLine();
+        }
+        bw.write("end");
+        bw.flush();
+        bw.close();
+        osw.close();
+        os.close();
+    }
+
+    public static void addCategoryDataset(File file, DefaultBoxAndWhiskerCategoryDataset dataset, String savedKey, String label) throws FileNotFoundException, IOException, Exception {
+        FileInputStream fiss = new FileInputStream(file);
+        InputStreamReader isr = new InputStreamReader(fiss, Charset.forName("UTF-8"));
+        BufferedReader br = new BufferedReader(isr);
+        String[] rowLabels = null;
+        String name="";
+        int index = -1;
+        while (br.ready()) {
+            String line = br.readLine();
+            if (line.startsWith("name")) {
+                name = line.substring(6);
+            } else if (line.startsWith("rowLb")) {
+                rowLabels = line.substring(6).split(";");
+                for (int i = 0; i < rowLabels.length; i++) {
+                    if (rowLabels[i].equals(savedKey)) {
+                        index = i;
+                    }
+
+                }
+            } else if (line.startsWith("***")) {
+                break;
+            }
+        }
+        if (index < 0) {
+            throw new Exception("Key '" + savedKey + "' not found.");
+        }
+
+        //Start data section
+        while (br.ready()) {
+            String[] values = br.readLine().split(";");
+            if (values.length > 1) {
+                String colKey = values[0];
+
+                float v = Float.parseFloat(values[index + 1]);
+                BoxAndWhiskerItem item = new BoxAndWhiskerItem(v, v, v, v, v, v, v, v, null);
+                dataset.add(item, label, colKey);
+
+            }
+        }
+        br.close();
+        isr.close();
+        fiss.close();
+    }
+
+    public static DefaultBoxAndWhiskerCategoryDataset loadCategoryDataset(File file) throws FileNotFoundException, IOException {
+
+        DefaultBoxAndWhiskerCategoryDataset dataset = new DefaultBoxAndWhiskerCategoryDataset();
+
+        FileInputStream fiss = new FileInputStream(file);
+        InputStreamReader isr = new InputStreamReader(fiss, Charset.forName("UTF-8"));
+        BufferedReader br = new BufferedReader(isr);
+        String name = "";
+        int cols = 1, rows = 1;
+        String[] rowLabels = null;
+        while (br.ready()) {
+            String line = br.readLine();
+            if (line.startsWith("name")) {
+                name = line.substring(6);
+            } else if (line.startsWith("#cols")) {
+                cols = Integer.parseInt(line.substring(6));
+            } else if (line.startsWith("#rows")) {
+                rows = Integer.parseInt(line.substring(6));
+                rowLabels = new String[rows];
+            } else if (line.startsWith("rowLb")) {
+                rowLabels = line.substring(6).split(";");
+            } else if (line.startsWith("***")) {
+                break;
+            }
+        }
+        //Start data section
+
+        while (br.ready()) {
+            String[] values = br.readLine().split(";");
+            if (values.length > 1) {
+                String colKey = values[0];
+                for (int i = 1; i < values.length; i++) {
+                    float v = Float.parseFloat(values[i]);
+                    BoxAndWhiskerItem item = new BoxAndWhiskerItem(v, v, v, v, v, v, v, v, null);
+                    dataset.add(item, rowLabels[i - 1], colKey);
+                }
+            }
+        }
+
+        br.close();
+        isr.close();
+        fiss.close();
+        return dataset;
+    }
+
 }

@@ -2795,6 +2795,26 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         return 0;
     }
+    
+    public int loadNumberOfTimestepsNetwork(){
+        try {
+            Statement st = getConnection().createStatement();
+            ResultSet res;
+            res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL;");
+            res.next();
+            int zeiteintraege = res.getInt(1);
+            if (zeiteintraege < 1) {
+                throw new NullPointerException("Database '" + databaseFile.getAbsolutePath() + "' has no timesteps for pipe elements.");
+            }
+            res.close();
+            return zeiteintraege;
+        } catch (SQLException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return 0;
+    }
 
     @Override
     public long[] loadTimeStepsNetwork(boolean startAtZero) {

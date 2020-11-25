@@ -1,4 +1,3 @@
-// Copyright 2000-2007 FreeHEP
 package org.freehep.graphicsio.emf;
 
 import java.awt.BasicStroke;
@@ -75,17 +74,23 @@ import org.freehep.util.UserProperties;
 import org.freehep.util.images.ImageUtilities;
 
 /**
- * Enhanced Metafile Format Graphics 2D driver.
  *
- * @author Mark Donszelmann
- * @version $Id:
- * freehep-graphicsio-emf/src/main/java/org/freehep/graphicsio/emf/EMFGraphics2D_Rob.java
- * 59372df5e0d9 2007/02/06 21:11:19 duns $
+ * @author saemann
  */
-public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
-        EMFConstants {
+public class EMFGraphics2DX extends AbstractVectorGraphicsIO implements EMFConstants {
+    // Copyright 2000-2007 FreeHEP
+//package org.freehep.graphicsio.emf;
+//
+//
 
-    public static final String version = "$Revision$";
+    /**
+     * Enhanced Metafile Format Graphics 2D driver.
+     *
+     * @author Mark Donszelmann
+     * @version $Id: EMFGraphics2D.java 10516 2007-02-06 21:11:19Z duns $
+     */
+//    public class EMFGraphics2DX extends {
+    public static final String version = "$Revision: 10516 $";
 
     private EMFHandleManager handleManager;
 
@@ -127,7 +132,7 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
      * hints 9. Auxiliary 10. Private/Utility Methos
      * ================================================================================
      */
-    private static final String rootKey = EMFGraphics2D_Rob.class.getName();
+    private static final String rootKey = EMFGraphics2DX.class.getName();
 
     public static final String TRANSPARENT = rootKey + "."
             + PageConstants.TRANSPARENT;
@@ -162,23 +167,23 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
      * 1. Constructors & Factory Methods
      * ================================================================================
      */
-    public EMFGraphics2D_Rob(File file, Dimension size)
+    public EMFGraphics2DX(File file, Dimension size)
             throws FileNotFoundException {
         this(new FileOutputStream(file), size);
     }
 
-    public EMFGraphics2D_Rob(File file, Component component)
+    public EMFGraphics2DX(File file, Component component)
             throws FileNotFoundException {
         this(new FileOutputStream(file), component);
     }
 
-    public EMFGraphics2D_Rob(OutputStream os, Dimension size) {
+    public EMFGraphics2DX(OutputStream os, Dimension size) {
         super(size, false);
         this.imageBounds = new Rectangle(0, 0, size.width, size.height);
         init(os);
     }
 
-    public EMFGraphics2D_Rob(OutputStream os, Component component) {
+    public EMFGraphics2DX(OutputStream os, Component component) {
         super(component, false);
         this.imageBounds = new Rectangle(0, 0, getSize().width,
                 getSize().height);
@@ -193,14 +198,9 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
         handleManager = new EMFHandleManager();
         ros = os;
         initProperties(defaultProperties);
-        try {
-            writeHeader();
-        } catch (IOException ex) {
-            Logger.getLogger(EMFGraphics2D_Rob.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
-    protected EMFGraphics2D_Rob(EMFGraphics2D_Rob graphics, boolean doRestoreOnDispose) {
+    protected EMFGraphics2DX(EMFGraphics2DX graphics, boolean doRestoreOnDispose) {
         super(graphics, doRestoreOnDispose);
         // Create a graphics context from a given graphics context.
         // This constructor is used by the system to clone a given graphics
@@ -307,6 +307,12 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
      * ================================================================================
      */
     public Graphics create() {
+        System.out.println(getClass()+":: create()   os="+os.toString());
+        if(os==null)try {
+            this.writeHeader();
+        } catch (IOException ex) {
+            Logger.getLogger(EMFGraphics2DX.class.getName()).log(Level.SEVERE, null, ex);
+        }
         // Create a new graphics context from the current one.
         try {
             // Save the current context for restore later.
@@ -315,11 +321,12 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
             handleException(e);
         }
         // The correct graphics context should be created.
-        return new EMFGraphics2D_Rob(this, true);
+        return new EMFGraphics2DX(this, true);
     }
 
     public Graphics create(double x, double y, double width, double height) {
         // Create a new graphics context from the current one.
+        System.out.println(getClass()+":: create(x,y,w,h)   os="+os.toString());
         try {
             // Save the current context for restore later.
             writeGraphicsSave();
@@ -327,16 +334,26 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
             handleException(e);
         }
         // The correct graphics context should be created.
-        VectorGraphics graphics = new EMFGraphics2D_Rob(this, true);
+        VectorGraphics graphics = new EMFGraphics2DX(this, true);
         graphics.translate(x, y);
         graphics.clipRect(0, 0, width, height);
         return graphics;
     }
 
+    @Override
     protected void writeGraphicsSave() throws IOException {
-        os.writeTag(new SaveDC());
+        try {
+            os.writeTag(new SaveDC());
+        } catch (IOException exception) {
+            System.err.println("os:" + os);
+            throw exception;
+        } catch (Exception exception) {
+            System.err.println("os:" + os);
+            exception.printStackTrace();
+        }
     }
 
+    @Override
     protected void writeGraphicsRestore() throws IOException {
         if (penHandle != 0) {
             os.writeTag(new DeleteObject(handleManager.freeHandle(penHandle)));
@@ -647,6 +664,7 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
      * Implementation of createShape makes sure that the points are different by
      * at least one Unit.
      */
+    @Override
     protected Shape createShape(double[] xPoints, double[] yPoints,
             int nPoints, boolean close) {
         GeneralPath path = new GeneralPath(GeneralPath.WIND_EVEN_ODD);
@@ -728,8 +746,7 @@ public class EMFGraphics2D_Rob extends AbstractVectorGraphicsIO implements
         style |= (dash.length == 0) ? EMFConstants.PS_SOLID
                 : EMFConstants.PS_USERSTYLE;
         for (int i = 0; i < dash.length; i++) {
-//            dash[i] = toUnit(dashArray[i]);
-            dash[i] = (int) dashArray[i];
+            dash[i] = toUnit(dashArray[i]);
         }
 
         int brushStyle = (color.getAlpha() == 0) ? EMFConstants.BS_NULL

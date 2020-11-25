@@ -32,12 +32,6 @@
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
-            <artifactId>gt-main</artifactId>
-            <version>13.5</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.geotools</groupId>
             <artifactId>gt-geopkg</artifactId>
             <version>11.5</version>
             <type>jar</type>
@@ -68,17 +62,19 @@
             <systemPath>${basedir}/libs/rGDB.jar</systemPath>
         </dependency>
         <dependency>
-            <groupId>hebi</groupId>
+            <groupId>mfl</groupId>
             <artifactId>us.hebi</artifactId>
-            <version>1.0</version>
+            <version>0.5.6</version>
             <type>jar</type>
+            <scope>system</scope>
+            <systemPath>${basedir}/libs/mfl-core-0.5.6.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>it.sauronsoftware.ftp4j</groupId>
             <artifactId>ftp4j</artifactId>
             <version>1.7.2</version>
             <type>jar</type>
-             <scope>system</scope>
+            <scope>system</scope>
             <systemPath>${basedir}/libs/ftp4j-1.7.2.jar</systemPath>
         </dependency>
         <dependency>
@@ -89,26 +85,44 @@
         </dependency>
     </dependencies>
     <repositories>
-    <repository>
-        <id>maven2-repository.dev.java.net</id>
-        <name>Java.net repository</name>
-        <url>http://download.java.net/maven/2</url>
-    </repository>
-    <repository>
-        <id>osgeo</id>
-        <name>Open Source Geospatial Foundation Repository</name>
-        <url>http://download.osgeo.org/webdav/geotools/</url>
-    </repository>
-    <repository>
-        <id>osgeo2</id>
-        <name>Open Source Geospatial Foundation Repository 2</name>
-        <url>http://download.osgeo.org/webdav</url>
-    </repository>
-   <repository>
-        <id>local-library</id>
-        <url>file:///${project.basedir}/libs</url>
-    </repository>
+        <repository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>freehep-maven</id>
+            <name>Maven FreeHEP</name>
+            <url>http://java.freehep.org/maven2</url>
+        </repository>
+        <repository>
+            <id>osgeo</id>
+            <name>Open Source Geospatial Foundation Repository</name>
+            <url>http://download.osgeo.org/webdav/geotools/</url>
+        </repository>
+        <repository>
+            <id>osgeo2</id>
+            <name>Open Source Geospatial Foundation Repository 2</name>
+            <url>http://download.osgeo.org/webdav</url>
+        </repository>
+        <repository>
+            <id>local-library</id>
+            <url>file:///${project.basedir}/libs</url>
+        </repository>
     </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </pluginRepository>
+    </pluginRepositories>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
