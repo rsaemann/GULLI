@@ -1,10 +1,10 @@
 package com.saemann.gulli.core.model.surface;
 
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.Polygon;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.Polygon;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.io.extran.HE_GDB_IO;

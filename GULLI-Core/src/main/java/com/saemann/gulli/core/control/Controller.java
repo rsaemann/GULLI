@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.control;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.Action.Action;
@@ -62,6 +61,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurementSection;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -92,6 +92,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     private final ThreadController threadController;
     private final LoadingCoordinator loadingCoordinator;
 
+    private final StoringCoordinator storingCoordinator;
+
     /**
      * Set the number of CPU cores, that will not be used for the simulation
      * before calling the constructor.
@@ -118,6 +120,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         threadController.addSimulationListener(this);
         loadingCoordinator = new LoadingCoordinator(this);
+        storingCoordinator = new StoringCoordinator(this);
+        addSimulationListener(storingCoordinator);
     }
 
     public boolean addActioListener(LoadingActionListener listener) {
@@ -181,8 +185,22 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         fireAction(currentAction);
     }
 
+    /**
+     * Manager for input and loading.
+     *
+     * @return
+     */
     public LoadingCoordinator getLoadingCoordinator() {
         return loadingCoordinator;
+    }
+
+    /**
+     * Manager for outputs
+     *
+     * @return
+     */
+    public StoringCoordinator getStoringCoordinator() {
+        return storingCoordinator;
     }
 
     public void setDispersionCoefficientPipe(double K) {
@@ -793,6 +811,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         }
                     }
                     if (position == null || surfaceCell >= 0) {
+
                         try {
                             double[] utm = getSurface().getTriangleMids()[surfaceCell];
                             Coordinate wgs84 = getSurface().getGeotools().toGlobal(new Coordinate(utm[0], utm[1]), true);
@@ -800,6 +819,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         } catch (TransformException ex) {
                             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                         }
+
                     }
                     if (c == null) {
                         System.err.println("Cannot find surface for injection " + injection);

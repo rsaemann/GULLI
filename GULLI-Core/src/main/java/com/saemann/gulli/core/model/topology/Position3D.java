@@ -6,7 +6,7 @@
 package com.saemann.gulli.core.model.topology;
 
 import com.saemann.gulli.core.model.GeoPosition2D;
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  *

@@ -1,7 +1,7 @@
 package com.saemann.gulli.core.model.surface;
 
-import com.vividsolutions.jts.geom.Geometry;
 import java.util.LinkedList;
+import org.locationtech.jts.geom.Geometry;
 
 /**
  *

@@ -161,8 +161,8 @@ public class InjectionInformation implements InjectionInfo {
             this.position = capacity.getPosition3D(0);
             if (capacity instanceof Manhole || capacity instanceof Pipe) {
                 this.spillOnSurface = false;
-            }else  if(capacity instanceof Surface){
-                this.spillOnSurface=true;
+            } else if (capacity instanceof Surface) {
+                this.spillOnSurface = true;
             }
         }
     }
@@ -258,6 +258,14 @@ public class InjectionInformation implements InjectionInfo {
         }
 
         this.totalVolume = volume;
+    }
+
+    public static InjectionInformation DIFFUSIVE_ON_SURFACE(double mass, int numberOfParticles, Material material) {
+        InjectionInformation inj = new InjectionInformation(0, 0, mass, numberOfParticles);
+        inj.spilldistributed = true;
+        inj.spillOnSurface = true;
+        inj.material = material;
+        return inj;
     }
 
     private void calculateNumberOfIntervalParticles(int particles) {

@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.Scenario;
@@ -47,6 +46,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.RectangularProfile;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Create simple channels for comparison between numerical Code and analytical

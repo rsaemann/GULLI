@@ -5,12 +5,7 @@
  */
 package com.saemann.gulli.core.io.ogs;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.StartParameters;
-import java.awt.Color;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.geom.Point2D;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,13 +13,11 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.util.LinkedList;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.underground.Domain3D;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.operation.TransformException;
 
@@ -383,7 +376,7 @@ public class Domain3DIO {
         int[] material = new int[numberofcells];
 
 //        File fileGroundwater = new File(StartParameters.getPathUndergroundVTU());
-        material = read.material(numberofcells, fileCSV);
+        material = Domain3D_IO_read.material(numberofcells, fileCSV);
         //#####################################################################
 
         System.out.println("soil eingelesen");

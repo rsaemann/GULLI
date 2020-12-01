@@ -23,9 +23,9 @@
  */
 package com.saemann.gulli.core.model.surface.measurement;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Measures the contamination of surface

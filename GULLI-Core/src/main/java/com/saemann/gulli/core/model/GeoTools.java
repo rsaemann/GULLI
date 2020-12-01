@@ -1,14 +1,5 @@
 package com.saemann.gulli.core.model;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.operation.polygonize.Polygonizer;
 import java.awt.geom.Point2D;
 import java.util.Collection;
 import java.util.Iterator;
@@ -17,6 +8,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.operation.polygonize.Polygonizer;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -165,6 +165,31 @@ public class GeoTools {
 
         transform_wgs2utm = CRS.findMathTransform(sourceCRS, targetCRS);
         transform_utm2wgs = CRS.findMathTransform(targetCRS, sourceCRS);
+        this.globalLongitudeFirst = testIsLongitudeFirst(sourceCRS);
+
+    }
+
+    /**
+     * 
+     * @param sourceCRScode_global
+     * @param targetCRScode_metric
+     * @param forceLongitudeFirst x is longitude?
+     * @param lenient parameter for some reference systems
+     * @throws FactoryException 
+     */
+    public GeoTools(String sourceCRScode_global, String targetCRScode_metric, boolean forceLongitudeFirst, boolean lenient) throws FactoryException {
+        this.gf = new GeometryFactory();
+        CRSAuthorityFactory af = CRS.getAuthorityFactory(forceLongitudeFirst);
+        CoordinateReferenceSystem sourceCRS = null;
+
+        sourceCRS = af.createCoordinateReferenceSystem(sourceCRScode_global); // WGS 84 Lat/Lon 
+
+        CoordinateReferenceSystem targetCRS = null;
+
+        targetCRS = af.createCoordinateReferenceSystem(targetCRScode_metric);
+
+        transform_wgs2utm = CRS.findMathTransform(sourceCRS, targetCRS, lenient);
+        transform_utm2wgs = CRS.findMathTransform(targetCRS, sourceCRS, lenient);
         this.globalLongitudeFirst = testIsLongitudeFirst(sourceCRS);
 
     }
@@ -335,11 +360,11 @@ public class GeoTools {
 
         if (longitudeFirst == globalLongitudeFirst) {
             //Nothing to change
-            global.x=tempstorage[0];
-            global.y=tempstorage[1];
+            global.x = tempstorage[0];
+            global.y = tempstorage[1];
         } else {
-            global.x=tempstorage[1];
-            global.y=tempstorage[0];
+            global.x = tempstorage[1];
+            global.y = tempstorage[0];
         }
 //        System.out.println(geomUTM+" \t-> "+global);
     }

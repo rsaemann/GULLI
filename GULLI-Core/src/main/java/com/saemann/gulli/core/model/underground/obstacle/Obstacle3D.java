@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.model.underground.obstacle;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 import com.saemann.gulli.core.model.topology.Position3D;
 
 /**

@@ -1,13 +1,5 @@
 package com.saemann.gulli.core.io;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.operation.distance.DistanceOp;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -45,6 +37,15 @@ import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.operation.distance.DistanceOp;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -329,8 +330,8 @@ public class SHP_IO_GULLI {
                     geom.geometryChanged();
                 }
 
-                if (geom instanceof com.vividsolutions.jts.geom.Point) {
-                    com.vividsolutions.jts.geom.Point p = (com.vividsolutions.jts.geom.Point) geom;
+                if (geom instanceof Point) {
+                    Point p = (Point) geom;
                     Point pUTM = transform(p, transformSHP_UTM);
                     Point pWGS = transform(p, transformSHP_WGS84);
                     Position pos = new Position(pWGS.getX(), pWGS.getY(), pUTM.getX(), pUTM.getY());
@@ -338,14 +339,14 @@ public class SHP_IO_GULLI {
 
                     Manhole mh = new Manhole(pos, name, null);
                     volumes.put(name, mh);
-                } else if (geom instanceof com.vividsolutions.jts.geom.MultiPolygon) {
-//                    com.vividsolutions.jts.geom.MultiPolygon p = (com.vividsolutions.jts.geom.MultiPolygon) transform(geom, transformSHP_WGS84);
+                } else if (geom instanceof MultiPolygon) {
+//                    org.locationtech.jts.geom.MultiPolygon p = (org.locationtech.jts.geom.MultiPolygon) transform(geom, transformSHP_WGS84);
 //                    Way w = new Way(autoID, tags, geom, true);
                     Pipe pipe = new Pipe(null, null, null);
                     pipe.setName(name);
 //                    pipe.tags = tags;
                     pipes.put(name, pipe);
-                } else if (geom instanceof com.vividsolutions.jts.geom.MultiLineString) {
+                } else if (geom instanceof MultiLineString) {
                     Pipe pipe = new Pipe(null, null, null);
                     pipe.setName(name);
 //                    pipe.tags = tags;
@@ -533,8 +534,8 @@ public class SHP_IO_GULLI {
                     continue;
                 }
 
-                if (geom instanceof com.vividsolutions.jts.geom.Point) {
-                    com.vividsolutions.jts.geom.Point p = (com.vividsolutions.jts.geom.Point) geom;
+                if (geom instanceof Point) {
+                    Point p = (Point) geom;
                     Point pwgs84 = transform(p, transformSHP_WGS84);
                     Point pUTM = transform(p, transformSHP_UTM);
                     positions.add(new Position(pwgs84.getX(), pwgs84.getY(), pUTM.getX(), pUTM.getY()));

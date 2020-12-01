@@ -1,6 +1,5 @@
 package com.saemann.gulli.core.io.extran;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.scenario.injection.HEInjectionInformation;
 import com.saemann.gulli.core.control.scenario.injection.HE_AreaInjection;
 import com.saemann.gulli.core.control.scenario.injection.HE_MessdatenInjection;
@@ -41,7 +40,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Locale;
-import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -67,6 +65,7 @@ import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;

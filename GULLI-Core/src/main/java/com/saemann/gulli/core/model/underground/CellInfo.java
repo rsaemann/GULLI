@@ -5,7 +5,7 @@
  */
 package com.saemann.gulli.core.model.underground;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  *

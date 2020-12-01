@@ -1,14 +1,6 @@
 package com.saemann.gulli.view.model.surface;
 
 import com.saemann.gulli.core.io.SHP_IO_GULLI;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import com.vividsolutions.jts.operation.union.CascadedPolygonUnion;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -36,8 +28,6 @@ import javax.swing.JLabel;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import com.saemann.gulli.core.model.GeoPosition;
-import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.model.surface.FloodArea;
 import com.saemann.gulli.core.model.surface.FlowArea;
 import com.saemann.gulli.core.model.surface.LocalMinimumPoint;
@@ -54,25 +44,34 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.Pair;
-import com.saemann.gulli.view.view.PaintManager;
-import control.LocationIDListener;
+import com.saemann.gulli.view.PaintManager;
+import com.saemann.rgis.control.LocationIDListener;
+import com.saemann.rgis.tileloader.source.MyOSMTileSource;
+import com.saemann.rgis.view.ColorHolder;
+import com.saemann.rgis.view.DoubleColorHolder;
+import com.saemann.rgis.view.SimpleMapViewerFrame;
+import com.saemann.rgis.view.shapes.AreaPainting;
+import com.saemann.rgis.view.shapes.ArrowPainting;
+import com.saemann.rgis.view.shapes.LabelPainting;
+import com.saemann.rgis.view.shapes.NodePainting;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.operation.union.CascadedPolygonUnion;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
-import org.openstreetmap.gui.jmapviewer.source.MyOSMTileSource;
-import view.ColorHolder;
-import view.DoubleColorHolder;
-import view.SimpleMapViewerFrame;
-import view.shapes.AreaPainting;
-import view.shapes.ArrowPainting;
-import view.shapes.LabelPainting;
-import view.shapes.NodePainting;
+
 
 /**
  * Tools for mapping Surface and Pipenetwork to each other.
@@ -1089,7 +1088,7 @@ public class SurfaceTools implements LocationIDListener {
                 }
                 sammelPunkte[iX][iY].inlet = in;
 
-                NodePainting np = new NodePainting(i++, (model.GeoPosition2D) in.getPosition(), chStreetInlet);
+                NodePainting np = new NodePainting(i++, (com.saemann.rgis.model.GeoPosition2D) in.getPosition(), chStreetInlet);
                 frame.mapViewer.addPaintInfoToLayer(layerStreetInlet, np);
 
                 Position pos2;
@@ -1353,11 +1352,11 @@ public class SurfaceTools implements LocationIDListener {
         }
         System.out.println(" Ausflussverfolgungspfade gezeichnet. " + (System.currentTimeMillis() - start) + "ms");
         for (Manhole manhole : network.getManholes()) {
-            NodePainting np = new NodePainting(manhole.getAutoID(), (model.GeoPosition2D) manhole.getPosition(), chManhole);
+            NodePainting np = new NodePainting(manhole.getAutoID(), (com.saemann.rgis.model.GeoPosition2D) manhole.getPosition(), chManhole);
             frame.mapViewer.addPaintInfoToLayer(layerManhole, np);
         }
         for (Pipe pipe : network.getPipes()) {
-            ArrayList<GeoPosition2D> list = new ArrayList<>(2);
+            ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
             list.add(pipe.getStartConnection().getPosition());
             list.add(pipe.getEndConnection().getPosition());
             ArrowPainting np = new ArrowPainting(pipe.getAutoID(), PaintManager.toRGIS(list), chPipe);
@@ -1513,7 +1512,7 @@ public class SurfaceTools implements LocationIDListener {
                         Coordinate c = new Coordinate(((x + i) * breite / lengthX) + utmXmin, ((y + j) * hoehe / lengthY) + utmYmin);
                         Coordinate c1 = SHP_IO_GULLI.transform(c, utm32wgs);
                         String str = "HeightPoint(" + l + ");(" + (x + i) + "," + (y + j) + ");;maxH = " + df4.format(maximum[x + i][y + j]) + ";minH = " + df4.format(minimum[x + i][y + j]);
-                        LabelPainting lp = new LabelPainting((i + 1) * 3 + j, chInfo, new model.GeoPosition(c1), str.split(";"));
+                        LabelPainting lp = new LabelPainting((i + 1) * 3 + j, chInfo, new com.saemann.rgis.model.GeoPosition(c1), str.split(";"));
                         frame.mapViewer.addPaintInfoToLayer(labelInfoString, lp);
 
                     } catch (MismatchedDimensionException ex) {
@@ -1593,7 +1592,7 @@ public class SurfaceTools implements LocationIDListener {
                             str += "  > Area " + overrun.surfaceUeberlauf.id + ";;";
                         }
                     }
-                    LabelPainting lp = new LabelPainting(0, chInfo, new model.GeoPosition(frame.mapViewer.clickPoint), str.split(";"));
+                    LabelPainting lp = new LabelPainting(0, chInfo, new com.saemann.rgis.model.GeoPosition(frame.mapViewer.clickPoint), str.split(";"));
                     frame.mapViewer.addPaintInfoToLayer(labelInfoString, lp);
                     break;
                 }
@@ -1602,7 +1601,7 @@ public class SurfaceTools implements LocationIDListener {
             FlowPath p = pathIDMap.get((int) l);
             if (p != null) {
                 String str = "Flowpath " + l + ";;Aktiv ab " + df4.format(p.activatingWaterheightAtStart) + " üNN;Aktiv ab " + df4.format(p.activatingWaterheightAtStart - p.getStart().minZ) + " m";
-                LabelPainting lp = new LabelPainting(0, chInfo, new model.GeoPosition(frame.mapViewer.clickPoint), str.split(";"));
+                LabelPainting lp = new LabelPainting(0, chInfo, new com.saemann.rgis.model.GeoPosition(frame.mapViewer.clickPoint), str.split(";"));
                 frame.mapViewer.addPaintInfoToLayer(labelInfoString, lp);
             }
             System.out.println("No Flowpath found for ID:" + l);

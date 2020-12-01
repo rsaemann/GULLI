@@ -1,7 +1,5 @@
 package com.saemann.gulli.core.control;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.io.NamedPipeIO;
 import java.awt.BasicStroke;
 import java.util.logging.Level;
@@ -10,6 +8,7 @@ import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.operation.TransformException;
 

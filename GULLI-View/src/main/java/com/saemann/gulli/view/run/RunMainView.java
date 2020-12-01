@@ -1,27 +1,20 @@
 package com.saemann.gulli.view.run;
 
-
-import com.vividsolutions.jts.geom.Geometry;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
-import com.saemann.gulli.core.control.ShapeTools;
 import com.saemann.gulli.core.control.StartParameters;
-import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
+import com.saemann.gulli.core.control.StoringCoordinator;
 import com.saemann.gulli.core.control.maths.RandomArray;
+import com.saemann.gulli.core.control.output.ContaminationParticles;
+import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.threads.ThreadController;
-import com.saemann.gulli.core.io.GeoJSON_IO;
-import com.saemann.gulli.core.io.Geopackage_IO;
-import com.saemann.gulli.core.io.extran.HE_GDB_IO;
-import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JMenu;
@@ -32,10 +25,10 @@ import com.saemann.gulli.core.model.particle.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.topology.Manhole;
 import org.jfree.ui.action.ActionMenuItem;
-import org.openstreetmap.gui.jmapviewer.source.MyOSMTileSource;
-import view.MapViewer;
-import view.SimpleMapViewerFrame;
-import com.saemann.gulli.view.view.ViewController;
+import com.saemann.gulli.view.ViewController;
+import com.saemann.rgis.tileloader.source.MyOSMTileSource;
+import com.saemann.rgis.view.MapViewer;
+import com.saemann.rgis.view.SimpleMapViewerFrame;
 
 /**
  * The Run Class to start the GUI with a Simulation. After the run, shapefiles
@@ -78,7 +71,7 @@ public class RunMainView {
         //Zeitschrittweite für Partikalbewegung setzen (Sekunden)
         //Set Deltatime for the particlesimulation (in seconds)
         control.getThreadController().setDeltaTime(1);
-        ThreadController.pauseRevokerThread=true;
+        ThreadController.pauseRevokerThread = true;
 
         //Benutzeroberfläche Hintergrundkarte anpassen.
         //Set the Background map for the main frame.
@@ -146,12 +139,12 @@ public class RunMainView {
                     if (true) {
                         //~90sekunden
                         ParticleSurfaceComputing2D.allowWashToPipesystem = true;
-                        ParticleSurfaceComputing2D.gradientFlowForDryCells=true;
+                        ParticleSurfaceComputing2D.gradientFlowForDryCells = true;
                         ParticlePipeComputing.spillOutToSurface = true;
-                        SurfaceMeasurementRaster.synchronizeMeasures=true;
+                        SurfaceMeasurementRaster.synchronizeMeasures = true;
 
                         control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
-                        control.getScenario().getMeasurementsSurface().continousMeasurements=true;
+                        control.getScenario().getMeasurementsSurface().continousMeasurements = true;
                         System.out.println("Changed sampling to simgel sample at end of interval");
 
                         //3 injections scenario 
@@ -166,7 +159,7 @@ public class RunMainView {
                             try {
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
                                 lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
-                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl+1, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl + 1, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
                             } catch (NullPointerException nullPointerException) {
                                 System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
                             }
@@ -256,129 +249,133 @@ public class RunMainView {
             }
         });
 
+        control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
+        StoringCoordinator.verbose = true;
+        control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoJSON, -1, true));
+        control.getStoringCoordinator().addFinalOuput(new ContaminationParticles());
+
         //Start loading the set files. 
         if (lc.getFileNetwork() != null || lc.getFilePipeResultIDBF() != null || lc.getFileSurfaceTriangleIndicesDAT() != null) {
             lc.startLoadingRequestedFiles(true);
         }
 
-        //Write results after finishing
-        //This function is called after a simulation has finished.
-        //  here the result shapefiles (shp & geojson) are created.
-        control.getThreadController().addSimulationListener(new SimulationActionAdapter() {
-            @Override
-            public void simulationFINISH(boolean timeOut, boolean particlesOut
-            ) {
-                try {
-                    //Create shapefiles
-                    new Thread("Shapefile creator after simulation") {
-
-                        @Override
-                        public void run() {
-                            try {
-                                if (control.getSurface() == null) {
-                                    return;
-                                }
-                                String parent = control.getLoadingCoordinator().getFilePipeResultIDBF().getParent() + File.separator;
-                                for (int m = -1; m < control.getSurface().getNumberOfMaterials(); m++) {
-
-                                    int materialindex = m; //<0 = all
-                                    ArrayList<Geometry> shapes = null;
-                                    try {
-                                        //Create surrounding shape of contaminated areas.
-                                        //Only show a triangle as contaminated, if there area at least 20 counts of particles a triangle.
-                                        shapes = ShapeTools.createShapesWGS84(control.getSurface(), 1, 1, materialindex, 20);
-                                    } catch (Exception exception) {
-                                        exception.printStackTrace();
-                                        continue;
-                                    }
-                                    if (shapes == null || shapes.isEmpty()) {
-                                        System.out.println("No Shape files created.");
-                                        continue;
-                                    }
-
-                                    //Search for injection with this index
-                                    String materialName = "unknown" + materialindex;
-                                    if (materialindex < 0) {
-                                        materialName = "all";
-                                    } else {
-                                        for (InjectionInformation injection : control.getScenario().getInjections()) {
-                                            if (injection.getMaterial().materialIndex == materialindex) {
-                                                materialName = injection.getMaterial().getName();
-                                            }
-                                        }
-                                    }
-
-                                    String name = "Cont_" + materialName;
-                                    File shpfile = new File(parent + name + ".shp");
-                                    File shxfile = new File(parent + name + ".shx");
-                                    File jsonfile = new File(parent + name + ".json");
-                                    File csvFile = new File(parent + name + ".csv");
-                                    File gpckFile = new File(parent + name + ".gpkg");
-                                    //Delete old files
-                                    if (shpfile.exists()) {
-                                        shpfile.delete();
-                                    }
-                                    if (shxfile.exists()) {
-                                        shxfile.delete();
-                                    }
-                                    if (gpckFile.exists()) {
-                                        gpckFile.delete();
-                                    }
-                                    //SHP_IO_GULLI.writeWGS84(shapes, shpfile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
-                                    Geopackage_IO.writeWGS84(shapes, gpckFile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
-                                    System.out.println("Shapefiles written to " + gpckFile.getAbsolutePath());
-                                    HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, control.getSurface());
-                                    if (materialindex >= 0) {
-                                        HE_SurfaceIO.writeSurfaceContaminationDynamicMassCSV(new File(parent, "dyn" + name + ".csv"), control.getSurface(), materialindex);
-                                    }
-
-                                    GeoJSON_IO geojson = new GeoJSON_IO();
-                                    geojson.setMaximumFractionDigits(5);
-                                    //GeoJSON convention is: longitude first;
-                                    geojson.swapXY = !StartParameters.JTS_WGS84_LONGITUDE_FIRST;
-                                    Geometry[] mercator = new Geometry[shapes.size()];
-                                    for (int i = 0; i < mercator.length; i++) {
-                                        Geometry geom = shapes.get(i);
-                                        mercator[i] = geom;
-
-                                        GeoJSON_IO.JSONProperty[] props = new GeoJSON_IO.JSONProperty[3];
-                                        props[0] = new GeoJSON_IO.JSONProperty("stoff", materialName);
-                                        props[1] = new GeoJSON_IO.JSONProperty("eventid", 0);
-                                        props[2] = new GeoJSON_IO.JSONProperty("part", i);
-                                        mercator[i].setUserData(props);
-                                    }
-                                    geojson.write(jsonfile, mercator);
-                                    System.out.println("Shapefiles written to " + jsonfile.getAbsolutePath());
-
-                                }
-                                //Write Waterlevels CSV for further postprocessing
-                                File waterleveldynamicsFile = new File(parent, "waterlevelDynamic.csv");
-                                if (!waterleveldynamicsFile.exists()) {
-                                    System.out.println("Need to write Waterlevel dynamics");
-                                    if (control.getSurface().waterlevelLoader instanceof HE_GDB_IO) {
-                                        HE_GDB_IO gdb = (HE_GDB_IO) control.getSurface().waterlevelLoader;
-                                        System.out.println("Load waterlevels from GDB");
-                                        gdb.applyWaterlevelsToSurface(control.getSurface());
-                                    }
-                                    HE_SurfaceIO.writeSurfaceWaterlevelDynamicsCSV(waterleveldynamicsFile, control.getSurface());
-                                }
-                            } catch (IOException ex) {
-                                Logger.getLogger(Controller.class
-                                        .getName()).log(Level.SEVERE, null, ex);
-                            } catch (Exception ex) {
-                                Logger.getLogger(Controller.class
-                                        .getName()).log(Level.SEVERE, null, ex);
-
-                            }
-                        }
-
-                    }.start();
-                } catch (Exception ex) {
-                    Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-        });
-
+//        //Write results after finishing
+//        //This function is called after a simulation has finished.
+//        //  here the result shapefiles (shp & geojson) are created.
+//        control.getThreadController().addSimulationListener(new SimulationActionAdapter() {
+//            @Override
+//            public void simulationFINISH(boolean timeOut, boolean particlesOut
+//            ) {
+//                try {
+//                    //Create shapefiles
+//                    new Thread("Shapefile creator after simulation") {
+//
+//                        @Override
+//                        public void run() {
+//                            try {
+//                                if (control.getSurface() == null) {
+//                                    return;
+//                                }
+//                                String parent = control.getLoadingCoordinator().getFilePipeResultIDBF().getParent() + File.separator;
+//                                for (int m = -1; m < control.getSurface().getNumberOfMaterials(); m++) {
+//
+//                                    int materialindex = m; //<0 = all
+//                                    ArrayList<Geometry> shapes = null;
+//                                    try {
+//                                        //Create surrounding shape of contaminated areas.
+//                                        //Only show a triangle as contaminated, if there area at least 20 counts of particles a triangle.
+//                                        shapes = ShapeTools.createShapesWGS84(control.getSurface(), 1, 1, materialindex, 20);
+//                                    } catch (Exception exception) {
+//                                        exception.printStackTrace();
+//                                        continue;
+//                                    }
+//                                    if (shapes == null || shapes.isEmpty()) {
+//                                        System.out.println("No Shape files created.");
+//                                        continue;
+//                                    }
+//
+//                                    //Search for injection with this index
+//                                    String materialName = "unknown" + materialindex;
+//                                    if (materialindex < 0) {
+//                                        materialName = "all";
+//                                    } else {
+//                                        for (InjectionInformation injection : control.getScenario().getInjections()) {
+//                                            if (injection.getMaterial().materialIndex == materialindex) {
+//                                                materialName = injection.getMaterial().getName();
+//                                            }
+//                                        }
+//                                    }
+//
+//                                    String name = "Cont_" + materialName;
+//                                    File shpfile = new File(parent + name + ".shp");
+//                                    File shxfile = new File(parent + name + ".shx");
+//                                    File jsonfile = new File(parent + name + ".json");
+//                                    File csvFile = new File(parent + name + ".csv");
+//                                    File gpckFile = new File(parent + name + ".gpkg");
+//                                    //Delete old files
+//                                    if (shpfile.exists()) {
+//                                        shpfile.delete();
+//                                    }
+//                                    if (shxfile.exists()) {
+//                                        shxfile.delete();
+//                                    }
+//                                    if (gpckFile.exists()) {
+//                                        gpckFile.delete();
+//                                    }
+//                                    //SHP_IO_GULLI.writeWGS84(shapes, shpfile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
+//                                    Geopackage_IO.writeWGS84(shapes, gpckFile.getAbsolutePath(), name, !control.getSurface().getGeotools().isGloablLongitudeFirst());
+//                                    System.out.println("Shapefiles written to " + gpckFile.getAbsolutePath());
+//                                    HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, control.getSurface());
+//                                    if (materialindex >= 0) {
+//                                        HE_SurfaceIO.writeSurfaceContaminationDynamicMassCSV(new File(parent, "dyn" + name + ".csv"), control.getSurface(), materialindex);
+//                                    }
+//
+//                                    GeoJSON_IO geojson = new GeoJSON_IO();
+//                                    geojson.setMaximumFractionDigits(5);
+//                                    //GeoJSON convention is: longitude first;
+//                                    geojson.swapXY = !StartParameters.JTS_WGS84_LONGITUDE_FIRST;
+//                                    Geometry[] mercator = new Geometry[shapes.size()];
+//                                    for (int i = 0; i < mercator.length; i++) {
+//                                        Geometry geom = shapes.get(i);
+//                                        mercator[i] = geom;
+//
+//                                        GeoJSON_IO.JSONProperty[] props = new GeoJSON_IO.JSONProperty[3];
+//                                        props[0] = new GeoJSON_IO.JSONProperty("stoff", materialName);
+//                                        props[1] = new GeoJSON_IO.JSONProperty("eventid", 0);
+//                                        props[2] = new GeoJSON_IO.JSONProperty("part", i);
+//                                        mercator[i].setUserData(props);
+//                                    }
+//                                    geojson.write(jsonfile, mercator);
+//                                    System.out.println("Shapefiles written to " + jsonfile.getAbsolutePath());
+//
+//                                }
+////                                //Write Waterlevels CSV for further postprocessing
+////                                File waterleveldynamicsFile = new File(parent, "waterlevelDynamic.csv");
+////                                if (!waterleveldynamicsFile.exists()) {
+////                                    System.out.println("Need to write Waterlevel dynamics");
+////                                    if (control.getSurface().waterlevelLoader instanceof HE_GDB_IO) {
+////                                        HE_GDB_IO gdb = (HE_GDB_IO) control.getSurface().waterlevelLoader;
+////                                        System.out.println("Load waterlevels from GDB");
+////                                        gdb.applyWaterlevelsToSurface(control.getSurface());
+////                                    }
+////                                    HE_SurfaceIO.writeSurfaceWaterlevelDynamicsCSV(waterleveldynamicsFile, control.getSurface());
+////                                }
+//                            } catch (IOException ex) {
+//                                Logger.getLogger(Controller.class
+//                                        .getName()).log(Level.SEVERE, null, ex);
+//                            } catch (Exception ex) {
+//                                Logger.getLogger(Controller.class
+//                                        .getName()).log(Level.SEVERE, null, ex);
+//
+//                            }
+//                        }
+//
+//                    }.start();
+//                } catch (Exception ex) {
+//                    Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
+//                }
+//            }
+//        });
         //Find correct menu to add more Tileservers
         JMenu tilesMenu = null;
         for (Component component : frame.getJMenuBar().getComponents()) {

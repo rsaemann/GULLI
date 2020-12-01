@@ -6,8 +6,8 @@
 package com.saemann.gulli.core.model.topology;
 
 import com.saemann.gulli.core.model.GeoPosition2D;
-import com.vividsolutions.jts.geom.Coordinate;
 import java.awt.geom.Point2D;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Position with longitude & latitude and a UTM x,y component. To store an

@@ -5,7 +5,7 @@
  */
 package com.saemann.gulli.core.model.surface;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 import java.util.ArrayList;
 import java.util.LinkedList;
 

@@ -1,6 +1,28 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2017 saemann.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package com.saemann.gulli.core.io.swmm;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.StartParameters;
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,8 +61,10 @@ import com.saemann.gulli.core.model.topology.catchment.Catchment;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
+import java.io.FileReader;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -772,7 +796,7 @@ public class SWMM_IO {
             }
             String newline = line.replaceAll(" +", " ").trim();
             parts = newline.split(" ");
-            if (parts.length < 8) {
+            if (parts.length < 7) {
                 continue;
             }
             name = parts[0];
@@ -782,7 +806,11 @@ public class SWMM_IO {
             sPerv = parts[4];
             PctZero = parts[5];
             RouteTo = parts[6];
-            PctRouted = parts[7];
+            if (parts.length > 7) {
+                PctRouted = parts[7];
+            } else {
+                PctRouted = "100";
+            }
 
             SubArea sa = new SubArea(name, RouteTo, Double.parseDouble(nImperv), Double.parseDouble(nPerv), Double.parseDouble(sImperv), Double.parseDouble(sPerv), Double.parseDouble(PctZero), Double.parseDouble(PctRouted));
 
@@ -1846,6 +1874,48 @@ public class SWMM_IO {
             }
         }
         return new Pair<>(pipeContainer, manholecontaineR);
+    }
+
+    /**
+     * A HAshmap with <NodeName, Flood volume [m³] from surcharging>
+     *
+     * @param resultFile
+     * @return
+     */
+    public static HashMap<String, Float> getOutflowVolumePerNode(File resultFile) throws FileNotFoundException, IOException {
+        HashMap<String, Float> map = new HashMap<>();
+        try (FileReader fr = new FileReader(resultFile)) {
+            BufferedReader br = new BufferedReader(fr);
+            String line = "";
+            while (br.ready()) {
+                line = br.readLine();
+                if (line.contains("Node Flooding Summary")) {
+                    break;
+                }
+            }
+            while (br.ready()) {
+                line = br.readLine();
+                if (line.contains("Flooded")) {
+                    br.readLine();
+                    break;
+                }
+            }
+            //Parse content
+            while (br.ready()) {
+                line = br.readLine();
+                if (line.contains("**********")) {
+                    //End of content reached
+                    break;
+                }
+                String[] splits = line.trim().replaceAll(" +", " ").split(" ");
+                if(splits==null||splits.length<6)continue;
+                String name = splits[0];
+                float volume = Float.parseFloat(splits[5]);
+                map.put(name, volume);
+            }
+            br.close();
+        }
+        return map;
     }
 
 }

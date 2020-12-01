@@ -1,6 +1,6 @@
 package com.saemann.gulli.core.model.surface;
 
-import com.vividsolutions.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.MultiPolygon;
 import java.util.ArrayList;
 
 /**

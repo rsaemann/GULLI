@@ -23,14 +23,13 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.saemann.gulli.core.model.particle.Particle;
-import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.underground.Domain3D;
 import com.saemann.gulli.core.model.underground.obstacle.Blocked3DMovement;
 import com.saemann.gulli.core.model.underground.obstacle.Obstacle3D;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  *

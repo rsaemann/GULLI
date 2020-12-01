@@ -1,6 +1,5 @@
 package com.saemann.gulli.core.io.extran;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.StartParameters;
 import java.io.File;
 import java.sql.Connection;
@@ -19,6 +18,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  *

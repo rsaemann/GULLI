@@ -5,11 +5,11 @@
  */
 package com.saemann.gulli.core.model.particle;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.particlecontrol.injection.ParticleInjection;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  *

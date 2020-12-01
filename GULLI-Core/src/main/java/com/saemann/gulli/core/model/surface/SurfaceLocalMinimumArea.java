@@ -1,7 +1,7 @@
 package com.saemann.gulli.core.model.surface;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiPoint;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;

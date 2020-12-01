@@ -5,7 +5,6 @@ import com.jmatio.io.MatFileReader;
 import com.jmatio.types.MLArray;
 import com.jmatio.types.MLDouble;
 import com.jmatio.types.MLSingle;
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -29,6 +28,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.RectangularProfile;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Reads MET files with the help of the old and slow jmatio.jar.

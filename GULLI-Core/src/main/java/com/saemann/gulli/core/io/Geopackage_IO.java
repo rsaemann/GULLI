@@ -23,14 +23,6 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
 import com.saemann.gulli.core.io.extran.HE_Database;
 import java.io.File;
 import java.io.IOException;
@@ -59,6 +51,14 @@ import org.geotools.geopkg.Entry;
 import org.geotools.geopkg.FeatureEntry;
 import org.geotools.geopkg.GeoPackage;
 import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -358,53 +358,53 @@ public class Geopackage_IO {
                 outfile.delete();
             }
 
-            GeoPackage geopackage = new GeoPackage(outfile);
-            geopackage.init(); //Initialize database tables
-            geopackage.addCRS(4326); //set Coordinate reference system WGS84
-
-            //Decide on the first geometry of which type this shapefile is
-            Class<? extends Geometry> type = collection.iterator().next().getClass();
-            if (type.getSimpleName().equals("LinearRing")) {
-                type = LineString.class;
-            }
-
-            //Manhole Schema
-            final SimpleFeatureType FEATURE = DataUtilities.createType(layername,
-                    "the_geom:" + type.getSimpleName() + ":srid=4326" // <- the geometry attribute: Polygon type in WGS84 Latlon
-            );
-
-            SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(FEATURE);
-
-            DefaultFeatureCollection dfcollection = new DefaultFeatureCollection();
-            for (Geometry g : collection) {
-                //Change coords from lat/long to long/lat
-                if (!type.isAssignableFrom(g.getClass())) {
-                    System.out.println("Problems may occure when object of '" + g.getGeometryType() + "' is stored in Shapefile for '" + type.getSimpleName() + "'. @" + filePathName);
+            try (GeoPackage geopackage = new GeoPackage(outfile)) {
+                geopackage.init(); //Initialize database tables
+                geopackage.addCRS(4326); //set Coordinate reference system WGS84
+                
+                //Decide on the first geometry of which type this shapefile is
+                Class<? extends Geometry> type = collection.iterator().next().getClass();
+                if (type.getSimpleName().equals("LinearRing")) {
+                    type = LineString.class;
                 }
-                if (switchCoordinates) {
-                    g = (Geometry) g.clone();
-                    for (int i = 0; i < g.getCoordinates().length; i++) {
-                        double tempX = g.getCoordinates()[i].x;
-                        g.getCoordinates()[i].x = g.getCoordinates()[i].y;
-                        g.getCoordinates()[i].y = tempX;
+                
+                //Manhole Schema
+                final SimpleFeatureType FEATURE = DataUtilities.createType(layername,
+                        "the_geom:" + type.getSimpleName() + ":srid=4326" // <- the geometry attribute: Polygon type in WGS84 Latlon
+                );
+                
+                SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(FEATURE);
+                
+                DefaultFeatureCollection dfcollection = new DefaultFeatureCollection();
+                for (Geometry g : collection) {
+                    //Change coords from lat/long to long/lat
+                    if (!type.isAssignableFrom(g.getClass())) {
+                        System.out.println("Problems may occure when object of '" + g.getGeometryType() + "' is stored in Shapefile for '" + type.getSimpleName() + "'. @" + filePathName);
                     }
-                    g.geometryChanged();
+                    if (switchCoordinates) {
+                        g = (Geometry) g.clone();
+                        for (int i = 0; i < g.getCoordinates().length; i++) {
+                            double tempX = g.getCoordinates()[i].x;
+                            g.getCoordinates()[i].x = g.getCoordinates()[i].y;
+                            g.getCoordinates()[i].y = tempX;
+                        }
+                        g.geometryChanged();
+                    }
+                    sfb.add(g);
+                    SimpleFeature f = sfb.buildFeature(null);
+                    dfcollection.add(f);
                 }
-                sfb.add(g);
-                SimpleFeature f = sfb.buildFeature(null);
-                dfcollection.add(f);
-            }
-
-            FeatureEntry fe = new FeatureEntry();
-            fe.setLastChange(new Date());
-            fe.setBounds(ReferencedEnvelope.create(CRS.decode("EPSG:4326")));
-            fe.setDataType(Entry.DataType.Feature);
-            fe.setGeometryColumn(FEATURE.getGeometryDescriptor().getLocalName());
-            fe.setLastChange(new Date());
-            fe.setGeometryType(Geometries.getForName(FEATURE.getGeometryDescriptor().getType().getName().getLocalPart()));
-
-            geopackage.add(fe, dfcollection);
-            geopackage.close();
+                
+                FeatureEntry fe = new FeatureEntry();
+                fe.setLastChange(new Date());
+                fe.setBounds(ReferencedEnvelope.create(CRS.decode("EPSG:4326")));
+                fe.setDataType(Entry.DataType.Feature);
+                fe.setGeometryColumn(FEATURE.getGeometryDescriptor().getLocalName());
+                fe.setLastChange(new Date());
+                fe.setGeometryType(Geometries.getForName(FEATURE.getGeometryDescriptor().getType().getName().getLocalPart()));
+                
+                geopackage.add(fe, dfcollection);
+            } //Initialize database tables
             return true;
         } catch (Exception ex) {
             Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);

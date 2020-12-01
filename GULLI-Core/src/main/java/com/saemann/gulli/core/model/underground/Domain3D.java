@@ -1,16 +1,34 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * The MIT License
+ *
+ * Copyright 2017 saemann.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 package com.saemann.gulli.core.model.underground;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.underground.obstacle.Obstacle3D;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -210,17 +228,17 @@ public class Domain3D {
      * @return [minZ,maxZ] Array
      */
     private double[] findZBounds(Coordinate[] position) {
-        double maxZ = Float.MIN_VALUE;
-        double minZ = Float.MAX_VALUE;
+        double maxZt = Float.MIN_VALUE;
+        double minZt = Float.MAX_VALUE;
         for (Coordinate p : position) {
-            if (p.z < minZ) {
-                minZ = p.z;
+            if (p.z < minZt) {
+                minZt = p.z;
             }
-            if (p.z > maxZ) {
-                maxZ = p.z;
+            if (p.z > maxZt) {
+                maxZt = p.z;
             }
         }
-        return new double[]{minZ, maxZ};
+        return new double[]{minZt, maxZt};
     }
 
     /**

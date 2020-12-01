@@ -5,7 +5,6 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.StartParameters;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -20,6 +19,7 @@ import java.util.LinkedList;
 import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.underground.Domain3D;
+import org.locationtech.jts.geom.Coordinate;
 
 
 /**

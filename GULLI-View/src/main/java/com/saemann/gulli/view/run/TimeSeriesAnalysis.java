@@ -14,7 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesDataItem;
-import com.saemann.gulli.view.view.timeline.SeriesKey;
+import com.saemann.gulli.view.timeline.SeriesKey;
 
 
 /**

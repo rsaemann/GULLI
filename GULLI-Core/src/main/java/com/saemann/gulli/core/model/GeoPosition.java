@@ -1,7 +1,7 @@
 package com.saemann.gulli.core.model;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import java.awt.geom.Point2D;
+import org.locationtech.jts.geom.Coordinate;
 
 public class GeoPosition implements GeoPosition2D {
 
@@ -31,7 +31,7 @@ public class GeoPosition implements GeoPosition2D {
         this.lon = coordinate.x;
     }
 
-    public GeoPosition(com.vividsolutions.jts.geom.Point com_vividsolutions_jts_geom_Point, boolean switchcoordinates) {
+    public GeoPosition(org.locationtech.jts.geom.Point com_vividsolutions_jts_geom_Point, boolean switchcoordinates) {
         super();
         if (!switchcoordinates) {
             this.lat = com_vividsolutions_jts_geom_Point.getY();

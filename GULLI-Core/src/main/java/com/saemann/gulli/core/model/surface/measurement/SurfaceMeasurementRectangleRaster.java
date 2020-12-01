@@ -23,10 +23,10 @@
  */
 package com.saemann.gulli.core.model.surface.measurement;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Raster represneting surface in rectangles for very fast index finding

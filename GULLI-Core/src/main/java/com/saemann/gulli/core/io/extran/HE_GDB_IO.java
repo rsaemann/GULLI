@@ -23,9 +23,6 @@
  */
 package com.saemann.gulli.core.io.extran;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -48,6 +45,9 @@ import main.java.io.zrz.jgdb.shape.Point;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.SurfaceVelocityLoader;
 import com.saemann.gulli.core.model.surface.SurfaceWaterlevelLoader;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 
 /**
  * Read from GDB files. Pure native JAVA.

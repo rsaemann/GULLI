@@ -26,9 +26,9 @@ import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeriesDataItem;
-import com.saemann.gulli.view.view.timeline.AxisKey;
-import com.saemann.gulli.view.view.timeline.SeriesKey;
-import com.saemann.gulli.view.view.timeline.customCell.ShapeEditor.SHAPES;
+import com.saemann.gulli.view.timeline.AxisKey;
+import com.saemann.gulli.view.timeline.SeriesKey;
+import com.saemann.gulli.view.timeline.customCell.ShapeEditor.SHAPES;
 import org.jfree.data.category.CategoryDataset;
 
 /**

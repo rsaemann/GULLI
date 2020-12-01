@@ -957,7 +957,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                         if (tc.barrier_particle != null) {
                             int running = 0, waiting = 0;
-                            if (!pauseRevokerThread && (run && steps == laststep)) {
+                            if (!pauseRevokerThread && steps>0&&(run && steps == laststep)) {
                                 // something is incredibly slow. prepare output to console
                                 StringBuilder str = new StringBuilder("--" + getClass() + "--detected hanging at loop " + steps + " called barrier: " + (calledObject) + "   :");
                                 str.append("\n lastfinishedBarrier: " + lastFinishedBarrier + "  :  " + controlThread.barrier + ",," + "\t control.status=" + controlThread.status + " (" + controlThread.getState() + ")  listener: " + controlThread.lastenvokenListener);

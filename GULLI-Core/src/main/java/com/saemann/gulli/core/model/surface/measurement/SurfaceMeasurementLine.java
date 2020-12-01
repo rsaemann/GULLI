@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.model.surface.measurement;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import java.util.LinkedList;
 import com.saemann.gulli.core.model.GeoPosition;

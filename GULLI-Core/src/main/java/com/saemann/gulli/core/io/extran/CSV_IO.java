@@ -1,6 +1,5 @@
 package com.saemann.gulli.core.io.extran;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.StartParameters;
 import java.io.BufferedReader;
 import java.io.File;
@@ -21,6 +20,7 @@ import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * File-Load class to Build up a Network model from CSV-Files

@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
@@ -39,6 +38,7 @@ import com.saemann.gulli.core.model.surface.SurfaceTrianglePath;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.topology.Inlet;
 import com.saemann.gulli.core.model.topology.Manhole;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;
 
 /**

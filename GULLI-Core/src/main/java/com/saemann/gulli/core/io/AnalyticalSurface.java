@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -39,6 +38,7 @@ import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectan
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
+import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;
 
 /**
