@@ -79,7 +79,6 @@ public class StartParameters {
         try {
             if (!fileStartParameter.exists()) {
                 saveParameter();
-                System.out.println("ini file for startparameter definition created at "+fileStartParameter.getAbsolutePath());
             }
             br = new BufferedReader(new FileReader(fileStartParameter));
 
