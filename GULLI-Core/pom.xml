@@ -90,11 +90,11 @@
             <name>Central Repository</name>
             <url>https://repo.maven.apache.org/maven2</url>
         </repository>
-        <repository>
+        <!--<repository>
             <id>freehep-maven</id>
             <name>Maven FreeHEP</name>
             <url>http://java.freehep.org/maven2</url>
-        </repository>
+        </repository>-->
         <repository>
             <id>osgeo</id>
             <name>OSGeo Release Repository</name>
@@ -126,7 +126,7 @@
     </pluginRepositories>
     <build>
         <plugins>
-            <plugin>
+            <!--<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
@@ -136,20 +136,14 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
-                            <archive>
-                                <manifest>
-                                    <!--<mainClass>
-                                        com.saemann.gulli.view.run.RunMainView
-                                    </mainClass>-->
-                                </manifest>
-                            </archive>
+
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>

@@ -80,9 +80,11 @@ public class StoringCoordinator implements SimulationActionListener {
         if (writing) {
             System.err.println("New Simulation started, but not all values of the old simulation are written to the filesystem. This might cause corrupt files.");
         }
-        if (!control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile().equals(fileRoot)) {
-            fileRoot = control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile();
-            System.out.println("set output directory to " + fileRoot.getAbsolutePath());
+        if (control != null && control.getLoadingCoordinator().getFilePipeResultIDBF() != null) {
+            if (!control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile().equals(fileRoot)) {
+                fileRoot = control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile();
+                System.out.println("set output directory to " + fileRoot.getAbsolutePath());
+            }
         }
     }
 
@@ -118,8 +120,8 @@ public class StoringCoordinator implements SimulationActionListener {
     public Material getMaterial(int materialIndex) {
         return control.getScenario().getMaterialByIndex(materialIndex);
     }
-    
-    public Surface getSurface(){
+
+    public Surface getSurface() {
         return control.getSurface();
     }
 
@@ -127,9 +129,9 @@ public class StoringCoordinator implements SimulationActionListener {
         writing = true;
         for (OutputIntention fo : finalOutputs) {
             try {
-                File f=fo.writeOutput(this);
-                if(f!=null&&verbose){
-                    System.out.println("Output written to "+f.getAbsolutePath());
+                File f = fo.writeOutput(this);
+                if (f != null && verbose) {
+                    System.out.println("Output written to " + f.getAbsolutePath());
                 }
             } catch (Exception e) {
                 e.printStackTrace();

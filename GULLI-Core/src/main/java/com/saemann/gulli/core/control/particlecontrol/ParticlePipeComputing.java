@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.control.maths.RandomArray;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
@@ -34,6 +33,7 @@ import com.saemann.gulli.core.model.topology.Connection_Manhole;
 import com.saemann.gulli.core.model.topology.Connection_Manhole_Pipe;
 import com.saemann.gulli.core.model.topology.Connection_Manhole_Surface;
 import com.saemann.gulli.core.model.topology.Manhole;
+import com.saemann.gulli.core.model.topology.Manhole_SurfaceBucket;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
 
@@ -1553,6 +1553,19 @@ public class ParticlePipeComputing {
                         c = surface;
                         p.setPosition3D(mh.getPosition3D(0));
                         p.setOnSurface();
+                        p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
+                        p.toSurface = mh;
+//                        p.posToSurface = (float) p.getTravelledPathLength();
+                        if (p.getClass().equals(HistoryParticle.class)) {
+                            ((HistoryParticle) p).addToHistory(surface);
+                        }
+                        break;
+                    } else if (connection.getClass().equals(Manhole_SurfaceBucket.class)) {
+                        //spill to surface
+                        p.setSurrounding_actual(connection.getConnectedCapacity());
+                        c = connection.getConnectedCapacity();
+                        p.setPosition3D(mh.getPosition3D(0));
+
                         p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                         p.toSurface = mh;
 //                        p.posToSurface = (float) p.getTravelledPathLength();

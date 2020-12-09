@@ -25,6 +25,7 @@ package com.saemann.gulli.core.control.scenario;
 
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.Controller;
+import com.saemann.gulli.core.control.LoadingCoordinator;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.particle.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
@@ -70,6 +71,7 @@ public abstract class Scenario {
     protected long endtime;
 
     protected String name;
+    
 
     public long getStartTime() {
         return starttime;

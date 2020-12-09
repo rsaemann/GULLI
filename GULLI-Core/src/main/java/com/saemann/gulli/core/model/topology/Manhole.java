@@ -17,7 +17,7 @@ public class Manhole extends StorageVolume {
 
     protected int surfaceTriangleID = -1;
 
-    protected Connection_Manhole_Surface topConnection;
+    protected Connection_ToSurface topConnection;
 
     public Manhole(Position position, String name, Profile profile) {
         super(profile);
@@ -29,11 +29,11 @@ public class Manhole extends StorageVolume {
         this.name = name;
     }
 
-    public void setTopConnection(Connection_Manhole_Surface topConnection) {
+    public void setTopConnection(Connection_ToSurface topConnection) {
         this.topConnection = topConnection;
     }
 
-    public Connection_Manhole_Surface getTopConnection() {
+    public Connection_ToSurface getTopConnection() {
         return topConnection;
     }
 

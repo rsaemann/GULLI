@@ -244,13 +244,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
      */
     public void stop() {
         run = false;
-         for (SimulationActionListener l : listener) {
-                try {
-                    l.simulationSTOP(this);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        for (SimulationActionListener l : listener) {
+            try {
+                l.simulationSTOP(this);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        }
     }
 
     /**
@@ -383,6 +383,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     private void recalculateRandomNumberGenerators() {
         if (particles != null) {
             randomNumberGenerators = new RandomGenerator[this.particles.length / treatblocksize + 1];
+            
         }
     }
 
@@ -504,8 +505,15 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             }
         }
 //        setSeed(seed);
-        for (RandomGenerator rng : randomNumberGenerators) {
-            rng.reset();
+        try {
+            if(randomNumberGenerators==null){
+                recalculateRandomNumberGenerators();
+                setSeed(seed);
+            }
+            for (RandomGenerator rng : randomNumberGenerators) {
+                rng.reset();
+            }
+        } catch (Exception e) {
         }
         if (control.getSurface() != null) {
             control.getSurface().reset();
@@ -518,13 +526,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         waitingParticleIndex = 0;
         checkWaitingParticleIndex();
 
-         for (SimulationActionListener l : listener) {
-                try {
-                    l.simulationRESET(this);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        for (SimulationActionListener l : listener) {
+            try {
+                l.simulationRESET(this);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+        }
     }
 
     /**
@@ -957,7 +965,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                         if (tc.barrier_particle != null) {
                             int running = 0, waiting = 0;
-                            if (!pauseRevokerThread && steps>0&&(run && steps == laststep)) {
+                            if (!pauseRevokerThread && steps > 0 && (run && steps == laststep)) {
                                 // something is incredibly slow. prepare output to console
                                 StringBuilder str = new StringBuilder("--" + getClass() + "--detected hanging at loop " + steps + " called barrier: " + (calledObject) + "   :");
                                 str.append("\n lastfinishedBarrier: " + lastFinishedBarrier + "  :  " + controlThread.barrier + ",," + "\t control.status=" + controlThread.status + " (" + controlThread.getState() + ")  listener: " + controlThread.lastenvokenListener);

@@ -29,7 +29,7 @@ import com.saemann.gulli.core.model.surface.Surface;
  *
  * @author saemann
  */
-public class Connection_Manhole_Surface implements Connection_Manhole {
+public class Connection_Manhole_Surface implements Connection_Manhole, Connection_ToSurface {
 
     protected StorageVolume manhole;
 
@@ -70,6 +70,21 @@ public class Connection_Manhole_Surface implements Connection_Manhole {
     @Override
     public Capacity getConnectedCapacity() {
         return surf;
+    }
+
+    @Override
+    public boolean emitsToSurfaceDomain() {
+       return true;
+    }
+
+    @Override
+    public Capacity targetCapacity() {
+        return surf;
+    }
+
+    @Override
+    public int targetSurfaceID() {
+        return surfaceTriangleId;
     }
 
 }

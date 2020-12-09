@@ -1514,7 +1514,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //            actualVelocity = new double[triangleNodes.length][];
 //        }
         if (actualVelocityUsed && actualVelocitySet != null) {
-            actualVelocitySet = new boolean[triangleNodes.length];
+            for (int i = 0; i < actualVelocitySet.length; i++) {
+                if(actualVelocitySet[i]){
+                    actualVelocitySet[i]=false;
+                }
+            }
+//            actualVelocitySet = new boolean[triangleNodes.length];
             actualVelocityUsed = false;
         }
     }

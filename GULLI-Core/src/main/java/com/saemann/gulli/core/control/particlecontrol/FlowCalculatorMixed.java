@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.control.maths.RandomArray;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -31,6 +30,7 @@ import com.saemann.gulli.core.model.topology.Connection_Manhole;
 import com.saemann.gulli.core.model.topology.Connection_Manhole_Pipe;
 import com.saemann.gulli.core.model.topology.Connection_Manhole_Surface;
 import com.saemann.gulli.core.model.topology.Manhole;
+import com.saemann.gulli.core.model.topology.Manhole_SurfaceBucket;
 
 /**
  * This class calculates the probabilities of particle movement. Where they
@@ -130,8 +130,17 @@ public class FlowCalculatorMixed implements FlowCalculator {
 //                System.out.println("spill to surface through connection " + mh.getTopConnection());
                 //Spill out to surface
                 if (mh.getTopConnection() == null) {
-                    Connection_Manhole_Surface ch = new Connection_Manhole_Surface(mh, mh.getPosition3D(0), mh.getSurfaceTriangleID(), null);
-                    mh.setTopConnection(ch);
+                    if (mh.getSurfaceTriangleID() < 0) {
+//                        System.out.println("Create replacements for real surface connection, because manhole referenced surface cell id is "+mh.getSurfaceTriangleID());
+                        //There is no surface attached
+                        Manhole_SurfaceBucket ch = new Manhole_SurfaceBucket(mh, mh.getPosition3D(0));
+                        mh.setTopConnection(ch);
+                        return ch;
+                    } else {
+                        Connection_Manhole_Surface ch = new Connection_Manhole_Surface(mh, mh.getPosition3D(0), mh.getSurfaceTriangleID(), null);
+                        mh.setTopConnection(ch);
+                        return ch;
+                    }
                 }
                 return mh.getTopConnection();
             }

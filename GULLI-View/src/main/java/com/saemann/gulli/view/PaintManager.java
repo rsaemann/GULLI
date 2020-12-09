@@ -69,6 +69,7 @@ import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.LinePainting;
 import com.saemann.rgis.view.shapes.NodePainting;
 import org.geotools.referencing.CRS;
+import org.geotools.referencing.operation.projection.ProjectionException;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -2124,6 +2125,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             }
 
                             nb_surface++;
+                        } catch (ProjectionException pe) {
                         } catch (Exception ex) {
                             Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                         }

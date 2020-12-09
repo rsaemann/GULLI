@@ -32,14 +32,18 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.injection.HEInjectionInformation;
 import com.saemann.gulli.core.control.scenario.injection.HE_MessdatenInjection;
+import com.saemann.gulli.core.control.threads.ThreadController;
+import com.saemann.gulli.core.io.FileContainer;
 import com.saemann.gulli.core.io.extran.CSV_IO;
 import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.SHP_IO_GULLI;
+import com.saemann.gulli.core.io.Setup_IO;
 import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
 import com.saemann.gulli.core.io.swmm.SWMM_IO;
 import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
 import com.saemann.gulli.core.io.extran.HE_GDB_IO;
 import com.saemann.gulli.core.io.extran.HE_InletReference;
+import com.saemann.gulli.core.io.swmm.SWMM_Out_Reader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -56,7 +60,10 @@ import com.saemann.gulli.core.model.particle.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.SurfaceVelocityLoader;
 import com.saemann.gulli.core.model.surface.SurfaceWaterlevelLoader;
+import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManholeContainer;
+import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
+import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLinePipeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
@@ -478,9 +485,9 @@ public class LoadingCoordinator {
                 TimeIndexContainer timeContainerPipe = null;
                 TimeIndexContainer timeContainerManholes = null;
                 //Load manualInjections. Neede to calculate transport paths.
-                ArrayList<HEInjectionInformation> he_injection = null;
+
                 if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
-                    action.description = "Open Database";
+                    action.description = "Open HE Database";
                     if (resultDatabase == null || !resultDatabase.getDatabaseFile().getAbsolutePath().equals(fileMainPipeResult.getAbsolutePath())) {
                         if (tempFBDB != null && tempFBDB.getDatabaseFile().equals(fileMainPipeResult)) {
                             resultDatabase = tempFBDB;
@@ -488,6 +495,7 @@ public class LoadingCoordinator {
                             resultDatabase = new HE_Database(fileMainPipeResult, true);
                         }
                     }
+                    ArrayList<HEInjectionInformation> he_injection = null;
                     resultName = resultDatabase.readResultname();
                     scenarioName = resultName;
                     action.description = "Load spill events";
@@ -646,6 +654,14 @@ public class LoadingCoordinator {
                         loaded = true;
                         resultDatabase.close();
                     }
+                } else if (fileMainPipeResult.getName().endsWith("out")) {
+                    //SWMM 5 output file
+                    action.description = "Open out file";
+                    SWMM_Out_Reader reader = new SWMM_Out_Reader(fileMainPipeResult);
+                    Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(network, reader, new ArrayList(0), new ArrayList(0), zeroTimeStart);
+                    timeContainerPipe = cs.first;
+                    timeContainerManholes = cs.second;
+                    loaded = true;
                 }
 
                 if (!loaded) {
@@ -1233,7 +1249,7 @@ public class LoadingCoordinator {
         return fileSurfaceCoordsDAT.getParentFile();
     }
 
-    public void setSurfaceWaterlevelFile(File wlFile) {
+    public void setSurfaceFlowfieldFile(File wlFile) {
         if (wlFile == null) {
             this.loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
             this.fileSurfaceWaterlevels = null;
@@ -1395,7 +1411,7 @@ public class LoadingCoordinator {
                 setSurfaceTopologyDirectory(sf);
             }
             File wlf = findCorrespondingWaterlevelFile(pipeResult);
-            setSurfaceWaterlevelFile(wlf);
+            setSurfaceFlowfieldFile(wlf);
 
         }
     }
@@ -1464,7 +1480,7 @@ public class LoadingCoordinator {
             }
             return resultFile; //information about the pipe network can also be found inside the result.
         } else if (resultFile.getName().endsWith("rpt")) {
-            // SWMM Result file
+            // SWMM Report file
             String newfile = resultFile.getAbsolutePath();
             newfile = newfile.replaceAll("results_", "inputfile_");
             newfile = newfile.substring(0, newfile.length() - 3) + "inp";
@@ -1477,12 +1493,42 @@ public class LoadingCoordinator {
                 return file;
             }
             System.out.println("Corresponding SWMM network not found @" + file.getAbsolutePath());
+        } else if (resultFile.getName().endsWith("out")) {
+            try {
+                // SWMM output file
+                File f = new File(resultFile.getParentFile(), resultFile.getName().replace(".out", ".inp"));
+
+                if (f.exists()) {
+                    if (verbose) {
+                        System.out.println("Corresponding SWMM network '" + f.getAbsolutePath() + "'");
+                    }
+                    return f;
+                }
+                //test in parent directory
+                f = new File(resultFile.getParentFile().getParentFile(), f.getName());
+                if (f.exists()) {
+                    return f;
+                }
+                //Search for the first *.inp file to find
+                for (File fi : resultFile.getParentFile().listFiles()) {
+                    if (fi.isFile() && fi.getName().toLowerCase().endsWith(".inp")) {
+                        return fi;
+                    }
+                }
+
+                System.out.println("Corresponding SWMM network not found @" + f.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return null;
     }
 
     public static File findCorrespondingSurfaceDirectory(File resultFile) throws SQLException, IOException {
         if (resultFile.getName().endsWith("rpt")) {
+            return null;
+        }
+        if (resultFile.getName().endsWith("out")) {
             return null;
         }
         if (tempFBDB == null || !resultFile.equals(tempFBDB.getDatabaseFile())) {
@@ -1546,86 +1592,6 @@ public class LoadingCoordinator {
             System.err.println("Can not find Surface dynamics at " + resultGDB.getAbsolutePath());
         }
         return null;
-    }
-
-    /**
-     * Stores all Files that are connected for an event.
-     */
-    public class FileContainer {
-
-        private File pipeResult, pipeNetwork;
-
-        private File surfaceResult;
-        private File surfaceDirectory;
-        private File inlets;
-
-        private boolean pipeResultLoaded, pipeNetworkLoaded, surfaceResultLoaded, surfaceTopologyLoaded;
-
-        public FileContainer(File pipeResult, File pipeNetwork, File surfaceResult, File surfaceDirectory, File inlets) {
-            this.pipeResult = pipeResult;
-            this.pipeNetwork = pipeNetwork;
-            this.surfaceResult = surfaceResult;
-            this.surfaceDirectory = surfaceDirectory;
-            this.inlets = inlets;
-        }
-
-        public boolean isPipeResultLoaded() {
-            return pipeResultLoaded;
-        }
-
-        public void setPipeResultLoaded(boolean pipeResultLoaded) {
-            this.pipeResultLoaded = pipeResultLoaded;
-        }
-
-        public boolean isPipeNetworkLoaded() {
-            return pipeNetworkLoaded;
-        }
-
-        public void setPipeNetworkLoaded(boolean pipeNetworkLoaded) {
-            this.pipeNetworkLoaded = pipeNetworkLoaded;
-        }
-
-        public boolean isSurfaceResultLoaded() {
-            return surfaceResultLoaded;
-        }
-
-        public void setSurfaceResultLoaded(boolean surfaceResultLoaded) {
-            this.surfaceResultLoaded = surfaceResultLoaded;
-        }
-
-        public boolean isSurfaceTopologyLoaded() {
-            return surfaceTopologyLoaded;
-        }
-
-        public void setSurfaceTopologyLoaded(boolean surfaceTopologyLoaded) {
-            this.surfaceTopologyLoaded = surfaceTopologyLoaded;
-        }
-
-        public File getPipeResult() {
-            return pipeResult;
-        }
-
-        public File getPipeNetwork() {
-            return pipeNetwork;
-        }
-
-        public File getSurfaceResult() {
-            return surfaceResult;
-        }
-
-        public File getSurfaceDirectory() {
-            return surfaceDirectory;
-        }
-
-        public File getInlets() {
-            return inlets;
-        }
-
-        @Override
-        public String toString() {
-            return "FileContainer{" + "pipeResult=" + pipeResult + ", pipeNetwork=" + pipeNetwork + ", surfaceResult=" + surfaceResult + ", surfaceDirectory=" + surfaceDirectory + ", inlets=" + inlets + ", pipeResultLoaded=" + pipeResultLoaded + ", pipeNetworkLoaded=" + pipeNetworkLoaded + ", surfaceResultLoaded=" + surfaceResultLoaded + ", surfaceTopologyLoaded=" + surfaceTopologyLoaded + '}';
-        }
-
     }
 
     public static TimeIndexContainer createTimeContainer(long start, long end, int numbertimesteps) {
@@ -1718,6 +1684,19 @@ public class LoadingCoordinator {
         return tempFBDB;
     }
 
+    public boolean loadSetup(File file) {
+        try {
+            Setup setup = Setup_IO.load(file);
+            if (setup != null) {
+                this.applySetup(setup);
+                return true;
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
     /**
      * Prepare everything for loading a setup with information about files and
      * manualInjections.
@@ -1725,20 +1704,31 @@ public class LoadingCoordinator {
      * @param setup
      */
     public void applySetup(Setup setup) {
-        this.setPipeResultsFile(setup.resultFile_HE, true);
+        this.setPipeResultsFile(setup.files.pipeResult, true);
         try {
-            this.requestDependentFiles(setup.resultFile_HE, setup.useSurface, true);
-        } catch (SQLException ex) {
-            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        this.manualInjections.clear();
-        if (setup.injections != null && setup.injections.length > 0) {
-            for (InjectionInformation in : setup.injections) {
-                this.manualInjections.add(in);
+            this.requestDependentFiles(setup.files.pipeResult, setup.useSurface, true);
+            if (setup.files.pipeNetwork != null && setup.files.pipeNetwork.exists()) {
+                if (!setup.files.pipeNetwork.equals(this.fileNetwork)) {
+                    this.setPipeNetworkFile(setup.files.pipeNetwork);
+                }
             }
+            if (setup.files.surfaceDirectory != null && setup.files.surfaceDirectory.exists()) {
+                this.setSurfaceTopologyDirectory(setup.files.surfaceDirectory);
+            }
+            if (setup.files.surfaceResult != null && setup.files.surfaceResult.exists()) {
+                this.setSurfaceFlowfieldFile(setup.files.surfaceResult);
+            }
+
+            this.manualInjections.clear();
+            if (setup.injections != null && setup.injections.size() > 0) {
+                for (InjectionInformation in : setup.injections) {
+                    this.manualInjections.add(in);
+                }
+            }
+        } catch (Exception ex) {
+            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
+        control.getThreadController().setDeltaTime(setup.getTimestepTransport());
     }
 
     /**
@@ -1768,7 +1758,31 @@ public class LoadingCoordinator {
             }
         }
         if (files.surfaceResult != null) {
-            this.setSurfaceWaterlevelFile(files.surfaceResult);
+            this.setSurfaceFlowfieldFile(files.surfaceResult);
         }
+    }
+
+    public boolean saveSetup(File file) throws IOException {
+        //Create new setup and store the information
+        Setup setup = new Setup();
+        setup.files = new FileContainer(fileMainPipeResult, fileNetwork, fileSurfaceWaterlevels, fileSurfaceCoordsDAT.getParentFile(), null);
+        setup.injections = manualInjections;
+        setup.scenario = scenario;
+
+        setup.setTimestepTransport(ThreadController.getDeltaTime());
+
+        ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
+        setup.setPipeMeasurementtimestep(mp.getDeltaTimeS());
+        setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
+        setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
+        setup.setPipeMeasurementSynchronize(ArrayTimeLineMeasurement.synchronizeMeasures);
+
+        SurfaceMeasurementRaster sr = control.getScenario().getMeasurementsSurface();
+        setup.setSurfaceMeasurementtimestep((sr.getIndexContainer().getTimeMilliseconds(1) - sr.getIndexContainer().getTimeMilliseconds(0)) / 1000.);
+        setup.setSurfaceMeasurementTimeContinuous(sr.continousMeasurements);
+        setup.setSurfaceMeasurementSynchronize(SurfaceMeasurementRaster.synchronizeMeasures);
+
+        return Setup_IO.saveScenario(file, setup);
+
     }
 }

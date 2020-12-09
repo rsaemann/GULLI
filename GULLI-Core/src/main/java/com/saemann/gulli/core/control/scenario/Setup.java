@@ -23,20 +23,170 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
+import com.saemann.gulli.core.control.particlecontrol.DiffusionCalculator2D;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
-import java.io.File;
+import com.saemann.gulli.core.io.FileContainer;
+import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
+import java.util.Collection;
 
 /**
- * Information about Filepaths to a model, injectioninformation and controller
- * setup
+ * information about one simulation setup and its scenario
  *
  * @author saemann
  */
 public class Setup {
 
-    public File resultFile_HE;
+    public FileContainer files;
+
+    public boolean useSurface = true;
+
+    public Scenario scenario;
+
+    public Collection<InjectionInformation> injections;
+    private boolean loadResultInjections = true;
+
+    protected double timestepTransport = 1;
+    protected DiffusionCalculator2D diffusion;
+    protected double networkdispersion = 2;
+
+    protected double pipeMeasurementtimestep = 300;
+    protected boolean pipeMeasurementSynchronize = true;
+    protected boolean pipeMeasurementSpatialConsistent = true;
+    protected boolean pipeMeasurementTimeContinuous = false;
+
+    protected double surfaceMeasurementtimestep = 300;
+    protected boolean surfaceMeasurementSynchronize = true;
+    protected boolean surfaceMeasurementTimeContinuous = true;
+    protected SurfaceMeasurementRaster surfaceMeasurementRasterClass;
+
+    public FileContainer getFiles() {
+        return files;
+    }
+
+    public void setFiles(FileContainer files) {
+        this.files = files;
+    }
+
+    public boolean isUseSurface() {
+        return useSurface;
+    }
+
+    public void setUseSurface(boolean useSurface) {
+        this.useSurface = useSurface;
+    }
+
+    public Scenario getScenario() {
+        return scenario;
+    }
+
+    public void setScenario(Scenario scenario) {
+        this.scenario = scenario;
+    }
+
+    public Collection<InjectionInformation> getInjections() {
+        return injections;
+    }
+
+    public void setInjections(Collection<InjectionInformation> injections) {
+        this.injections = injections;
+    }
+
+    public double getTimestepTransport() {
+        return timestepTransport;
+    }
+
+    public void setTimestepTransport(double timestepTransport) {
+        this.timestepTransport = timestepTransport;
+    }
+
+    public double getPipeMeasurementtimestep() {
+        return pipeMeasurementtimestep;
+    }
+
+    public void setPipeMeasurementtimestep(double pipeMeasurementtimestep) {
+        this.pipeMeasurementtimestep = pipeMeasurementtimestep;
+    }
+
+    public boolean isPipeMeasurementSynchronize() {
+        return pipeMeasurementSynchronize;
+    }
+
+    public void setPipeMeasurementSynchronize(boolean pipeMeasurementSynchronize) {
+        this.pipeMeasurementSynchronize = pipeMeasurementSynchronize;
+    }
+
+    public boolean isPipeMeasurementSpatialConsistent() {
+        return pipeMeasurementSpatialConsistent;
+    }
+
+    public void setPipeMeasurementSpatialConsistent(boolean pipeMeasurementSpatialConsistent) {
+        this.pipeMeasurementSpatialConsistent = pipeMeasurementSpatialConsistent;
+    }
+
+    public boolean isPipeMeasurementTimeContinuous() {
+        return pipeMeasurementTimeContinuous;
+    }
+
+    public void setPipeMeasurementTimeContinuous(boolean pipeMeasurementTimeContinuous) {
+        this.pipeMeasurementTimeContinuous = pipeMeasurementTimeContinuous;
+    }
+
+    public double getSurfaceMeasurementtimestep() {
+        return surfaceMeasurementtimestep;
+    }
+
+    public void setSurfaceMeasurementtimestep(double surfaceMeasurementtimestep) {
+        this.surfaceMeasurementtimestep = surfaceMeasurementtimestep;
+    }
+
+    public boolean isSurfaceMeasurementSynchronize() {
+        return surfaceMeasurementSynchronize;
+    }
+
+    public void setSurfaceMeasurementSynchronize(boolean surfaceMeasurementSynchronize) {
+        this.surfaceMeasurementSynchronize = surfaceMeasurementSynchronize;
+    }
+
+    public boolean isSurfaceMeasurementTimeContinuous() {
+        return surfaceMeasurementTimeContinuous;
+    }
+
+    public void setSurfaceMeasurementTimeContinuous(boolean surfaceMeasurementTimeContinuous) {
+        this.surfaceMeasurementTimeContinuous = surfaceMeasurementTimeContinuous;
+    }
+
+    public boolean isLoadResultInjections() {
+        return loadResultInjections;
+    }
+
+    public void setLoadResultInjections(boolean loadResultInjections) {
+        this.loadResultInjections = loadResultInjections;
+    }
+
+    public DiffusionCalculator2D getSurfaceDiffusion() {
+        return diffusion;
+    }
+
+    public void setSurfaceDiffusion(DiffusionCalculator2D diffusion) {
+        this.diffusion = diffusion;
+    }
+
+    public double getNetworkdispersion() {
+        return networkdispersion;
+    }
+
+    public void setNetworkdispersion(double networkdispersion) {
+        this.networkdispersion = networkdispersion;
+    }
+
+    public SurfaceMeasurementRaster getSurfaceMeasurementRasterClass() {
+        return surfaceMeasurementRasterClass;
+    }
+
+    public void setSurfaceMeasurementRasterClass(SurfaceMeasurementRaster surfaceMeasurementRasterClass) {
+        this.surfaceMeasurementRasterClass = surfaceMeasurementRasterClass;
+    }
     
-    public boolean useSurface=true;
     
-    public InjectionInformation[] injections;
+
 }

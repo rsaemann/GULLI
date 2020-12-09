@@ -87,7 +87,7 @@ public class TestRun {
 //                lc.setPipeNetworkFile(NETWORKFILE);
 //                lc.setPipeResultsFile(NETWORKVELOCITIES);
 //                lc.setSurfaceTopologyDirectory(SURFACE DIRECTORY);
-//                lc.setSurfaceWaterlevelFile(SURFACEWATERLEVELANDVELOCITY);
+//                lc.setSurfaceFlowfieldFile(SURFACEWATERLEVELANDVELOCITY);
 //Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
         //Load the topography files to prepare the simulation
         System.out.println("Loading the domain & pipe system geometries.");

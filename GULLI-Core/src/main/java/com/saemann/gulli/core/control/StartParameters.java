@@ -51,6 +51,7 @@ public class StartParameters {
     private static String pictureExportPath;
     private static int controlFrameX = 40, controlFrameY = 50, controlFrameW = 270, controlFrameH = 1000;
     private static int mapFrameX = 330, mapFrameY = 50, mapFrameW = 1100, mapFrameH = 800;
+    private static boolean mapFrameFullscreen = false;
     private static int timelinepanelX = 1200;
     private static int timelinepanelY = 200;
     private static int timelinepanelWidth = 500;
@@ -98,6 +99,9 @@ public class StartParameters {
                         mapFrameY = Integer.parseInt(values[1]);
                         mapFrameW = Integer.parseInt(values[2]);
                         mapFrameH = Integer.parseInt(values[3]);
+                        if (values.length > 4) {
+                            mapFrameFullscreen = Boolean.parseBoolean(values[4]);
+                        }
                     } catch (Exception exception) {
                         exception.printStackTrace();
                     }
@@ -182,15 +186,15 @@ public class StartParameters {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileStartParameter))) {
             bw.write("startFile=" + (startFilePath != null ? startFilePath : ""));
             bw.newLine();
-            bw.write("streetInlets_ShapefilePath=" + (streetinletsPath != null ? streetinletsPath : ""));
-            bw.newLine();
+//            bw.write("streetInlets_ShapefilePath=" + (streetinletsPath != null ? streetinletsPath : ""));
+//            bw.newLine();
             bw.write("subsurfaceVTU=" + (pathUndergroundVTU != null ? pathUndergroundVTU : ""));
             bw.flush();
             bw.newLine();
             bw.newLine();
             bw.write("## Frame bounds");
             bw.newLine();
-            bw.write("mapFrame=" + mapFrameX + "," + mapFrameY + "," + mapFrameW + "," + mapFrameH);
+            bw.write("mapFrame=" + mapFrameX + "," + mapFrameY + "," + mapFrameW + "," + mapFrameH + "," + mapFrameFullscreen);
             bw.newLine();
             bw.write("controlFrame=" + controlFrameX + "," + controlFrameY + "," + controlFrameW + "," + controlFrameH);
             bw.newLine();
@@ -221,6 +225,15 @@ public class StartParameters {
 
     public static String getStartFilePath() {
         return startFilePath;
+    }
+
+    public static void setStartFilePath(String pathToResultFile) {
+        startFilePath = pathToResultFile;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public static String getPathUndergroundVTU() {
@@ -338,6 +351,15 @@ public class StartParameters {
         }
     }
 
+    public static void setMapFrameFullscreen(boolean fullscreen) {
+        mapFrameFullscreen = fullscreen;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
     public static void setMapFrameBounds(int x, int y, int w, int h) {
         mapFrameX = x;
         mapFrameY = y;
@@ -364,6 +386,10 @@ public class StartParameters {
 
     public static Rectangle getMapFrameBounds() {
         return new Rectangle(mapFrameX, mapFrameY, mapFrameW, mapFrameH);
+    }
+
+    public static boolean isMapFrameFullscreen() {
+        return mapFrameFullscreen;
     }
 
     public static Rectangle getControlFrameBounds() {

@@ -116,7 +116,7 @@ public class InjectionPanelPointlocation extends JPanel {
                 } else {
                     if (info.getCapacityName() != null) {
                         buttonSetPosition.setText("?>" + info.getCapacityName());
-                        buttonSetPosition.setToolTipText("search for " + info.getCapacity().toString() + "; Click here to select position on map.");
+                        buttonSetPosition.setToolTipText("search for " + info.getCapacityName() + "; Click here to select position on map.");
                     }
                 }
             } else {

@@ -70,8 +70,8 @@ import org.freehep.graphicsio.emf.gdi.StrokeAndFillPath;
 import org.freehep.graphicsio.emf.gdi.StrokePath;
 import org.freehep.graphicsio.emf.gdi.TextW;
 import org.freehep.graphicsio.font.FontTable;
-import org.freehep.util.UserProperties;
-import org.freehep.util.images.ImageUtilities;
+import org.freehep.graphicsbase.util.UserProperties;
+import org.freehep.graphicsbase.util.images.ImageUtilities;
 
 /**
  *

@@ -58,6 +58,9 @@ public class ContaminationParticles implements OutputIntention {
     @Override
     public File writeOutput(StoringCoordinator sc) {
         try {
+            if (sc.getSurface() == null) {
+                return null;
+            }
             File file = new File(sc.getFileRoot(), "Contamination.csv");
             HE_SurfaceIO.writeSurfaceContaminationCSV(file, sc.getSurface());
             return file;

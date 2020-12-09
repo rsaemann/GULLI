@@ -100,6 +100,7 @@ public class ContaminationShape implements OutputIntention {
         }
         if (shapes == null || shapes.isEmpty()) {
             System.out.println("No Shape files created.");
+            return null;
         }
         if (fileformat == StoringCoordinator.FileFormat.SHP) {
             File shpfile = new File(fileRoot, name + ".shp");

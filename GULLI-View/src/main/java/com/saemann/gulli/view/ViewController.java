@@ -1,7 +1,25 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * The MIT License
+ *
+ * Copyright 2018 Robert Sämann.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 package com.saemann.gulli.view;
 
@@ -19,6 +37,7 @@ import com.saemann.gulli.view.timeline.CapacityTimelinePanel;
 import com.saemann.gulli.view.timeline.EditorTableFrame;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
+import java.awt.Frame;
 
 /**
  * Controls the interfaces between GUI/view and core-Controller
@@ -50,7 +69,7 @@ public class ViewController {
         controlFrame.setVisible(true);
 
         //TableFrame
-        timeLineFrame = new EditorTableFrame("No pipe or manhole selected yet", control,this);
+        timeLineFrame = new EditorTableFrame("No pipe or manhole selected yet", control, this);
         timeLineFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         timelinePanel = timeLineFrame.getTimelinePanel();//new CapacityTimelinePanel("Nothing selected yet", c);// new TimelinePanel("Select Pipe or Manhole", false);
 
@@ -65,12 +84,21 @@ public class ViewController {
         mapFrame.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentMoved(ComponentEvent e) {
-                StartParameters.setMapFrameBounds(mapFrame.getX(), mapFrame.getY(), mapFrame.getWidth(), mapFrame.getHeight());
+                if (mapFrame.getExtendedState() == Frame.NORMAL) {
+                    StartParameters.setMapFrameBounds(mapFrame.getX(), mapFrame.getY(), mapFrame.getWidth(), mapFrame.getHeight());
+                }
             }
 
             @Override
             public void componentResized(ComponentEvent e) {
-                StartParameters.setMapFrameBounds(mapFrame.getX(), mapFrame.getY(), mapFrame.getWidth(), mapFrame.getHeight());
+                if (mapFrame.getExtendedState() == Frame.NORMAL) {
+                    StartParameters.setMapFrameBounds(mapFrame.getX(), mapFrame.getY(), mapFrame.getWidth(), mapFrame.getHeight());
+                }
+                if (mapFrame.getExtendedState() == Frame.MAXIMIZED_BOTH) {
+                    StartParameters.setMapFrameFullscreen(true);
+                } else {
+                    StartParameters.setMapFrameFullscreen(false);
+                }
             }
         });
 

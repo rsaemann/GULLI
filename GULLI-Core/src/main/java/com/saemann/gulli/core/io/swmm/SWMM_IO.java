@@ -247,6 +247,7 @@ public class SWMM_IO {
         /**
          * SCHÄCHTE
          */
+        int manualID = 0;
         System.out.println("Converting Manholes");
         CircularProfile mh_profile = new CircularProfile(1.2);
         for (Map.Entry<String, Junction> p : junctions.entrySet()) {
@@ -263,6 +264,8 @@ public class SWMM_IO {
 
                 }
                 Manhole mh = new Manhole(buildPosition(utm, utm2wgs/*, utm42wgs*/), p.getKey(), mh_profile);
+                mh.setManualID(manualID);
+                manualID++;
                 mh.setTop_height((float) (p.getValue().elevation + p.getValue().maxdepth));
                 mh.setSurface_height(mh.getTop_height());
                 mh.setSole_height((float) (p.getValue().elevation));
@@ -282,6 +285,8 @@ public class SWMM_IO {
                     continue;
                 }
                 Manhole mh = new Manhole(buildPosition(utm, utm2wgs/*, utm42wgs*/), p.getKey(), mh_profile);
+                mh.setManualID(manualID);
+                manualID++;
                 mh.setAsOutlet(true);
                 mh.setName(p.getKey());
                 mh.setTop_height((float) p.getValue().invert);
@@ -305,6 +310,8 @@ public class SWMM_IO {
                         continue;
                     }
                     Manhole mh = new Manhole(buildPosition(utm, utm2wgs/*, utm42wgs*/), p.getKey(), mh_profile);
+                    mh.setManualID(manualID);
+                    manualID++;
                     if (p.getValue().type.equals("OVERFLOW")) {
                         mh.setTop_height((float) (p.getValue().invert + p.getValue().param1));
                     } else if (p.getValue().type.equals("WEIR")) {
@@ -330,6 +337,8 @@ public class SWMM_IO {
                     continue;
                 }
                 Manhole mh = new Manhole(buildPosition(utm, utm2wgs/*, utm42wgs*/), p.getKey(), mh_profile);
+                mh.setManualID(manualID);
+                manualID++;
                 mh.setTop_height((float) (p.getValue().elevation + p.getValue().maxdepth));
                 mh.setSurface_height(mh.getTop_height());
                 mh.setSole_height((float) (p.getValue().elevation));
@@ -1692,6 +1701,17 @@ public class SWMM_IO {
 
     }
 
+    /**
+     * Read Results from a SWMM result file (*.rpt) and add timelines to the
+     * network (read before from the '.inp file)
+     *
+     * @param fileTimelines
+     * @param network
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ParseException
+     */
     public static Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> readTimeLines(File fileTimelines, Network network) throws FileNotFoundException, IOException, ParseException {
         ArrayTimeLineManholeContainer manholecontaineR = null;
         ArrayTimeLinePipeContainer pipeContainer = null;
@@ -1908,7 +1928,9 @@ public class SWMM_IO {
                     break;
                 }
                 String[] splits = line.trim().replaceAll(" +", " ").split(" ");
-                if(splits==null||splits.length<6)continue;
+                if (splits == null || splits.length < 6) {
+                    continue;
+                }
                 String name = splits[0];
                 float volume = Float.parseFloat(splits[5]);
                 map.put(name, volume);

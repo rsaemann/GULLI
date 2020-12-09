@@ -10,8 +10,11 @@ import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.threads.ThreadController;
+import com.saemann.gulli.core.io.FileContainer;
+import com.saemann.gulli.core.io.Setup_IO;
 import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.extran.Raingauge_Firebird;
 import java.awt.BorderLayout;
@@ -82,6 +85,8 @@ import com.saemann.gulli.view.timeline.SeriesKey;
 import com.saemann.gulli.view.timeline.TimeSeriesEditorTablePanel;
 import com.saemann.gulli.view.video.GIFVideoCreator;
 import com.saemann.rgis.view.MapViewer;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import org.jfree.ui.FilesystemFilter;
 
 /**
  * This Panel controls one single Simulation and displays information about the
@@ -116,6 +121,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JCheckBox checkVelocityFunction;
     private JTextField textDispersionPipe, textDispersionSurface;
     private JFormattedTextField textSeed;
+    private JButton buttonSetupSave, buttonSetupLoad;
     private JButton buttonFileNetwork, buttonFilePipeResult;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
     private JButton buttonFileSurface, buttonFileWaterdepths;
@@ -269,6 +275,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             @Override
             public void actionPerformed(ActionEvent ae) {
                 InjectionInformation ininfo = new InjectionInformation(0, 1, 1000, new Material("neu", 1000, true), 0, 1);
+                ininfo.spillOnSurface = control.getSurface() != null;
                 control.getLoadingCoordinator().addManualInjection(ininfo);
                 control.recalculateInjections();
                 SingleControllPanel.this.updateGUI();
@@ -367,7 +374,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelMcheck.add(checkMeasureContinouslyPipe);
         panelMcheck.add(checkMeasureResidenceTimePipe);
         panelMcheck.add(checkMeasureSynchronisedPipe);
-        
+
         panelMeasurementsPipe.add(panelMcheck, BorderLayout.SOUTH);
         panelMeasurement.add(panelMeasurementsPipe);
         panelTabSimulation.add(panelMeasurement);
@@ -493,6 +500,72 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         /////////////////////
         ///// ACTION Listener
+        buttonSetupSave.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                buttonSetupSave.setForeground(Color.darkGray);
+                String folder = "";
+                if (control.getLoadingCoordinator().getFileNetwork() != null) {
+                    folder = control.getLoadingCoordinator().getFileNetwork().getAbsolutePath();
+                }
+                JFileChooser fc = new JFileChooser(folder);
+                fc.setFileFilter(new FileNameExtensionFilter("Project file (*.xml)", "xml"));
+                int n = fc.showSaveDialog(SingleControllPanel.this);
+                if (n == JFileChooser.APPROVE_OPTION) {
+                    File f = fc.getSelectedFile();
+                    if (!f.getName().endsWith(".xml")) {
+                        f = new File(f.getAbsolutePath() + ".xml");
+                    }
+                    if (f.exists()) {
+                        n = JOptionPane.showConfirmDialog(buttonSetupSave, "Override existing file?", f.getName() + " already exists", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+                        if (n != JOptionPane.OK_OPTION) {
+                            return;
+                        }
+                    }
+                    try {
+                        if (control.getLoadingCoordinator().saveSetup(f)) {
+                            buttonSetupSave.setForeground(Color.green.darker());
+                        } else {
+                            buttonSetupSave.setForeground(Color.red.darker());
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        buttonSetupSave.setForeground(Color.red.darker());
+                    }
+                }
+            }
+        });
+        
+         buttonSetupLoad.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                buttonSetupLoad.setForeground(Color.darkGray);
+                String folder = "";
+                if (control.getLoadingCoordinator().getFileNetwork() != null) {
+                    folder = control.getLoadingCoordinator().getFileNetwork().getAbsolutePath();
+                }
+                JFileChooser fc = new JFileChooser(folder);
+                fc.setFileFilter(new FileNameExtensionFilter("Project file (*.xml)", "xml"));
+                int n = fc.showOpenDialog(SingleControllPanel.this);
+                if (n == JFileChooser.APPROVE_OPTION) {
+                    File f = fc.getSelectedFile();
+                    if (!f.getName().endsWith(".xml")) {
+                        f = new File(f.getAbsolutePath() + ".xml");
+                    }
+                    try {
+                        Setup setup = Setup_IO.load(f);
+                        if(setup!=null){
+                            control.getLoadingCoordinator().applySetup(setup);
+                            buttonSetupLoad.setForeground(Color.green.darker());
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        buttonSetupLoad.setForeground(Color.red.darker());
+                    }
+                }
+            }
+        });
+
         buttonFileNetwork.addActionListener(new ActionListener() {
 
             @Override
@@ -519,7 +592,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     folder = control.getLoadingCoordinator().getFileNetwork().getAbsolutePath();
                 }
                 JFileChooser fc = new JFileChooser(folder);
-                fc.setFileFilter(new FileFilter() {
+                fc.setFileFilter(new FilesystemFilter(new String[]{"idbr", "idbf", "out"}, "HE / SWMM", true));
+                fc.addChoosableFileFilter(new FileFilter() {
 
                     @Override
                     public boolean accept(File file) {
@@ -534,12 +608,27 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         return ".idbf/.idbr HESQL";
                     }
                 });
+                fc.addChoosableFileFilter(new FileFilter() {
+
+                    @Override
+                    public boolean accept(File file) {
+                        if (file.isDirectory()) {
+                            return true;
+                        }
+                        return file.getName().toLowerCase().endsWith(".out") || file.getName().toLowerCase().endsWith(".rpt");
+                    }
+
+                    @Override
+                    public String getDescription() {
+                        return ".out/.irpt SWMM5";
+                    }
+                });
                 int n = fc.showOpenDialog(SingleControllPanel.this);
                 if (n == fc.APPROVE_OPTION) {
                     //Does Network fit to this result?
                     //Find corresponding Network model file
                     try {
-                        LoadingCoordinator.FileContainer c = control.getLoadingCoordinator().findDependentFiles(fc.getSelectedFile(), true);
+                        FileContainer c = control.getLoadingCoordinator().findDependentFiles(fc.getSelectedFile(), true);
 
                         //Find corresponding waterlevel file
                         String question = "Load corresponding files?";
@@ -575,7 +664,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 control.getLoadingCoordinator().setSurfaceTopologyDirectory(c.getSurfaceDirectory());
                             }
                             if (!c.isSurfaceResultLoaded() && c.getSurfaceResult() != null) {
-                                control.getLoadingCoordinator().setSurfaceWaterlevelFile(c.getSurfaceResult());
+                                control.getLoadingCoordinator().setSurfaceFlowfieldFile(c.getSurfaceResult());
                             }
                         }
                         updateGUI();
@@ -707,7 +796,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 return;
                             }
                             try {
-                                control.getLoadingCoordinator().setSurfaceWaterlevelFile(fc.getSelectedFile());
+                                control.getLoadingCoordinator().setSurfaceFlowfieldFile(fc.getSelectedFile());
                                 buttonFileWaterdepths.setToolTipText("Waterlevel: " + fc.getSelectedFile().getAbsolutePath());
                                 updateGUI();
                             } catch (Exception ex) {
@@ -977,15 +1066,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
             }
         });
-        
-         checkMeasureSynchronisedPipe.addActionListener(new ActionListener() {
+
+        checkMeasureSynchronisedPipe.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 ArrayTimeLineMeasurement.synchronizeMeasures = checkMeasureSynchronisedPipe.isSelected();
 
             }
         });
-
 
         textMeasurementSecondsPipe.addFocusListener(new FocusAdapter() {
             @Override
@@ -1428,17 +1516,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private void initLoadingIcons() {
         int size = 12;
-        URL res=null;
+        URL res = null;
         try {
-            System.out.println("ressource: "+this.getClass().getClassLoader().getResource("cross_darkred.png"));
-             res= this.getClass().getResource("icons/cross_darkred.png");
-            
+            res = this.getClass().getResource("icons/cross_darkred.png");
+
             iconError = new ImageIcon(new ImageIcon(this.getClass().getClassLoader().getResource("icons/cross_darkred.png")).getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH));
-            
+
             iconLoading = new ImageIcon(new ImageIcon(this.getClass().getClassLoader().getResource("icons/working_white.png")).getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH));
             iconPending = new ImageIcon(new ImageIcon(this.getClass().getClassLoader().getResource("icons/3dots_black.png")).getImage().getScaledInstance(size, size, Image.SCALE_SMOOTH));
         } catch (Exception e) {
-            System.err.println("cannot load pictures from "+res);
+            System.err.println("cannot load pictures from " + res);
             e.printStackTrace();
         }
     }
@@ -1474,7 +1561,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     control.loadSurface(null, SingleControllPanel.this);
                 } else if (button == buttonFileWaterdepths) {
                     try {
-                        control.getLoadingCoordinator().setSurfaceWaterlevelFile(null);
+                        control.getLoadingCoordinator().setSurfaceFlowfieldFile(null);
 
                     } catch (Exception ex) {
                         Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
@@ -1507,6 +1594,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.buttonCancelLoading.setToolTipText("Interrupts the loading Thread");
 
         //Buttons to select files
+        //Setup
+        JPanel panelSetup = new JPanel(new BorderLayout());
+        panelLoading.add(panelSetup);
+        buttonSetupLoad = new JButton("Load Project...");
+//        buttonSetupLoad.setEnabled(false);
+        buttonSetupSave = new JButton("Save Project...");
+        panelSetup.add(buttonSetupLoad, BorderLayout.WEST);
+        panelSetup.add(buttonSetupSave, BorderLayout.EAST);
+
         //Pipe Network 
         JPanel panelNetwork = new JPanel(new GridLayout(2, 1));
         panelNetwork.setPreferredSize(new Dimension(200, 90));
