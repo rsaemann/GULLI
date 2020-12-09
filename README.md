@@ -18,4 +18,5 @@ Output:
 This transport model is a product of the research project "Real-Time Prediction of Pluvial Floods and Induced Water Contamination in Urban Areas (EVUS)" (https://www.pluvialfloods.uni-hannover.de/pluvialfloods.html).
 Goal of the transport model is providing very fast forecast of contamination areas in case that a spill event was reported. Therefore the focus lies on computational speed.
 
-For more information, please contact Robert Sämann (https://www.hydromech.uni-hannover.de/de/ueber-uns/personenverzeichnis/)
+For more information, please contact Robert Sämann (https://www.hydromech.uni-hannover.de/saemann/)
+You can also find me on Researchgate (https://www.researchgate.net/profile/Robert_Saemann)
