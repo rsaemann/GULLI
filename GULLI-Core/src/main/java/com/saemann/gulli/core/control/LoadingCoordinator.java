@@ -1725,6 +1725,9 @@ public class LoadingCoordinator {
                     this.manualInjections.add(in);
                 }
             }
+
+            control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
+//            System.out.println("Set dispersion pipe:"+setup.getNetworkdispersion()+" is "+control.getThreadController());
         } catch (Exception ex) {
             Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }

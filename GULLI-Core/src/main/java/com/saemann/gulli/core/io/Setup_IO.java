@@ -303,9 +303,13 @@ public class Setup_IO {
                     surfaceRelation = true;
                 }
                 if (line.contains("<Dispersion")) {
-                    double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-                    if (networkRelation) {
-                        setup.setNetworkdispersion(d);
+                    try {
+                        double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (networkRelation) {
+                            setup.setNetworkdispersion(d);
+                        }
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
                     }
                 }
 
