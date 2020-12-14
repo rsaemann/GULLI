@@ -23,11 +23,9 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.saemann.gulli.core.io.extran.HE_Database;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -70,37 +68,6 @@ import org.opengis.referencing.FactoryException;
  * @author saemann
  */
 public class Geopackage_IO {
-
-    public static void main0(String[] args) {
-        try {
-            //Test creation of a single element
-//            GeoPackage gp=new GeoPackage(new File("F:\\geppackageDatabase.db"));
-//            gp.init();
-//            gp.addCRS(4326);
-//            gp.add(new FeatureEntry(), new AbstractFeatureCollection);
-
-//test output network
-            HE_Database he = new HE_Database(new File("E:\\EVUS\\Testmodell\\E2D1T50.result\\Ergebnis2.idbr"), true);
-            Network nw = he.loadNetwork();
-
-            writeNetwork(nw, new File("E:\\EVUS"), "netzwerktest");
-
-            ArrayList<Geometry> geoms = new ArrayList<Geometry>();
-            GeometryFactory gf = new GeometryFactory();
-            for (Pipe pp : nw.getPipes()) {
-                Coordinate c0 = pp.getStartConnection().getPosition().lonLatCoordinate();
-                Coordinate c1 = pp.getEndConnection().getPosition().lonLatCoordinate();
-                geoms.add(gf.createLineString(new Coordinate[]{c0, c1}));
-            }
-            writeWGS84(geoms, "E:\\EVUS\\pipes.gpkg", "contaminatedPipes", false);
-        } catch (IOException ex) {
-            Logger.getLogger(Geopackage_IO.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(Geopackage_IO.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(Geopackage_IO.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
 
     /**
      *
@@ -361,20 +328,20 @@ public class Geopackage_IO {
             try (GeoPackage geopackage = new GeoPackage(outfile)) {
                 geopackage.init(); //Initialize database tables
                 geopackage.addCRS(4326); //set Coordinate reference system WGS84
-                
+
                 //Decide on the first geometry of which type this shapefile is
                 Class<? extends Geometry> type = collection.iterator().next().getClass();
                 if (type.getSimpleName().equals("LinearRing")) {
                     type = LineString.class;
                 }
-                
+
                 //Manhole Schema
                 final SimpleFeatureType FEATURE = DataUtilities.createType(layername,
                         "the_geom:" + type.getSimpleName() + ":srid=4326" // <- the geometry attribute: Polygon type in WGS84 Latlon
                 );
-                
+
                 SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(FEATURE);
-                
+
                 DefaultFeatureCollection dfcollection = new DefaultFeatureCollection();
                 for (Geometry g : collection) {
                     //Change coords from lat/long to long/lat
@@ -394,7 +361,7 @@ public class Geopackage_IO {
                     SimpleFeature f = sfb.buildFeature(null);
                     dfcollection.add(f);
                 }
-                
+
                 FeatureEntry fe = new FeatureEntry();
                 fe.setLastChange(new Date());
                 fe.setBounds(ReferencedEnvelope.create(CRS.decode("EPSG:4326")));
@@ -402,7 +369,7 @@ public class Geopackage_IO {
                 fe.setGeometryColumn(FEATURE.getGeometryDescriptor().getLocalName());
                 fe.setLastChange(new Date());
                 fe.setGeometryType(Geometries.getForName(FEATURE.getGeometryDescriptor().getType().getName().getLocalPart()));
-                
+
                 geopackage.add(fe, dfcollection);
             } //Initialize database tables
             return true;

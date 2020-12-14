@@ -278,6 +278,7 @@ public class InjectionInformation implements InjectionInfo {
             double fraction = mass / totalmass;
             int particlesthisInterval = (int) (particles * fraction) - particlesSoFar;
             number_particles[i] = particlesthisInterval;
+//            System.out.println("   "+i+" : "+particlesthisInterval+" with "+mass+"kg");
 //            System.out.println(i+": mass:"+spillMass[i]+", frac:"+fraction+" -> particles: "+particlesSoFar+" + "+particlesthisInterval+"="+number_particles[i]+"  should be "+fraction*particles);
             particlesSoFar += particlesthisInterval;
         }
@@ -479,6 +480,16 @@ public class InjectionInformation implements InjectionInfo {
 
     public void setNumberOfParticles(int numberOfParticles) {
         calculateNumberOfIntervalParticles(numberOfParticles);
+        changed = true;
+    }
+
+    public void setTotalmass(double mass) {
+        if (spillMass.length < 3) {
+            this.spillMass = new double[]{mass, 0};
+            this.totalmass = mass;
+        }
+        this.totalmass = mass;
+        calculateNumberOfIntervalParticles(totalNumberParticles);
         changed = true;
     }
 

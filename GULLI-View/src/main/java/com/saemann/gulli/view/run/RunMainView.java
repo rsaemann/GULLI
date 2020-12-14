@@ -9,7 +9,6 @@ import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
-import com.saemann.gulli.core.control.threads.ThreadController;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -21,13 +20,9 @@ import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.particle.Material;
-import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.topology.Manhole;
-import org.jfree.ui.action.ActionMenuItem;
 import com.saemann.gulli.view.ViewController;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
-import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
 
 /**
@@ -59,7 +54,6 @@ public class RunMainView {
 
         //Der Controller koordiniert alle einzelnen Module und startet die Benutzeroberfläche.
         //Control links all model and io components and stores the mesh and all simulation-related information
-//        Controller.NumberOfUnusedCores = 4;
         final Controller control = new Controller();
         //ViewController links the Controller to the GUI
         final ViewController vcontroller = new ViewController(control);
@@ -91,10 +85,10 @@ public class RunMainView {
         if (startFile != null && startFile.exists()) {
             if (startFile.getName().endsWith("xml")) {
                 //This seems to be a project definition xml file
-                System.out.println("load project XML "+startFile);
+                System.out.println("load project XML " + startFile);
                 lc.loadSetup(startFile);
             } else {
-                System.out.println("load event result "+startFile);
+                System.out.println("load event result " + startFile);
                 //Try to crawl all dependent files from the information stored in the He result file.
                 lc.requestDependentFiles(startFile, true, true);
             }
@@ -108,145 +102,141 @@ public class RunMainView {
 //                lc.setSurfaceTopologyDirectory(SURFACE DIRECTORY);
 //                lc.setSurfaceFlowfieldFile(SURFACEWATERLEVELANDVELOCITY);
         //Define here, if the samples of different Threads should wait for eachother (true: slow) (false: faster but some samples might be overwritten)
-        SurfaceMeasurementRaster.synchronizeMeasures = true;
-        ArrayTimeLineMeasurement.synchronizeMeasures = true;
-
+//        SurfaceMeasurementRaster.synchronizeMeasures = true;
+//        ArrayTimeLineMeasurement.synchronizeMeasures = true;
 //Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
-        lc.loadingFinishedListener.add(new Runnable() {
-            @Override
-            public void run() {
+        if (false) {
+            lc.loadingFinishedListener.add(new Runnable() {
+                @Override
+                public void run() {
 
-                try {
-                    if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() == null) {
-                        control.initMeasurementTimelines(control.getScenario());
+                    try {
+                        if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() == null) {
+                            control.initMeasurementTimelines(control.getScenario());
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-//                    if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-//                        
-//                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
-//                        System.out.println("Changed sampling to simgel sample at end of interval");
-//                    }else{
-//                        System.err.println("Could not change sampling to simgel sample at end of interval");
-//                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
 
-                //Automatic start after loading loop has finished.   
-                if (true) {
-                    //Test
+                    //Automatic start after loading loop has finished.   
                     if (true) {
-                        //~90sekunden
-                        ParticleSurfaceComputing2D.allowWashToPipesystem = true;
-                        ParticleSurfaceComputing2D.gradientFlowForDryCells = false;
-                        ParticlePipeComputing.spillOutToSurface = true;
+                        //Test
+                        if (true) {
+                            //~90sekunden
+                            ParticleSurfaceComputing2D.allowWashToPipesystem = true;
+                            ParticleSurfaceComputing2D.gradientFlowForDryCells = false;
+                            ParticlePipeComputing.spillOutToSurface = true;
 
-                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+                            control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
 
-                        if (control.getSurface() != null) {
-                            control.getScenario().getMeasurementsSurface().continousMeasurements = true;
-                            System.out.println("Changed sampling to simgel sample at end of interval");
+                            if (control.getSurface() != null) {
+                                control.getScenario().getMeasurementsSurface().continousMeasurements = true;
+                                System.out.println("Changed sampling to simgel sample at end of interval");
 
-                            //3 injections scenario 
-                            if (control.getNetwork() == null) {
-                                System.err.println("There is no Pipe network for the simulation.");
-                                return;
-                            }
-                            int anzahl = 100_000 / 3;
-                            Manhole mh = control.getNetwork().getManholeByName("RI09S515");
-                            if (mh != null) {
-                                System.out.println("add 3 Injection at " + mh);
-                                try {
-                                    lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
-                                    lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
-                                    lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl + 1, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
-                                } catch (NullPointerException nullPointerException) {
-                                    System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                                //3 injections scenario 
+                                if (control.getNetwork() == null) {
+                                    System.err.println("There is no Pipe network for the simulation.");
+                                    return;
+                                }
+                                int anzahl = 100_000 / 3;
+                                Manhole mh = control.getNetwork().getManholeByName("RI09S515");
+                                if (mh != null) {
+                                    System.out.println("add 3 Injection at " + mh);
+                                    try {
+                                        lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
+                                        lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl, new Material("K_2_" + anzahl, 1000, true, 1), 5 * 60, 0));
+                                        lc.addManualInjection(new InjectionInformation(mh, 0, 1000, anzahl + 1, new Material("K_3_" + anzahl, 1000, true, 2), 10 * 60, 0));
+                                    } catch (NullPointerException nullPointerException) {
+                                        System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (false) {
-                        //~30 sek
-                        //Viktor Paper scenario 
-                        Manhole mh = control.getNetwork().getManholeByName("RI05S516");
-                        int anzahl = 100000;
-                        mh = control.getNetwork().getManholeByName("MU08S561");
-                        System.out.println("add 1 Injection at " + mh);
-                        try {
-                            lc.addManualInjection(new InjectionInformation(new GeoPosition(52.341954, 9.697130), false, 10, anzahl, new Material("Viktor_+20m_" + anzahl, 1000, true, 0), 20 * 60));
+                        if (false) {
+                            //~30 sek
+                            //Viktor Paper scenario 
+                            Manhole mh = control.getNetwork().getManholeByName("RI05S516");
+                            int anzahl = 100000;
+                            mh = control.getNetwork().getManholeByName("MU08S561");
+                            System.out.println("add 1 Injection at " + mh);
+                            try {
+                                lc.addManualInjection(new InjectionInformation(new GeoPosition(52.341954, 9.697130), false, 10, anzahl, new Material("Viktor_+20m_" + anzahl, 1000, true, 0), 20 * 60));
 //                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Viktor_1_" + anzahl, 1000, true, 0), 1 * 60, 0));
 
-                        } catch (NullPointerException nullPointerException) {
-                            System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                            } catch (NullPointerException nullPointerException) {
+                                System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                            }
+                        }
+
+                        //Sensitivity Paper 
+                        if (false) {
+                            //Paper scenario 
+                            int anzahl = 3000;
+                            Manhole mh = control.getNetwork().getManholeByName("MU04S503");
+                            System.out.println(getClass() + ". add 3 Injections");
+                            try {
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+10", 1000, true, 1), 9 * 60, 7 * 60));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+20", 1000, true, 2), 19 * 60, 7 * 60));
+
+                            } catch (NullPointerException nullPointerException) {
+                                System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                            }
+                        }
+
+                        //Buchkapitel
+                        if (false) {
+                            //Paper scenario 
+                            int anzahl = 100000 / 3;
+                            Manhole mh = control.getNetwork().getManholeByName("RI09S515");
+                            System.out.println("add 3 Injection at " + mh);
+                            try {
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0 * 60, 1));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 1));
+                                lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 1));
+
+                            } catch (NullPointerException nullPointerException) {
+                                System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
+                            }
                         }
                     }
 
-                    //Sensitivity Paper 
-                    if (false) {
-                        //Paper scenario 
-                        int anzahl = 3000;
-                        Manhole mh = control.getNetwork().getManholeByName("MU04S503");
-                        System.out.println(getClass() + ". add 3 Injections");
-                        try {
-                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+0", 1000, true, 0), 0, 7 * 60));
-                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+10", 1000, true, 1), 9 * 60, 7 * 60));
-                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Munz_" + anzahl + "+20", 1000, true, 2), 19 * 60, 7 * 60));
-
-                        } catch (NullPointerException nullPointerException) {
-                            System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
-                        }
-                    }
-
-                    //Buchkapitel
-                    if (false) {
-                        //Paper scenario 
-                        int anzahl = 100000 / 3;
-                        Manhole mh = control.getNetwork().getManholeByName("RI09S515");
-                        System.out.println("add 3 Injection at " + mh);
-                        try {
-                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+0", 1000, true, 0), 0 * 60, 1));
-                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+15", 1000, true, 1), 15 * 60, 1));
-                            lc.addManualInjection(new InjectionInformation(mh, 0, 10, anzahl, new Material("Buch_" + anzahl + "+30", 1000, true, 2), 30 * 60, 1));
-
-                        } catch (NullPointerException nullPointerException) {
-                            System.out.println("RunMain: " + nullPointerException.getLocalizedMessage());
-                        }
-                    }
-                }
-
-                //Zoom Window to Area of Pipes
-                if (frame != null) {
-                    if (frame.getMapViewer().getZoom() < 15) {
+                    //Zoom Window to Area of Pipes
+                    if (frame != null) {
+                        if (frame.getMapViewer().getZoom() < 15) {
 //                        System.out.println();
-                        frame.getMapViewer().zoomToFitLayer();
-                    }
-                }
-
-                control.recalculateInjections();
-                control.resetScenario();
-
-                if (control.getScenario() != null) {
-                    // Start the simulation.
-                    control.start();
-                }
-
-                final Runnable r = this;
-
-                new Thread("Loading finished listener remover") {
-                    @Override
-                    public void run() {
-                        try {
-                            //Wait some time to enable a repaint of GUI.
-                            //Otherwise some drawing Exceptions occure.
-                            sleep(2000);
-                        } catch (InterruptedException ex) {
-                            Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
+                            frame.getMapViewer().zoomToFitLayer();
                         }
-                        lc.loadingFinishedListener.remove(r);
                     }
-                }.start();
-            }
-        });
+
+                    control.recalculateInjections();
+                    control.resetScenario();
+
+                    if (StartParameters.isAutoStartatStartup()) {
+                        if (control.getScenario() != null) {
+                            // Start the simulation.
+                            control.start();
+                            final Runnable r = this;
+
+                            new Thread("Loading finished listener remover") {
+                                @Override
+                                public void run() {
+                                    try {
+                                        //Wait some time to enable a repaint of GUI.
+                                        //Otherwise some drawing Exceptions occure.
+                                        sleep(2000);
+                                    } catch (InterruptedException ex) {
+                                        Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+                                    lc.loadingFinishedListener.remove(r);
+                                }
+                            }.start();
+                        }
+                    }
+
+                }
+            });
+        }
 
         control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
         StoringCoordinator.verbose = true;
@@ -255,7 +245,9 @@ public class RunMainView {
 
         //Start loading the set files. 
         if (lc.getFileNetwork() != null || lc.getFilePipeResultIDBF() != null || lc.getFileSurfaceTriangleIndicesDAT() != null) {
-            lc.startLoadingRequestedFiles(true);
+            if (StartParameters.isAutoLoadatStartup()) {
+                lc.startLoadingRequestedFiles(true);
+            }
         }
 
         //Find correct menu to add more Tileservers
@@ -273,7 +265,7 @@ public class RunMainView {
         if (tilesMenu != null) {
             tilesMenu.add(new JSeparator());
 
-            JMenuItem itemTonerNoLabel = new ActionMenuItem("Toner No Label");
+            JMenuItem itemTonerNoLabel = new JMenuItem("Toner No Label");
             tilesMenu.add(itemTonerNoLabel);
             itemTonerNoLabel.addActionListener(new ActionListener() {
                 @Override
@@ -283,7 +275,7 @@ public class RunMainView {
                 }
             });
 
-            JMenuItem itemThunderforest = new ActionMenuItem("Thunderforest");
+            JMenuItem itemThunderforest = new JMenuItem("Thunderforest");
             tilesMenu.add(itemThunderforest);
             itemThunderforest.addActionListener(new ActionListener() {
                 @Override

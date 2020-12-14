@@ -48,6 +48,8 @@ public class Setup {
     protected double timestepTransport = 1;
     protected DiffusionCalculator2D diffusion;
     protected double networkdispersion = 2;
+    protected boolean routingSurfaceEnterDryCells=true;
+    protected double routingSurfaceDryflowVelocity=0.005;
 
     protected double pipeMeasurementtimestep = 300;
     protected boolean pipeMeasurementSynchronize = true;
@@ -185,6 +187,22 @@ public class Setup {
 
     public void setSurfaceMeasurementRasterClass(SurfaceMeasurementRaster surfaceMeasurementRasterClass) {
         this.surfaceMeasurementRasterClass = surfaceMeasurementRasterClass;
+    }
+
+    public boolean isRoutingSurfaceEnterDryCells() {
+        return routingSurfaceEnterDryCells;
+    }
+
+    public void setRoutingSurfaceEnterDryCells(boolean routingSurfaceEnterDryCells) {
+        this.routingSurfaceEnterDryCells = routingSurfaceEnterDryCells;
+    }
+
+    public double getRoutingSurfaceDryflowVelocity() {
+        return routingSurfaceDryflowVelocity;
+    }
+
+    public void setRoutingSurfaceDryflowVelocity(double routingSurfaceDryflowVelocity) {
+        this.routingSurfaceDryflowVelocity = routingSurfaceDryflowVelocity;
     }
     
     

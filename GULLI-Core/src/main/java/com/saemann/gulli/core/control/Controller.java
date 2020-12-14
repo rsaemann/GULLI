@@ -94,12 +94,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     private final StoringCoordinator storingCoordinator;
 
-    /**
-     * Set the number of CPU cores, that will not be used for the simulation
-     * before calling the constructor.
-     */
-    public static int NumberOfUnusedCores = 0;
-
     private final ArrayList<LoadingActionListener> actionListener = new ArrayList<>(2);
     private final ArrayList<ParticleListener> particleListener = new ArrayList<>(2);
 
@@ -114,9 +108,27 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      */
     public int intervallHistoryParticles = 0;
 
-    public Controller() throws Exception {
-        int numberOfCores = Runtime.getRuntime().availableProcessors();
-        threadController = new ThreadController(Math.max(1, numberOfCores - NumberOfUnusedCores), this);
+    /**
+     * Create all basic classes needed for the calculation. Automatically uses
+     * the maximum number of cores for the parallel threads.
+     */
+    public Controller() {
+        this(Runtime.getRuntime().availableProcessors());
+
+    }
+
+    /**
+     * Create all basic classes needed for the calculation.
+     *
+     * @param numberOfThreads to be used for parallel particle computing
+     */
+    public Controller(int numberOfThreads) {
+        if (numberOfThreads == 0) {
+            numberOfThreads = Runtime.getRuntime().availableProcessors();
+        } else if (numberOfThreads < 0) {
+            numberOfThreads = Runtime.getRuntime().availableProcessors() + numberOfThreads;
+        }
+        threadController = new ThreadController(Math.max(1, numberOfThreads), this);
 
         threadController.addSimulationListener(this);
         loadingCoordinator = new LoadingCoordinator(this);

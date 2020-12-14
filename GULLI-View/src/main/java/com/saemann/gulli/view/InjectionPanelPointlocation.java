@@ -94,7 +94,7 @@ public class InjectionPanelPointlocation extends JPanel {
         this.add(spinnerDuration);
 
         //Number of particles
-        modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 1, Integer.MAX_VALUE, 1000);
+        modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 0, Integer.MAX_VALUE, 1000);
         spinnerParticles = new JSpinner(modelParticles);
         this.add(new JLabel("Particles:"));
         this.add(spinnerParticles);

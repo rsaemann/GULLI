@@ -500,7 +500,7 @@ public class LoadingCoordinator {
                     scenarioName = resultName;
                     action.description = "Load spill events";
                     if (this.loadResultInjections) {
-                        he_injection = resultDatabase.readInjectionInformation();
+                        he_injection = resultDatabase.readInjectionInformation(startAtZeroTime);
                     } else {
                         he_injection = new ArrayList<>(0);
                     }
@@ -535,7 +535,7 @@ public class LoadingCoordinator {
                         if (mat == null) {
                             mat = new Material("Schmutz " + materialnumber++, 1000, true);
                         }
-                        int particlenumber = 200;
+                        int particlenumber = 10000;///he_injection.size();
                         InjectionInformation info;
                         if (in instanceof HE_MessdatenInjection) {
                             HE_MessdatenInjection mess = (HE_MessdatenInjection) in;
@@ -1091,6 +1091,7 @@ public class LoadingCoordinator {
         this.surface = null;
         this.network = null;
         this.manualInjections.clear();
+        this.totalInjections.clear();
         this.startLoadingRequestedFiles(asThread);
     }
 
@@ -1768,21 +1769,28 @@ public class LoadingCoordinator {
     public boolean saveSetup(File file) throws IOException {
         //Create new setup and store the information
         Setup setup = new Setup();
-        setup.files = new FileContainer(fileMainPipeResult, fileNetwork, fileSurfaceWaterlevels, fileSurfaceCoordsDAT.getParentFile(), null);
+        setup.files = new FileContainer(fileMainPipeResult, fileNetwork, fileSurfaceWaterlevels, null, null);
+        if (fileSurfaceTriangleIndicesDAT != null) {
+            setup.files.surfaceDirectory = fileSurfaceCoordsDAT.getParentFile();
+        }
         setup.injections = manualInjections;
         setup.scenario = scenario;
 
         setup.setTimestepTransport(ThreadController.getDeltaTime());
 
         ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
-        setup.setPipeMeasurementtimestep(mp.getDeltaTimeS());
-        setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
+        if (mp != null) {
+            setup.setPipeMeasurementtimestep(mp.getDeltaTimeS());
+            setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
+        }
         setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
         setup.setPipeMeasurementSynchronize(ArrayTimeLineMeasurement.synchronizeMeasures);
 
         SurfaceMeasurementRaster sr = control.getScenario().getMeasurementsSurface();
-        setup.setSurfaceMeasurementtimestep((sr.getIndexContainer().getTimeMilliseconds(1) - sr.getIndexContainer().getTimeMilliseconds(0)) / 1000.);
-        setup.setSurfaceMeasurementTimeContinuous(sr.continousMeasurements);
+        if (sr != null) {
+            setup.setSurfaceMeasurementtimestep((sr.getIndexContainer().getTimeMilliseconds(1) - sr.getIndexContainer().getTimeMilliseconds(0)) / 1000.);
+            setup.setSurfaceMeasurementTimeContinuous(sr.continousMeasurements);
+        }
         setup.setSurfaceMeasurementSynchronize(SurfaceMeasurementRaster.synchronizeMeasures);
 
         return Setup_IO.saveScenario(file, setup);

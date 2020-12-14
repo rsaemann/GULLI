@@ -28,6 +28,9 @@ import com.saemann.rgis.view.MapViewer;
  */
 public class InjectionPanelAreal extends InjectionPanelPointlocation {
 
+    private final SpinnerNumberModel modelMass;
+    private final JSpinner spinnerMass;
+
     protected InjectionPanelAreal(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super();
         setLayout(new GridLayout(5, 2));
@@ -65,7 +68,11 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.add(new JLabel("Particles:"));
         this.add(spinnerParticles);
 
-        this.add(new JLabel("Distributed"));
+        //Mass
+        this.add(new JLabel("Distributed Mass [kg]"));        
+        modelMass = new SpinnerNumberModel(5000., 1., Double.POSITIVE_INFINITY, 500.);
+        spinnerMass = new JSpinner(modelMass);
+        this.add(spinnerMass);
 
         this.spinnerInjection.addChangeListener(new ChangeListener() {
             @Override
@@ -104,6 +111,16 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
             @Override
             public void stateChanged(ChangeEvent ce) {
                 info.setNumberOfParticles(modelParticles.getNumber().intValue());
+                if (info.isChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                }
+            }
+        });
+        
+         this.spinnerMass.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent ce) {
+                info.setTotalmass(modelMass.getNumber().doubleValue());
                 if (info.isChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }

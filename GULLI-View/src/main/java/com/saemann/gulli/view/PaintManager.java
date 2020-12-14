@@ -3130,6 +3130,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     @Override
     public void loadNetwork(Network network, Object caller) {
         this.setNetwork(network);
+        mapViewer.zoomToFitLayer();
     }
 
     @Override

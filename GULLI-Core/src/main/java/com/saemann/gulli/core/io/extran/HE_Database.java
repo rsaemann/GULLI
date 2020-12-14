@@ -134,7 +134,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * Can parse text based timestamps in sqlite format.
      */
     public final DateFormat sqliteDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public static final DateFormat sqliteDateTimeFormatUTC=sqlUTCFormat();// 
+    public static final DateFormat sqliteDateTimeFormatUTC = sqlUTCFormat();// 
 
     public static boolean register() {
 
@@ -511,8 +511,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //        }
         throw new NullPointerException("Could not create a new Connection to the HYSTEM EXTRAN database.");
     }
-    
-     private static DateFormat sqlUTCFormat() {
+
+    private static DateFormat sqlUTCFormat() {
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
         return df;
@@ -1618,10 +1618,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
      */
     public static ArrayList<HEInjectionInformation> readInjectionInformation(File idbFile) throws SQLException, IOException, ParseException {
         HE_Database db = new HE_Database(idbFile, true);
-        return db.readInjectionInformation();
+        return db.readInjectionInformation(false);
     }
 
-    public ArrayList<HEInjectionInformation> readInjectionInformation() throws SQLException, IOException, ParseException {
+    public ArrayList<HEInjectionInformation> readInjectionInformation(boolean startAtZero) throws SQLException, IOException, ParseException {
         Connection con = getConnection();
         Statement st = con.createStatement();
 
@@ -1652,6 +1652,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
             time = rs.getTimestamp(2);
             simulationEnde.setTimeInMillis(time.getTime());
         }
+        long subtractfromtimestamp = 0;
+        if (startAtZero) {
+            subtractfromtimestamp = simulationStart.getTimeInMillis();
+        }
+//        System.out.println("Startatzero:" + subtractfromtimestamp);
         gcdaystart.set(GregorianCalendar.HOUR_OF_DAY, 0);
         gcdaystart.set(GregorianCalendar.MINUTE, 0);
         gcdaystart.set(GregorianCalendar.SECOND, 0);
@@ -1716,7 +1721,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (ele.refIDMessdaten > 0) {
                     //A messreihe is linked to this injection
                     TimedValue[] tv = readMessdaten(ele.refIDMessdaten, con);
-                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, ele.material, simulationStart.getTimeInMillis(), tv, ele.concentration * 0.001);
+                    for (int i = 0; i < tv.length; i++) {
+                        tv[i].time -= subtractfromtimestamp;
+                    }
+                    long stime = simulationStart.getTimeInMillis() - subtractfromtimestamp;
+                    HE_MessdatenInjection heinj = new HE_MessdatenInjection(ele.pipename, ele.material, stime, tv, ele.concentration * 0.001);
                     if (ele.onlyUpstreamInjection) {
                         heinj.relativePosition = relativeInjectionLocation = 0;
                     } else {
@@ -1806,8 +1815,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         }
                         //Create a injection information
                         if (start >= 0 && intensity > 0) {
-                            long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000);
-                            long endtime = starttime + (long) ((duration) * 60 * 60 * 1000);
+                            long starttime = daystart.getTime() + (long) ((start) * 60 * 60 * 1000) - subtractfromtimestamp;
+                            long endtime = starttime + (long) ((duration) * 60 * 60 * 1000) - subtractfromtimestamp;
                             double injectionTimeSeconds = (endtime - starttime) / 1000;
                             double wert = intensity * ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
 
@@ -1832,8 +1841,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         //has no timefactory: constant discharge.
                         //Create a injection information
 
-                        long starttime = simulationStart.getTimeInMillis();
-                        long duration = simulationEnde.getTimeInMillis() - simulationStart.getTimeInMillis();//length of simulation
+                        long starttime = simulationStart.getTimeInMillis() - subtractfromtimestamp;
+                        long duration = simulationEnde.getTimeInMillis() - simulationStart.getTimeInMillis() - subtractfromtimestamp;//length of simulation
                         long endtime = starttime + duration;
                         double injectionTimeSeconds = duration / 1000;
                         double wert = ele.concentration * ele.discharge * injectionTimeSeconds / 1000000.;
@@ -1899,8 +1908,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 double c = rs.getDouble("KONZENTRATION_MGperL");
 
                 int rf = rs.getInt("Startzeit");
-                long starttime = daystart.getTime() + (long) ((rf) * 60 * 60 * 1000);
-                long endtime = daystart.getTime() + (long) ((rf + 1) * 60 * 60 * 1000);
+                long starttime = daystart.getTime() + (long) ((rf) * 60 * 60 * 1000) - subtractfromtimestamp;
+                long endtime = daystart.getTime() + (long) ((rf + 1) * 60 * 60 * 1000) - subtractfromtimestamp;
                 double injectionTime = (endtime - starttime) / 1000;
                 double wert = tfactor * c * lps * injectionTime / 1000000.;
 
@@ -2794,8 +2803,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
         }
         return 0;
     }
-    
-    public int loadNumberOfTimestepsNetwork(){
+
+    public int loadNumberOfTimestepsNetwork() {
         try {
             Statement st = getConnection().createStatement();
             ResultSet res;

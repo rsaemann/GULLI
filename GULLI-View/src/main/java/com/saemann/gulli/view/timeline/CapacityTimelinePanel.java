@@ -86,11 +86,11 @@ import org.jfree.data.time.Second;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
-import org.jfree.ui.Layer;
-import org.jfree.ui.RectangleAnchor;
-import org.jfree.ui.RectangleEdge;
-import org.jfree.ui.RectangleInsets;
 import com.saemann.gulli.view.timeline.customCell.StrokeEditor;
+import org.jfree.chart.ui.Layer;
+import org.jfree.chart.ui.RectangleAnchor;
+import org.jfree.chart.ui.RectangleEdge;
+import org.jfree.chart.ui.RectangleInsets;
 
 /**
  *
@@ -1475,77 +1475,88 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
             panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
+            int index = 3; //usually at the 3rd position
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {
                     JMenu m = (JMenu) menu.getComponent(i);
-                    if (m.getActionCommand().equals("Save as")) {
-                        JMenuItem item = new JMenuItem("PDF...");
-                        m.add(item, 0);
-                        item.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent ae) {
-                                JFileChooser fc = new JFileChooser(directoryPDFsave) {
-                                    @Override
-                                    public boolean accept(File file) {
-                                        if (file.isDirectory()) {
-                                            return true;
-                                        }
-                                        if (file.isFile() && file.getName().endsWith(".pdf")) {
-                                            return true;
-                                        }
-                                        return false;
-                                    }
-                                };
-                                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                                int n = fc.showSaveDialog(panelChart);
-                                if (n == JFileChooser.APPROVE_OPTION) {
-                                    File output = fc.getSelectedFile();
-                                    directoryPDFsave = output.getParent();
-                                    panelChart.setDefaultDirectoryForSaveAs(output.getParentFile());
-                                    StartParameters.setPictureExportPath(directoryPDFsave);
-                                    if (!output.getName().endsWith(".pdf")) {
-                                        output = new File(output.getAbsolutePath() + ".pdf");
-                                    }
-                                    Paint formerBackground = panelChart.getChart().getBackgroundPaint();
-                                    try {
-                                        panelChart.getChart().setBackgroundPaint(Color.white);
-                                        Rectangle rec = new Rectangle(0, 0, panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
-
-                                        System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
-
-                                        Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
-                                        FileOutputStream fos = new FileOutputStream(output);
-                                        PdfWriter writer = PdfWriter.getInstance(doc, fos);
-                                        doc.open();
-                                        PdfContentByte cb = writer.getDirectContent();
-                                        PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
-                                        PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
-                                        g2d.translate(-surroundingContainer.getX(), 0);// -surroundingContainer.getY());
-                                        panelChart.getChart().draw(g2d, rec);
-                                        cb.addTemplate(tp, 25, 200);
-                                        g2d.dispose();
-                                        doc.close();
-                                        fos.close();
-
-                                    } catch (FileNotFoundException ex) {
-                                        Logger.getLogger(CapacityTimelinePanel.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    } catch (DocumentException ex) {
-                                        Logger.getLogger(CapacityTimelinePanel.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    } catch (IOException ex) {
-                                        Logger.getLogger(CapacityTimelinePanel.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    } finally {
-
-                                    }
-                                    panelChart.getChart().setBackgroundPaint(formerBackground);
-                                }
-                            }
-                        });
+                    String label = m.getActionCommand().toLowerCase();
+                    if (label.contains("save") || label.contains("speich")) {
+                        index = i;
                     }
                 }
             }
+            JMenuItem item = new JMenuItem("PDF...");
+            if (index < 0 || !(menu.getComponent(index) instanceof JMenu)) {
+                //Add at the very end if the correct position could not be found
+                menu.add(item);
+            } else {
+                JMenu m = (JMenu) menu.getComponent(index);
+                m.add(item, 0);
+            }
+
+            item.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave) {
+                        @Override
+                        public boolean accept(File file) {
+                            if (file.isDirectory()) {
+                                return true;
+                            }
+                            if (file.isFile() && file.getName().endsWith(".pdf")) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    };
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    int n = fc.showSaveDialog(panelChart);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        directoryPDFsave = output.getParent();
+                        panelChart.setDefaultDirectoryForSaveAs(output.getParentFile());
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                        if (!output.getName().endsWith(".pdf")) {
+                            output = new File(output.getAbsolutePath() + ".pdf");
+                        }
+                        Paint formerBackground = panelChart.getChart().getBackgroundPaint();
+                        try {
+                            panelChart.getChart().setBackgroundPaint(Color.white);
+                            Rectangle rec = new Rectangle(0, 0, panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
+
+                            System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
+
+                            Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
+                            FileOutputStream fos = new FileOutputStream(output);
+                            PdfWriter writer = PdfWriter.getInstance(doc, fos);
+                            doc.open();
+                            PdfContentByte cb = writer.getDirectContent();
+                            PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
+                            PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
+                            g2d.translate(-surroundingContainer.getX(), 0);// -surroundingContainer.getY());
+                            panelChart.getChart().draw(g2d, rec);
+                            cb.addTemplate(tp, 25, 200);
+                            g2d.dispose();
+                            doc.close();
+                            fos.close();
+
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } catch (DocumentException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } catch (IOException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } finally {
+
+                        }
+                        panelChart.getChart().setBackgroundPaint(formerBackground);
+                    }
+                }
+            });
+
         } catch (NoClassDefFoundError e) {
             System.err.println("itextpdf libraries not found. PDF export for Timeline Panel disabled.");
         }
@@ -1554,184 +1565,228 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private void addEMFexport() {
         try {
             JPopupMenu menu = this.panelChart.getPopupMenu();
+            int index = 3; //usually at the 3rd position
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {
                     JMenu m = (JMenu) menu.getComponent(i);
-                    if (m.getActionCommand().equals("Save as")) {
-                        JMenuItem item = new JMenuItem("EMF...");
-                        m.add(item, 0);
-                        item.addActionListener(new ActionListener() {
-                            @Override
-                            public void actionPerformed(ActionEvent ae) {
-                                JFileChooser fc = new JFileChooser(directoryPDFsave) {
-                                    @Override
-                                    public boolean accept(File file) {
-                                        if (file.isDirectory()) {
-                                            return true;
-                                        }
-                                        return file.isFile() && file.getName().endsWith(".emf");
-                                    }
-                                };
-                                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                                int n = fc.showSaveDialog(CapacityTimelinePanel.this);
-                                if (n == JFileChooser.APPROVE_OPTION) {
-                                    File output = fc.getSelectedFile();
-                                    directoryPDFsave = output.getParent();
-                                    StartParameters.setPictureExportPath(directoryPDFsave);
-                                    if (!output.getName().endsWith(".emf")) {
-                                        output = new File(output.getAbsolutePath() + ".emf");
-                                    }
-                                    Paint formerBackground = panelChart.getChart().getBackgroundPaint();
-                                    try {
-                                        panelChart.getChart().setBackgroundPaint(Color.white);
-                                        try (OutputStream out = new java.io.FileOutputStream(output)) {
-                                            Rectangle rec = CapacityTimelinePanel.this.getBounds();
-                                            int width = rec.width;// * 10;
-                                            int height = rec.height;// * 10;
-                                            EMFGraphics2D g2d = new EMFGraphics2D(out, new Dimension((int) (width), height));
-                                            g2d.setDeviceIndependent(true);
-                                            //                                    g2d.writeHeader();
-                                            g2d.startExport();
-                                            //                                    g2d.writeHeader();
-                                            try {
-                                                panelChart.getChart().draw(g2d, new Rectangle(width, height));
-                                            } catch (Exception e) {
-                                                System.err.println("rect:" + width + "x" + height);
-                                                System.err.println("g2d:" + g2d);
-                                                System.err.println("chart:" + panelChart.getChart());
-                                                e.printStackTrace();
-                                            }
-                                            g2d.endExport();
-                                            //                                    g2d.closeStream();
-                                            out.flush();
-                                        }
-                                    } catch (FileNotFoundException ex) {
-                                        Logger.getLogger(CapacityTimelinePanel.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    } catch (IOException ex) {
-                                        Logger.getLogger(CapacityTimelinePanel.class
-                                                .getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                    panelChart.getChart().setBackgroundPaint(formerBackground);
-                                }
-                            }
-                        });
+                    String label = m.getActionCommand().toLowerCase();
+                    if (label.contains("save") || label.contains("speich")) {
+                        index = i;
                     }
                 }
             }
+            JMenuItem item = new JMenuItem("EMF...");
+            if (index < 0 || !(menu.getComponent(index) instanceof JMenu)) {
+                //Add at the very end if the correct position could not be found
+                menu.add(item);
+            } else {
+                JMenu m = (JMenu) menu.getComponent(index);
+                m.add(item, 0);
+            }
+            item.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave) {
+                        @Override
+                        public boolean accept(File file) {
+                            if (file.isDirectory()) {
+                                return true;
+                            }
+                            return file.isFile() && file.getName().endsWith(".emf");
+                        }
+                    };
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    int n = fc.showSaveDialog(CapacityTimelinePanel.this);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        directoryPDFsave = output.getParent();
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                        if (!output.getName().endsWith(".emf")) {
+                            output = new File(output.getAbsolutePath() + ".emf");
+                        }
+                        Paint formerBackground = panelChart.getChart().getBackgroundPaint();
+                        try {
+                            panelChart.getChart().setBackgroundPaint(Color.white);
+                            try (OutputStream out = new java.io.FileOutputStream(output)) {
+                                Rectangle rec = CapacityTimelinePanel.this.getBounds();
+                                int width = rec.width;// * 10;
+                                int height = rec.height;// * 10;
+                                EMFGraphics2D g2d = new EMFGraphics2D(out, new Dimension((int) (width), height));
+                                g2d.setDeviceIndependent(true);
+                                //                                    g2d.writeHeader();
+                                g2d.startExport();
+                                //                                    g2d.writeHeader();
+                                try {
+                                    panelChart.getChart().draw(g2d, new Rectangle(width, height));
+                                } catch (Exception e) {
+                                    System.err.println("rect:" + width + "x" + height);
+                                    System.err.println("g2d:" + g2d);
+                                    System.err.println("chart:" + panelChart.getChart());
+                                    e.printStackTrace();
+                                }
+                                g2d.endExport();
+                                //                                    g2d.closeStream();
+                                out.flush();
+
+                            }
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+
+                        } catch (IOException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        }
+                        panelChart.getChart().setBackgroundPaint(formerBackground);
+                    }
+                }
+            });
+
         } catch (NoClassDefFoundError e) {
             System.err.println("No libraries for emfGraphics found. Disable emf graphics export in " + getClass());
         }
     }
 
     private void addTimeSeriesExport() {
-        JPopupMenu menu = this.panelChart.getPopupMenu();
-        for (int i = 0; i < menu.getComponentCount(); i++) {
-            if (menu.getComponent(i) instanceof JMenu) {
-                JMenu m = (JMenu) menu.getComponent(i);
-                if (m.getActionCommand().equals("Save as")) {
-                    JMenuItem item = new JMenuItem("Series...");
-                    m.add(item, 0);
-                    item.addActionListener(new ActionListener() {
-
-                        @Override
-                        public void actionPerformed(ActionEvent ae) {
-                            JFileChooser fc = new JFileChooser(directoryPDFsave) {
-
-                                @Override
-                                public boolean accept(File file) {
-                                    if (file.isDirectory()) {
-                                        return true;
-                                    }
-                                    return false;
-                                }
-                            };
-                            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                            int n = fc.showSaveDialog(CapacityTimelinePanel.this);
-                            if (n == JFileChooser.APPROVE_OPTION) {
-                                File output = fc.getSelectedFile();
-                                directoryPDFsave = output.getAbsolutePath();
-                                File output2 = new File(output.getAbsolutePath());
-                                try {
-                                    String prefix = "";
-                                    try {
-                                        if (actualShown instanceof Pipe) {
-                                            prefix += "_" + ((Pipe) actualShown).getName();
-                                        }
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                    TimeSeries_IO.saveTimeSeriesCollection(output2, prefix, collection);
-                                } catch (FileNotFoundException ex) {
-                                    Logger.getLogger(CapacityTimelinePanel.class
-                                            .getName()).log(Level.SEVERE, null, ex);
-                                } catch (IOException ex) {
-                                    Logger.getLogger(CapacityTimelinePanel.class
-                                            .getName()).log(Level.SEVERE, null, ex);
-                                }
-                            }
-                        }
-                    });
+        try {
+            JPopupMenu menu = this.panelChart.getPopupMenu();
+            int index = 3; //usually at the 3rd position
+            for (int i = 0; i < menu.getComponentCount(); i++) {
+                if (menu.getComponent(i) instanceof JMenu) {
+                    JMenu m = (JMenu) menu.getComponent(i);
+                    String label = m.getActionCommand().toLowerCase();
+                    if (label.contains("save") || label.contains("speich")) {
+                        index = i;
+                    }
                 }
             }
+            JMenuItem item = new JMenuItem("Series...");
+            if (index < 0 || !(menu.getComponent(index) instanceof JMenu)) {
+                //Add at the very end if the correct position could not be found
+                menu.add(item);
+            } else {
+                JMenu m = (JMenu) menu.getComponent(index);
+                m.add(item, 0);
+            }
+            item.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave) {
+
+                        @Override
+                        public boolean accept(File file) {
+                            if (file.isDirectory()) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    };
+                    fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    int n = fc.showSaveDialog(CapacityTimelinePanel.this);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        directoryPDFsave = output.getAbsolutePath();
+                        File output2 = new File(output.getAbsolutePath());
+                        try {
+                            String prefix = "";
+                            try {
+                                if (actualShown instanceof Pipe) {
+                                    prefix += "_" + ((Pipe) actualShown).getName();
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            TimeSeries_IO.saveTimeSeriesCollection(output2, prefix, collection);
+
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+
+                        } catch (IOException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
     }
 
     private void addMatlabSeriesExport() {
-        JPopupMenu menu = this.panelChart.getPopupMenu();
-        for (int i = 0; i < menu.getComponentCount(); i++) {
-            if (menu.getComponent(i) instanceof JMenu) {
-                JMenu m = (JMenu) menu.getComponent(i);
-                if (m.getActionCommand().equals("Save as")) {
-                    JMenuItem item = new JMenuItem("Matlab...");
-                    m.add(item, 0);
-                    item.addActionListener(new ActionListener() {
-
-                        @Override
-                        public void actionPerformed(ActionEvent ae) {
-                            JFileChooser fc = new JFileChooser(directoryPDFsave) {
-
-                                @Override
-                                public boolean accept(File file) {
-                                    if (file.isDirectory()) {
-                                        return true;
-                                    }
-                                    return false;
-                                }
-                            };
-                            fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                            int n = fc.showSaveDialog(CapacityTimelinePanel.this);
-                            if (n == JFileChooser.APPROVE_OPTION) {
-                                File output = fc.getSelectedFile();
-                                directoryPDFsave = output.getAbsolutePath();
-
-                                StartParameters.setPictureExportPath(directoryPDFsave);
-                                File output2 = new File(output.getAbsolutePath());
-                                try {
-                                    String prefix = "";
-                                    String capacityname = null;
-                                    try {
-                                        if (actualShown instanceof Pipe) {
-                                            prefix += "Pipe_" + ((Pipe) actualShown).getName();
-                                            capacityname = ((Pipe) actualShown).getName();
-                                        }
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                    TimeSeries_IO.saveTimeSeriesCollectionAsMatlab(output2, prefix, collection, capacityname, true);
-                                } catch (FileNotFoundException ex) {
-                                    Logger.getLogger(CapacityTimelinePanel.class
-                                            .getName()).log(Level.SEVERE, null, ex);
-                                } catch (IOException ex) {
-                                    Logger.getLogger(CapacityTimelinePanel.class
-                                            .getName()).log(Level.SEVERE, null, ex);
-                                }
-                            }
-                        }
-                    });
+        try {
+            JPopupMenu menu = this.panelChart.getPopupMenu();
+            int index = 3; //usually at the 3rd position
+            for (int i = 0; i < menu.getComponentCount(); i++) {
+                if (menu.getComponent(i) instanceof JMenu) {
+                    JMenu m = (JMenu) menu.getComponent(i);
+                    String label = m.getActionCommand().toLowerCase();
+                    if (label.contains("save") || label.contains("speich")) {
+                        index = i;
+                    }
                 }
             }
+            JMenuItem item = new JMenuItem("Matlab...");
+            if (index < 0 || !(menu.getComponent(index) instanceof JMenu)) {
+                //Add at the very end if the correct position could not be found
+                menu.add(item);
+            } else {
+                JMenu m = (JMenu) menu.getComponent(index);
+                m.add(item, 0);
+            }
+            item.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave) {
+
+                        @Override
+                        public boolean accept(File file) {
+                            if (file.isDirectory()) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    };
+                    fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    int n = fc.showSaveDialog(CapacityTimelinePanel.this);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        directoryPDFsave = output.getAbsolutePath();
+
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                        File output2 = new File(output.getAbsolutePath());
+                        try {
+                            String prefix = "";
+                            String capacityname = null;
+                            try {
+                                if (actualShown instanceof Pipe) {
+                                    prefix += "Pipe_" + ((Pipe) actualShown).getName();
+                                    capacityname = ((Pipe) actualShown).getName();
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            TimeSeries_IO.saveTimeSeriesCollectionAsMatlab(output2, prefix, collection, capacityname, true);
+
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+
+                        } catch (IOException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
     }
 
     public static TimeSeries createMovingaverageCentral(TimeSeries ts, int maxinvolvedPeriods, String name, boolean originIsShiftTimeSeries) {

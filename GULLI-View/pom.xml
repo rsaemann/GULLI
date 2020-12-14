@@ -9,13 +9,13 @@
         <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
-            <version>1.0.19</version>
+            <version>1.5.1</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>itextpdf</artifactId>
-            <version>5.5.1</version>
+            <version>5.5.13.2</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -27,6 +27,12 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>GULLI-core</artifactId>
             <version>1.0-SNAPSHOT</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>com.saemann</groupId>
+            <artifactId>RGIS</artifactId>
+            <version>0.7.0</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -42,12 +48,7 @@
             <version>2.4</version>
             <type>jar</type>
         </dependency>
-        <dependency>
-            <groupId>com.saemann</groupId>
-            <artifactId>RGIS</artifactId>
-            <version>0.7.0</version>
-            <type>jar</type>
-        </dependency>
+
         <dependency>
             <groupId>org.freehep</groupId>
             <artifactId>freehep-graphicsio-emf</artifactId>
@@ -63,13 +64,25 @@
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-referencing</artifactId>
-            <version>23.3</version>
+            <version>24.1</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.geotools</groupId>
+            <artifactId>gt-epsg-wkt</artifactId>
+            <version>24.1</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-shapefile</artifactId>
-            <version>23.3</version>
+            <version>24.1</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.32.3</version>
             <type>jar</type>
         </dependency>
     </dependencies>
@@ -124,6 +137,11 @@
             <url>https://repo.maven.apache.org/maven2</url>
         </pluginRepository>
     </pluginRepositories>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
     <build>
         <plugins>
             <plugin>
@@ -141,7 +159,13 @@
                                     <mainClass>
                                         com.saemann.gulli.view.run.RunMainView
                                     </mainClass>
+                                    <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                    <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                                 </manifest>
+                                <manifestEntries>
+                                    <Specification-Vendor>saemann.gulli</Specification-Vendor>
+                                    <Implementation-Vendor>saemann.gulli</Implementation-Vendor>
+                                </manifestEntries>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
@@ -167,10 +191,15 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -181,13 +210,12 @@
                             </mainClass>
                         </manifest>
                     </archive>
+                    
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+
 </project>

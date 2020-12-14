@@ -39,7 +39,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * Opens and saves options from the GULLI.ini file next to the jar.
  * @author saemann
  */
 public class StartParameters {
@@ -47,6 +47,9 @@ public class StartParameters {
     private static String streetinletsPath;
     private static String startFilePath;
     private static String pathUndergroundVTU;
+
+    private static boolean autoLoadatStartup = true;
+    private static boolean autoStartatStartup = false;
 
     private static String pictureExportPath;
     private static int controlFrameX = 40, controlFrameY = 50, controlFrameW = 270, controlFrameH = 1000;
@@ -89,9 +92,13 @@ public class StartParameters {
                     streetinletsPath = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("startFile=")) {
                     startFilePath = line.substring(line.indexOf("=") + 1);
-                    System.out.println("startfile read from ini is:'" + startFilePath + "'");
+//                    System.out.println("startfile read from ini is:'" + startFilePath + "'");
                 } else if (line.startsWith("subsurfaceVTU=")) {
                     pathUndergroundVTU = line.substring(line.indexOf("=") + 1);
+                } else if (line.startsWith("autoLoad=")) {
+                    autoLoadatStartup = Boolean.parseBoolean(line.substring(line.indexOf("=") + 1));
+                } else if (line.startsWith("startFirst=")) {
+                    autoStartatStartup = Boolean.parseBoolean(line.substring(line.indexOf("=") + 1));
                 } else if (line.startsWith("mapFrame")) {
                     try {
                         String[] values = line.substring(line.indexOf("=") + 1).split(",");
@@ -186,6 +193,10 @@ public class StartParameters {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileStartParameter))) {
             bw.write("startFile=" + (startFilePath != null ? startFilePath : ""));
             bw.newLine();
+            bw.write("autoLoad=" + autoLoadatStartup);
+            bw.newLine();
+            bw.write("startFirst=" + autoStartatStartup);
+            bw.newLine();
 //            bw.write("streetInlets_ShapefilePath=" + (streetinletsPath != null ? streetinletsPath : ""));
 //            bw.newLine();
             bw.write("subsurfaceVTU=" + (pathUndergroundVTU != null ? pathUndergroundVTU : ""));
@@ -255,7 +266,8 @@ public class StartParameters {
 
     public static String getProgramDirectory() {
         if (runningFromJAR()) {
-            return getCurrentJARDirectory();
+            String dir = getCurrentJARDirectory();
+            return dir;
         } else {
             return getCurrentProjectDirectory();
         }
@@ -438,6 +450,14 @@ public class StartParameters {
         } catch (IOException ex) {
             Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    public static boolean isAutoLoadatStartup() {
+        return autoLoadatStartup;
+    }
+
+    public static boolean isAutoStartatStartup() {
+        return autoStartatStartup;
     }
 
 }

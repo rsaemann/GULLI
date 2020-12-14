@@ -74,39 +74,42 @@ public class ArrayTimeLineMeasurement {
         return i;
     }
 
+    /**
+     * accumulated concentration of all pollutions together [kg/m^3]
+     *
+     * @param temporalIndex
+     * @return [kg/m^3]
+     */
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
         //mass and volume are both sums of the interval samples and therefore do not have to be divided by the number of samples
-        float c= (float) (container.mass_total[index] / (container.volumes[index]));
-//       if(temporalIndex==30){
-//           System.out.println("Mass: "+container.mass_total[index]+"  / ( Vol: "+container.volumes[index]+" * samples²: "+container.samplesInTimeInterval[temporalIndex]+") = "+c);
-//       }
+        float c = (float) (container.mass_total[index] / (container.volumes[index]));
         return c;
-        /*container.particles[index] * Particle.massPerParticle*/
-        /**
-         * container.counts[index]
-         */
-    }
-
-    public float getConcentrationOfType(int temporalIndex, int materialIndex) {
-        int index = getIndex(temporalIndex);
-
-        return (float) (container.mass_type[index][materialIndex] / (container.volumes[index] * container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
-        /*container.particles[index] * Particle.massPerParticle*/
-        /**
-         * container.counts[index]
-         */
     }
 
     /**
-     * get total mass of all materials
+     * The physical (not raw) concentration of the material at the given
+     * timeindex [kg/m^3]
      *
      * @param temporalIndex
-     * @return
+     * @param materialIndex
+     * @return [kg/m^3]
+     */
+    public float getConcentrationOfType(int temporalIndex, int materialIndex) {
+        int index = getIndex(temporalIndex);
+
+        return (float) (container.mass_type[index][materialIndex] / (container.volumes[index]));
+    }
+
+    /**
+     * get accumulated mass (physical, not raw) of all materials in kg
+     *
+     * @param temporalIndex
+     * @return [kg]
      */
     public float getMass(int temporalIndex) {
         int index = getIndex(temporalIndex);
-        return (float) (/*container.particles[index] * Particle.massPerParticle*/container.mass_total[index] / (container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
+        return (float) (container.mass_total[index] / (container.samplesInTimeInterval[temporalIndex]));
 
     }
 
@@ -117,7 +120,7 @@ public class ArrayTimeLineMeasurement {
      *
      * @param temporalIndex
      * @param materialIndex
-     * @return mass of this material
+     * @return mass [kg] of this material
      */
     public float getMass(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
@@ -151,11 +154,23 @@ public class ArrayTimeLineMeasurement {
         return massSum;
     }
 
+    /**
+     * Get mean number of particles in the element during the ith time period.
+     *
+     * @param temporalIndex
+     * @return
+     */
     public float getParticles(int temporalIndex) {
         int index = getIndex(temporalIndex);
         return (float) (container.particles[index] / (float) container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/);
     }
 
+    /**
+     * Mean volume sampled during the ith time interval.
+     *
+     * @param temporalIndex
+     * @return m^3
+     */
     public float getVolume(int temporalIndex) {
         int index = getIndex(temporalIndex);
         try {
@@ -170,21 +185,23 @@ public class ArrayTimeLineMeasurement {
         return container.counts[getIndex(timeIndex)] > 0;
     }
 
-    public void addMeasurement(int timeindex,/* int particleCount, double mass,*/ double volumeValue) {
+    /**
+     * Sumup and write the collected data so far into the storage array for the
+     * given timeindex.
+     *
+     * @param timeindex
+     * @param volume in the Pipe at current
+     */
+    public void addMeasurement(int timeindex, double volume) {
         int index = getIndex(timeindex);
 
-//        if (timeindex < 5) {
-//            if (particleMassInTimestep > 0) {
-//                System.out.println("Add measurement "+timeindex+":  " + getContainer().getTimeMillisecondsAtIndex(timeindex));
-//            }
-//        }
         try {
             container.particles[index] += numberOfParticlesInTimestep;
 
             if (useIDsharpParticleCounting) {
                 container.particles_visited[index] = particles.size();
             }
-            container.volumes[index] += volumeValue;
+            container.volumes[index] += volume;
             container.mass_total[index] += particleMassInTimestep;
 
             if (particleMassPerTypeinTimestep != null) {
@@ -203,7 +220,7 @@ public class ArrayTimeLineMeasurement {
                 maxMass = tempmass;
             }
 //            System.out.println("store mass at time "+timeindex +" counts: "+container.counts[index]);
-            double temp_c = tempmass / volumeValue;//container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
+            double temp_c = tempmass / volume;//container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
             if (!Double.isInfinite(temp_c) && !Double.isNaN(temp_c)) {
                 if (temp_c > maxConcentration) {
                     maxConcentration = temp_c;
@@ -213,7 +230,7 @@ public class ArrayTimeLineMeasurement {
                 }
             }
         } catch (Exception e) {
-            System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getNumberOfTimes() + ")=>" + index + ", particles=" + numberOfParticlesInTimestep + ", volume=" + volumeValue + ")");
+            System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getNumberOfTimes() + ")=>" + index + ", particles=" + numberOfParticlesInTimestep + ", volume=" + volume + ")");
             e.printStackTrace();
         }
     }
@@ -257,6 +274,8 @@ public class ArrayTimeLineMeasurement {
     }
 
     /**
+     * Add a particle to the measurement storage for the current time. The
+     * container must be measurementActive=true to add this particle.
      *
      * @param particleToCount
      * @param dtfactor fraction of time spend on this capacity in relation to

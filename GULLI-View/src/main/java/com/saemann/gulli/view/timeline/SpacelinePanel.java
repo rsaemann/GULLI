@@ -47,7 +47,6 @@ import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipe;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
-import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
@@ -61,10 +60,10 @@ import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.chart.ui.RectangleInsets;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.ui.RectangleInsets;
 
 /**
  *

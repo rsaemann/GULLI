@@ -110,6 +110,10 @@ public class Setup_IO {
                 }
             }
             bw.newLine();
+            bw.write("\t\t\t<DryFlow unit='m/s'>" + setup.getRoutingSurfaceDryflowVelocity() + "</>");
+            bw.newLine();
+            bw.write("\t\t\t<EnterDry>" + setup.isRoutingSurfaceEnterDryCells() + "</>");
+            bw.newLine();
         }
         bw.write("\t\t</Surface>");
         bw.newLine();
@@ -303,13 +307,15 @@ public class Setup_IO {
                     surfaceRelation = true;
                 }
                 if (line.contains("<Dispersion")) {
-                    try {
-                        double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-                        if (networkRelation) {
-                            setup.setNetworkdispersion(d);
+                    if (line.contains("</")) {
+                        try {
+                            double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            if (networkRelation) {
+                                setup.setNetworkdispersion(d);
+                            }
+                        } catch (Exception exception) {
+                            exception.printStackTrace();
                         }
-                    } catch (Exception exception) {
-                        exception.printStackTrace();
                     }
                 }
 

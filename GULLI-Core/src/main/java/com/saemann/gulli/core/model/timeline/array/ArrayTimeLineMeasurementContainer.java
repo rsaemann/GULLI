@@ -170,6 +170,7 @@ public class ArrayTimeLineMeasurementContainer {
         TimeContainer tc = new TimeContainer(t);
         samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
         times = tc;
+        System.out.println("calculate  number of snapshots: "+numberOfTimes);
         initialize(numberOfTimes, numberOfCapacities, numberOfContaminants);
     }
 
