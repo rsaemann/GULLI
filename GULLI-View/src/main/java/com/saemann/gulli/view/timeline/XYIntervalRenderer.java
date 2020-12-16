@@ -23,15 +23,8 @@
  */
 package com.saemann.gulli.view.timeline;
 
-import java.awt.Graphics2D;
-import java.awt.geom.Rectangle2D;
-import org.jfree.chart.axis.ValueAxis;
-import org.jfree.chart.plot.CrosshairState;
-import org.jfree.chart.plot.PlotRenderingInfo;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYItemRendererState;
+import java.awt.Shape;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.xy.XYDataset;
 
 /**
  *
@@ -49,7 +42,7 @@ public class XYIntervalRenderer extends XYLineAndShapeRenderer {
 
     @Override
     public boolean getItemShapeVisible(int series, int item) {
-        if (interval > 1) {
+        if (item>0&&interval > 1) {
             if ((series + item) % interval != 0) {
                 return false;
             }
@@ -57,11 +50,5 @@ public class XYIntervalRenderer extends XYLineAndShapeRenderer {
 
         return super.getItemShapeVisible(series, item); //To change body of generated methods, choose Tools | Templates.
     }
-
-//    @Override
-//    public void drawItem(Graphics2D g2, XYItemRendererState state, Rectangle2D dataArea, PlotRenderingInfo info, XYPlot plot, ValueAxis domainAxis, ValueAxis rangeAxis, XYDataset dataset, int series, int item, CrosshairState crosshairState, int pass) {
-//        if ((item+series) % (dataset.getSeriesCount()) == 0) {
-//            super.drawItem(g2, state, dataArea, info, plot, domainAxis, rangeAxis, dataset, series, item, crosshairState, pass); //To change body of generated methods, choose Tools | Templates.
-//        }
-//    }
+    
 }
