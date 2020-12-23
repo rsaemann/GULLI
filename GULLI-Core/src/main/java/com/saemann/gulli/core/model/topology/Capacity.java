@@ -157,5 +157,7 @@ public abstract class Capacity {
 //        this.waterlevel = waterlevel;
 //    }
     public abstract double getWaterlevel();
+    
+    public abstract String getName();
 
 }

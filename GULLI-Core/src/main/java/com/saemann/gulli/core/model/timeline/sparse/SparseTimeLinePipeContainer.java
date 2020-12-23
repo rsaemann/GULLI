@@ -95,22 +95,40 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
         dataprovider.fillTimelinePipe(pipeManualId, pipeName, tl);
     }
 
-    public void loadTimelineFlux(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
+    /**
+     * Fills the timeline with discharge [m^3/s] information
+     * @param tl
+     * @param pipeManualId
+     * @param pipeName 
+     */
+    public void loadTimelineDischarge(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
-            System.out.println(getClass() + ": request loading Flux timeline for pipe " + pipeName + " / " + pipeManualId);
+            System.out.println(getClass() + ": request loading discharge timeline for pipe " + pipeName + " / " + pipeManualId);
         }
 
         dataprovider.fillTimelinePipe(pipeManualId, pipeName, tl);
 //        tl.setFlux(dataprovider.loadTimeLineFlux(pipeManualId, pipeName, getNumberOfTimes()));
     }
 
-    public void loadTimelineMass(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
+    /**
+     * Fills the timeline with solute massflux [kg/s] information
+     * @param tl
+     * @param pipeManualId
+     * @param pipeName 
+     */
+    public void loadTimelineMassflux(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
-            System.out.println(getClass() + ": request loading Mass timeline for pipe " + pipeName + " / " + pipeManualId);
+            System.out.println(getClass() + ": request loading Massflux timeline for pipe " + pipeName + " / " + pipeManualId);
         }
-        tl.setMass_reference(dataprovider.loadTimeLineMass(pipeManualId, pipeName, getNumberOfTimes()));
+        tl.setMassflux_reference(dataprovider.loadTimeLineMassflux(pipeManualId, pipeName, getNumberOfTimes()));
     }
 
+    /**
+     * Fills the timeline with concentration [kg/m^3] information.
+     * @param tl
+     * @param pipeManualId
+     * @param pipeName 
+     */
     public void loadTimelineConcentration(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
             System.out.println(getClass() + ": request loading Concentration timeline for pipe " + pipeName + " / " + pipeManualId);

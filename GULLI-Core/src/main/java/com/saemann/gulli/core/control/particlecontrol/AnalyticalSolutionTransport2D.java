@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
+import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,13 +44,13 @@ import com.saemann.gulli.core.model.surface.Surface;
 public class AnalyticalSolutionTransport2D {
 
     private double[][] Ca; // pollutant concentration from analytical simulation
-    private DiffusionCalculator2D D; // Diffusioncalculator for numeric and analytic simulation
+    private Dispersion2D_Constant D; // Diffusioncalculator for numeric and analytic simulation
 
     public AnalyticalSolutionTransport2D() {
-
+        D = new Dispersion2D_Constant();
     }
 
-    public double[][] calculateAnaSol2D(int mass, double kst) throws IOException, DiffusionCalculator2D.NoDiffusionStringException {
+    public double[][] calculateAnaSol2D(int mass, double kst) throws IOException, Dispersion2D_Constant.NoDiffusionStringException {
         //as in Pathirana (2011) : 2d pollutant transport
         // M/Lz is exchanged with number of particles
 
@@ -73,7 +74,7 @@ public class AnalyticalSolutionTransport2D {
 
         while (br.ready()) {
 
-                String string = br.readLine();
+            String string = br.readLine();
             val = string.split(" ");
             times = val.length - 2;
             xwerte[0] = Double.parseDouble(val[0]);
@@ -96,9 +97,7 @@ public class AnalyticalSolutionTransport2D {
         double v_x = 0.05;
         float v_y = 0;
         double h = 1;
-
-        D = new DiffusionCalculator2D();
-        double[] Diff = D.calculateDiffusion((float) v_x, v_y, h, kst);
+        double[] Diff = D.directD;
 
         for (int k = 1; k < t.length; k++) {
             if (times == 179) {

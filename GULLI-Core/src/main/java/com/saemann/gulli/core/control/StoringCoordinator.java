@@ -24,17 +24,11 @@
 package com.saemann.gulli.core.control;
 
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
-import com.saemann.gulli.core.control.output.ContaminationMass;
-import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.output.OutputIntention;
-import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
 import com.saemann.gulli.core.model.particle.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Managaes the user defined outputs. Keeps track of the right time to create
@@ -65,6 +59,8 @@ public class StoringCoordinator implements SimulationActionListener {
      * simulation has finished.
      */
     private ArrayList<OutputIntention> finalOutputs = new ArrayList<>(3);
+
+    private ArrayList<Thread> writerThreads = new ArrayList<>(3);
 
     public StoringCoordinator(Controller control) {
         this.control = control;
@@ -129,14 +125,25 @@ public class StoringCoordinator implements SimulationActionListener {
         writing = true;
         for (OutputIntention fo : finalOutputs) {
             try {
-                File f = fo.writeOutput(this);
-                if (f != null && verbose) {
-                    System.out.println("Output written to " + f.getAbsolutePath());
-                }
+                final Thread th =new Thread("Write " + fo.toString()) {
+                    @Override
+                    public void run() {
+                        File f = fo.writeOutput(StoringCoordinator.this);
+                        if (f != null && verbose) {
+                            System.out.println("Output written to " + f.getAbsolutePath());
+                        }
+//                        StoringCoordinator.this.writerThreads.remove(th);
+                    }
+                    
+                };
+                th.start();
+                writerThreads.add(th);
+               
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        writing = false;
     }
 
     public ArrayList<OutputIntention> getFinalOutputs() {

@@ -23,7 +23,8 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.saemann.gulli.core.control.particlecontrol.DiffusionCalculator2D;
+import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Calculator;
+import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
@@ -92,22 +93,14 @@ public class Setup_IO {
         bw.write("\t\t<Surface>");
         bw.newLine();
         if (setup.getSurfaceDiffusion() != null) {
-            DiffusionCalculator2D disp = setup.getSurfaceDiffusion();
+            Dispersion2D_Calculator disp = setup.getSurfaceDiffusion();
             bw.write("\t\t\t<Class>" + disp.getClass().getName() + "</>");
             bw.newLine();
-            bw.write("\t\t\t<Type>" + disp.diffType + "</>");
+            bw.write("\t\t\t<Type>" + disp.getDiffusionString() + "</>");
             bw.newLine();
-            if (disp.diffType == DiffusionCalculator2D.DIFFTYPE.D && disp.directD != null && disp.directD.length > 0) {
-                bw.write("\t\t\t<Dxx unit='m^2/s'>" + disp.directD[0] + "</>");
+            for (int i = 0; i < disp.getParameterOrderDescription().length; i++) {              
+                bw.write("\t\t\t<"+disp.getParameterOrderDescription()[i]+">" + disp.getParameterValues()[i] + "</>");
                 bw.newLine();
-                if (disp.directD.length > 1) {
-                    bw.write("\t\t\t<Dyy unit='m^2/s'>" + disp.directD[1] + "</>");
-                    bw.newLine();
-                    if (disp.directD.length > 2) {
-                        bw.write("\t\t\t<Dzz unit='m^2/s'>" + disp.directD[2] + "</>");
-                        bw.newLine();
-                    }
-                }
             }
             bw.newLine();
             bw.write("\t\t\t<DryFlow unit='m/s'>" + setup.getRoutingSurfaceDryflowVelocity() + "</>");
@@ -258,7 +251,7 @@ public class Setup_IO {
                 } else if (line.contains("<Materials")) {
                     state = 4;
                 } else if (line.contains("<Injections")) {
-                    state = 2;
+                    state = 5;
                 }
             }
             if (state == 1) {
@@ -312,6 +305,15 @@ public class Setup_IO {
                             double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             if (networkRelation) {
                                 setup.setNetworkdispersion(d);
+                            }
+                            if (surfaceRelation) {
+                                Dispersion2D_Constant dc=new Dispersion2D_Constant();
+                                dc=new Dispersion2D_Constant();
+                                dc.Dxx=d;
+                                dc.Dyy=d;
+                                dc.D=new double[]{dc.Dxx,dc.Dyy,dc.Dyy};
+                            
+                                setup.setSurfaceDiffusion(dc);
                             }
                         } catch (Exception exception) {
                             exception.printStackTrace();

@@ -91,11 +91,17 @@
             <id>central</id>
             <name>Central Repository</name>
             <url>https://repo.maven.apache.org/maven2</url>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
         </repository> 
         <repository>
             <id>centralMaven</id>
             <name>Central Maven Repository</name>
             <url>https://repo1.maven.org/maven2/</url>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
         </repository>  
         <!--<repository>
             <id>freehep-maven</id>
@@ -110,6 +116,7 @@
                 <enabled>false</enabled>
             </snapshots>
             <releases>
+                <updatePolicy>never</updatePolicy>
                 <enabled>true</enabled>
             </releases>
         </repository>

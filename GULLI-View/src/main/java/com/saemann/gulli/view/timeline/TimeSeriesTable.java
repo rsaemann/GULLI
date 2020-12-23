@@ -39,18 +39,19 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
     protected StrokeEditor strokeEditor;
     protected ColorEditor colorEditor;
 
-    protected int indexSort = 0;
-    protected int indexKey = 1;
-    protected int indexLabel = 2;
+    protected int indexSort;
+    protected int indexPersist;
+    protected int indexKey;
+    protected int indexLabel;
     protected int indexAxis;
     protected int indexLogarithmic;
     protected int indexView;
     protected int indexColor;
     protected int indexLine;
-    protected int indexShape = 7;
+    protected int indexShape;
     protected int indexInterval;
     protected int indexFile;
-    protected int indexIndex = 9;
+    protected int indexIndex;
 
     public TimeSeriesTable(DefaultTableModel model, TimeSeriesCollection col) {
         super(model);
@@ -62,6 +63,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
 
         int column = 0;
         indexSort = column++;
+        indexPersist = column++;
         indexKey = column++;
         indexLabel = column++;
         indexAxis = column++;
@@ -77,6 +79,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         model.setColumnCount(column);
         String[] header = new String[column];
         header[indexSort] = "Sort";
+        header[indexPersist] = "Persist";
         header[indexKey] = "Series";
         header[indexLabel] = "Label";
         header[indexAxis] = "Axis";
@@ -132,6 +135,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
         this.getColumnModel().getColumn(indexSort).setMaxWidth(50);
         this.getColumnModel().getColumn(indexSort).setMinWidth(30);
 
+        this.getColumnModel().getColumn(indexPersist).setMaxWidth(50);
+        this.getColumnModel().getColumn(indexPersist).setMinWidth(30);
+
         this.getColumnModel().getColumn(indexView).setMaxWidth(50);
         this.getColumnModel().getColumn(indexView).setMinWidth(50);
         this.getColumnModel().getColumn(indexView).setWidth(50);
@@ -161,6 +167,9 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
     public Class<?> getColumnClass(int i) {
         if (i == indexSort) {
             return SortButtonRenderer.class;
+        }
+        if (i == indexPersist) {
+            return Boolean.class;
         }
         if (i == indexKey) {
             return SeriesKey.class;
@@ -232,6 +241,7 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
             model.setValueAt(null, i, indexSort);
             model.setValueAt(key.toString(), i, indexKey);
             model.setValueAt(key.label, i, indexLabel);
+            model.setValueAt(key.persist, i, indexPersist);
             model.setValueAt(key.axisKey, i, indexAxis);
             model.setValueAt(key.logarithmic, i, indexLogarithmic);
             model.setValueAt(key.isVisible(), i, indexView);
@@ -323,6 +333,8 @@ public class TimeSeriesTable extends JTable implements KeyListener, CollectionCh
                     swapSeries(collection, row, row + 1);
                     this.updateTableByCollection();
                 }
+            } else if (column == indexPersist) {
+                ((SeriesKey) collection.getSeries(row).getKey()).persist = (boolean) model.getValueAt(row, column);
             } else if (column == indexLabel) {
                 //Label
                 ((SeriesKey) collection.getSeries(row).getKey()).label = model.getValueAt(row, column) + "";

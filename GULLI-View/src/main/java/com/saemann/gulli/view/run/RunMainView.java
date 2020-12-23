@@ -105,6 +105,7 @@ public class RunMainView {
 //        SurfaceMeasurementRaster.synchronizeMeasures = true;
 //        ArrayTimeLineMeasurement.synchronizeMeasures = true;
 //Loading finisher sorgt dafür, dass nach erfolgreichem Ladevorgang der Input Dateien automatisch ein Simulatiomnslauf gestartet wird.
+        ParticleSurfaceComputing2D.gradientFlowForDryCells = true;
         if (false) {
             lc.loadingFinishedListener.add(new Runnable() {
                 @Override

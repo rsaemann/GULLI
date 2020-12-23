@@ -24,7 +24,10 @@ import org.jfree.chart.ui.RectangleInsets;
 public class MatlabLayout {
 
     public static void layoutToMatlab(JFreeChart chart) {
-        chart.getTitle().setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+        try {
+            chart.getTitle().setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+        } catch (Exception e) {
+        }
         XYPlot plot = chart.getXYPlot();
         chart.setBackgroundPaint(new Color(240, 240, 240));
         BasicStroke stroke1 = new BasicStroke(1);
@@ -34,8 +37,8 @@ public class MatlabLayout {
         df.setDecimalFormatSymbols(dfs);
         //Axis directly attached to plot area
         plot.setAxisOffset(new RectangleInsets(0, 0, 0, 0));
-        Font axisfont = new Font(/*"Gisha"*/Font.SANS_SERIF, Font.PLAIN, 12);
-        Font axisfontLabel = new Font(/*"Gisha"*/Font.SANS_SERIF, Font.PLAIN, 14);
+        Font axisfont = new Font(/*"Gisha"*/Font.SANS_SERIF, Font.PLAIN, 14);
+        Font axisfontLabel = new Font(/*"Gisha"*/Font.SANS_SERIF, Font.PLAIN, 16);
 
         int yaxisCount = plot.getRangeAxisCount();
         for (int i = 0; i < yaxisCount; i++) {

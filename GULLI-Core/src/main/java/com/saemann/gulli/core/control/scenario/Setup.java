@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
-import com.saemann.gulli.core.control.particlecontrol.DiffusionCalculator2D;
+import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.FileContainer;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
@@ -46,7 +46,7 @@ public class Setup {
     private boolean loadResultInjections = true;
 
     protected double timestepTransport = 1;
-    protected DiffusionCalculator2D diffusion;
+    protected Dispersion2D_Constant diffusion;
     protected double networkdispersion = 2;
     protected boolean routingSurfaceEnterDryCells=true;
     protected double routingSurfaceDryflowVelocity=0.005;
@@ -165,11 +165,11 @@ public class Setup {
         this.loadResultInjections = loadResultInjections;
     }
 
-    public DiffusionCalculator2D getSurfaceDiffusion() {
+    public Dispersion2D_Constant getSurfaceDiffusion() {
         return diffusion;
     }
 
-    public void setSurfaceDiffusion(DiffusionCalculator2D diffusion) {
+    public void setSurfaceDiffusion(Dispersion2D_Constant diffusion) {
         this.diffusion = diffusion;
     }
 

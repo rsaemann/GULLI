@@ -82,18 +82,6 @@ public class SparseTimelinePipe implements TimeLinePipe {
         this.pipeName = pipe.getName();
     }
 
-//    public SparseTimelinePipe(SparseTimeLinePipeContainer container, long pipeManualID, String pipeName) {
-//        this.pipeManualID = pipeManualID;
-//        this.pipeName = pipeName;
-//        this.container = container;
-//    }
-//    public void setPipeManualID(int pipeManualID) {
-//        this.pipeManualID = pipeManualID;
-//    }
-//
-//    public void setPipeName(String pipeName) {
-//        this.pipeName = pipeName;
-//    }
     @Override
     public float getVelocity(int temporalIndex) {
         if (velocity == null) {
@@ -128,7 +116,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     @Override
     public float getDischarge(int temporalIndex) {
         if (flux == null) {
-            container.loadTimelineFlux(this, pipeManualID, pipeName);
+            container.loadTimelineDischarge(this, pipeManualID, pipeName);
         }
         return flux[temporalIndex];
     }
@@ -136,7 +124,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     @Override
     public float getMassflux_reference(int temporalIndex, int material) {
         if (mass_reference == null) {
-            this.container.loadTimelineMass(this, pipeManualID, pipeName);
+            this.container.loadTimelineMassflux(this, pipeManualID, pipeName);
         }
         return mass_reference[temporalIndex][material];
     }
@@ -174,13 +162,13 @@ public class SparseTimelinePipe implements TimeLinePipe {
                 container.loadTimelineVelocity(this, pipeManualID, pipeName);
             }
             if (flux == null) {
-                container.loadTimelineFlux(this, pipeManualID, pipeName);
+                container.loadTimelineDischarge(this, pipeManualID, pipeName);
             }
             if (waterlevel == null) {
                 container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
 
             }
-            if (volume == null) {
+            if (volume == null&&waterlevel!=null) {
                 //calculate fluid volume
                 volume = new float[waterlevel.length];
                 for (int i = 0; i < waterlevel.length; i++) {
@@ -239,7 +227,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
         this.flux = flux;
     }
 
-    public void setMass_reference(float[][] mass_reference) {
+    public void setMassflux_reference(float[][] mass_reference) {
         this.mass_reference = mass_reference;
     }
 

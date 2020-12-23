@@ -2667,7 +2667,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * @return
      */
     @Override
-    public float[][] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes) {
+    public float[][] loadTimeLineMassflux(long pipeMaualID, String pipeName, int numberOfTimes) {
         //TODO: calculate the mass from the concentration.
         float[][] values = new float[numberOfTimes][getNumberOfMaterials()];
 //        System.out.println("load timeline mass to float[" + numberOfTimes + "][" + getNumberOfMaterials() + "]");

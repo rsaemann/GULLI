@@ -3168,6 +3168,11 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     }
 
+    @Override
+    public String getName() {
+       return "Surface";
+    }
+
     public class BoundHitException extends Exception {
 
         public final int id;

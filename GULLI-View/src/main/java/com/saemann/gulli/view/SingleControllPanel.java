@@ -187,7 +187,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         dfParticles.setGroupingSize(3);
         
         dfSeconds = new DecimalFormat("#,##0.###", dfsymb);
-        dfSeconds.setGroupingSize(3);        
+        dfSeconds.setGroupingSize(3);
         
         this.setLayout(layout);
         initLoadingIcons();
@@ -335,7 +335,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         try {
             ParticleSurfaceComputing sc = controller.getParticleThreads()[0].getSurfaceComputing();
             ParticleSurfaceComputing2D sc2d = (ParticleSurfaceComputing2D) sc;
-            d = sc2d.getDiffusionCalculator().directD[0];
+            d = sc2d.getDiffusionCalculator().getParameterValues()[0];
         } catch (Exception e) {
         }
         textDispersionSurface = new JTextField(d + "");
@@ -923,7 +923,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         textDispersionSurface.setCaretPosition(pos);
                         if (ke.getKeyCode() == 10) {
                             //Confirm by RETURN                        
-                            control.setDispersionCoefficientSurface(v);
+                            control.setDispersionCoefficientSurface(new double[]{v});
                             textDispersionSurface.setForeground(Color.BLACK);
                         }
                     } catch (NumberFormatException numberFormatException) {
@@ -936,7 +936,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 public void focusLost(FocusEvent fe) {
                     try {
                         double v = Double.parseDouble(textDispersionSurface.getText());
-                        control.setDispersionCoefficientSurface(v);
+                        control.setDispersionCoefficientSurface(new double[]{v});
                     } catch (NumberFormatException numberFormatException) {
                         textDispersionSurface.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
                     }
@@ -1848,7 +1848,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkDrawUpdateIntervall.setSelected(controler.paintOnMap);
         
         labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
-        
+        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
+        try {
+            textDispersionSurface.setText(controler.getParticleThreads()[0].getSurfaceComputing().getDiffusionCalculator().getParameterValues()[0] + "");
+            textDispersionSurface.setToolTipText(controler.getParticleThreads()[0].getSurfaceComputing().getDiffusionCalculator().getParameterOrderDescription()[0]);
+        } catch (Exception e) {
+            textDispersionSurface.setText("");
+            textDispersionSurface.setToolTipText(e.getLocalizedMessage());
+        }
     }
     
     public void updateSimulationRunInformation() {

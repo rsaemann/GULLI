@@ -171,4 +171,9 @@ public class SurfaceTrianglePath extends Capacity{
         return surface.getVelocityToNeighbour((int) startTriangleID, neighbourIndex);
     }
 
+    @Override
+    public String getName() {
+        return "SurfacePath"+getAutoID();
+    }
+
 }

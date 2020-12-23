@@ -51,6 +51,7 @@ import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
+import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLinePipeContainer;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -220,17 +221,18 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     }
 
     /**
-     * Sets the diffusion coefficient to all particlesurfce computing objects in
-     * their directD calculation array.
+     * Sets the dispersion coefficient to all particlesurfce computing objects
+     * in their directD calculation array. The number and order of parameters
+     * depends on the used Dispersion2D_Calculator.
      *
-     * @param K
+     * @param dispParameters
      */
-    public void setDispersionCoefficientSurface(double K) {
+    public void setDispersionCoefficientSurface(double[] dispParameters) {
         try {
             for (ParticleThread particleThread : threadController.getParticleThreads()) {
                 ParticleSurfaceComputing2D psc = (ParticleSurfaceComputing2D) particleThread.getSurfaceComputing();
                 psc.enableDiffusion = true;
-                psc.getDiffusionCalculator().setDirectDiffusion(K, K, K);
+                psc.getDiffusionCalculator().setParameterValues(dispParameters);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -255,11 +257,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         threadController.setSimulationStartTime(sce.getStartTime());
         threadController.setSimulationTimeEnd(sce.getEndTime());
 
-//        if (sce.getTimesPipe() != null) {
-//            currentAction.description = "load scenario: init measurement timelines";
-//            initMeasurementTimelines(sce, sce.getTimesPipe().getNumberOfTimes() - 1);
-//
-//        }
+        if (sce.getTimesPipe() != null && network != null) {
+            currentAction.description = "load scenario: init measurement timelines";
+            initMeasurementTimelines(sce);
+        }
         currentAction.description = "load scenario";
         currentAction.progress = 1;
     }
@@ -580,7 +581,23 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param scenario
      */
     public void initMeasurementTimelines(Scenario scenario) {
-        initMeasurementTimelines(scenario, scenario.getTimesPipe().getNumberOfTimes() - 1);
+        if (scenario.getTimesPipe() != null) {
+            if (scenario.getTimesPipe() instanceof TimeContainer) {
+                TimeContainer tc = (TimeContainer) scenario.getTimesPipe();
+                long duration = scenario.getEndtime() - scenario.getStartTime();
+                int numberIntervals = (int) (duration / tc.getDeltaTimeMS());
+
+                if (numberIntervals > 0) {
+                    initMeasurementTimelines(scenario.getStartTime(), numberIntervals, tc.getDeltaTimeMS() / 1000.);
+                } else {
+                    System.err.println("Time container Pipe not correctly initialised.");
+                    System.err.println("   duration: " + duration + " / " + tc.getDeltaTimeMS() + " = " + numberIntervals);
+                }
+            } else {
+                initMeasurementTimelines(scenario, scenario.getTimesPipe().getNumberOfTimes() - 1);
+            }
+        }
+
     }
 
     public void initMeasurementTimelines(Scenario scenario, TimeIndexContainer times, int numberOfContaminants) {
@@ -589,7 +606,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         scenario.setMeasurementsPipe(container_m);
         ArrayTimeLineMeasurementContainer.instance = container_m;
         container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
-        System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
+        if (verbose) {
+            System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
+        }
 
         int number = 0;
         for (Pipe p : network.getPipes()) {
@@ -608,7 +627,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         scenario.setMeasurementsPipe(container_m);
         ArrayTimeLineMeasurementContainer.instance = container_m;
         container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
-        System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
+        if (verbose) {
+            System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
+        }
 
         int number = 0;
         for (Pipe p : network.getPipes()) {
@@ -647,7 +668,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         int n = numberOfIntervalls;//(int) ((this.scenario.getEndTime() - this.scenario.getStartTime()) / dt + 1);
         double dt = (scenario.getEndTime() - scenario.getStartTime()) / ((n));
-        System.out.println("sample dt= " + dt + "ms.  duration:" + (scenario.getEndTime() - scenario.getStartTime()));
+        if (verbose) {
+            System.out.println("sample dt= " + dt + "ms.  duration:" + (scenario.getEndTime() - scenario.getStartTime()));
+        }
         long[] times = new long[n + 1];
 
         for (int i = 0; i < times.length; i++) {
@@ -1027,7 +1050,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         this.surface = surface;
         if (surface != null) {
             if (surface.getMeasurementRaster() == null && surface.getTimes() != null) {
-                surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getParticleThreads().length));
+                surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getNumberOfParallelThreads()));
             }
         }
         for (LoadingActionListener ll : actionListener) {

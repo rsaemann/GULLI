@@ -287,7 +287,7 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
         }
 
         //Skip input values
-        long toskip = (nbsubcatchments + 2) * 4 + (3 * nbNodes + 4) * 4 + (5 * nbLinks + 6) * 4;
+        long toskip = (nbsubcatchments + 2) * 4 + (3 * nbNodes + 4) * 4 + (5 * nbLinks + 6) * 4 + 4 * (nbPollutants);
         if (verbose) {
             System.out.println("Skip " + toskip + " bytes.");
         }
@@ -358,6 +358,9 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
         //Time information
         //bytes per period
         periodBytes = 2 * 4 + 4 * (nbsubcatchments * sizeSubcatchments + nbNodes * sizeNodes + nbLinks * sizeLinks + sizeSystemVaraibles);
+        if (verbose) {
+            System.out.println("PeriodBytes: " + periodBytes);
+        }
         is.close();
 
     }
@@ -534,14 +537,46 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
         return new float[numberOfTimes];
     }
 
+    /**
+     * kg/s in pipe
+     * @param pipeMaualID
+     * @param pipeName
+     * @param numberOfTimes
+     * @return
+     */
     @Override
-    public float[][] loadTimeLineMass(long pipeMaualID, String pipeName, int numberOfTimes) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public float[][] loadTimeLineMassflux(long pipeMaualID, String pipeName, int numberOfTimes) {
+        float[][] values=new float[nbPeriods][nbPollutants];
+        try {
+            float[] discharge=getLinkValues(pipeName,0);//m^3/s?
+        
+            for (int i = 0; i < nbPollutants; i++) {
+                float[] c=getLinkValues(pipeName, i+5);//mg/L
+                for (int t = 0; t < nbPeriods; t++) {
+                    values[t][i]=c[t]*discharge[t]/1000f;// -> kg/s
+                }
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(SWMM_Out_Reader.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return values;
     }
 
     @Override
     public float[][] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        float[][] values=new float[nbPeriods][nbPollutants];
+        try {
+            
+            for (int i = 0; i < nbPollutants; i++) {
+                float[] c=getLinkValues(pipeName, i+5);//mg/L
+                for (int t = 0; t < nbPeriods; t++) {
+                    values[t][i]=c[t]/1000f; //kg/m^3
+                }
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(SWMM_Out_Reader.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return values;
     }
 
     @Override
@@ -568,7 +603,7 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
 
     @Override
     public void loadTimelineManholes(Collection<StorageVolume> manholes, SparseTimeLineManholeContainer container) {
-        
+
     }
 
     @Override
@@ -591,7 +626,7 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
 
     @Override
     public void loadTimelinePipes(Collection<Pipe> pipesToLoad, SparseTimeLinePipeContainer container) {
-       
+
     }
 
     @Override

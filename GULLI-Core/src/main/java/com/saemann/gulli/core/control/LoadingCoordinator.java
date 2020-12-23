@@ -1690,6 +1690,10 @@ public class LoadingCoordinator {
             Setup setup = Setup_IO.load(file);
             if (setup != null) {
                 this.applySetup(setup);
+                
+                for (LoadingActionListener lal : listener) {
+                    lal.actionFired(new Action("Setup load", null, false), this);
+                }
                 return true;
             }
         } catch (IOException ex) {
@@ -1728,7 +1732,6 @@ public class LoadingCoordinator {
             }
 
             control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
-//            System.out.println("Set dispersion pipe:"+setup.getNetworkdispersion()+" is "+control.getThreadController());
         } catch (Exception ex) {
             Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -1777,6 +1780,8 @@ public class LoadingCoordinator {
         setup.scenario = scenario;
 
         setup.setTimestepTransport(ThreadController.getDeltaTime());
+        
+        setup.setNetworkdispersion(ParticlePipeComputing.getDispersionCoefficient());
 
         ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
         if (mp != null) {

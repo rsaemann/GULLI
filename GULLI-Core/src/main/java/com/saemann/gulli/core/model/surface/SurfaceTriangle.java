@@ -128,6 +128,11 @@ public class SurfaceTriangle extends Capacity {
     public Manhole getManhole() {
         return manhole;
     }
+
+    @Override
+    public String getName() {
+        return "SurfaceTriangle"+getAutoID();
+    }
     
     
 

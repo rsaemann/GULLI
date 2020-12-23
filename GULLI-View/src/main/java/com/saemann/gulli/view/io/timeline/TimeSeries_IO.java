@@ -103,8 +103,8 @@ public class TimeSeries_IO {
                 TimeSeries s = collection.getSeries(i);
                 SeriesKey key = (SeriesKey) s.getKey();
                 File file;
-                if (key.file == null || key.file.isEmpty() || !key.file.endsWith("tse")) {
-                    file = new File(dir + nameprefix + (key.name + "_" + key.containerIndex).replaceAll("/", "") + ".tse");
+                if (key.file == null || key.file.isEmpty() || !key.file.endsWith("tse")||key.persist) {
+                    file = new File(dir + nameprefix + (key.label + "_" + key.containerIndex).replaceAll("/", "") + ".tse");
                 } else {
                     file = new File(dir + key.file);
                 }

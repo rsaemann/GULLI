@@ -383,7 +383,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
     private void recalculateRandomNumberGenerators() {
         if (particles != null) {
             randomNumberGenerators = new RandomGenerator[this.particles.length / treatblocksize + 1];
-            
+
         }
     }
 
@@ -481,9 +481,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 }
             }
         }
-        for (ParticleThread thread : barrier_particle.getThreads()) {
-            thread.reset();
-        }
         if (particles != null) {
             for (Particle p : particles) {
                 if (p == null) {
@@ -506,7 +503,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
 //        setSeed(seed);
         try {
-            if(randomNumberGenerators==null){
+            if (randomNumberGenerators == null) {
                 recalculateRandomNumberGenerators();
                 setSeed(seed);
             }
@@ -1191,6 +1188,13 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         this.treatblocksize = treatblocksize;
         recalculateRandomNumberGenerators();
         setSeed(seed);
+    }
+
+    public int getNumberOfParallelThreads() {
+        if (this.barrier_particle == null) {
+            return 0;
+        }
+        return this.barrier_particle.getThreads().size();
     }
 
 }

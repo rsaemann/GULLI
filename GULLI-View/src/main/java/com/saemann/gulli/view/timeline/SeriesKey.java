@@ -13,7 +13,7 @@ import com.saemann.gulli.view.timeline.customCell.ShapeEditor;
  * @author saemann
  * @param <E>
  */
-public class SeriesKey<E> implements Comparable<SeriesKey> {
+public class SeriesKey<E> implements Comparable<SeriesKey>,Cloneable {
 
     public enum YAXIS {
 
@@ -37,6 +37,10 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
     public boolean shapeFilled = false;
     public E element;
     public Series timeseries;
+    /**
+     * This graph should not be cleared at the next update
+     */
+    public boolean persist=false;
 
     public SeriesKey(Value v, Color lineColor) {
         this(v.getName(), v.getSymbol(), v.getUnit(), lineColor);
@@ -153,5 +157,24 @@ public class SeriesKey<E> implements Comparable<SeriesKey> {
 
         return label;
     }
+
+    @Override
+    protected SeriesKey clone() throws CloneNotSupportedException {
+        SeriesKey sk= new SeriesKey(name, symbol, unit, lineColor, axisKey, containerIndex, file);
+        sk.element=this.element;
+        sk.label=this.label;
+        sk.lineColor=this.lineColor;
+        sk.logarithmic=this.logarithmic;
+        sk.persist=this.persist;
+        sk.renderAsBar=this.renderAsBar;
+        sk.shape=this.shape;
+        sk.shapeFilled=this.shapeFilled;
+        sk.stroke=this.stroke;
+        sk.timeseries=this.timeseries;
+        
+        return sk;
+    }
+    
+    
 
 }

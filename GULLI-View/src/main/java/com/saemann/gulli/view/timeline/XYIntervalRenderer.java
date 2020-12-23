@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.view.timeline;
 
-import java.awt.Shape;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 
 /**

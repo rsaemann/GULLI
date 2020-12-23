@@ -57,11 +57,14 @@ import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.SWMMNetwork;
+import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.catchment.Catchment;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
 import org.locationtech.jts.geom.Coordinate;
@@ -172,10 +175,14 @@ public class SWMM_IO {
                         System.out.println(profiles.size() + " profiles + " + xSections.size() + " xsections read");
                     } else if (line.toUpperCase().equals("[TIMESERIES]")) {
                         readTimeseries(br);
-                        System.out.println(raingages.size() + " timeseries read");
+                        if (raingages != null) {
+                            System.out.println(raingages.size() + " timeseries read");
+                        }
                     } else if (line.toUpperCase().equals("[TAGS]")) {
                         readTags(br);
-                        System.out.println(tags.size() + " Tags read");
+                        if (tags != null) {
+                            System.out.println(tags.size() + " Tags read");
+                        }
                     } else if (line.toUpperCase().equals("[COORDINATES]")) {
                         readCoordinates(br);
                         System.out.println(coordinates.size() + " coordinates read");
@@ -351,49 +358,52 @@ public class SWMM_IO {
             }
         }
 
-        ArrayList<Catchment> catchments = new ArrayList<>(subcatchments.size());
-        for (Map.Entry<String, Subcatchment> s : subcatchments.entrySet()) {
-            Catchment catchment = new Catchment(s.getKey());
-            List<Coordinate> liste = polygons.get(s.getKey());
-            if (liste == null) {
-                System.err.println("Polygon for Subcatchment '" + s.getKey() + "' is NULL.");
-                continue;
-            } else if (liste.size() < 1) {
-                System.err.println("Polygon for Subcatchment '" + s.getKey() + "' is empty.");
-                continue;
-            } else if (liste.size() == 1) {
-                try {
-                    ArrayList<GeoPosition2D> position = new ArrayList<>(liste.size());
-                    position.add(buildPosition(liste.get(0), utm2wgs/*, utm42wgs*/));
-                    catchment.setGeometry(position);
-                } catch (TransformException ex) {
-                    Logger.getLogger(SWMM_IO.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            } else {
-                int i = 0;
-                ArrayList<GeoPosition2D> position = new ArrayList<>(liste.size());
-                for (Coordinate c : liste) {
+        ArrayList<Catchment> catchments = null;
+        if (subcatchments != null) {
+            catchments = new ArrayList<>(subcatchments.size());
+            for (Map.Entry<String, Subcatchment> s : subcatchments.entrySet()) {
+                Catchment catchment = new Catchment(s.getKey());
+                List<Coordinate> liste = polygons.get(s.getKey());
+                if (liste == null) {
+                    System.err.println("Polygon for Subcatchment '" + s.getKey() + "' is NULL.");
+                    continue;
+                } else if (liste.size() < 1) {
+                    System.err.println("Polygon for Subcatchment '" + s.getKey() + "' is empty.");
+                    continue;
+                } else if (liste.size() == 1) {
                     try {
-                        position.add(buildPosition(c, utm2wgs/*, utm42wgs*/));
+                        ArrayList<GeoPosition2D> position = new ArrayList<>(liste.size());
+                        position.add(buildPosition(liste.get(0), utm2wgs/*, utm42wgs*/));
+                        catchment.setGeometry(position);
                     } catch (TransformException ex) {
                         Logger.getLogger(SWMM_IO.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                }
+                } else {
+                    int i = 0;
+                    ArrayList<GeoPosition2D> position = new ArrayList<>(liste.size());
+                    for (Coordinate c : liste) {
+                        try {
+                            position.add(buildPosition(c, utm2wgs/*, utm42wgs*/));
+                        } catch (TransformException ex) {
+                            Logger.getLogger(SWMM_IO.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
 
-                catchment.setGeometry(position);
-            }
-            Manhole outlet = nodes.get(s.getValue().outletNode);
-            if (outlet != null) {
-                catchment.setOutlet(outlet);
-            }
-            catchment.setImperviousRate(s.getValue().imperviousRatio);
-            catchment.setArea(s.getValue().totalarea);
-            catchment.setSlope(s.getValue().slopetotal);
+                    catchment.setGeometry(position);
+                }
+                Manhole outlet = nodes.get(s.getValue().outletNode);
+                if (outlet != null) {
+                    catchment.setOutlet(outlet);
+                }
+                catchment.setImperviousRate(s.getValue().imperviousRatio);
+                catchment.setArea(s.getValue().totalarea);
+                catchment.setSlope(s.getValue().slopetotal);
 //            tags.put("impervious_Rate", s.getValue().imperviousRatio + "");
 //            tags.put("slope_Rate", s.getValue().slopetotal + "");
 //            tags.put("width", s.getValue().width + "");
 //            tags.put("outlet", s.getValue().outletNode + "");
-            catchments.add(catchment);
+                catchments.add(catchment);
+            }
         }
 
 //        for (Map.Entry<String, List<Coordinate>> p : polygons.entrySet()) {
@@ -590,7 +600,9 @@ public class SWMM_IO {
             }
         }
         SWMMNetwork nw = new SWMMNetwork(pipes.values(), nodes.values());
-        nw.addAll(catchments);
+        if (catchments != null && catchments.size() > 0) {
+            nw.addAll(catchments);
+        }
         System.out.println("Network building finished.");
         return nw;
     }
@@ -1940,4 +1952,175 @@ public class SWMM_IO {
         return map;
     }
 
+    public static boolean writeINP(Network network, File targetFile) throws IOException {
+        SWMMNetwork swmm = null;
+        if (network instanceof SWMMNetwork) {
+            swmm = (SWMMNetwork) network;
+        }
+
+        try (FileWriter fw = new FileWriter(targetFile, false)) {
+            BufferedWriter bw = new BufferedWriter(fw);
+            bw.write("[TITLE]\n"
+                    + ";;Project Title/Notes\n"
+                    + network.getName() + "\n"
+                    + "[OPTIONS]\n"
+                    + ";;Option             Value\n"
+                    + "FLOW_UNITS           CMS\n"
+                    + "INFILTRATION         Horton\n"
+                    + "FLOW_ROUTING         DYNWAVE\n"
+                    + "LINK_OFFSETS         DEPTH\n"
+                    + "MIN_SLOPE            0\n"
+                    + "ALLOW_PONDING        NO\n"
+                    + "SKIP_STEADY_STATE    NO\n"
+                    + "\n"
+                    + "IGNORE_RDII          YES\n"
+                    + "IGNORE_SNOWMELT      YES\n"
+                    + "IGNORE_GROUNDWATER   YES\n"
+                    + "START_DATE           01/01/2018\n"
+                    + "START_TIME           00:00:00\n"
+                    + "REPORT_START_DATE    01/01/2018\n"
+                    + "REPORT_START_TIME    00:00:00\n"
+                    + "END_DATE             01/01/2018\n"
+                    + "END_TIME             10:00:00\n"
+                    + "SWEEP_START          1/1\n"
+                    + "SWEEP_END            12/31\n"
+                    + "DRY_DAYS             14\n"
+                    + "REPORT_STEP          0:01:00\n"
+                    + "WET_STEP             0:01:00\n"
+                    + "DRY_STEP             1:00:00\n"
+                    + "ROUTING_STEP         0:00:01 \n"
+                    + "\n"
+                    + "INERTIAL_DAMPING     NONE\n"
+                    + "NORMAL_FLOW_LIMITED  BOTH\n"
+                    + "FORCE_MAIN_EQUATION  H-W\n"
+                    + "VARIABLE_STEP        0.00\n"
+                    + "LENGTHENING_STEP     0\n"
+                    + "MIN_SURFAREA         0\n"
+                    + "MAX_TRIALS           8\n"
+                    + "HEAD_TOLERANCE       0.0015\n"
+                    + "SYS_FLOW_TOL         5\n"
+                    + "LAT_FLOW_TOL         5\n"
+                    + "MINIMUM_STEP         0.5\n"
+                    + "THREADS              1\n"
+                    + "\n"
+                    + "[EVAPORATION]\n"
+                    + ";;Data Source    Parameters\n"
+                    + ";;-------------- ----------------\n"
+                    + "CONSTANT         0\n"
+                    + "DRY_ONLY         YES\n"
+                    + "\n"
+                    + "[RAINGAGES]\n"
+                    + ";;Name           Format    Interval SCF      Source    \n"
+                    + ";;-------------- --------- ------ ------ ----------\n"
+                    + "default          CUMULATIVE 00:05    1.0      TIMESERIES default_rain.dat\n"
+                    + "\n"
+                    + "[SUBCATCHMENTS]\n"
+                    + ";;Name           Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  SnowPack        \n"
+                    + ";;-------------- ---------------- ---------------- -------- -------- -------- -------- -------- ----------------");
+            if (swmm != null) {
+                for (Catchment c : swmm.getCatchments()) {
+                    bw.write("\n" + c.getName() + " default          " + c.getOutlet().getName() + " " + c.getArea() + " " + c.getImperviousRate() * 100 + " " + Math.sqrt(c.getArea()) + " " + c.getSlope() + " 1 0");
+                }
+            }
+            bw.write("\n\n[SUBAREAS]\n"
+                    + ";;Subcatchment   N-Imperv   N-Perv     S-Imperv   S-Perv     PctZero    RouteTo    PctRouted \n"
+                    + ";;-------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------");
+            if (swmm != null) {
+                for (Catchment c : swmm.getCatchments()) {
+                    bw.write("\n" + c.getName() + " 0.01       0.1        0.05       0.05       25         OUTLET    100");
+                }
+            }
+            bw.write("\n\n[INFILTRATION]\n"
+                    + ";;Subcatchment   MaxRate    MinRate    Decay      DryTime    MaxInfil  \n"
+                    + ";;-------------- ---------- ---------- ---------- ---------- ----------");
+            if (swmm != null) {
+                for (Catchment c : swmm.getCatchments()) {
+                    bw.write("\n" + c.getName() + " 60         6.12       0.03       1          0         ");
+                }
+            }
+
+            bw.write("\n\n[JUNCTIONS]\n"
+                    + ";;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   \n"
+                    + ";;-------------- ---------- ---------- ---------- ---------- ----------");
+            for (Manhole m : network.getManholes()) {
+                if (m.isSetAsOutlet()) {
+                    continue;
+                }
+                bw.write("\n" + m.getName() + " " + m.getSole_height() + " " + (m.getTop_height() - m.getSole_height()) + " 0 0 0");
+            }
+
+            bw.write("\n\n[OUTFALLS]\n"
+                    + ";;Name           Elevation  Type       Stage Data       Gated    Route To        \n"
+                    + ";;-------------- ---------- ---------- ---------------- -------- ----------------");
+
+            double minX = Double.POSITIVE_INFINITY;
+            double maxX = Double.NEGATIVE_INFINITY;
+            double minY = Double.POSITIVE_INFINITY;
+            double maxY = Double.NEGATIVE_INFINITY;
+
+            for (Manhole m : network.getManholes()) {
+                minX = Math.min(minX, m.getPosition().getX());
+                maxX = Math.max(maxX, m.getPosition().getX());
+                minY = Math.min(minY, m.getPosition().getY());
+                maxY = Math.max(maxY, m.getPosition().getY());
+
+                if (!m.isSetAsOutlet()) {
+                    continue;
+                }
+                bw.write("\n" + m.getName() + " " + m.getSole_height() + " FREE NO");
+            }
+
+            bw.write("\n\n[CONDUITS]\n"
+                    + ";;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   \n"
+                    + ";;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------");
+            // n=0.013 is equal to kst=77 equal to kb=1.5 mm (HE default)
+            for (Pipe p : network.getPipes()) {
+                StorageVolume s = p.getStartConnection().getManhole();
+                StorageVolume e = p.getEndConnection().getManhole();
+                bw.write("\n" + p.getName() + " " + s.getName() + " " + e.getName() + " " + p.getLength() + " 0.013 " + (p.getStartConnection().getHeight() - s.getSole_height()) + " " + (p.getEndConnection().getHeight() - e.getSole_height()) + " 0 0");
+            }
+
+            bw.write("\n\n[XSECTIONS]\n"
+                    + ";;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   \n"
+                    + ";;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------\n");
+            for (Pipe p : network.getPipes()) {
+                if (p.getProfile() instanceof CircularProfile) {
+                    bw.write("\n" + p.getName() + "  CIRCULAR     "+((CircularProfile)p.getProfile()).getDiameter()+"             0          0          0          1                    ");
+                }else{
+                    //Fallback: circular 0.5
+                    bw.write("\n" + p.getName() + "  CIRCULAR     0.5             0          0          0          1 ");
+                
+                }
+            }
+
+            bw.write("\n\n[TIMESERIES]\n"
+                    + ";;Name           Date       Time       Value     \n"
+                    + ";;-------------- ---------- ---------- ----------\n"
+                    + "default_rain.dat FILE \"default_rain.dat\"\n"
+                    + "\n"
+                    + "[REPORT]\n"
+                    + ";;Reporting Options\n"
+                    + "INPUT      NO\n"
+                    + "CONTROLS   YES\n"
+                    + "SUBCATCHMENTS ALL\n"
+                    + "NODES ALL\n"
+                    + "LINKS ALL\n"
+                    + "\n"
+                    + "[TAGS]\n"
+                    + "\n"
+                    + "[MAP]\n"
+                    + "DIMENSIONS " + minX + " " + minY + " " + maxX + " " + maxY
+                    + "\nUnits      m");
+
+            bw.write("\n\n[COORDINATES]\n"
+                    + ";;Node           X-Coord            Y-Coord           \n"
+                    + ";;-------------- ------------------ ------------------");
+            for (Manhole m : network.getManholes()) {
+                bw.write("\n" + m.getName() + " " + m.getPosition().getX() + " " + m.getPosition().getY());
+            }
+            bw.write("\n");
+            bw.close();
+        }
+        return true;
+    }
 }

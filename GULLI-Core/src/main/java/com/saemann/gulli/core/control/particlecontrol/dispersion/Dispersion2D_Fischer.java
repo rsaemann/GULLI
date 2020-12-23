@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2018 riss.
+ * Copyright 2020 saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,37 +21,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.core.control.particlecontrol;
+package com.saemann.gulli.core.control.particlecontrol.dispersion;
 
 import com.saemann.gulli.core.model.surface.Surface;
 
 /**
+ * Calculates the dispersion/diffusion on a 2D surface for a particle for the
+ * actual situation. Uses the Fischer parameters to create a elipsoidal
+ * dispersion field that uses the velocity direction of the particle.
  *
  * @author riss, saemann
  */
-public class DiffusionCalculator2D {
+public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
 
-    // choose between "Fisher", "Lin" and "D1" for diffusion calculation:
-    public enum DIFFTYPE {
-
-        FISCHER, LIN, D, tenH, H, Htenth, NO
-    };
-    public DIFFTYPE diffType = DIFFTYPE.D;
-
+//    // choose between "Fisher", "Lin" and "D1" for diffusion calculation:
+//    public enum DIFFTYPE {
+//
+//        FISCHER, LIN, D, tenH, H, Htenth, NO
+//    };
+//    public DIFFTYPE diffType = DIFFTYPE.D;
     public double Dxx;       //Diffusionkoeffizient in xx direction
     public double Dyy;       // -"- in yy direction
     public double Dxy;       // -"- in xy direction
     public double[] D;      // Diffusionkoeffizients vector
 
-    private double al;       //longitudinal dispersivity (Elder: 5.93, Lin: 13)
-    private double at;       //transversal dispersitivy (Fischer: 0.15, Lin: 1.2)
+    private double al=5.91;       //longitudinal dispersivity (Elder: 5.93, Lin: 13)
+    private double at=0.15;       //transversal dispersitivy (Fischer: 0.15, Lin: 1.2)
     private double C;        //Chezy roughness
     private final double wg = Math.sqrt(9.81);
 
     public double[] directD = new double[]{0.01, 0.01, 0};
     public double[] directSqrtD = new double[]{0.1, 0.1, 0};
 
-    public DiffusionCalculator2D() {
+    public Dispersion2D_Fischer() {
         D = new double[3];
     }
 
@@ -73,47 +75,43 @@ public class DiffusionCalculator2D {
      */
     public double[] calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
 
-        if (diffType == DIFFTYPE.D) {
-            return directSqrtD;
-        }
-
+       
         double[] retur = tofill;
         if (retur == null) {
-            System.out.println("new double[3] for diffusion");
             retur = new double[3];
         }
         double h;
-        switch (diffType) {
-            case FISCHER:
+//        switch (diffType) {
+//            case FISCHER:
                 al = 5.91;
                 at = 0.15;
-                break;
-            case LIN:
-                al = 13;
-                at = 1.2;
-                break;
-            case D:
-                return directSqrtD;
-            case tenH:
-                h = surface.getActualWaterlevel(triangleID);
-                retur[0] = Math.sqrt(h * 10.);
-                retur[1] = retur[0];
-                return retur;
-            case H:
-                h = surface.getActualWaterlevel(triangleID);
-                retur[0] = Math.sqrt(h);
-                retur[1] = retur[0];
-                return retur;
-            case Htenth:
-                h = surface.getActualWaterlevel(triangleID);
-                retur[0] = Math.sqrt(h * .1);
-                retur[1] = retur[0];
-                return retur;
-
-            default:
-                D[0] = 0;
-                D[1] = 0;
-        }
+//                break;
+//            case LIN:
+//                al = 13;
+//                at = 1.2;
+//                break;
+//            case D:
+//                return directSqrtD;
+//            case tenH:
+//                h = surface.getActualWaterlevel(triangleID);
+//                retur[0] = Math.sqrt(h * 10.);
+//                retur[1] = retur[0];
+//                return retur;
+//            case H:
+//                h = surface.getActualWaterlevel(triangleID);
+//                retur[0] = Math.sqrt(h);
+//                retur[1] = retur[0];
+//                return retur;
+//            case Htenth:
+//                h = surface.getActualWaterlevel(triangleID);
+//                retur[0] = Math.sqrt(h * .1);
+//                retur[1] = retur[0];
+//                return retur;
+//
+//            default:
+//                D[0] = 0;
+//                D[1] = 0;
+//        }
         h = surface.getActualWaterlevel(triangleID);
         C = surface.getkst() * Math.pow(h, 1. / 6.); //
         Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
@@ -135,9 +133,9 @@ public class DiffusionCalculator2D {
 
     public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
 
-        if (diffType == DIFFTYPE.D) {
-            return directD;
-        }
+//        if (diffType == DIFFTYPE.D) {
+//            return directD;
+//        }
 
         double[] retur = tofill;
         if (retur == null) {
@@ -145,37 +143,37 @@ public class DiffusionCalculator2D {
             retur = new double[3];
         }
         double h = 0;
-        switch (diffType) {
-            case FISCHER:
+//        switch (diffType) {
+//            case FISCHER:
                 al = 5.91;
                 at = 0.15;
-                break;
-            case LIN:
-                al = 13;
-                at = 1.2;
-                break;
-            case D:
-                return directD;
-            case tenH:
-                h = surface.getActualWaterlevel(triangleID);
-                retur[0] = h * 10.;
-                retur[1] = retur[0];
-                return retur;
-            case H:
-                h = surface.getActualWaterlevel(triangleID);
-                retur[0] = h;
-                retur[1] = h;
-                return retur;
-            case Htenth:
-                h = surface.getActualWaterlevel(triangleID);
-                retur[0] = h * .1;
-                retur[1] = retur[0];
-                return retur;
-
-            default:
-                D[0] = 0;
-                D[1] = 0;
-        }
+//                break;
+//            case LIN:
+//                al = 13;
+//                at = 1.2;
+//                break;
+//            case D:
+//                return directD;
+//            case tenH:
+//                h = surface.getActualWaterlevel(triangleID);
+//                retur[0] = h * 10.;
+//                retur[1] = retur[0];
+//                return retur;
+//            case H:
+//                h = surface.getActualWaterlevel(triangleID);
+//                retur[0] = h;
+//                retur[1] = h;
+//                return retur;
+//            case Htenth:
+//                h = surface.getActualWaterlevel(triangleID);
+//                retur[0] = h * .1;
+//                retur[1] = retur[0];
+//                return retur;
+//
+//            default:
+//                D[0] = 0;
+//                D[1] = 0;
+//        }
         h = surface.getActualWaterlevel(triangleID);
         C = surface.getkst() * Math.pow(h, 1. / 6.); //
         Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
@@ -200,27 +198,27 @@ public class DiffusionCalculator2D {
 //        if (null == s) {
 //            throw new NoDiffusionStringException();
 //        } else {
-        switch (diffType) {
-            case tenH:
-                return new double[]{h * 10., h * 10.};
-            case H:
-                return new double[]{h, h};
-            case Htenth:
-                return new double[]{h * 0.1, h * 0.1};
-            case FISCHER:
-                al = 5.91;
-                at = 0.15;
-                break;
-            case LIN:
-                al = 13;
-                at = 1.2;
-                break;
-            case D:
-                return directD;
-            default:
-                D[0] = 0;
-                D[1] = 0;
-        }
+//        switch (diffType) {
+//            case tenH:
+//                return new double[]{h * 10., h * 10.};
+//            case H:
+//                return new double[]{h, h};
+//            case Htenth:
+//                return new double[]{h * 0.1, h * 0.1};
+//            case FISCHER:
+//                al = 5.91;
+//                at = 0.15;
+//                break;
+//            case LIN:
+//                al = 13;
+//                at = 1.2;
+//                break;
+//            case D:
+//                return directD;
+//            default:
+//                D[0] = 0;
+//                D[1] = 0;
+//        }
 
         C = kst * Math.pow(h, 1. / 6.); //
         Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
@@ -240,22 +238,28 @@ public class DiffusionCalculator2D {
         return D;
     }
 
+    @Override
     public String getDiffusionString() {
-        return diffType.name();
+        return "Fischer("+al+";"+at+")";
     }
 
-    public void setDiffusionType(DIFFTYPE str) {
-        this.diffType = str;
 
+    @Override
+    public String[] getParameterOrderDescription() {
+        return new String[]{"lateral","transversal"};
     }
 
-    public void setDirectDiffusion(double dxx, double dyy, double dxy) {
-        this.setDiffusionType(DIFFTYPE.D);
-        this.Dxx = dxx;
-        this.Dyy = dyy;
-        this.Dxy = dxy;
-        this.directD = new double[]{dxx, dyy,0};
-        this.directSqrtD = new double[]{Math.sqrt(dxx), Math.sqrt(dyy),0};
+    @Override
+    public double[] getParameterValues() {
+        return new double[]{al,at};
+    }
+
+    @Override
+    public void setParameterValues(double[] parameter) {
+        if(parameter!=null&&parameter.length>1){
+            this.al=parameter[0];
+            this.at=parameter[1];
+        }
     }
 
     public class NoDiffusionStringException extends Exception {

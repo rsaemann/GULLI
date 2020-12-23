@@ -24,6 +24,7 @@
 package com.saemann.gulli.core.model.timeline.array;
 
 /**
+ * Interface to define the timelines of pipe information about the flow field.
  *
  * @author saemann
  */
@@ -44,7 +45,7 @@ public interface TimeLinePipe {
      * @return
      */
     public float getWaterlevel(int temporalIndex);
-    
+
     /**
      * Volume in the pipe in cubic meters.
      *

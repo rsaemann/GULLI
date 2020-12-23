@@ -23,8 +23,10 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
+import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
+import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Calculator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -82,7 +84,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     /**
      * Calculates Diffusion dependent on the surrounding of the particle.
      */
-    protected DiffusionCalculator2D D = new DiffusionCalculator2D();
+    protected Dispersion2D_Calculator D = new Dispersion2D_Constant();
     public boolean enableDiffusion = true;
     public boolean enableminimumDiffusion = false;
     public boolean getTestSolutionForAnaComparison = false;
@@ -198,11 +200,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         this.threadindex = threadIndex;
     }
 
-    public void setDiffusionCalculation(DiffusionCalculator2D D) {
+    public void setDiffusionCalculation(Dispersion2D_Constant D) {
         this.D = D;
     }
 
-    public DiffusionCalculator2D getDiffusionCalculator() {
+    public Dispersion2D_Calculator getDiffusionCalculator() {
         return D;
     }
 
