@@ -29,7 +29,7 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.SurfaceVelocityLoader;

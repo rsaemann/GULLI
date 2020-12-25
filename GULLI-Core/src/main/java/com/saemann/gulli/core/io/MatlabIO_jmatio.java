@@ -13,7 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.GeoTools;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManhole;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;

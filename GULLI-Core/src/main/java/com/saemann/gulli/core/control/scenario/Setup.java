@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
-import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.FileContainer;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;

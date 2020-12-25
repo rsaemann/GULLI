@@ -23,10 +23,10 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
-import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Calculator;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -84,7 +84,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     /**
      * Calculates Diffusion dependent on the surrounding of the particle.
      */
-    protected Dispersion2D_Calculator D = new Dispersion2D_Constant();
+//    protected Dispersion2D_Calculator D = new Dispersion2D_Constant();
     public boolean enableDiffusion = true;
     public boolean enableminimumDiffusion = false;
     public boolean getTestSolutionForAnaComparison = false;
@@ -200,13 +200,13 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         this.threadindex = threadIndex;
     }
 
-    public void setDiffusionCalculation(Dispersion2D_Constant D) {
-        this.D = D;
-    }
-
-    public Dispersion2D_Calculator getDiffusionCalculator() {
-        return D;
-    }
+//    public void setDiffusionCalculation(Dispersion2D_Constant D) {
+//        this.D = D;
+//    }
+//
+//    public Dispersion2D_Calculator getDiffusionCalculator() {
+//        return D;
+//    }
 
     /**
      * Reset this module to prepare for a start of an identical new simulation.
@@ -222,7 +222,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     public void getDiffusionStatus() {
         if (enableDiffusion) {
-            System.out.println("2D surface dispersion = " + enableDiffusion + "_" + getDiffusionString());
+            System.out.println("2D surface dispersion = " + enableDiffusion);
         } else {
             System.out.println("2D surface dispersion = " + enableDiffusion);
         }
@@ -299,7 +299,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //            if (totalvelocity > 0.001) {
 
                 //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
-                tempDiff = D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
+                p.getMaterial().getDispersionCalculatorSurface().calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);//D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
 
                 sqrt2dtDx = sqrt2dt * tempDiff[0];
                 sqrt2dtDy = sqrt2dt * tempDiff[1];
@@ -936,9 +936,9 @@ status=2;
         return random.nextGaussian();
     }
 
-    public String getDiffusionString() {
-        return D.getDiffusionString();
-    }
+//    public String getDiffusionString() {
+//        return D.getDiffusionString();
+//    }
 
     @Override
     public void setDeltaTimestep(double seconds) {

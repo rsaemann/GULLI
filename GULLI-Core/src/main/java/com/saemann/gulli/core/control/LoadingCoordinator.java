@@ -56,7 +56,7 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.SurfaceVelocityLoader;
 import com.saemann.gulli.core.model.surface.SurfaceWaterlevelLoader;

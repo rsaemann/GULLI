@@ -33,7 +33,7 @@ import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.threads.ThreadController;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.topology.Manhole;
 import java.io.File;

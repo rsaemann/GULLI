@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2019 saemann.
+ * Copyright 2020 saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,22 +21,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.core.control.scenario.injection;
+package com.saemann.gulli.core.model.material.dispersion.pipe;
 
-import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.particle.Particle;
 
 /**
+ * Returns a constsnt value (default 2m^2/s)
  *
- * @author saemann
+ * @author robert saemann
  */
-public class HE_AreaInjection extends HEInjectionInformation{
-    
-    public int rohr_DBID;
-    public double constant_concentration;
-    public double maxAccumulation;
-    public double decayrate;
+public class Dispersion1D_Constant implements Dispersion1D_Calculator {
 
-    public HE_AreaInjection(String capacityName, Material mat, long stattime, long endtime, double mass) {
-        super(capacityName, mat, stattime, endtime, mass);
+    /**
+     * Dispersion coefficient [m^2/s]
+     */
+    protected double dispersion = 2;
+
+    protected double sqrt = Math.sqrt(dispersion);
+
+    public Dispersion1D_Constant() {
     }
+
+    public Dispersion1D_Constant(double dispersionCoefficient) {
+        this.dispersion=dispersionCoefficient;
+        this.sqrt=Math.sqrt(dispersionCoefficient);
+    }
+
+    @Override
+    public double getDispersionCoefficient(Particle p) {
+        return dispersion;
+    }
+
+    @Override
+    public double getSQRTDispersionCoefficient(Particle p) {
+        return sqrt;
+    }
+
+    /**
+     * The constant dispersion [m^2/s] Must be positive.
+     *
+     * @param dispersion
+     */
+    public void setDispersion(double dispersion) {
+        this.dispersion = dispersion;
+        this.sqrt = Math.sqrt(dispersion);
+    }
+
 }

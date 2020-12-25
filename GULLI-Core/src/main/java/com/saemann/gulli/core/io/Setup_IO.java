@@ -23,13 +23,13 @@
  */
 package com.saemann.gulli.core.io;
 
-import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Calculator;
-import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;

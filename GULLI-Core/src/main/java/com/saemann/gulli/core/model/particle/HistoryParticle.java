@@ -5,6 +5,7 @@
  */
 package com.saemann.gulli.core.model.particle;
 
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.control.particlecontrol.injection.ParticleInjection;
 import java.util.LinkedList;
 import com.saemann.gulli.core.model.topology.Capacity;

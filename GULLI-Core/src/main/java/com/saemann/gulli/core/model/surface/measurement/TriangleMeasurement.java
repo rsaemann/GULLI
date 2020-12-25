@@ -38,21 +38,21 @@ public class TriangleMeasurement {
      */
     double[][] mass;
 
-    /**
-     * temporal stores the counter for each thread seperately [material
-     * index][thread]
-     */
-    double[][] threadMass;
+//    /**
+//     * temporal stores the counter for each thread seperately [material
+//     * index][thread]
+//     */
+//    double[][] threadMass;
     /**
      * [material index][timeindex]
      */
     int[][] particlecounter;
 
-    /**
-     * temporal stores the counter for each thread seperately [material
-     * index][thread]
-     */
-    int[][] threadParticleCounter;
+//    /**
+//     * temporal stores the counter for each thread seperately [material
+//     * index][thread]
+//     */
+//    int[][] threadParticleCounter;
     
     //public boolean used=false;
 
@@ -63,8 +63,8 @@ public class TriangleMeasurement {
         this.triangleID = triangleID;
         this.mass = new double[numberOfMaterials][numberOfTimes];
         this.particlecounter = new int[numberOfMaterials][numberOfTimes];
-        this.threadMass = new double[numberOfMaterials][numberOfThreads];
-        this.threadParticleCounter = new int[numberOfMaterials][numberOfThreads];
+//        this.threadMass = new double[numberOfMaterials][numberOfThreads];
+//        this.threadParticleCounter = new int[numberOfMaterials][numberOfThreads];
 
     }
 
@@ -105,15 +105,15 @@ public class TriangleMeasurement {
         return counter;
     }
 
-    public void synchronizeMeasurements(int timeindex) {
-        for (int i = 0; i < mass.length; i++) {
-            for (int j = 0; j < threadMass[0].length; j++) {
-                mass[i][timeindex] += threadMass[i][j];
-                threadMass[i][j] = 0;
-                particlecounter[i][timeindex] += particlecounter[i][j];
-                particlecounter[i][j] = 0;
-            }
-        }
-
-    }
+//    public void synchronizeMeasurements(int timeindex) {
+//        for (int i = 0; i < mass.length; i++) {
+//            for (int j = 0; j < threadMass[0].length; j++) {
+//                mass[i][timeindex] += threadMass[i][j];
+//                threadMass[i][j] = 0;
+//                particlecounter[i][timeindex] += particlecounter[i][j];
+//                particlecounter[i][j] = 0;
+//            }
+//        }
+//
+//    }
 }

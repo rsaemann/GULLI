@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2019 saemann.
+ * Copyright 2020 Robert Saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,22 +21,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.core.control.scenario.injection;
+package com.saemann.gulli.core.model.material.dispersion.pipe;
 
-import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.particle.Particle;
 
 /**
+ * Definition of the dispersion in the pipe system. Used by the
+ * ParticlePipeComputing to quantify the Random Walk jump.
  *
  * @author saemann
  */
-public class HE_AreaInjection extends HEInjectionInformation{
-    
-    public int rohr_DBID;
-    public double constant_concentration;
-    public double maxAccumulation;
-    public double decayrate;
+public interface Dispersion1D_Calculator {
 
-    public HE_AreaInjection(String capacityName, Material mat, long stattime, long endtime, double mass) {
-        super(capacityName, mat, stattime, endtime, mass);
-    }
+    /**
+     * Dispersion coefficient [m^2/s]
+     * @param p
+     * @return 
+     */
+    public double getDispersionCoefficient(Particle p);
+    
+    /**
+     * The squareroot of the Dispersion coefficient [m/(s^(1/2)]
+     * @param p
+     * @return 
+     */
+    public double getSQRTDispersionCoefficient(Particle p);
 }

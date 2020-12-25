@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.core.control.particlecontrol;
+package com.saemann.gulli.core.model.material.routing;
 
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.model.particle.Particle;

@@ -25,7 +25,7 @@ package com.saemann.gulli.core.control;
 
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.output.OutputIntention;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import java.io.File;
 import java.util.ArrayList;

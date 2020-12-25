@@ -1,6 +1,6 @@
 package com.saemann.gulli.core.model.topology.profile;
 
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 
 /**
  *

@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
@@ -229,11 +229,17 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      */
     public void setDispersionCoefficientSurface(double[] dispParameters) {
         try {
-            for (ParticleThread particleThread : threadController.getParticleThreads()) {
-                ParticleSurfaceComputing2D psc = (ParticleSurfaceComputing2D) particleThread.getSurfaceComputing();
-                psc.enableDiffusion = true;
-                psc.getDiffusionCalculator().setParameterValues(dispParameters);
+            for (int i = 0; i <= scenario.getMaxMaterialID(); i++) {
+               Material mat=scenario.getMaterialByIndex(i);
+               if(mat!=null){
+                   mat.getDispersionCalculatorSurface().setParameterValues(dispParameters);
+               }
             }
+//            for (ParticleThread particleThread : threadController.getParticleThreads()) {
+//                ParticleSurfaceComputing2D psc = (ParticleSurfaceComputing2D) particleThread.getSurfaceComputing();
+//                psc.enableDiffusion = true;
+//                psc.getDiffusionCalculator().setParameterValues(dispParameters);
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }

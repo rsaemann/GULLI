@@ -19,7 +19,7 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSeparator;
 import com.saemann.gulli.core.model.GeoPosition;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.view.ViewController;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;

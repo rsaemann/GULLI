@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.control.scenario.injection;
 
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.timeline.TimedValue;
 
 /**

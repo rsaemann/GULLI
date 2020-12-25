@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.control.maths.RandomArray;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
@@ -59,21 +58,21 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 //     * Seed used for generating the same random numbers for each run.
 //     */
 //    protected long seed = 0;
-
     /**
      * Stutus variable for debugging. Increase after every important step to see
      * where surface computing is hanging.
      */
     public int status = -1;
 
-    /**
-     * turbulent Diffusion/dispersion m²/s
-     */
-    public double dispersion = 0;
+    public double sqrt_2_dt = Math.sqrt(dt * 2);
 
+//    /**
+//     * turbulent Diffusion/dispersion m²/s
+//     */
+//    public double dispersion = 0;
     public ParticleSurfaceComputing1D(Surface surface) {
         this(surface, 0);
-    }   
+    }
 
     public ParticleSurfaceComputing1D(Surface surface, long seed) {
         this.surface = surface;
@@ -123,7 +122,8 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         // Move PArticle to end of surfacePath
 //        System.out.println("Particle " + p.getId() + " is in " + p.getSurrounding_actual());
 //        status = 1;
-        float dispDS = (float) (random.nextDouble() * Math.sqrt(dispersion * 2 * dt));
+        double sqrtD = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p);
+        float dispDS = (float) (random.nextDouble() * sqrtD * sqrt_2_dt);
         float dispV = dispDS / dt;
         float ds = 0;
         if (p.getSurrounding_actual() instanceof SurfaceTrianglePath) {
@@ -188,7 +188,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         for (int i = 0; i < 10; i++) {
             SurfaceTriangle triangle = (SurfaceTriangle) p.getSurrounding_actual();
 
-            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p,0);
+            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p, 0);
 
 //            if (triangle.measurement != null) {
 //                triangle.measurement.measureParticle(ThreadController.getSimulationTimeMS(), p);
@@ -203,8 +203,9 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 //                    System.out.println(inlet.getNetworkCapacity() + "  fillrate: " + fillrate + "\t timeindex:" + ((TimeIndexCalculator) inlet.getNetworkCapacity().getStatusTimeLine().getTimeContainer()).getActualTimeIndex_double());
                     if (fillrate < 0.9) {
 
+
                         //Only go into the inlet for 30%
-                    /*if (random.nextFloat() < 0.3f)*/ {
+                        /*if (random.nextFloat() < 0.3f)*/ {
 
                             //Pipe is not flooded. Particles can enter pipenetwork here.
                             p.setSurrounding_actual(inlet.getNetworkCapacity());
@@ -306,9 +307,8 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      */
     private Pair<SurfaceTrianglePath, Float> calcOutgoingPath(int triangleID, double ds) {
 
-
 //        status = 30;
-        int outgoing = (int) (random.nextDouble()*3);
+        int outgoing = (int) (random.nextDouble() * 3);
 //        status = 100 + outgoing;
         if (surface.getNeighbours()[triangleID][outgoing] < 0) {
             //Hit wall (no neighbour here)
@@ -341,18 +341,8 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
     @Override
     public void setDeltaTimestep(double seconds) {
         this.dt = (float) seconds;
+        this.sqrt_2_dt=Math.sqrt(2*dt);
     }
-
-//    @Override
-//    public void setSeed(long seed) {
-//        this.seed = seed;
-////        this.random.setSeed(seed);
-//    }
-//
-//    @Override
-//    public long getSeed() {
-//        return seed;
-//    }
 
     @Override
     public String reportCalculationStatus() {

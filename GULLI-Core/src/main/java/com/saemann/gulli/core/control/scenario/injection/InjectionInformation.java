@@ -26,7 +26,7 @@ package com.saemann.gulli.core.control.scenario.injection;
 import java.util.Arrays;
 import java.util.Objects;
 import com.saemann.gulli.core.model.GeoPosition2D;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.timeline.TimedValue;
 import com.saemann.gulli.core.model.topology.Capacity;

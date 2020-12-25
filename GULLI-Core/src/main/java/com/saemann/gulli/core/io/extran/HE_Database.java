@@ -44,7 +44,7 @@ import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.saemann.gulli.core.model.particle.Material;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.timeline.TimedValue;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManhole;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManholeContainer;

@@ -177,19 +177,19 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     @Override
     public void synchronizeMeasurements() {
-        if (/*!synchronizeOnlyAtEnd*/true) {
-            return;
-        }
-        if (!usedInCurrentStep) {
-            return;//no need to go through the whole list.
-        }
-        for (TriangleMeasurement measurement : measurements) {
-            if (measurement == null) {
-                continue;
-            }
-            measurement.synchronizeMeasurements(timeindex);
-        }
-        usedInCurrentStep = false;
+//        if (/*!synchronizeOnlyAtEnd*/true) {
+//            return;
+//        }
+//        if (!usedInCurrentStep) {
+//            return;//no need to go through the whole list.
+//        }
+////        for (TriangleMeasurement measurement : measurements) {
+////            if (measurement == null) {
+////                continue;
+////            }
+////            measurement.synchronizeMeasurements(timeindex);
+////        }
+//        usedInCurrentStep = false;
     }
 
     @Override

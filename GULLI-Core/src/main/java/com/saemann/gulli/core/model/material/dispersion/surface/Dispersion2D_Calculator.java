@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.core.control.particlecontrol.dispersion;
+package com.saemann.gulli.core.model.material.dispersion.surface;
 
 import com.saemann.gulli.core.model.surface.Surface;
 

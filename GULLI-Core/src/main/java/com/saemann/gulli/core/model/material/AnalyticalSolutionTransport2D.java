@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.core.control.particlecontrol;
+package com.saemann.gulli.core.model.material;
 
-import com.saemann.gulli.core.control.particlecontrol.dispersion.Dispersion2D_Constant;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
