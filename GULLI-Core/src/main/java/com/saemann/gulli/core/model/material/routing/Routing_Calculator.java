@@ -33,7 +33,7 @@ import com.saemann.gulli.core.model.topology.Manhole;
  *
  * @author saemann
  */
-public interface FlowCalculator {
+public interface Routing_Calculator {
 
     /**
      *

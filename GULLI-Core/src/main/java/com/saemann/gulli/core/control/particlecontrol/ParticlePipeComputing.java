@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.model.material.routing.FlowCalculatorMixed;
+import com.saemann.gulli.core.model.material.routing.Routing_Mixed;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
@@ -986,7 +986,7 @@ public class ParticlePipeComputing {
         }
 //        status = 4;
         //Skip dry condition 
-        if (c.getWaterlevel() < FlowCalculatorMixed.dryWaterlevel) {
+        if (c.getWaterlevel() < Routing_Mixed.dryWaterlevel) {
             return;
         }
 //        status=104;
@@ -1417,7 +1417,7 @@ public class ParticlePipeComputing {
             return;
         }
         //Skip dry condition 
-        if (c.getWaterlevel() < FlowCalculatorMixed.dryWaterlevel) {
+        if (c.getWaterlevel() < Routing_Mixed.dryWaterlevel) {
 //            System.out.println("waterlevel Particle in "+c.getWaterHeight());
             return;
         }

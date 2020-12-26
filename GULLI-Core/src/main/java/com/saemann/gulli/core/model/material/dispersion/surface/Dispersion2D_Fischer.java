@@ -246,7 +246,7 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
 
     @Override
     public String[] getParameterOrderDescription() {
-        return new String[]{"lateral","transversal"};
+        return new String[]{"lateral Dispersivity","transversal Dispersivity"};
     }
 
     @Override
@@ -260,6 +260,11 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
             this.al=parameter[0];
             this.at=parameter[1];
         }
+    }
+
+    @Override
+    public String[] getParameterUnits() {
+        return new String[]{"m","m"};
     }
 
     public class NoDiffusionStringException extends Exception {

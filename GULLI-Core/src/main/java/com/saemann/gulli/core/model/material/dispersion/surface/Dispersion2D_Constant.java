@@ -284,6 +284,12 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
 
     }
 
+    @Override
+    public String[] getParameterUnits() {
+        String unit="m^2/s";
+        return new String[]{unit,unit,unit};
+    }
+
     public class NoDiffusionStringException extends Exception {
 
         public NoDiffusionStringException() {

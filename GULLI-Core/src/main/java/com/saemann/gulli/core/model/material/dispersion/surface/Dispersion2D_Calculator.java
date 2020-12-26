@@ -33,10 +33,9 @@ import com.saemann.gulli.core.model.surface.Surface;
  */
 public interface Dispersion2D_Calculator {
 
-     /**
-     * Calculate Dxx and Dyy [m^2/s] for the given particle surrounding.
-     * Already the sqrt is calculated to optimize further calculation with these
-     * values.
+    /**
+     * Calculate Dxx and Dyy [m^2/s] for the given particle surrounding. Already
+     * the sqrt is calculated to optimize further calculation with these values.
      *
      * @param vx
      * @param vy
@@ -48,9 +47,9 @@ public interface Dispersion2D_Calculator {
     public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill);
 
     /**
-     * Calculate sqrt(Dxx) and sqrt(Dyy) [m/s^(1/2)] for the given particle surrounding.
-     * Already the sqrt is calculated to optimize further calculation with these
-     * values.
+     * Calculate sqrt(Dxx) and sqrt(Dyy) [m/s^(1/2)] for the given particle
+     * surrounding. Already the sqrt is calculated to optimize further
+     * calculation with these values.
      *
      * @param vx
      * @param vy
@@ -74,6 +73,13 @@ public interface Dispersion2D_Calculator {
      * @return descriptions
      */
     public String[] getParameterOrderDescription();
+
+    /**
+     * An array of unit names for all parameters, that can be modified.
+     *
+     * @return descriptions of units of the parameters.
+     */
+    public String[] getParameterUnits();
 
     /**
      * The values of the parameters that could be modified. Description and

@@ -35,12 +35,12 @@ import com.saemann.gulli.core.model.topology.Pipe;
  *
  * @author saemann
  */
-public class FlowCalculator_Heterogene extends FlowCalculatorMixed {
+public class Routing_Heterogene extends Routing_Mixed {
 
     protected double v_deposite, v_erode, v_deposit_quadrat, v_erode_quadrat;
 //    protected Random r = new Random();
 
-    public FlowCalculator_Heterogene(double v_deposite, double v_erode) {
+    public Routing_Heterogene(double v_deposite, double v_erode) {
         this.v_deposite = v_deposite;
         this.v_erode = v_erode;
         this.v_deposit_quadrat = v_deposite * v_deposite;

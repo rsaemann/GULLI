@@ -43,8 +43,8 @@ public class Dispersion1D_Constant implements Dispersion1D_Calculator {
     }
 
     public Dispersion1D_Constant(double dispersionCoefficient) {
-        this.dispersion=dispersionCoefficient;
-        this.sqrt=Math.sqrt(dispersionCoefficient);
+        this.dispersion = dispersionCoefficient;
+        this.sqrt = Math.sqrt(dispersionCoefficient);
     }
 
     @Override
@@ -65,6 +65,33 @@ public class Dispersion1D_Constant implements Dispersion1D_Calculator {
     public void setDispersion(double dispersion) {
         this.dispersion = dispersion;
         this.sqrt = Math.sqrt(dispersion);
+    }
+
+    @Override
+    public int getNumberOfParameters() {
+        return 1;
+    }
+
+    @Override
+    public double[] getParameterValues() {
+        return new double[]{dispersion};
+    }
+
+    @Override
+    public void setParameterValues(double[] newparameters) {
+        if (newparameters != null && newparameters.length > 0) {
+            setDispersion(newparameters[0]);
+        }
+    }
+
+    @Override
+    public String[] getParameterDescription() {
+        return new String[]{"DispersionCoefficient"};
+    }
+
+    @Override
+    public String[] getParameterUnits() {
+        return new String[]{"m^2/s"};
     }
 
 }

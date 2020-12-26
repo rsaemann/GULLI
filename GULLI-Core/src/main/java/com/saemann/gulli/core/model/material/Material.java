@@ -23,15 +23,15 @@
  */
 package com.saemann.gulli.core.model.material;
 
-import com.saemann.gulli.core.model.material.routing.FlowCalculator;
-import com.saemann.gulli.core.model.material.routing.FlowCalculatorMixed;
+import com.saemann.gulli.core.model.material.routing.Routing_Mixed;
 import com.saemann.gulli.core.control.GlobalParameter;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calculator;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant;
-import com.saemann.gulli.core.model.material.routing.FlowCalculator_Heterogene;
+import com.saemann.gulli.core.model.material.routing.Routing_Heterogene;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import java.util.Objects;
+import com.saemann.gulli.core.model.material.routing.Routing_Calculator;
 
 /**
  * Material of physical information to be attached to a particle. This includes
@@ -62,10 +62,10 @@ public class Material {
     protected boolean solute;
 
     /**
-     * A FlowCalculator decides for a particle of this Material where to get
-     * transported to in case of a junction.
+     * A Routing_Calculator decides for a particle of this Material where to get
+ transported to in case of a junction.
      */
-    protected FlowCalculator flowCalculator;
+    protected Routing_Calculator flowCalculator;
 
     /**
      * Calculates the dispersion coefficient of a particle in the pipe system
@@ -95,9 +95,9 @@ public class Material {
         this.weight = this.density * GlobalParameter.GRAVITY;
         this.solute = solute;
         if (solute) {
-            flowCalculator = new FlowCalculatorMixed();
+            flowCalculator = new Routing_Mixed();
         } else {
-            flowCalculator = new FlowCalculator_Heterogene(0.1, 0.1);
+            flowCalculator = new Routing_Heterogene(0.1, 0.1);
         }
         this.dispersionCalculatorPipe=new Dispersion1D_Constant();
         this.dispersionCalculatorSurface=new Dispersion2D_Constant(0.1, 0.1, 0.1);
@@ -107,7 +107,17 @@ public class Material {
         this(name, density, solute);
         this.materialIndex = surfaceindex;
     }
-
+    
+    public Material(String name, double density, int index, Routing_Calculator routing, Dispersion1D_Calculator dispersion_pipe,Dispersion2D_Calculator dispersion_surface){
+        this.name=name;
+        this.density=density;
+        this.weight = this.density * GlobalParameter.GRAVITY;
+        this.materialIndex=index;
+        this.flowCalculator=routing;
+        this.dispersionCalculatorPipe=dispersion_pipe;
+        this.dispersionCalculatorSurface=dispersion_surface;
+    }
+    
     public String getName() {
         return name;
     }
@@ -129,7 +139,7 @@ public class Material {
         return weight;
     }
 
-    public FlowCalculator getFlowCalculator() {
+    public Routing_Calculator getFlowCalculator() {
         return flowCalculator;
     }
 
@@ -181,7 +191,7 @@ public class Material {
         this.dispersionCalculatorSurface = dispersionCalculatorSurface;
     }
 
-    public void setFlowCalculator(FlowCalculator flowCalculator) {
+    public void setFlowCalculator(Routing_Calculator flowCalculator) {
         this.flowCalculator = flowCalculator;
     }
 

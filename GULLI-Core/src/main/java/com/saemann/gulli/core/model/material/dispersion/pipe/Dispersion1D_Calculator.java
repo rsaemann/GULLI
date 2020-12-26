@@ -35,15 +35,27 @@ public interface Dispersion1D_Calculator {
 
     /**
      * Dispersion coefficient [m^2/s]
+     *
      * @param p
-     * @return 
+     * @return
      */
     public double getDispersionCoefficient(Particle p);
-    
+
     /**
      * The squareroot of the Dispersion coefficient [m/(s^(1/2)]
+     *
      * @param p
-     * @return 
+     * @return
      */
     public double getSQRTDispersionCoefficient(Particle p);
+
+    public int getNumberOfParameters();
+
+    public double[] getParameterValues();
+
+    public void setParameterValues(double[] newparameters);
+
+    public String[] getParameterDescription();
+
+    public String[] getParameterUnits();
 }

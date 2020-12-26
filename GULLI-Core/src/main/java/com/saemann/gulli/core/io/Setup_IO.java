@@ -29,7 +29,9 @@ import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
+import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calculator;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -38,6 +40,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import com.saemann.gulli.core.model.material.routing.Routing_Calculator;
+import com.saemann.gulli.core.model.material.routing.Routing_Mixed;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Load and save definitions of scenarios
@@ -82,37 +89,6 @@ public class Setup_IO {
         bw.newLine();
         bw.write("\t<Timestep unit='s'>" + setup.getTimestepTransport() + "</>");
         bw.newLine();
-        bw.write("\t<Dispersion>");
-        bw.newLine();
-        bw.write("\t\t<Network>");
-        bw.newLine();
-        bw.write("\t\t\t<Dispersion unit='m^2/s'>" + setup.getNetworkdispersion() + "</>");
-        bw.newLine();
-        bw.write("\t\t</Network>");
-        bw.newLine();
-        bw.write("\t\t<Surface>");
-        bw.newLine();
-        if (setup.getSurfaceDiffusion() != null) {
-            Dispersion2D_Calculator disp = setup.getSurfaceDiffusion();
-            bw.write("\t\t\t<Class>" + disp.getClass().getName() + "</>");
-            bw.newLine();
-            bw.write("\t\t\t<Type>" + disp.getDiffusionString() + "</>");
-            bw.newLine();
-            for (int i = 0; i < disp.getParameterOrderDescription().length; i++) {              
-                bw.write("\t\t\t<"+disp.getParameterOrderDescription()[i]+">" + disp.getParameterValues()[i] + "</>");
-                bw.newLine();
-            }
-            bw.newLine();
-            bw.write("\t\t\t<DryFlow unit='m/s'>" + setup.getRoutingSurfaceDryflowVelocity() + "</>");
-            bw.newLine();
-            bw.write("\t\t\t<EnterDry>" + setup.isRoutingSurfaceEnterDryCells() + "</>");
-            bw.newLine();
-        }
-        bw.write("\t\t</Surface>");
-        bw.newLine();
-        bw.write("\t</Dispersion>");
-        bw.newLine();
-
         bw.write("</SimulationParameters>");
         bw.newLine();
         bw.write("<Measuring>");
@@ -151,16 +127,63 @@ public class Setup_IO {
         bw.newLine();
         bw.write("<Materials>");
         bw.newLine();
-        for (int i = 0; i <= scenario.getMaxMaterialID(); i++) {
-            Material m = scenario.getMaterialByIndex(i);
+        for (int mi = 0; mi <= scenario.getMaxMaterialID(); mi++) {
+            Material m = scenario.getMaterialByIndex(mi);
             if (m != null) {
-                bw.write("\t<Material id=" + i + ">");
+                bw.write("\t<Material id=" + mi + ">");
                 bw.newLine();
                 bw.write("\t\t<Name>" + m.getName() + "</>");
                 bw.newLine();
                 bw.write("\t\t<Density unit='kg/m^3'>" + m.getDensity() + "</>");
                 bw.newLine();
                 bw.write("\t\t<Flowcalculator>" + m.getFlowCalculator().getClass().getName() + "</>");
+                bw.newLine();
+                Dispersion1D_Calculator disp1d = m.getDispersionCalculatorPipe();
+                if (disp1d != null) {
+                    bw.write("\t\t<Network>");
+                    bw.newLine();
+                    bw.write("\t\t\t<Dispersion>");
+                    bw.newLine();
+                    bw.write("\t\t\t\t<Type Parameters=" + disp1d.getNumberOfParameters() + ">" + disp1d.getClass().getName() + "</>");
+                    bw.newLine();
+                    String[] descriptions = disp1d.getParameterDescription();
+                    String[] units = disp1d.getParameterUnits();
+                    double[] paramValues = disp1d.getParameterValues();
+                    for (int i = 0; i < disp1d.getNumberOfParameters(); i++) {
+                        bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
+                        bw.newLine();
+                    }
+                    bw.write("\t\t\t</Dispersion>");
+                    bw.newLine();
+                    bw.write("\t\t</Network>");
+                    bw.newLine();
+                }
+                bw.write("\t\t<Surface>");
+                bw.newLine();
+                Dispersion2D_Calculator disp2d = m.getDispersionCalculatorSurface();
+                if (disp2d != null) {
+                    bw.write("\t\t\t<Dispersion>");
+                    bw.newLine();
+                    String[] descriptions = disp2d.getParameterOrderDescription();
+                    String[] units = disp2d.getParameterUnits();
+                    double[] paramValues = disp2d.getParameterValues();
+                    bw.write("\t\t\t\t<Type Parameters=" + descriptions.length + ">" + disp2d.getClass().getName() + "</>"
+                    );
+                    bw.newLine();
+
+                    for (int i = 0; i < paramValues.length; i++) {
+                        bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
+                        bw.newLine();
+                    }
+
+                }
+                bw.write("\t\t\t</Dispersion>");
+                bw.newLine();
+                bw.write("\t\t\t<DryFlow unit='m/s'>" + setup.getRoutingSurfaceDryflowVelocity() + "</>");
+                bw.newLine();
+                bw.write("\t\t\t<EnterDry>" + setup.isRoutingSurfaceEnterDryCells() + "</>");
+                bw.newLine();
+                bw.write("\t\t</Surface>");
                 bw.newLine();
                 bw.write("\t</Material>");
                 bw.newLine();
@@ -170,7 +193,7 @@ public class Setup_IO {
         bw.newLine();
         bw.write("<Injections>");
         bw.newLine();
-        bw.write("\t\t<FromNetworkResult>" + setup.isLoadResultInjections() + "</>");
+        bw.write("\t<FromNetworkResult>" + setup.isLoadResultInjections() + "</>");
         bw.newLine();
         for (InjectionInformation injection : scenario.getInjections()) {
             bw.write("\t<Injection id=" + injection.getId() + ">");
@@ -238,92 +261,224 @@ public class Setup_IO {
         BufferedReader br = new BufferedReader(fr);
         boolean networkRelation = false, surfaceRelation = false;
 
+        //Material temperary storage
+        HashMap<Integer, Material> materials = new HashMap<>();
+//        Material mat=null;
+        int materialID = 0;
+        double materialDensity;
+        String materialName = null;
+        Routing_Calculator materialFlowCalculator = null;
+        Dispersion1D_Calculator materialDispersionCalculatorPipe = null;
+        Dispersion2D_Calculator materialDispersionCalculatorSurface = null;
+
+        //Injection temporary storage
+        int injectionID;
+        GeoPosition injectionPosition = null;
+        double injectionLatitude = -1, injectionLongitude = -1;
+        boolean injectionOnSurface = false;
+        String injectionCapacityName = null;
+        int injection_materialID = 0;
+        double injectionStart = 0;
+        double injectionDuration = 0;
+        double injectionMass = 1000;
+        int injectionParticles = 10000;
+
         String line = "";
         while (br.ready()) {
-            line = br.readLine();
-            if (state == -1) {
-                if (line.contains("<Name")) {
-                    state = 1;
-                } else if (line.contains("<InputFiles")) {
-                    state = 2;
-                } else if (line.contains("<SimulationParameters")) {
-                    state = 3;
-                } else if (line.contains("<Materials")) {
-                    state = 4;
-                } else if (line.contains("<Injections")) {
-                    state = 5;
-                }
-            }
-            if (state == 1) {
-                if (line.contains("<Name")) {
-                    String name = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                    scenario.setName(name);
-                    state = -1;
-                }
-            }
-            if (state == 2) {
-                //InputFiles
-                if (line.contains("<NetworkTopology>")) {
-                    String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                    File f = new File(pathNetworkTopology);
-                    setup.files.pipeNetwork = f;
-                } else if (line.contains("<NetworkFlowField>")) {
-                    String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                    File f = new File(path);
-                    setup.files.pipeResult = f;
-                } else if (line.contains("<SurfaceTopology>")) {
-                    String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                    File f = new File(path);
-                    setup.files.surfaceDirectory = f;
-                } else if (line.contains("<SurfaceFlowField>")) {
-                    String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                    File f = new File(path);
-                    setup.files.surfaceResult = f;
-                }
-                if (line.contains("/InputFiles")) {
-                    state = -1;
-                }
-            }
-            if (state == 3) {
-                //Simulationparameters
-                if (line.contains("Timestep")) {
-                    Double dt = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-                    if (dt > 0) {
-                        setup.setTimestepTransport(dt);
+            try {
+                line = br.readLine();
+                if (state == -1) {
+                    if (line.contains("<Name")) {
+                        state = 1;
+                    } else if (line.contains("<InputFiles")) {
+                        state = 2;
+                    } else if (line.contains("<SimulationParameters")) {
+                        state = 3;
+                    } else if (line.contains("<Materials")) {
+                        state = 4;
+                    } else if (line.contains("<Injections")) {
+                        state = 5;
                     }
                 }
-                if (line.contains("<Network")) {
-                    networkRelation = true;
-                    surfaceRelation = false;
-                } else if (line.contains("<Surface")) {
-                    networkRelation = false;
-                    surfaceRelation = true;
+                if (state == 1) {
+                    if (line.contains("<Name")) {
+                        String name = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        scenario.setName(name);
+                        state = -1;
+                    }
                 }
-                if (line.contains("<Dispersion")) {
-                    if (line.contains("</")) {
-                        try {
-                            double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-                            if (networkRelation) {
-                                setup.setNetworkdispersion(d);
-                            }
-                            if (surfaceRelation) {
-                                Dispersion2D_Constant dc=new Dispersion2D_Constant();
-                                dc=new Dispersion2D_Constant();
-                                dc.Dxx=d;
-                                dc.Dyy=d;
-                                dc.D=new double[]{dc.Dxx,dc.Dyy,dc.Dyy};
-                            
-                                setup.setSurfaceDiffusion(dc);
-                            }
-                        } catch (Exception exception) {
-                            exception.printStackTrace();
+                if (state == 2) {
+                    //InputFiles
+                    if (line.contains("<NetworkTopology>")) {
+                        String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        File f = new File(pathNetworkTopology);
+                        setup.files.pipeNetwork = f;
+                    } else if (line.contains("<NetworkFlowField>")) {
+                        String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        File f = new File(path);
+                        setup.files.pipeResult = f;
+                    } else if (line.contains("<SurfaceTopology>")) {
+                        String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        File f = new File(path);
+                        setup.files.surfaceDirectory = f;
+                    } else if (line.contains("<SurfaceFlowField>")) {
+                        String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        File f = new File(path);
+                        setup.files.surfaceResult = f;
+                    }
+                    if (line.contains("/InputFiles")) {
+                        state = -1;
+                    }
+                }
+                if (state == 3) {
+                    //Simulationparameters
+                    if (line.contains("Timestep")) {
+                        Double dt = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (dt > 0) {
+                            setup.setTimestepTransport(dt);
                         }
                     }
-                }
 
-                if (line.contains("/SimulationParameters")) {
-                    state = -1;
+                    if (line.contains("/SimulationParameters")) {
+                        state = -1;
+                    }
+                } else if (state == 4) {
+                    //Materials
+                    if (line.contains("/Material")) {
+                        state = -1;
+                        if (materialFlowCalculator == null) {
+                            materialFlowCalculator = new Routing_Mixed();
+                            System.err.println("Created default " + materialFlowCalculator.getClass().getSimpleName() + " for material " + materialName + " (" + materialID + ")");
+                        }
+
+                        Material mat = new Material(materialName, 1000, materialID, materialFlowCalculator, materialDispersionCalculatorPipe, materialDispersionCalculatorSurface);
+                        materials.put(mat.materialIndex, mat);
+                        continue;
+                    }
+
+                    if (line.contains("<Surface")) {
+                        surfaceRelation = true;
+                        networkRelation = false;
+                    } else if (line.contains("</Surface")) {
+                        surfaceRelation = false;
+                    } else if (line.contains("<Network")) {
+                        surfaceRelation = false;
+                        networkRelation = true;
+                    } else if (line.contains("</Network")) {
+                        networkRelation = false;
+                    }
+
+                    if (line.contains("<Material ")) {
+                        materialID = Integer.parseInt(line.substring(line.indexOf("id=") + 3, line.indexOf(">")));
+                    }
+
+                    if (line.contains("<Dispersion")) {
+                        if (networkRelation) {
+                            line = br.readLine();
+                            String type = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                            int numparam = Integer.parseInt(line.substring(line.indexOf("Param") + 11, line.indexOf(">")));
+                            double[] paramvalues = new double[numparam];
+                            for (int i = 0; i < numparam; i++) {
+                                line = br.readLine();
+                                paramvalues[i] = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            }
+                            try {
+                                materialDispersionCalculatorPipe = (Dispersion1D_Calculator) Class.forName(type).newInstance();
+                                materialDispersionCalculatorPipe.setParameterValues(paramvalues);
+                            } catch (Exception ex) {
+                                Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                        if (surfaceRelation) {
+                            line = br.readLine();
+                            String type = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                            int numparam = Integer.parseInt(line.substring(line.indexOf("Param") + 11, line.indexOf(">")));
+                            double[] paramvalues = new double[numparam];
+                            for (int i = 0; i < numparam; i++) {
+                                line = br.readLine();
+                                paramvalues[i] = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            }
+                            try {
+                                materialDispersionCalculatorSurface = (Dispersion2D_Calculator) Class.forName(type).newInstance();
+                                materialDispersionCalculatorSurface.setParameterValues(paramvalues);
+                            } catch (Exception ex) {
+                                Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                        if (line.contains("</")) {
+//                        try {
+//                            double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+//                            if (networkRelation) {
+//                                setup.setNetworkdispersion(d);
+//                            }
+//                            if (surfaceRelation) {
+//                                Dispersion2D_Constant dc = new Dispersion2D_Constant();
+//                                dc = new Dispersion2D_Constant();
+//                                dc.Dxx = d;
+//                                dc.Dyy = d;
+//                                dc.D = new double[]{dc.Dxx, dc.Dyy, dc.Dyy};
+//                                materialDispersionCalculatorSurface = dc;
+//                            }
+//                        } catch (Exception exception) {
+//                            exception.printStackTrace();
+//                        }
+                        }
+                    }
+                } else if (state == 5) {
+                    //Injections
+                    if (line.contains("</Injections>")) {
+                        state = -1;
+                        continue;
+                    }
+                    setup.injections=new ArrayList<>();
+                    if (line.contains("<FromNetworkResult>")) {
+                        setup.setLoadResultInjections(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
+                    } else if (line.contains("<Injection ")) {
+                        injectionID = Integer.parseInt(line.substring(line.indexOf("id=") + 3, line.indexOf(">")));
+                        while (br.ready()) {
+                            line = br.readLine();
+                            if (line.contains("</Injection")) {
+                                //Create Injection
+                                InjectionInformation inj = null;
+                                Material mat = materials.get(injection_materialID);
+                                if (mat == null) {
+                                    System.err.println("No material found for injection " + injectionID + ": " + injectionCapacityName);
+                                } else {
+                                    if (injectionOnSurface) {
+                                        inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), false, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                    } else {
+                                        if (injectionPosition != null) {
+                                            inj = new InjectionInformation(injectionPosition, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                        }
+                                    }
+                                    setup.injections.add(inj);
+                                }
+
+                                break;
+                            }
+                            if (line.contains("<OnSurface>")) {
+                                injectionOnSurface = Boolean.parseBoolean(line.substring(line.indexOf("<OnSurface") + 11, line.indexOf("</")));
+                            } else if (line.contains("Latitude")) {
+                                injectionLatitude = Double.parseDouble(line.substring(line.indexOf("Latitude") + 9, line.indexOf("</")));
+                            } else if (line.contains("Longitude")) {
+                                injectionLongitude = Double.parseDouble(line.substring(line.indexOf("Longitude") + 10, line.indexOf("</")));
+                            } else if (line.contains("Start")) {
+                                injectionStart = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Duration")) {
+                                injectionDuration = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Mass")) {
+                                injectionMass = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Particles")) {
+                                injectionParticles = Integer.parseInt(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Materi")) {
+                                injection_materialID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
+                            }
+                        }
+                    }
+
                 }
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
         }
 

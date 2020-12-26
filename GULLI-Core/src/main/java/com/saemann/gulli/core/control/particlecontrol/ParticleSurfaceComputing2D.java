@@ -23,10 +23,8 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -350,7 +348,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         timeLeft = dt;
 
         loopcounter = 0;
-        status = 0;
+//        status = 0;
         calculateVelocityPosition = true;
         isprojecting = false;
         gradientFlowstateActual = false;
@@ -445,7 +443,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 if (allowWashToPipesystem) {
                     washToPipesystem(p, cellID);
                 }
-                status = 30;
+//                status = 30;
                 break;
             } else {
                 //this is the edge to the new cell no.?
@@ -490,24 +488,24 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
                 //The new cell can be easily found by checking the edgeindex, where the particle has left the cell.
                 cellIDnew = surface.getNeighbours()[cellID][bwindex];//This only is correct, if the neighbours are constructed in the same order as the edges are defined. Otherwise comment in the section above.
-status=2;
+//status=2;
                 if (cellIDnew >= 0) {
-                    status = 1;
+//                    status = 1;
 //                    test for velocity in this cell
                     if (preventEnteringDryCell && !gradientFlowstateActual) {
-                        status=11;
+//                        status=11;
                         int timeIndex = surface.getTimeIndex((long) (surface.getActualTime() + (dt - timeLeft) * 1000));
                         tempVelocity = surface.getTriangleVelocity(cellIDnew, timeIndex);
                         if (tempVelocity[0] == 0 && tempVelocity[1] == 0) {
                             if (timeIndex < surface.getNumberOfTimestamps() - 1) {
                                 tempVelocity = surface.getTriangleVelocity(cellIDnew, timeIndex + 1);
                             }
-                            status=12;
+//                            status=12;
                             if (tempVelocity[0] == 0 && tempVelocity[1] == 0) {
                                 //PArticle tries to move over the edge to a cell where it will get stuck
-                                status=13;
+//                                status=13;
                                 if (slidealongEdges) {
-                                    status=14;
+//                                    status=14;
                                     double f;
                                     //Detect the edge and project the a-priori position back onto the edge.
                                     if (bwindex == 0) {
@@ -543,7 +541,7 @@ status=2;
                                                 //Shift would end in an empty neighbour cell
                                                 calculateVelocityPosition = false;
                                                 isprojecting = true;
-                                                status = 1001;
+//                                                status = 1001;
                                                 posxneu = tempProjection[0];
                                                 posyneu = tempProjection[1];
                                                 //This can be handled in the next loop
@@ -566,7 +564,7 @@ status=2;
                                             } else {
                                                 calculateVelocityPosition = false;
                                                 isprojecting = true;
-                                                status = 1002;
+//                                                status = 1002;
                                                 posxneu = tempProjection[0];
                                                 posyneu = tempProjection[1];
                                                 continue;
@@ -587,7 +585,7 @@ status=2;
 
                                     calculateVelocityPosition = false;
                                     isprojecting = true;
-                                    status = 100;
+//                                    status = 100;
                                     continue;
                                 } else {
                                     // Stop here at the edge, because we cannot go into the target cell.
@@ -598,7 +596,7 @@ status=2;
                                     posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                                     posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
                                     timeLeft -= (1. - lengthfactor);
-                                    status = 11;
+//                                    status = 11;
 //                                    if (verbose) {
 //                                        System.out.println("Stay here, keep distance from the edge");
 //                                    }
@@ -640,7 +638,7 @@ status=2;
                                 if (verbose) {
                                     System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew+" target v="+tempVelocity[0]+","+tempVelocity[1]+" iteration:"+loopcounter+" actual v:"+totalvelocity+" status:"+status+"  length");
                                 } 
-                                status = 25;
+//                                status = 25;
                                 break;
                             }
                             shortLengthCounter++;
@@ -649,7 +647,7 @@ status=2;
                             shortLengthCounter = 0;
                         }
                         isprojecting = false;
-                        status = 3;
+//                        status = 3;
                     } else {
                         shortLengthCounter = 0;//false;
 //                        System.out.println("is not yet in new cell");
@@ -664,14 +662,14 @@ status=2;
                             if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
 //                                System.out.println("slightly pushed towards new center");
                                 cellID = cellIDnew;
-                                status = 4;
+//                                status = 4;
                             } else {
                                 if (verbose) {
                                     System.out.println("roughly pushed to new center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
                                 }
                                 posxneu = posxneu * 0.8 + surface.getTriangleMids()[cellIDnew][0] * 0.2;
                                 posyneu = posyneu * 0.8 + surface.getTriangleMids()[cellIDnew][1] * 0.2;
-                                status = 5;
+//                                status = 5;
                                 cellID = cellIDnew;
                             }
                         } else {
@@ -683,7 +681,7 @@ status=2;
 //                            System.out.println(loopcounter + ", p" + p.getId() + " is not in new one " + df.format(bwnew[0]) + ", " + df.format(bwnew[1]) + ", " + df.format(bwnew[2]));
 //                            posxneu = surface.getTriangleMids()[cellID][0];
 //                            posyneu = surface.getTriangleMids()[cellID][1];
-                            status = 6;
+//                            status = 6;
                             break;
                         }
                     }
@@ -717,7 +715,7 @@ status=2;
                             } else { //Stay inside this cell. move abit away from the edge
                                 calculateVelocityPosition = false;
                                 isprojecting = true;
-                                status = 2001;
+//                                status = 2001;
                                 posxneu = tempProjection[0];
                                 posyneu = tempProjection[1];
                                 continue;
@@ -731,7 +729,7 @@ status=2;
                             } else {
                                 calculateVelocityPosition = false;
                                 isprojecting = true;
-                                status = 2002;
+//                                status = 2002;
                                 posxneu = tempProjection[0];
                                 posyneu = tempProjection[1];
                                 continue;
@@ -746,7 +744,7 @@ status=2;
                         }
                         calculateVelocityPosition = false;
                         isprojecting = true;
-                        status = 123;
+//                        status = 123;
                         continue;
                     } else {
                         temp_distance = totalvelocity * timeLeft;//Math.sqrt((posxalt - posxneu) * (posxalt - posxneu) + (posyalt - posyneu) * (posyalt - posyneu));
@@ -756,7 +754,7 @@ status=2;
                         posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                         posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
                         timeLeft -= (1. - lengthfactor);
-                        status = 15;
+//                        status = 15;
                         break;
                     }
                 }
