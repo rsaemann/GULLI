@@ -441,9 +441,15 @@ public class LoadingCoordinator {
 
             //Reset capacity reference from Injections because the object only exist in the old network and has to be found again in the new one
             for (InjectionInformation injection : manualInjections) {
+                if (injection == null) {
+                    continue;
+                }
                 injection.setCapacity(null);
             }
             for (InjectionInformation injection : totalInjections) {
+                if (injection == null) {
+                    continue;
+                }
                 injection.setCapacity(null);
             }
 
@@ -1690,7 +1696,7 @@ public class LoadingCoordinator {
             Setup setup = Setup_IO.load(file);
             if (setup != null) {
                 this.applySetup(setup);
-                
+
                 for (LoadingActionListener lal : listener) {
                     lal.actionFired(new Action("Setup load", null, false), this);
                 }
@@ -1780,7 +1786,7 @@ public class LoadingCoordinator {
         setup.scenario = scenario;
 
         setup.setTimestepTransport(ThreadController.getDeltaTime());
-        
+
         setup.setNetworkdispersion(ParticlePipeComputing.getDispersionCoefficient());
 
         ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();

@@ -1,5 +1,6 @@
 package com.saemann.gulli.view;
 
+import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,6 +20,8 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import com.saemann.rgis.view.MapViewer;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 
 /**
  * Displays information about InjectionInformation for an areal, diffusive
@@ -27,9 +30,6 @@ import com.saemann.rgis.view.MapViewer;
  * @author saemann
  */
 public class InjectionPanelAreal extends InjectionPanelPointlocation {
-
-    private final SpinnerNumberModel modelMass;
-    private final JSpinner spinnerMass;
 
     protected InjectionPanelAreal(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super();
@@ -40,9 +40,9 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.map = map;
         this.paintManager = paintManager;
         //Name
-        textname = new JTextField(info.getMaterial().getName());
-        this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:"));
-        this.add(textname);
+        spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, 0, Integer.MAX_VALUE, 1));
+        this.add(spinnerMaterial);
+        this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:" + info.getMaterial().getName()));
         //Datespinners
 //        JPanel panelSouthDate = new JPanel(new GridLayout(2, 1));
         modelInjection = new SpinnerDateModel(new Date(gmtToLocal((long) (info.getStarttimeSimulationsAfterSimulationStart() * 1000L))), null, null, GregorianCalendar.MINUTE);
@@ -63,17 +63,45 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.add(spinnerDuration);
 
         //Number of particles
-        modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 1, Integer.MAX_VALUE, 1000);
+        modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 0, Integer.MAX_VALUE, 5000);
         spinnerParticles = new JSpinner(modelParticles);
+        JSpinner.NumberEditor particlesEditor = new JSpinner.NumberEditor(spinnerParticles, "# ##0.###");
+        DecimalFormat f = particlesEditor.getFormat();
+        f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
+        f.setGroupingUsed(true);
+        f.setGroupingSize(3);
+        DecimalFormatSymbols dfs = f.getDecimalFormatSymbols();
+        dfs.setGroupingSeparator(' ');
+        f.setDecimalFormatSymbols(dfs);
+        spinnerParticles.setEditor(particlesEditor);
         this.add(new JLabel("Particles:"));
         this.add(spinnerParticles);
 
-        //Mass
-        this.add(new JLabel("Distributed Mass [kg]"));        
-        modelMass = new SpinnerNumberModel(5000., 1., Double.POSITIVE_INFINITY, 500.);
+        //Mass        
+        this.add(new JLabel("Distributed Mass [kg]"));
+        modelMass = new SpinnerNumberModel(info.getMass(), 0, Double.POSITIVE_INFINITY, 10.);
+
         spinnerMass = new JSpinner(modelMass);
+        JSpinner.NumberEditor massEditor = new JSpinner.NumberEditor(spinnerMass, "0.###");
+        f = massEditor.getFormat();
+        f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
+        f.setGroupingUsed(true);
+        f.setGroupingSize(3);
+        dfs = f.getDecimalFormatSymbols();
+        dfs.setGroupingSeparator(' ');
+        f.setDecimalFormatSymbols(dfs);
+        spinnerMass.setEditor(massEditor);
         this.add(spinnerMass);
 
+        this.spinnerMaterial.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                info.setMaterialID((int) spinnerMaterial.getValue());
+                if (info.isChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                }
+            }
+        });
         this.spinnerInjection.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
@@ -116,8 +144,8 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
                 }
             }
         });
-        
-         this.spinnerMass.addChangeListener(new ChangeListener() {
+
+        this.spinnerMass.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
                 info.setTotalmass(modelMass.getNumber().doubleValue());
@@ -127,13 +155,12 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
             }
         });
 
-        textname.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                info.getMaterial().setName(textname.getText());
-            }
-        });
-
+//        textname.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent ae) {
+//                info.getMaterial().setName(textname.getText());
+//            }
+//        });
         this.setPreferredSize(new Dimension(160, 95));
         this.setMinimumSize(new Dimension(160, 90));
 
@@ -144,12 +171,11 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
 
     }
 
-    public long localToGMT(long local) {
-        return local + localCalendar.get(GregorianCalendar.ZONE_OFFSET);
-    }
-
-    public long gmtToLocal(long gmt) {
-        return gmt - localCalendar.get(GregorianCalendar.ZONE_OFFSET);
-    }
-
+//    public long localToGMT(long local) {
+//        return local + localCalendar.get(GregorianCalendar.ZONE_OFFSET);
+//    }
+//
+//    public long gmtToLocal(long gmt) {
+//        return gmt - localCalendar.get(GregorianCalendar.ZONE_OFFSET);
+//    }
 }

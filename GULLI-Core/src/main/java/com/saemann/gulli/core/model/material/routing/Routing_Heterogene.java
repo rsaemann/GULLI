@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.model.material.routing;
 
-import com.saemann.gulli.core.control.maths.RandomArray;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.SurfaceTrianglePath;
@@ -35,7 +34,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
  *
  * @author saemann
  */
-public class Routing_Heterogene extends Routing_Mixed {
+public class Routing_Heterogene extends Routing_Homogene {
 
     protected double v_deposite, v_erode, v_deposit_quadrat, v_erode_quadrat;
 //    protected Random r = new Random();

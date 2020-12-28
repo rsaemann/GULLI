@@ -37,7 +37,7 @@ public class Particle {
     /**
      * The Volumen, that contains this particle.
      */
-    protected Capacity surrounding_actual;
+    protected Capacity capacity;
 
     /**
      * Mass of this one particle [kg];
@@ -234,7 +234,7 @@ public class Particle {
     }
 
     /**
-     * Get the position 1D along the surrounding_actual from the past timestep.
+     * Get the position 1D along the capacity from the past timestep.
      *
      * @return
      */
@@ -254,12 +254,12 @@ public class Particle {
 //        this.position1d_past = position1d;
 //    }
     public Capacity getSurrounding_actual() {
-        return surrounding_actual;
+        return capacity;
     }
 
     public void setSurrounding_actual(Capacity surrounding) {
-//        System.out.println("Particle: Set surrounding_actual to "+surrounding);
-        this.surrounding_actual = surrounding;
+//        System.out.println("Particle: Set capacity to "+surrounding);
+        this.capacity = surrounding;
     }
 
 //    public Capacity getSurrounding_past() {

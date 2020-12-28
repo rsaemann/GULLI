@@ -25,7 +25,6 @@ package com.saemann.gulli.core.control.scenario;
 
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.Controller;
-import com.saemann.gulli.core.control.LoadingCoordinator;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
@@ -71,7 +70,8 @@ public abstract class Scenario {
     protected long endtime;
 
     protected String name;
-    
+
+    private ArrayList<Material> materials;
 
     public long getStartTime() {
         return starttime;
@@ -97,13 +97,17 @@ public abstract class Scenario {
         if (measurementsPipe != null) {
             measurementsPipe.setActualTime(time);
         }
-        if (measurementsSurface!= null) {
+        if (measurementsSurface != null) {
             measurementsSurface.getIndexContainer().setActualTime(time);
         }
     }
 
     public ArrayList<InjectionInformation> getInjections() {
         return null;
+    }
+
+    public ArrayList<Material> getMaterials() {
+        return materials;
     }
 
     public abstract void init(Controller c);
@@ -223,6 +227,10 @@ public abstract class Scenario {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setMaterials(ArrayList<Material> materials) {
+        this.materials = materials;
     }
 
 }

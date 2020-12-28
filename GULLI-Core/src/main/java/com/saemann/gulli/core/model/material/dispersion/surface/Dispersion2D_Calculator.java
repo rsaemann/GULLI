@@ -42,9 +42,8 @@ public interface Dispersion2D_Calculator {
      * @param surface
      * @param triangleID
      * @param tofill double[2] array storing Dxx and Dyy
-     * @return
      */
-    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill);
+    public void calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill);
 
     /**
      * Calculate sqrt(Dxx) and sqrt(Dyy) [m/s^(1/2)] for the given particle
@@ -55,10 +54,9 @@ public interface Dispersion2D_Calculator {
      * @param vy
      * @param surface
      * @param triangleID
-     * @param tofill
-     * @return
+     * @param tofill double[2] array to hold the output in 0:x 1:y direction
      */
-    public double[] calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill);
+    public void calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill);
 
     /**
      * A description to identify the type of dispersion calculation

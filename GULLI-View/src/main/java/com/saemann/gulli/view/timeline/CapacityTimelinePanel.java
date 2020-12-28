@@ -880,20 +880,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                  */
                 double discharge = tl.getDischarge(statusTimeIndex);
 
-//                /**
-//                 * current mass [kg]
-//                 */
-//                float massT = tlm..getMass(i);
-//                if (Double.isNaN(massT)) {
-//                    m_m.addOrUpdate(time, 0);
-//                    m_massflux.addOrUpdate(time, 0);
-//                } else {
-//                    m_m.addOrUpdate(time, massT);
-//                    m_massflux.addOrUpdate(time, massT * discharge);
-//                    if (i > 0) {
-//                        mass_sum += massT * discharge * ;
-//                    }
-//                }
                 double massFluxSum = 0;
                 double massSum = 0;
                 /**
@@ -905,9 +891,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
                 for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
                     double c = tlm.getConcentrationOfType(i, j);
+                    if(Double.isNaN(c)){
+                        c=0;
+                    }
                     double mf = c * discharge;
                     mes_massFlux_Type.get(j).addOrUpdate(time, mf);
                     mes_concentration_Type.get(j).addOrUpdate(time, c);
+                    
                     massFluxSum += mf;
                     massSum += c * vol_c;
                 }
@@ -915,6 +905,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 m_massflux.addOrUpdate(time, massFluxSum);
                 m_m.addOrUpdate(time, massSum);
+                m_m_sum.addOrUpdate(time, mass_sum);
 
                 float c = tlm.getConcentration(i);
                 if (Double.isNaN(c)) {
@@ -923,7 +914,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     m_c.addOrUpdate(time, c);
                 }
 
-                m_m_sum.addOrUpdate(time, mass_sum);
+                
 
                 float p = tlm.getParticles(i);
 

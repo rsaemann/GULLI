@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.model.material;
 
-import com.saemann.gulli.core.model.material.routing.Routing_Mixed;
+import com.saemann.gulli.core.model.material.routing.Routing_Homogene;
 import com.saemann.gulli.core.control.GlobalParameter;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calculator;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant;
@@ -65,23 +65,31 @@ public class Material {
      * A Routing_Calculator decides for a particle of this Material where to get
  transported to in case of a junction.
      */
-    protected Routing_Calculator flowCalculator;
+    protected Routing_Calculator routing;
+    
+    public enum ROUTING{HOMOGENEOUS,HETEROGENEOUS};
 
     /**
      * Calculates the dispersion coefficient of a particle in the pipe system
      */
-    protected Dispersion1D_Calculator dispersionCalculatorPipe;
+    protected Dispersion1D_Calculator dispersionPipe;
+    
+    public enum DISPERSION_PIPE{CONSTANT};
 
     /**
      * Calculates the dispersion coefficient of a particle on the surface
      */
-    protected Dispersion2D_Calculator dispersionCalculatorSurface;
+    protected Dispersion2D_Calculator dispersionSurface;
+    
+    public enum DISPERSION_SURFACE{CONSTANT,FISCHER,WATERLEVEL}
 
     /**
      * Index to identify the material. Index for storing in measurement
      * timelines for counting particles of this material.
      */
     public int materialIndex = -1;
+    
+    public float travellengthToMeasure=-1;
 
     /**
      *
@@ -95,12 +103,12 @@ public class Material {
         this.weight = this.density * GlobalParameter.GRAVITY;
         this.solute = solute;
         if (solute) {
-            flowCalculator = new Routing_Mixed();
+            routing = new Routing_Homogene();
         } else {
-            flowCalculator = new Routing_Heterogene(0.1, 0.1);
+            routing = new Routing_Heterogene(0.1, 0.1);
         }
-        this.dispersionCalculatorPipe=new Dispersion1D_Constant();
-        this.dispersionCalculatorSurface=new Dispersion2D_Constant(0.1, 0.1, 0.1);
+        this.dispersionPipe=new Dispersion1D_Constant();
+        this.dispersionSurface=new Dispersion2D_Constant(0.1, 0.1);
     }
 
     public Material(String name, double density, boolean solute, int surfaceindex) {
@@ -113,9 +121,9 @@ public class Material {
         this.density=density;
         this.weight = this.density * GlobalParameter.GRAVITY;
         this.materialIndex=index;
-        this.flowCalculator=routing;
-        this.dispersionCalculatorPipe=dispersion_pipe;
-        this.dispersionCalculatorSurface=dispersion_surface;
+        this.routing=routing;
+        this.dispersionPipe=dispersion_pipe;
+        this.dispersionSurface=dispersion_surface;
     }
     
     public String getName() {
@@ -139,8 +147,8 @@ public class Material {
         return weight;
     }
 
-    public Routing_Calculator getFlowCalculator() {
-        return flowCalculator;
+    public Routing_Calculator getRoutingCalculator() {
+        return routing;
     }
 
     @Override
@@ -172,27 +180,27 @@ public class Material {
         if (this.solute != other.solute) {
             return false;
         }
-        return Objects.equals(this.flowCalculator, other.flowCalculator);
+        return Objects.equals(this.routing, other.routing);
     }
 
     public Dispersion2D_Calculator getDispersionCalculatorSurface() {
-        return dispersionCalculatorSurface;
+        return dispersionSurface;
     }
 
     public Dispersion1D_Calculator getDispersionCalculatorPipe() {
-        return dispersionCalculatorPipe;
+        return dispersionPipe;
     }
 
     public void setDispersionCalculatorPipe(Dispersion1D_Calculator dispersionCalculatorPipe) {
-        this.dispersionCalculatorPipe = dispersionCalculatorPipe;
+        this.dispersionPipe = dispersionCalculatorPipe;
     }
 
     public void setDispersionCalculatorSurface(Dispersion2D_Calculator dispersionCalculatorSurface) {
-        this.dispersionCalculatorSurface = dispersionCalculatorSurface;
+        this.dispersionSurface = dispersionCalculatorSurface;
     }
 
-    public void setFlowCalculator(Routing_Calculator flowCalculator) {
-        this.flowCalculator = flowCalculator;
+    public void setRoutingCalculator(Routing_Calculator flowCalculator) {
+        this.routing = flowCalculator;
     }
 
     @Override

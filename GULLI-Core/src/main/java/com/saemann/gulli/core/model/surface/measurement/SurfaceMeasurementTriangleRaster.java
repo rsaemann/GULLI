@@ -86,12 +86,18 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             //for risk map do not show inertial particles
             return;
         }
+        
+        if(particle.getTravelledPathLength()<particle.getMaterial().travellengthToMeasure){
+            return;
+        }
 //        statuse[threadIndex] = 1;
         int id = particle.surfaceCellID;
 
         if (id < 0) {
             return;
         }
+        
+        
 //        statuse[threadIndex] = 2;
         if (!countStayingParticle) {
 //            statuse[threadIndex] = 3;

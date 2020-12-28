@@ -39,7 +39,7 @@ import com.saemann.gulli.core.model.topology.Manhole_SurfaceBucket;
  *
  * @author saemann
  */
-public class Routing_Mixed implements Routing_Calculator {
+public class Routing_Homogene implements Routing_Calculator {
 
     public static boolean verbose = false;
     public static boolean useFlowProportionalityOutflow = true;

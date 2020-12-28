@@ -1330,7 +1330,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             if (triangleMeasurement == null) {
                                 continue;
                             }
-//                            int i = (int) tri.getTriangleID();
+//                            int i = (int) tri.getCapacityID();
                             int ptclSum = 0;
                             int timesum = 0;
                             for (int t = 0; t < nbtimes; t++) {
@@ -2433,9 +2433,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             } else if (string.equals(layerInjectionLocation)) {
                 for (InjectionInformation injection : injections) {
                     if (injection.getId() % injections.size() == id) {
+                        if(injection.getPosition()==null)return;
                         StringBuilder str = new StringBuilder("Injection id:").append(id);
                         if (injection.spillOnSurface()) {
-                            str.append(";to Surface triangle").append(injection.getTriangleID());
+                            str.append(";to Surface triangle").append(injection.getCapacityID());
                         } else {
                             str.append(";").append(injection.getCapacity());
                         }
@@ -3050,8 +3051,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 } else {
                     if (in.spillOnSurface()) {
                         //Calculate from triangle ID
-                        if (in.getTriangleID() >= 0) {
-                            double[] tm = control.getSurface().getTriangleMids()[in.getTriangleID()];
+                        if (in.getCapacityID() >= 0) {
+                            double[] tm = control.getSurface().getTriangleMids()[in.getCapacityID()];
                             Coordinate c = control.getSurface().getGeotools().toGlobal(new Coordinate(tm[0], tm[1]), false);
                             pos = new GeoPosition(c.x, c.y);
                         }

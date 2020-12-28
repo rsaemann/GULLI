@@ -42,7 +42,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import com.saemann.gulli.core.model.material.routing.Routing_Calculator;
-import com.saemann.gulli.core.model.material.routing.Routing_Mixed;
+import com.saemann.gulli.core.model.material.routing.Routing_Homogene;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -136,7 +136,7 @@ public class Setup_IO {
                 bw.newLine();
                 bw.write("\t\t<Density unit='kg/m^3'>" + m.getDensity() + "</>");
                 bw.newLine();
-                bw.write("\t\t<Flowcalculator>" + m.getFlowCalculator().getClass().getName() + "</>");
+                bw.write("\t\t<Flowcalculator>" + m.getRoutingCalculator().getClass().getName() + "</>");
                 bw.newLine();
                 Dispersion1D_Calculator disp1d = m.getDispersionCalculatorPipe();
                 if (disp1d != null) {
@@ -203,8 +203,8 @@ public class Setup_IO {
             bw.newLine();
 
             if (injection.spillOnSurface()) {
-                if (injection.getTriangleID() >= 0) {
-                    bw.write("\t\t<Surfacecell>" + injection.getTriangleID() + "</>");
+                if (injection.getCapacityID() >= 0) {
+                    bw.write("\t\t<Surfacecell>" + injection.getCapacityID() + "</>");
                     bw.newLine();
                 }
             } else if (injection.spillInManhole()) {
@@ -232,7 +232,10 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t\t<Material id=" + injection.getMaterial().materialIndex + ">" + injection.getMaterial().getName() + "</>");
             bw.newLine();
-
+            bw.write("\t\t<Mass unit='kg'>" + injection.getMass() + "</>");
+            bw.newLine();
+            bw.write("\t\t<Particles>" + injection.getNumberOfParticles() + "</>");
+            bw.newLine();
             bw.write("\t</Injection>");
             bw.newLine();
         }
@@ -276,6 +279,7 @@ public class Setup_IO {
         GeoPosition injectionPosition = null;
         double injectionLatitude = -1, injectionLongitude = -1;
         boolean injectionOnSurface = false;
+        int injectionCapacityID = -1;
         String injectionCapacityName = null;
         int injection_materialID = 0;
         double injectionStart = 0;
@@ -347,7 +351,7 @@ public class Setup_IO {
                     if (line.contains("/Material")) {
                         state = -1;
                         if (materialFlowCalculator == null) {
-                            materialFlowCalculator = new Routing_Mixed();
+                            materialFlowCalculator = new Routing_Homogene();
                             System.err.println("Created default " + materialFlowCalculator.getClass().getSimpleName() + " for material " + materialName + " (" + materialID + ")");
                         }
 
@@ -370,9 +374,9 @@ public class Setup_IO {
 
                     if (line.contains("<Material ")) {
                         materialID = Integer.parseInt(line.substring(line.indexOf("id=") + 3, line.indexOf(">")));
-                    }
-
-                    if (line.contains("<Dispersion")) {
+                    } else if (line.contains("<Name")) {
+                        materialName = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                    } else if (line.contains("<Dispersion")) {
                         if (networkRelation) {
                             line = br.readLine();
                             String type = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
@@ -430,7 +434,7 @@ public class Setup_IO {
                         state = -1;
                         continue;
                     }
-                    setup.injections=new ArrayList<>();
+
                     if (line.contains("<FromNetworkResult>")) {
                         setup.setLoadResultInjections(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
                     } else if (line.contains("<Injection ")) {
@@ -449,10 +453,24 @@ public class Setup_IO {
                                     } else {
                                         if (injectionPosition != null) {
                                             inj = new InjectionInformation(injectionPosition, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                        } else if (injectionCapacityName != null) {
+                                            inj = new InjectionInformation(injectionCapacityName, 0, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                        } else if (injectionCapacityID >= 0) {
+                                            inj = new InjectionInformation(injectionCapacityID, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                        } else {
+                                            System.err.println("No information about the Manhole to inject");
                                         }
                                     }
-                                    setup.injections.add(inj);
+                                    if (inj != null) {
+                                        injections.add(inj);
+                                    } else {
+                                        System.err.println("Could not create Injection for " + injectionID + ": " + injectionCapacityName);
+                                    }
                                 }
+                                injectionCapacityID = -1;
+                                injectionCapacityName = null;
+                                injectionDuration = 0;
+                                injectionPosition = null;
 
                                 break;
                             }
@@ -472,6 +490,12 @@ public class Setup_IO {
                                 injectionParticles = Integer.parseInt(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Materi")) {
                                 injection_materialID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
+                            } else if (line.contains("Capacity")) {
+                                injectionCapacityID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
+                                injectionCapacityName = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                                if (injectionCapacityName != null && (injectionCapacityName.equals("null") || injectionCapacityName.isEmpty())) {
+                                    injectionCapacityName = null;
+                                }
                             }
                         }
                     }
@@ -481,9 +505,9 @@ public class Setup_IO {
                 exception.printStackTrace();
             }
         }
-
         br.close();
         fr.close();
+        setup.setInjections(injections);
         return setup;
     }
 

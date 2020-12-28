@@ -23,7 +23,7 @@
  */
 package com.saemann.gulli.core.control.particlecontrol;
 
-import com.saemann.gulli.core.model.material.routing.Routing_Mixed;
+import com.saemann.gulli.core.model.material.routing.Routing_Homogene;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
@@ -251,7 +251,7 @@ public class ParticlePipeComputing {
              */
             if (capa.getClass().equals(Manhole.class)) {
                 Manhole actualC = (Manhole) capa;
-                Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(actualC, rand, true);
+                Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getRoutingCalculator().whichConnection(actualC, rand, true);
                 if (con == null) {
                     if (actualC.isSetAsOutlet()) {
                         p.setLeftSimulation();
@@ -455,7 +455,7 @@ public class ParticlePipeComputing {
                     /**
                      * search only for outflowing connections
                      */
-                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, ds > 0);
+                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getRoutingCalculator().whichConnection(mh, rand, ds > 0);
                     if (con == null) {
 //                        System.out.println(this.getClass() + "::  Flowcalculator returned connection " + con + " for (" + mh + ",ds:" + ds + ")");
 //                        p.status = false;
@@ -746,7 +746,7 @@ public class ParticlePipeComputing {
                         /**
                          * search only for outflowing connections
                          */
-                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, true);
+                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getRoutingCalculator().whichConnection(mh, rand, true);
 //                        if (mh.getAutoID() == 638 && p.getAutoID() < 10) {
 //                            System.out.println("particle " + p.getAutoID() + " in " + mh);
 //                            if (con != null) {
@@ -860,7 +860,7 @@ public class ParticlePipeComputing {
                         p.setSurrounding_actual(c);
                         return;
                     }
-                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, false);
+                    Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getRoutingCalculator().whichConnection(mh, rand, false);
 //                    if (c.getAutoID() == 638 && p.getAutoID() < 10) {
 //                        System.out.println("ds<=0: particle " + p.getAutoID() + " in " + c + "\tv=" + p.getVelocity1d() + "\tds=" + ds + " con=" + con + "\tstart?" + con.isStartOfPipe() + "\t pipe.v=" + con.getPipe().getVelocity());
 //                    }
@@ -986,7 +986,7 @@ public class ParticlePipeComputing {
         }
 //        status = 4;
         //Skip dry condition 
-        if (c.getWaterlevel() < Routing_Mixed.dryWaterlevel) {
+        if (c.getWaterlevel() < Routing_Homogene.dryWaterlevel) {
             return;
         }
 //        status=104;
@@ -995,7 +995,7 @@ public class ParticlePipeComputing {
         if (useDeposition) {
 //Test for deposition
             if (p.isDeposited()) {
-                if (p.getMaterial().getFlowCalculator().particleIsEroding(p, c, rand)) {
+                if (p.getMaterial().getRoutingCalculator().particleIsEroding(p, c, rand)) {
                     p.setDeposited(false);
                 } else {
                     //Stays immobile
@@ -1003,7 +1003,7 @@ public class ParticlePipeComputing {
                     return;
                 }
             } else {
-                if (p.getMaterial().getFlowCalculator().particleIsDepositing(p, c, rand)) {
+                if (p.getMaterial().getRoutingCalculator().particleIsDepositing(p, c, rand)) {
                     p.setDeposited(true);
                     //Do nothing anymore from here.
                     return;
@@ -1165,7 +1165,7 @@ public class ParticlePipeComputing {
                             /**
                              * search only for outflowing connections
                              */
-                            Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, true);
+                            Connection_Manhole connection = p.getMaterial().getRoutingCalculator().whichConnection(mh, rand, true);
 
                             if (connection == null) {
                                 //particle stays inside this manhole
@@ -1296,7 +1296,7 @@ public class ParticlePipeComputing {
                             p.setSurrounding_actual(c);
                             return;
                         }
-                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getFlowCalculator().whichConnection(mh, rand, false);
+                        Connection_Manhole_Pipe con = (Connection_Manhole_Pipe) p.getMaterial().getRoutingCalculator().whichConnection(mh, rand, false);
                         if (con == null || con.getPipe() == null) {
                             /*Aktuell kein Ausgang zu finden. Bleibe hier, bis sich 
                              später die Wasserstände ändern*/
@@ -1417,7 +1417,7 @@ public class ParticlePipeComputing {
             return;
         }
         //Skip dry condition 
-        if (c.getWaterlevel() < Routing_Mixed.dryWaterlevel) {
+        if (c.getWaterlevel() < Routing_Homogene.dryWaterlevel) {
 //            System.out.println("waterlevel Particle in "+c.getWaterHeight());
             return;
         }
@@ -1425,7 +1425,7 @@ public class ParticlePipeComputing {
         if (useDeposition) {
             //Test for deposition
             if (p.isDeposited()) {
-                if (p.getMaterial().getFlowCalculator().particleIsEroding(p, c, rand)) {
+                if (p.getMaterial().getRoutingCalculator().particleIsEroding(p, c, rand)) {
                     p.setDeposited(false);
                 } else {
                     //Stays immobile
@@ -1433,7 +1433,7 @@ public class ParticlePipeComputing {
                     return;
                 }
             } else {
-                if (p.getMaterial().getFlowCalculator().particleIsDepositing(p, c, rand)) {
+                if (p.getMaterial().getRoutingCalculator().particleIsDepositing(p, c, rand)) {
                     p.setDeposited(true);
                     //Do nothing anymore from here.
                     return;
@@ -1539,7 +1539,7 @@ public class ParticlePipeComputing {
                     /**
                      * search only for outflowing connections
                      */
-                    Connection_Manhole connection = p.getMaterial().getFlowCalculator().whichConnection(mh, rand, !reverseDispersion);
+                    Connection_Manhole connection = p.getMaterial().getRoutingCalculator().whichConnection(mh, rand, !reverseDispersion);
 
                     if (connection == null) {
                         //particle stays inside this manhole

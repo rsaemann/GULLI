@@ -78,11 +78,12 @@ public class InjectionInformation implements InjectionInfo {
 
     protected int totalNumberParticles;
 
+    protected int materialID;
     protected Material material;
     protected String capacityName;
     protected Capacity capacity;
     protected GeoPosition2D position;
-    protected int triangleID = -1;
+    protected int cellID = -1;
     public boolean spilldistributed = false;
     protected double position1D;
     protected boolean changed = false;
@@ -105,6 +106,7 @@ public class InjectionInformation implements InjectionInfo {
         this(startoffsetSeconds, duration, mass, numberofParticles);
         this.position = position;
         this.material = material;
+        this.materialID = material.materialIndex;
         this.spillOnSurface = !pipesystem;
     }
 
@@ -147,6 +149,7 @@ public class InjectionInformation implements InjectionInfo {
         this(startoffsetSeconds, duration, mass, numberOfParticles);
         this.position1D = position1D;
         this.material = material;
+        this.materialID = material.materialIndex;
         this.spillOnSurface = false;
         this.capacityName = capacityName;
         this.position1D = position1D;
@@ -167,11 +170,41 @@ public class InjectionInformation implements InjectionInfo {
         }
     }
 
-    public InjectionInformation(int triangleID, double mass, int numberOfParticles, Material material, double startOffsetSeconds, double duration) {
+    /**
+     * Spill on Surface or Manhole, where only the ID is known.
+     *
+     * @param elementID
+     * @param pipesystem if true: manhole injection, if false: surface spill
+     * @param mass in kg
+     * @param numberOfParticles
+     * @param material
+     * @param startOffsetSeconds after the scenario start
+     * @param duration of the puls ein seconds
+     */
+    public InjectionInformation(int elementID, boolean pipesystem, double mass, int numberOfParticles, Material material, double startOffsetSeconds, double duration) {
         this(startOffsetSeconds, duration, mass, numberOfParticles);
         this.material = material;
+        this.materialID = material.materialIndex;
+        this.spillOnSurface = !pipesystem;
+        this.cellID = elementID;
+    }
+
+    /**
+     * Spill on SURFACE cell id
+     *
+     * @param surfaceCellID
+     * @param mass
+     * @param numberOfParticles
+     * @param material
+     * @param startOffsetSeconds
+     * @param duration
+     */
+    public InjectionInformation(int surfaceCellID, double mass, int numberOfParticles, Material material, double startOffsetSeconds, double duration) {
+        this(startOffsetSeconds, duration, mass, numberOfParticles);
+        this.material = material;
+        this.materialID = material.materialIndex;
         this.spillOnSurface = true;
-        this.triangleID = triangleID;
+        this.cellID = surfaceCellID;
     }
 
     public InjectionInformation(InjectionInfo info, double offsetSeconds) {
@@ -179,12 +212,13 @@ public class InjectionInformation implements InjectionInfo {
 
         this.capacity = info.getCapacity();
         this.material = info.getMaterial();
+        this.materialID = material.materialIndex;
         position = info.getPosition();
         this.spillOnSurface = info.spillOnSurface();
 
         if (info instanceof InjectionInformation) {
             InjectionInformation ii = (InjectionInformation) info;
-            this.triangleID = ii.triangleID;
+            this.cellID = ii.cellID;
             this.position1D = ii.position1D;
             this.capacityName = ii.capacityName;
         }
@@ -202,6 +236,7 @@ public class InjectionInformation implements InjectionInfo {
      */
     public InjectionInformation(Capacity capacity, long eventStart, long eventEnd, TimedValue[] timedValues, Material material, double concentration, int numberOfParticles) {
         this.material = material;
+        this.materialID = material.materialIndex;
         this.capacity = capacity;
         calculateMass(timedValues, eventStart, eventEnd, concentration);
         calculateNumberOfIntervalParticles(numberOfParticles);
@@ -305,8 +340,8 @@ public class InjectionInformation implements InjectionInfo {
 //        this.changed = true;
 //    }
 //
-//    public int getTriangleID() {
-//        return triangleID;
+//    public int getCapacityID() {
+//        return cellID;
 //    }
 //    @Override
 //    public boolean equals(Object obj) {
@@ -323,7 +358,7 @@ public class InjectionInformation implements InjectionInfo {
 //        if (Double.doubleToLongBits(this.timesteps[0]) != Double.doubleToLongBits(other.timesteps[0])) {
 //            return false;
 //        }
-//        if (this.triangleID != other.triangleID) {
+//        if (this.cellID != other.cellID) {
 //            return false;
 //        }
 //
@@ -370,13 +405,13 @@ public class InjectionInformation implements InjectionInfo {
         if (!Objects.equals(this.position, other.position)) {
             return false;
         }
-        return this.triangleID == other.triangleID;
+        return this.cellID == other.cellID;
     }
 
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 41 * hash + this.triangleID;
+        hash = 41 * hash + this.cellID;
         return hash;
     }
 
@@ -517,15 +552,20 @@ public class InjectionInformation implements InjectionInfo {
         this.changed = true;
     }
 
-    public int getTriangleID() {
-        return triangleID;
+    /**
+     * The ID of the manhole or furface cell id where the injection occurs.
+     *
+     * @return
+     */
+    public int getCapacityID() {
+        return cellID;
     }
 
     public void setTriangleID(int triangleID) {
-        if (this.triangleID == triangleID) {
+        if (this.cellID == triangleID) {
             return;
         }
-        this.triangleID = triangleID;
+        this.cellID = triangleID;
         spillOnSurface = triangleID >= 0;
         this.changed = true;
     }
@@ -551,7 +591,7 @@ public class InjectionInformation implements InjectionInfo {
 
     @Override
     public String toString() {
-        return "InjectionInformation{" + id + ", OnSurface=" + spillOnSurface + ", #particles=" + totalNumberParticles + ", totalmass=" + totalmass + ", totalVolume=" + totalVolume + ", material=" + material + (spillOnSurface ? ", SurfaceTriangle=" + triangleID : ", capacityName=" + capacityName) + '}';
+        return "InjectionInformation{" + id + ", OnSurface=" + spillOnSurface + ", #particles=" + totalNumberParticles + ", totalmass=" + totalmass + ", totalVolume=" + totalVolume + ", material=" + material + (spillOnSurface ? ", SurfaceTriangle=" + cellID : ", capacityName=" + capacityName) + '}';
     }
 
     public void setId(int id) {
@@ -578,5 +618,27 @@ public class InjectionInformation implements InjectionInfo {
     public boolean isActive() {
         return active;
     }
+
+    public void setMaterialID(int materialID) {
+        if (material != null && material.materialIndex != materialID) {
+            material = null;
+            changed=true;
+        }
+        if(materialID!=this.materialID){
+            changed=true;
+            this.materialID = materialID;
+        }
+    }
+
+    public int getMaterialID() {
+        return materialID;
+    }
+
+    public void setMaterial(Material material) {
+        this.material = material;
+        this.materialID=material.materialIndex;
+    }
+    
+    
 
 }

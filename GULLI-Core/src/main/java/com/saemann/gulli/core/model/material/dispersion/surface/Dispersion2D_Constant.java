@@ -41,32 +41,31 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
 //    public DIFFTYPE diffType = DIFFTYPE.D;
     public double Dxx = 0.01;       //Diffusionkoeffizient in xx direction
     public double Dyy = 0.01;       // -"- in yy direction
-    public double Dxy = 0;       // -"- in xy direction
-    public double[] D = new double[]{Dxx, Dyy, Dxy};      // Diffusionkoeffizients vector
+//    public double Dxy = 0;       // -"- in xy direction
+    public double[] D = new double[]{Dxx, Dyy};      // Diffusionkoeffizients vector
 
 //    private double al;       //longitudinal dispersivity (Elder: 5.93, Lin: 13)
 //    private double at;       //transversal dispersitivy (Fischer: 0.15, Lin: 1.2)
 //    private double C;        //Chezy roughness
 //    private final double wg = Math.sqrt(9.81);
-    public double[] directD = new double[]{Dxx, Dyy, Dxy};
-    public double[] directSqrtD = new double[]{Math.sqrt(Dxx), Math.sqrt(Dyy), Math.sqrt(Dxy)};
+    public double[] directD = new double[]{Dxx, Dyy};
+    public double[] directSqrtD = new double[]{Math.sqrt(Dxx), Math.sqrt(Dyy)};
 
     public Dispersion2D_Constant() {
     }
 
-    public Dispersion2D_Constant(double dxx, double dyy, double dxy) {
+    public Dispersion2D_Constant(double dxx, double dyy) {
         Dxx = dxx;
         Dyy = dyy;
-        Dxy = dxy;
-        D = new double[]{Dxx, Dyy, Dxy};
-        directD = new double[]{Dxx, Dyy, Dxy};
-        directSqrtD = new double[]{Math.sqrt(Dxx), Math.sqrt(Dyy), Math.sqrt(Dxy)};
+        D = new double[]{Dxx, Dyy};
+        directD = new double[]{Dxx, Dyy};
+        directSqrtD = new double[]{Math.sqrt(Dxx), Math.sqrt(Dyy)};
     }
 
-    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID) {
-        return calculateDiffusion(vx, vy, surface, triangleID, null);
-    }
-
+//    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID) {
+//        
+//        return calculateDiffusion(vx, vy, surface, triangleID, null);
+//    }
     /**
      * Calculate sqrt(Dxx) and sqrt(Dyy) for the given particle surrounding.
      * Already the sqrt is calculated to optimize further calculation with these
@@ -77,12 +76,16 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
      * @param surface
      * @param triangleID
      * @param tofill
-     * @return
      */
-    public double[] calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
-
-//        if (diffType == DIFFTYPE.D) {
-        return directSqrtD;
+    @Override
+    public void calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
+//        return directSqrtD;
+        tofill[0] = directSqrtD[0];
+        tofill[1] = directSqrtD[1];
+//        for (int i = 0; i < tofill.length; i++) {
+//            tofill[i] = directSqrtD[i];
+//        }
+//        return directSqrtD;
 //        }
 
 //        double[] retur = tofill;
@@ -142,10 +145,15 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
     }
 
     @Override
-    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
-
+    public void calculateDiffusion(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
+        tofill[0] = directD[0];
+        tofill[1] = directD[1];
+//        return directD;
 //        if (diffType == DIFFTYPE.D) {
-        return directD;
+//        for (int i = 0; i < tofill.length; i++) {
+//            tofill[i] = directD[i];
+//        }
+//        return directD;
 //        }
 //
 //        double[] retur = tofill;
@@ -250,17 +258,17 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
 //    }
     @Override
     public String getDiffusionString() {
-        return "Constant(" + Dxx + ";" + Dyy + ")";
+        return "Constant(Dx=" + Dxx + ";Dy=" + Dyy + ")";
     }
 
     @Override
     public String[] getParameterOrderDescription() {
-        return new String[]{"Dxx", "Dyy", "Dxy"};
+        return new String[]{"Dx", "Dy"};
     }
 
     @Override
     public double[] getParameterValues() {
-        return new double[]{Dxx, Dyy, Dxy};
+        return new double[]{Dxx, Dyy};
     }
 
     @Override
@@ -274,20 +282,15 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
         } else {
             this.Dyy = this.Dxx;
         }
-        if (parameter.length > 2) {
-            this.Dxy = parameter[2];
-        } else {
-            this.Dxy = this.Dxx;
-        }
-        this.directD = new double[]{Dxx, Dyy, Dxy};
-        this.directSqrtD = new double[]{Math.sqrt(Dxx), Math.sqrt(Dyy), Math.sqrt(Dxy)};
+        this.directD = new double[]{Dxx, Dyy};
+        this.directSqrtD = new double[]{Math.sqrt(Dxx), Math.sqrt(Dyy)};
 
     }
 
     @Override
     public String[] getParameterUnits() {
-        String unit="m^2/s";
-        return new String[]{unit,unit,unit};
+        String unit = "m^2/s";
+        return new String[]{unit, unit};
     }
 
     public class NoDiffusionStringException extends Exception {

@@ -777,6 +777,20 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         ArrayList<Material> indexedMaterials = new ArrayList<>();
         for (InjectionInformation injection : scenario.getInjections()) {
             totalNumberParticles += injection.getNumberOfParticles();
+            if(injection.getMaterial()==null){
+                //Search for the correct material or create one
+                for (Material material : scenario.getMaterials()) {
+                    if(material.materialIndex==injection.getMaterialID()){
+                        injection.setMaterial(material);
+                        break;
+                    }
+                }
+            }
+            if(injection.getMaterial()==null){
+                Material mat=new Material("neu "+(maxMaterialID+1),1000,true, maxMaterialID+1);
+                injection.setMaterial(mat);
+                indexedMaterials.add(mat);
+            }
             maxMaterialID = Math.max(maxMaterialID, injection.getMaterial().materialIndex);
             if (!indexedMaterials.contains(injection.getMaterial())) {
                 indexedMaterials.add(injection.getMaterial());
@@ -785,6 +799,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (int i = 0; i < indexedMaterials.size(); i++) {
             indexedMaterials.get(i).materialIndex = i;
         }
+        scenario.setMaterials(indexedMaterials);
         maxMaterialID = indexedMaterials.size() - 1;
 
         ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
@@ -824,8 +839,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         }
                     }
 
-                    if (injection.getTriangleID() >= 0) {
-                        surfaceCell = injection.getTriangleID();
+                    if (injection.getCapacityID() >= 0) {
+                        surfaceCell = injection.getCapacityID();
                     } else if (injection.getCapacityName() != null) {
                         if (network != null) {
                             Capacity tempC = network.getPipeByName(injection.getCapacityName());
@@ -898,6 +913,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     if (c == null && injection.getPosition() != null) {
                         c = getNetwork().getManholeNearPositionLatLon(injection.getPosition());
                         injection.setCapacity(c);
+                    }
+                    if(c==null&&injection.getCapacityID()>=0){
+                        c=getNetwork().getManholeByManualID(injection.getCapacityID());
+                        if(c!=null){
+                            injection.setCapacity(c);
+                        }
                     }
                 }
                 if (c == null) {

@@ -146,6 +146,9 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         if (particle.getTravelledPathLength() < minTravelLengthToMeasure) {
             return;
         }
+        if (particle.getTravelledPathLength() < particle.getMaterial().travellengthToMeasure) {
+            return;
+        }
         if (measureSpilloutParticlesOnly && particle.toSurface == null) {
             return;
         }

@@ -37,7 +37,7 @@ public abstract class SurfaceMeasurementRaster {
     /**
      * if particles have lower travel length than this, they are not measured.
      */
-    public static double minTravelLengthToMeasure = 0;
+    public static double minTravelLengthToMeasure = -1;
 
     /**
      * If enabled, only particles, that have been to the pipesystem before are

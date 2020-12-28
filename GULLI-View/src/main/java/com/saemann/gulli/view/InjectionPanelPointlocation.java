@@ -1,5 +1,6 @@
 package com.saemann.gulli.view;
 
+import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -27,6 +28,8 @@ import javax.swing.event.ChangeListener;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.rgis.view.MapViewer;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 
 /**
  * Displays information about InjectionInformation
@@ -37,15 +40,14 @@ public class InjectionPanelPointlocation extends JPanel {
 
     protected InjectionInformation info;
 
-    protected JTextField textname;
-
+//    protected JTextField textname;
     protected JPanel panelMaterial;
     protected JLabel labelCoordinate;
     protected JCheckBox checkSurface;
     protected JLabel labelCapacity;
     protected JButton buttonCoordinate;
-    public static final DecimalFormat df = new DecimalFormat("0.###");
-    protected JSpinner spinnerInjection, spinnerDuration;
+    public static final DecimalFormat df = new DecimalFormat("0.###", new DecimalFormatSymbols(StartParameters.formatLocale));
+    protected JSpinner spinnerMaterial, spinnerInjection, spinnerDuration;
     protected JCheckBox checkInjectionDuration;
     protected SpinnerDateModel modelInjection;
     protected SpinnerNumberModel modelDuration;
@@ -54,26 +56,31 @@ public class InjectionPanelPointlocation extends JPanel {
     protected JSpinner spinnerParticles;
     protected SpinnerNumberModel modelParticles;
 
+    protected SpinnerNumberModel modelMass;
+    protected JSpinner spinnerMass;
+
     protected static GregorianCalendar localCalendar = new GregorianCalendar();
     protected MapViewer map;
     protected PaintManager paintManager;
     protected JButton buttonSetPosition;
-    
-    protected InjectionPanelPointlocation(){
-        
+
+    protected InjectionPanelPointlocation() {
+
     }
 
     protected InjectionPanelPointlocation(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
-        super(new GridLayout(5, 2));
+        super(new GridLayout(6, 2));
         this.setBorder(new LineBorder(Color.darkGray, 1, true));
-
+        df.getDecimalFormatSymbols().setGroupingSeparator(' ');
         this.info = info;
         this.map = map;
         this.paintManager = paintManager;
         //Name
-        textname = new JTextField(info.getMaterial().getName());
-        this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:"));
-        this.add(textname);
+//        textname = new JTextField(info.getMaterial().getName());
+        spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, 0, Integer.MAX_VALUE, 1));
+        this.add(spinnerMaterial);
+        this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:" + info.getMaterial().getName()));
+//        this.add(textname);
         //Datespinners
 //        JPanel panelSouthDate = new JPanel(new GridLayout(2, 1));
         modelInjection = new SpinnerDateModel(new Date(gmtToLocal((long) (info.getStarttimeSimulationsAfterSimulationStart() * 1000L))), null, null, GregorianCalendar.MINUTE);
@@ -94,10 +101,35 @@ public class InjectionPanelPointlocation extends JPanel {
         this.add(spinnerDuration);
 
         //Number of particles
-        modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 0, Integer.MAX_VALUE, 1000);
+        modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 0, Integer.MAX_VALUE, 5000);
         spinnerParticles = new JSpinner(modelParticles);
+        JSpinner.NumberEditor particlesEditor = new JSpinner.NumberEditor(spinnerParticles, "# ##0.###");
+        DecimalFormat f = particlesEditor.getFormat();
+        f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
+        f.setGroupingUsed(true);
+        f.setGroupingSize(3);
+        DecimalFormatSymbols dfs = f.getDecimalFormatSymbols();
+        dfs.setGroupingSeparator(' ');
+        f.setDecimalFormatSymbols(dfs);
+        spinnerParticles.setEditor(particlesEditor);
         this.add(new JLabel("Particles:"));
         this.add(spinnerParticles);
+
+        //Mass        
+        this.add(new JLabel("Distributed Mass [kg]"));
+        modelMass = new SpinnerNumberModel(info.getMass(), 0, Double.POSITIVE_INFINITY, 10.);
+
+        spinnerMass = new JSpinner(modelMass);
+        JSpinner.NumberEditor massEditor = new JSpinner.NumberEditor(spinnerMass, "0.###");
+        f = massEditor.getFormat();
+        f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
+        f.setGroupingUsed(true);
+        f.setGroupingSize(3);
+        dfs = f.getDecimalFormatSymbols();
+        dfs.setGroupingSeparator(' ');
+        f.setDecimalFormatSymbols(dfs);
+        spinnerMass.setEditor(massEditor);
+        this.add(spinnerMass);
 
         //Surface positionin
         checkSurface = new JCheckBox("Surface");
@@ -123,17 +155,27 @@ public class InjectionPanelPointlocation extends JPanel {
                 //surface position
                 if (info.getPosition() != null) {
                     buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
-                } else if (info.getTriangleID() >= 0) {
-                    buttonSetPosition.setText(info.getTriangleID() + " Triangle");
+                } else if (info.getCapacityID() >= 0) {
+                    buttonSetPosition.setText(info.getCapacityID() + " Triangle");
                 }
             }
 
-            if (info.getCapacity() == null && info.getTriangleID() < 0) {
+            if (info.getCapacity() == null && info.getCapacityID() < 0) {
                 buttonSetPosition.setForeground(Color.red.darker());
             } else {
                 buttonSetPosition.setForeground(Color.darkGray);
             }
         }
+
+        this.spinnerMaterial.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                info.setMaterialID((int) spinnerMaterial.getValue());
+                if (info.isChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                }
+            }
+        });
 
         this.spinnerInjection.addChangeListener(new ChangeListener() {
             @Override
@@ -178,13 +220,22 @@ public class InjectionPanelPointlocation extends JPanel {
             }
         });
 
-        textname.addActionListener(new ActionListener() {
+        this.spinnerMass.addChangeListener(new ChangeListener() {
             @Override
-            public void actionPerformed(ActionEvent ae) {
-                info.getMaterial().setName(textname.getText());
+            public void stateChanged(ChangeEvent ce) {
+                info.setTotalmass(modelMass.getNumber().doubleValue());
+                if (info.isChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                }
             }
         });
 
+//        textname.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent ae) {
+//                info.getMaterial().setName(textname.getText());
+//            }
+//        });
         checkSurface.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ae) {
@@ -223,7 +274,7 @@ public class InjectionPanelPointlocation extends JPanel {
                     info.setPosition(p);
                     info.setCapacity(null);
                     info.setTriangleID(-1);
-                    info.spillOnSurface=checkSurface.isSelected();
+                    info.spillOnSurface = checkSurface.isSelected();
                     System.out.println("clicked on " + latlon);
                 }
                 map.removeMouseListener(this);
