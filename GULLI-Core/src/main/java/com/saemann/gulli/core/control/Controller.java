@@ -263,7 +263,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         threadController.setSimulationStartTime(sce.getStartTime());
         threadController.setSimulationTimeEnd(sce.getEndTime());
 
-        if (sce.getTimesPipe() != null && network != null) {
+        if (sce.getStatusTimesPipe() != null && network != null) {
             currentAction.description = "load scenario: init measurement timelines";
             initMeasurementTimelines(sce);
         }
@@ -587,9 +587,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param scenario
      */
     public void initMeasurementTimelines(Scenario scenario) {
-        if (scenario.getTimesPipe() != null) {
-            if (scenario.getTimesPipe() instanceof TimeContainer) {
-                TimeContainer tc = (TimeContainer) scenario.getTimesPipe();
+        if (scenario.getStatusTimesPipe() != null) {
+            if (scenario.getStatusTimesPipe() instanceof TimeContainer) {
+                TimeContainer tc = (TimeContainer) scenario.getStatusTimesPipe();
                 long duration = scenario.getEndtime() - scenario.getStartTime();
                 int numberIntervals = (int) (duration / tc.getDeltaTimeMS());
 
@@ -600,7 +600,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     System.err.println("   duration: " + duration + " / " + tc.getDeltaTimeMS() + " = " + numberIntervals);
                 }
             } else {
-                initMeasurementTimelines(scenario, scenario.getTimesPipe().getNumberOfTimes() - 1);
+                initMeasurementTimelines(scenario, scenario.getStatusTimesPipe().getNumberOfTimes() - 1);
             }
         }
 
@@ -991,8 +991,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
         if (scenario != null && scenario.getMeasurementsPipe() != null) {
             scenario.getMeasurementsPipe().setNumberOfMaterials(maxMaterialID + 1);
-            if (scenario.getTimesPipe() != null && scenario.getTimesPipe() instanceof SparseTimeLinePipeContainer) {
-                ((SparseTimeLinePipeContainer) scenario.getTimesPipe()).numberOfMaterials = maxMaterialID + 1;
+            if (scenario.getStatusTimesPipe() != null && scenario.getStatusTimesPipe() instanceof SparseTimeLinePipeContainer) {
+                ((SparseTimeLinePipeContainer) scenario.getStatusTimesPipe()).numberOfMaterials = maxMaterialID + 1;
             }
         }
         this.setParticles(allParticles);

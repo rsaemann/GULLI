@@ -34,10 +34,30 @@ import javax.swing.JFrame;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.view.timeline.CapacityTimelinePanel;
+import static com.saemann.gulli.view.timeline.CapacityTimelinePanel.directoryPDFsave;
 import com.saemann.gulli.view.timeline.EditorTableFrame;
+import com.saemann.rgis.tileloader.source.MyOSMTileSource;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Frame;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFileChooser;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JSeparator;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import org.jtikz.TikzGraphics2D;
 
 /**
  * Controls the interfaces between GUI/view and core-Controller
@@ -74,6 +94,8 @@ public class ViewController {
         timelinePanel = timeLineFrame.getTimelinePanel();//new CapacityTimelinePanel("Nothing selected yet", c);// new TimelinePanel("Select Pipe or Manhole", false);
 
         paintManager.addCapacitySelectionListener(timelinePanel);
+
+        improveMapFrame();
 
         //Order Frames
         controlFrame.setBounds(StartParameters.getControlFrameBounds());
@@ -178,6 +200,110 @@ public class ViewController {
 
     public MapViewer getMapViewer() {
         return mapViewer;
+    }
+
+    public void improveMapFrame() {
+        //Find correct menu to add more Tileservers
+        JMenu tilesMenu = null;
+        JMenu printMenu = null;
+        for (Component component : mapFrame.getJMenuBar().getComponents()) {
+            if (component instanceof JMenu) {
+                JMenu menu = (JMenu) component;
+                if (menu.getText().equals("Background")) {
+                    tilesMenu = menu;
+                }
+                if (menu.getText().equals("Snapshot")) {
+                    printMenu = menu;
+                }
+            }
+        }
+
+        if (tilesMenu != null) {
+            tilesMenu.add(new JSeparator());
+
+            JMenuItem itemTonerNoLabel = new JMenuItem("Toner No Label");
+            tilesMenu.add(itemTonerNoLabel);
+            itemTonerNoLabel.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    getMapViewer().setBaseLayer(new MyOSMTileSource("Toner No Label", "http://a.tile.stamen.com/toner-background/", 18) {
+                    });
+                }
+            });
+
+            JMenuItem itemThunderforest = new JMenuItem("Thunderforest");
+            tilesMenu.add(itemThunderforest);
+            itemThunderforest.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    getMapViewer().setBaseLayer(new MyOSMTileSource("Thunderforest", " 	http://tile.thunderforest.com/landscape/", 18) {
+                    });
+                }
+            });
+
+            tilesMenu.revalidate();
+        }
+
+        if (printMenu != null) {
+            int indexSeperator = 3;
+            for (int i = 0; i < printMenu.getComponents().length; i++) {
+                if (printMenu.getComponent(i) instanceof JSeparator) {
+                    indexSeperator = i;
+                    break;
+                }
+            }
+            JMenuItem itemPrintTikz = new JMenuItem("LaTeX/Tikz...");
+            printMenu.add(itemPrintTikz, indexSeperator);
+            itemPrintTikz.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave);
+                    fc.setFileFilter(new FileNameExtensionFilter("LaTeX File", new String[]{"tex", "tikz"}));
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    int n = fc.showSaveDialog(mapFrame);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        if (output.exists()) {
+                            if (JOptionPane.showConfirmDialog(mapFrame, "Override existing file?", output.getName() + " already exists", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION) {
+                                return;
+                            }
+                        }
+
+                        directoryPDFsave = output.getParent();
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                        if (!output.getName().endsWith(".tex")) {
+                            output = new File(output.getAbsolutePath() + ".tex");
+                        }
+                        try {
+                            Rectangle rec = new Rectangle(0, 0, mapFrame.getWidth(), mapFrame.getHeight());
+                            try (FileOutputStream fos = new FileOutputStream(output)) {
+                                TikzGraphics2D g2d = new TikzGraphics2D(fos, rec);
+                                mapFrame.getMapViewer().paintMapView(g2d);
+                                g2d.finalize();
+                                System.out.println("Created file " + output);
+                            }
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } catch (Exception ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            }
+            );
+        }
+
+        JMenuItem itemFrameReset = new JMenuItem("Reset Frames");
+        itemFrameReset.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                getTimeLineFrame().setBounds(getMapFrame().getX(), getMapFrame().getY(), 400, 400);
+            }
+        });
+        mapFrame.getMenu_View().add(itemFrameReset);
     }
 
 }

@@ -710,7 +710,7 @@ public class LoadingCoordinator {
                 if (scenario == null) {
                     scenario = new SpillScenario(timeContainerPipe, totalInjections);
                 }
-                scenario.setTimesPipe(timeContainerPipe);
+                scenario.setStatusTimesPipe(timeContainerPipe);
                 scenario.setTimesManhole(timeContainerManholes);
                 scenario.setName(scenarioName);
 
@@ -929,7 +929,7 @@ public class LoadingCoordinator {
                 }
                 if (scenario != null) {
                     surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps()));
-                    scenario.setTimesSurface(surface);
+                    scenario.setStatusTimesSurface(surface);
                 } else {
                     System.err.println("No Scenario loaded, can not calculate timeintervalls for surface waterheight and velocities.");
                 }
@@ -1665,7 +1665,7 @@ public class LoadingCoordinator {
             throw new IllegalArgumentException("Not known filetype '" + fileMainPipeResult.getName() + "'");
         }
         control.getScenario().setTimesManhole(p.second);
-        control.getScenario().setTimesPipe(p.first);
+        control.getScenario().setStatusTimesPipe(p.first);
     }
 
     public void stopLoadingSurfaceGrid() {

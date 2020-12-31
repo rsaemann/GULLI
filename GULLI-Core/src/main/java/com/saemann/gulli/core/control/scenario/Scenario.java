@@ -114,17 +114,29 @@ public abstract class Scenario {
 
     public abstract void reset();
 
-    public void setTimesPipe(TimeIndexCalculator timesPipe) {
+    /**
+     * Set the time index calculator of the flow field for the pipe (status
+     * timeline, NOT measurement timeline)
+     *
+     * @param timesPipe
+     */
+    public void setStatusTimesPipe(TimeIndexCalculator timesPipe) {
         this.timesPipe = timesPipe;
         recalculateStartEndTime();
     }
 
-    public void setTimesSurface(TimeIndexCalculator timesSurface) {
+    /**
+     * Set the time index calculator of the flow field for the surface (status
+     * timeline, NOT measurement timeline)
+     *
+     * @param timesSurface
+     */
+    public void setStatusTimesSurface(TimeIndexCalculator timesSurface) {
         this.timesSurface = timesSurface;
         recalculateStartEndTime();
     }
 
-    public void setTimesSoil(TimeIndexCalculator timesSoil) {
+    public void setStatusTimesSoil(TimeIndexCalculator timesSoil) {
         this.timesSoil = timesSoil;
         recalculateStartEndTime();
     }
@@ -156,15 +168,15 @@ public abstract class Scenario {
         this.endtime = newEnd;
     }
 
-    public TimeIndexCalculator getTimesPipe() {
+    public TimeIndexCalculator getStatusTimesPipe() {
         return timesPipe;
     }
 
-    public TimeIndexCalculator getTimesSurface() {
+    public TimeIndexCalculator getStatusTimesSurface() {
         return timesSurface;
     }
 
-    public TimeIndexCalculator getTimesSoil() {
+    public TimeIndexCalculator getStatusTimesSoil() {
         return timesSoil;
     }
 
@@ -192,7 +204,7 @@ public abstract class Scenario {
         this.measurementsSurface = measurementsSurface;
     }
 
-    public TimeIndexCalculator getTimesManhole() {
+    public TimeIndexCalculator getStatusTimesManhole() {
         return timesManhole;
     }
 

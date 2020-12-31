@@ -314,7 +314,7 @@ public class AnalyticalChannel {
         };
         scenario.setTimesManhole(manholeTLcontainer);
 
-        scenario.setTimesPipe(pipeTLcontainer);
+        scenario.setStatusTimesPipe(pipeTLcontainer);
 
         return nw;
     }

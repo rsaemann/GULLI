@@ -251,52 +251,6 @@ public class RunMainView {
             }
         }
 
-        //Find correct menu to add more Tileservers
-        JMenu tilesMenu = null;
-        for (Component component : frame.getJMenuBar().getComponents()) {
-            if (component instanceof JMenu) {
-                JMenu menu = (JMenu) component;
-                if (menu.getText().equals("Background")) {
-                    tilesMenu = menu;
-                    break;
-                }
-            }
-        }
-
-        if (tilesMenu != null) {
-            tilesMenu.add(new JSeparator());
-
-            JMenuItem itemTonerNoLabel = new JMenuItem("Toner No Label");
-            tilesMenu.add(itemTonerNoLabel);
-            itemTonerNoLabel.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    frame.getMapViewer().setBaseLayer(new MyOSMTileSource("Toner No Label", "http://a.tile.stamen.com/toner-background/", 18) {
-                    });
-                }
-            });
-
-            JMenuItem itemThunderforest = new JMenuItem("Thunderforest");
-            tilesMenu.add(itemThunderforest);
-            itemThunderforest.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent ae) {
-                    frame.getMapViewer().setBaseLayer(new MyOSMTileSource("Thunderforest", " 	http://tile.thunderforest.com/landscape/", 18) {
-                    });
-                }
-            });
-
-            tilesMenu.revalidate();
-        }
-
-        JMenuItem itemFrameReset = new JMenuItem("Reset Frames");
-        itemFrameReset.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                vcontroller.getTimeLineFrame().setBounds(vcontroller.getMapFrame().getX(), vcontroller.getMapFrame().getY(), 400, 400);
-            }
-        });
-        frame.getMenu_View().add(itemFrameReset);
+        
     }
 }

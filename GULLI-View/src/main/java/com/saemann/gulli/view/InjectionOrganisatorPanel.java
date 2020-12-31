@@ -83,6 +83,7 @@ public class InjectionOrganisatorPanel extends JPanel {
 
         panelInjections = new JPanel();
         panelInjectionSurrounding=new JPanel(new BorderLayout());
+        panelInjectionSurrounding.setMaximumSize(new Dimension(250,200));
         panelInjections.setLayout(new BoxLayout(panelInjections, BoxLayout.Y_AXIS));
         JScrollPane scrollInjection = new JScrollPane(panelInjections);
         borderInjections = new TitledBorder("Injections");

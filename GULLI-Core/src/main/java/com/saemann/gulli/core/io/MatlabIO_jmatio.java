@@ -359,7 +359,7 @@ public class MatlabIO_jmatio {
         };
         scenario.setTimesManhole(manholeTLcontainer);
 
-        scenario.setTimesPipe(pipeTLcontainer);
+        scenario.setStatusTimesPipe(pipeTLcontainer);
 
         return nw;
     }

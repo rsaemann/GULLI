@@ -85,6 +85,16 @@
             <version>3.32.3</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.firebirdsql.jdbc</groupId>
+            <artifactId>jaybird</artifactId>
+            <version>4.0.1.java8</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.4.0</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
@@ -103,16 +113,12 @@
                 <updatePolicy>never</updatePolicy>
             </releases>
         </repository>  
-        <!--<repository>
-            <id>freehep-maven</id>
-            <name>Maven FreeHEP</name>
-            <url>http://java.freehep.org/maven2</url>
-        </repository>   -->
         <repository>
             <id>osgeo</id>
             <name>OSGeo Release Repository</name>
             <url>https://repo.osgeo.org/repository/release/</url>
             <snapshots>
+                <updatePolicy>never</updatePolicy>
                 <enabled>false</enabled>
             </snapshots>
             <releases>
@@ -120,16 +126,6 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
-        <!--<repository>
-            <id>local-library</id>
-            <name>local-libs</name>
-            <url>file:///${project.basedir}/libs</url>
-        </repository>-->
-        <!--<repository>
-            <id>gulli-core</id>
-            <name>gulli-core</name>
-            <url>file:///${project.basedir}/../GULLI-Core</url>
-        </repository>-->
     </repositories>
     <pluginRepositories>
         <pluginRepository>
@@ -137,6 +133,7 @@
                 <updatePolicy>never</updatePolicy>
             </releases>
             <snapshots>
+                <updatePolicy>never</updatePolicy>
                 <enabled>false</enabled>
             </snapshots>
             <id>central</id>

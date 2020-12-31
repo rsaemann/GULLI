@@ -82,6 +82,7 @@ import com.saemann.gulli.view.timeline.SeriesKey;
 import com.saemann.gulli.view.timeline.TimeSeriesEditorTablePanel;
 import com.saemann.gulli.view.video.GIFVideoCreator;
 import com.saemann.rgis.view.MapViewer;
+import javax.swing.JSeparator;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
@@ -118,6 +119,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JTextField textDispersionPipe, textDispersionSurface;
     private JFormattedTextField textSeed;
     private JButton buttonSetupSave, buttonSetupLoad;
+    private JLabel labelSetupName;
     private JButton buttonFileNetwork, buttonFilePipeResult;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
     private JButton buttonFileSurface, buttonFileWaterdepths;
@@ -128,29 +130,21 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
 
+    private JLabel labelScenarioInformation;
+
 //    private JButton newInjectionPointButton;
 //    private JButton newInjectionAreaButton;
     private JButton buttonShowRaingauge;
     private JButton buttonLoadAllPipeTimelines;
 
     private InjectionOrganisatorPanel injectionOrganisationPanel;
-
+    private MeasurementPanel measurementPanel;
 //    private JPanel panelInjection;
 //    private JPanel panelInjectionList;
 //    private JPanel panelInjectionButtons;
-
     private ImageIcon iconError, iconLoading, iconPending;
 
-    private JPanel panelMeasurement;
-    private JFormattedTextField textMeasurementSecondsPipe;
-    private JCheckBox checkMeasureContinouslyPipe;
-    private JCheckBox checkMeasureResidenceTimePipe;
-    private JFormattedTextField textMeasurementSecondsSurface;
-    private JCheckBox checkMeasureContinouslySurface;
-    private JCheckBox checkMeasureSynchronisedSurface;
-    private JCheckBox checkMeasureSynchronisedPipe;
-
-    private JButton buttonFileStreetinlets;
+//    private JButton buttonFileStreetinlets;
     private JLabel labelCurrentAction;
 
     JRadioButton radioVelocityGDB, radioVelocityWL;
@@ -160,7 +154,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     protected final String updatethreadBarrier = new String("UPDATETHREADBARRIERSINGLECONTROLPANEL");
     protected long updateThreadUpdateIntervalMS = 1000;
-    protected Thread updateGUIThread,updateSimulationThread;
+    protected Thread updateGUIThread, updateSimulationThread;
     StringBuilder timeelapsed = new StringBuilder(30);
 
     protected PipeThemeLayer activePipeThemeLayer;
@@ -193,6 +187,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.paintManager = pm;
         this.mapViewer = pm.getMapViewer();
         tabs = new JTabbedPane();
+        tabs.setMinimumSize(new Dimension(250, 200));
         panelTabLoading = new JPanel(new BorderLayout());
 //        BoxLayout layoutLoading = new BoxLayout(panelTabLoading, BoxLayout.Y_AXIS);
 //        panelTabLoading.setLayout(layoutLoading);
@@ -201,9 +196,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         injectionOrganisationPanel = new InjectionOrganisatorPanel(control, pm.getMapViewer(), pm);
         tabs.add("Spills", injectionOrganisationPanel);
 
+        measurementPanel = new MeasurementPanel(control);
+        tabs.add("Measure", measurementPanel);
+
         panelTabSimulation = new JPanel(new BorderLayout());
         BoxLayout layoutSimulation = new BoxLayout(panelTabSimulation, BoxLayout.Y_AXIS);
         panelTabSimulation.setLayout(layoutSimulation);
+        panelTabSimulation.setMaximumSize(new Dimension(500,200));
         tabs.add("Simulation", panelTabSimulation);
 
         //new BorderLayout());
@@ -261,7 +260,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         //Loading buttons
         buildFilesLoadingPanel();
-        panelTabLoading.add(panelLoading, BorderLayout.NORTH);
+//        panelTabLoading.add(panelLoading, BorderLayout.CENTER);
 
         //InjectionInformation
 //        panelInjection = new JPanel(new BorderLayout());
@@ -311,6 +310,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         // SImulation Parameter
         JPanel panelParameter = new JPanel(new GridLayout(2, 1));
         panelParameter.setBorder(new TitledBorder("Parameter"));
+        panelParameter.setMaximumSize(new Dimension(400, 70));
         panelTabSimulation.add(panelParameter);
         //timestep
         JPanel panelParameterTimestep = new JPanel(new BorderLayout());
@@ -325,26 +325,26 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
 //        panelParameter.add(checkVelocityFunction);
         //Dispersion Pipe
-        JPanel panelDispersion = new JPanel(new BorderLayout());
-        panelDispersion.add(new JLabel("Pipe Disprs. D : "), BorderLayout.WEST);
-        textDispersionPipe = new JTextField(ParticlePipeComputing.getDispersionCoefficient() + "");
-        panelDispersion.add(textDispersionPipe, BorderLayout.CENTER);
-        panelDispersion.add(new JLabel("m²/s"), BorderLayout.EAST);
+//        JPanel panelDispersion = new JPanel(new BorderLayout());
+//        panelDispersion.add(new JLabel("Pipe Disprs. D : "), BorderLayout.WEST);
+//        textDispersionPipe = new JTextField(ParticlePipeComputing.getDispersionCoefficient() + "");
+//        panelDispersion.add(textDispersionPipe, BorderLayout.CENTER);
+//        panelDispersion.add(new JLabel("m²/s"), BorderLayout.EAST);
 //        panelParameter.add(panelDispersion);
         //Dispersion Surface
-        JPanel panelDispersionSurface = new JPanel(new BorderLayout());
-        double d = -1;
-        panelDispersionSurface.add(new JLabel("Surface Disp. D : "), BorderLayout.WEST);
-        try {
-            ParticleSurfaceComputing sc = controller.getParticleThreads()[0].getSurfaceComputing();
-            ParticleSurfaceComputing2D sc2d = (ParticleSurfaceComputing2D) sc;
-            d = control.getScenario().getMaterialByIndex(control.getScenario().getMaxMaterialID()).getDispersionCalculatorSurface().getParameterValues()[0];
-//            d = sc2d.getDiffusionCalculator().getParameterValues()[0];
-        } catch (Exception e) {
-        }
-        textDispersionSurface = new JTextField(d + "");
-        panelDispersionSurface.add(textDispersionSurface, BorderLayout.CENTER);
-        panelDispersionSurface.add(new JLabel("m²/s"), BorderLayout.EAST);
+//        JPanel panelDispersionSurface = new JPanel(new BorderLayout());
+//        double d = -1;
+//        panelDispersionSurface.add(new JLabel("Surface Disp. D : "), BorderLayout.WEST);
+//        try {
+//            ParticleSurfaceComputing sc = controller.getParticleThreads()[0].getSurfaceComputing();
+//            ParticleSurfaceComputing2D sc2d = (ParticleSurfaceComputing2D) sc;
+//            d = control.getScenario().getMaterialByIndex(control.getScenario().getMaxMaterialID()).getDispersionCalculatorSurface().getParameterValues()[0];
+////            d = sc2d.getDiffusionCalculator().getParameterValues()[0];
+//        } catch (Exception e) {
+//        }
+//        textDispersionSurface = new JTextField(d + "");
+//        panelDispersionSurface.add(textDispersionSurface, BorderLayout.CENTER);
+//        panelDispersionSurface.add(new JLabel("m²/s"), BorderLayout.EAST);
 //        panelParameter.add(panelDispersionSurface);
         //Seed
         JPanel panelSeed = new JPanel(new BorderLayout());
@@ -354,95 +354,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelSeed.add(textSeed, BorderLayout.CENTER);
         panelParameter.add(panelSeed);
 
-        //Panel Measurement/Sampling options
-        panelMeasurement = new JPanel(new GridLayout(2, 1));
-        panelMeasurement.setBorder(new TitledBorder("Measurements / Sampling"));
-        JPanel panelMeasurementsPipe = new JPanel(new GridLayout(2, 1));
-        panelMeasurementsPipe.setBorder(new TitledBorder("Pipe Network"));
-        JPanel panelMsec = new JPanel(new BorderLayout());
-
-        panelMsec.add(new JLabel("Measure interval: "), BorderLayout.WEST);
-        panelMsec.add(new JLabel("sec."), BorderLayout.EAST);
-        textMeasurementSecondsPipe = new JFormattedTextField(dfSeconds);
-        textMeasurementSecondsPipe.setToolTipText("Length of measurement interval in seconds.");
-
-        panelMsec.add(textMeasurementSecondsPipe, BorderLayout.CENTER);
-        panelMeasurementsPipe.add(panelMsec, BorderLayout.NORTH);
-        JPanel panelMcheck = new JPanel(new GridLayout(1, 3));
-        checkMeasureContinouslyPipe = new JCheckBox("Time contin.", false);
-        checkMeasureContinouslyPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
-
-        checkMeasureResidenceTimePipe = new JCheckBox("Space contin.", false);
-        checkMeasureResidenceTimePipe.setToolTipText("<html><b>true</b>: Sample all visited capacities. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
-
-        checkMeasureSynchronisedPipe = new JCheckBox("Synchronize", ArrayTimeLineMeasurement.synchronizeMeasures);
-        checkMeasureSynchronisedPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
-
-        panelMcheck.add(checkMeasureContinouslyPipe);
-        panelMcheck.add(checkMeasureResidenceTimePipe);
-        panelMcheck.add(checkMeasureSynchronisedPipe);
-
-        panelMeasurementsPipe.add(panelMcheck, BorderLayout.SOUTH);
-        panelMeasurement.add(panelMeasurementsPipe);
-        panelTabSimulation.add(panelMeasurement);
-        if (control != null && control.getScenario() != null) {
-            if (control.getScenario().getMeasurementsPipe() != null) {
-                ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
-                if (mpc.isTimespotmeasurement()) {
-                    checkMeasureContinouslyPipe.setSelected(false);
-                } else {
-                    checkMeasureContinouslyPipe.setSelected(true);
-                }
-                checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-                textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
-            }
-        }
-        JPanel panelMeasurementsSurface = new JPanel(new GridLayout(2, 1));
-        panelMeasurementsSurface.setBorder(new TitledBorder("Surface"));
-        JPanel panelMsecS = new JPanel(new BorderLayout());
-
-        panelMsecS.add(new JLabel("Measure interval: "), BorderLayout.WEST);
-        panelMsecS.add(new JLabel("sec."), BorderLayout.EAST);
-        textMeasurementSecondsSurface = new JFormattedTextField(dfSeconds);
-        textMeasurementSecondsSurface.setToolTipText("Length of measurement interval in seconds.");
-
-        panelMsecS.add(textMeasurementSecondsSurface, BorderLayout.CENTER);
-        panelMeasurementsSurface.add(panelMsecS, BorderLayout.NORTH);
-        JPanel panelMcheckSurface = new JPanel(new GridLayout(1, 1));
-        checkMeasureContinouslySurface = new JCheckBox("Time continous", false);
-        checkMeasureContinouslySurface.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
-        checkMeasureSynchronisedSurface = new JCheckBox("Synchronize", SurfaceMeasurementRaster.synchronizeMeasures);
-        checkMeasureSynchronisedSurface.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
-
-//        checkMeasureResidenceTimeSurface = new JCheckBox("Residence", false);
-//        checkMeasureResidenceTimeSurface.setToolTipText("<html><b>true</b>: Sample all visited capacities. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
-        panelMcheckSurface.add(checkMeasureContinouslySurface);
-        panelMcheckSurface.add(checkMeasureSynchronisedSurface);
-//        panelMcheckSurface.add(checkMeasureResidenceTimeSurface);
-        panelMeasurementsSurface.add(panelMcheckSurface, BorderLayout.SOUTH);
-        panelMeasurement.add(panelMeasurementsSurface);
-        if (control.getScenario() != null) {
-            if (control.getScenario().getMeasurementsSurface() != null) {
-                SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
-                if (mpc.continousMeasurements) {
-                    checkMeasureContinouslySurface.setSelected(true);
-                } else {
-                    checkMeasureContinouslySurface.setSelected(false);
-                }
-                textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
-
-            }
-        }
-
         //Panel Timeline calculation
 //        comboTimelineCalculation = new JComboBox<>(ArrayTimeLinePipeContainer.CALCULATION.values());
-        JPanel paneltimeLineCalculation = new JPanel(new BorderLayout());
-        paneltimeLineCalculation.setBorder(new TitledBorder("Timeline values"));
-        paneltimeLineCalculation.add(new JLabel("Calculation Method "), BorderLayout.CENTER);
+//        JPanel paneltimeLineCalculation = new JPanel(new BorderLayout());
+//        paneltimeLineCalculation.setBorder(new TitledBorder("Timeline values"));
+//        paneltimeLineCalculation.add(new JLabel("Calculation Method "), BorderLayout.CENTER);
 
         ////////////////////
         // Paneltimeslide
         this.panelTimeSlide = new JPanel(new GridLayout(3, 1));
+        panelTimeSlide.setMaximumSize(new Dimension(500,100));
         this.panelTimeSlide.setBorder(new TitledBorder("Simulation time"));
         this.labelStarttime = new JLabel("Start");
         this.labelEndtime = new JLabel("End");
@@ -470,6 +391,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         // Panel Calculation status
         JPanel panelCalculation = new JPanel(new GridLayout(4, 1));
+        panelCalculation.setMaximumSize(new Dimension(500,120));
         panelCalculation.setBorder(new TitledBorder("Calculation"));
         JPanel panelCalculationTime = new JPanel(new BorderLayout());
         panelCalculationTime.add(new JLabel("used calc. "), BorderLayout.WEST);
@@ -533,6 +455,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         if (control.getLoadingCoordinator().saveSetup(f)) {
                             buttonSetupSave.setForeground(Color.green.darker());
                             StartParameters.setStartFilePath(f.getAbsolutePath());
+                            labelSetupName.setText(f.getName());
+                            labelSetupName.setToolTipText(f.getAbsolutePath());
                         } else {
                             buttonSetupSave.setForeground(Color.red.darker());
                         }
@@ -566,6 +490,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             control.getLoadingCoordinator().applySetup(setup);
                             buttonSetupLoad.setForeground(Color.green.darker());
                             StartParameters.setStartFilePath(f.getAbsolutePath());
+                            labelSetupName.setText(f.getName());
+                            labelSetupName.setToolTipText(f.getAbsolutePath());
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -865,70 +791,70 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             }
         });
 
-        textDispersionPipe.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent ke) {
-                try {
-                    int pos = textDispersionPipe.getCaretPosition();
-                    double v = Double.parseDouble(textDispersionPipe.getText());
-                    ParticlePipeComputing.setDispersionCoefficient(v);
-//                    textDispersion.setText(ParticlePipeComputing.dispersionCoefficient+"");
-                    textDispersionPipe.setForeground(Color.GREEN.darker());
-                    textDispersionPipe.setCaretPosition(pos);
-                    if (ke.getKeyCode() == 10) {
-                        //Confirm by RETURN                        
-                        control.setDispersionCoefficientPipe(v);
-                        textDispersionPipe.setForeground(Color.BLACK);
-                    }
-                } catch (NumberFormatException numberFormatException) {
-                    textDispersionPipe.setForeground(Color.red);
-                }
-            }
-        });
-        textDispersionPipe.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent fe) {
-                try {
-                    double v = Double.parseDouble(textDispersionPipe.getText());
-                    control.setDispersionCoefficientPipe(v);
-                } catch (NumberFormatException numberFormatException) {
-                    textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
-                }
-                textDispersionPipe.setForeground(Color.BLACK);
-            }
-        });
-        {
-            textDispersionSurface.addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyReleased(KeyEvent ke) {
-                    try {
-                        int pos = textDispersionSurface.getCaretPosition();
-                        double v = Double.parseDouble(textDispersionSurface.getText());
-                        textDispersionSurface.setForeground(Color.GREEN.darker());
-                        textDispersionSurface.setCaretPosition(pos);
-                        if (ke.getKeyCode() == 10) {
-                            //Confirm by RETURN                        
-                            control.setDispersionCoefficientSurface(new double[]{v});
-                            textDispersionSurface.setForeground(Color.BLACK);
-                        }
-                    } catch (NumberFormatException numberFormatException) {
-                        textDispersionSurface.setForeground(Color.red);
-                    }
-                }
-            });
-            textDispersionSurface.addFocusListener(new FocusAdapter() {
-                @Override
-                public void focusLost(FocusEvent fe) {
-                    try {
-                        double v = Double.parseDouble(textDispersionSurface.getText());
-                        control.setDispersionCoefficientSurface(new double[]{v});
-                    } catch (NumberFormatException numberFormatException) {
-                        textDispersionSurface.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
-                    }
-                    textDispersionSurface.setForeground(Color.BLACK);
-                }
-            });
-        }
+//        textDispersionPipe.addKeyListener(new KeyAdapter() {
+//            @Override
+//            public void keyReleased(KeyEvent ke) {
+//                try {
+//                    int pos = textDispersionPipe.getCaretPosition();
+//                    double v = Double.parseDouble(textDispersionPipe.getText());
+//                    ParticlePipeComputing.setDispersionCoefficient(v);
+////                    textDispersion.setText(ParticlePipeComputing.dispersionCoefficient+"");
+//                    textDispersionPipe.setForeground(Color.GREEN.darker());
+//                    textDispersionPipe.setCaretPosition(pos);
+//                    if (ke.getKeyCode() == 10) {
+//                        //Confirm by RETURN                        
+//                        control.setDispersionCoefficientPipe(v);
+//                        textDispersionPipe.setForeground(Color.BLACK);
+//                    }
+//                } catch (NumberFormatException numberFormatException) {
+//                    textDispersionPipe.setForeground(Color.red);
+//                }
+//            }
+//        });
+//        textDispersionPipe.addFocusListener(new FocusAdapter() {
+//            @Override
+//            public void focusLost(FocusEvent fe) {
+//                try {
+//                    double v = Double.parseDouble(textDispersionPipe.getText());
+//                    control.setDispersionCoefficientPipe(v);
+//                } catch (NumberFormatException numberFormatException) {
+//                    textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
+//                }
+//                textDispersionPipe.setForeground(Color.BLACK);
+//            }
+//        });
+//        {
+//            textDispersionSurface.addKeyListener(new KeyAdapter() {
+//                @Override
+//                public void keyReleased(KeyEvent ke) {
+//                    try {
+//                        int pos = textDispersionSurface.getCaretPosition();
+//                        double v = Double.parseDouble(textDispersionSurface.getText());
+//                        textDispersionSurface.setForeground(Color.GREEN.darker());
+//                        textDispersionSurface.setCaretPosition(pos);
+//                        if (ke.getKeyCode() == 10) {
+//                            //Confirm by RETURN                        
+//                            control.setDispersionCoefficientSurface(new double[]{v});
+//                            textDispersionSurface.setForeground(Color.BLACK);
+//                        }
+//                    } catch (NumberFormatException numberFormatException) {
+//                        textDispersionSurface.setForeground(Color.red);
+//                    }
+//                }
+//            });
+//            textDispersionSurface.addFocusListener(new FocusAdapter() {
+//                @Override
+//                public void focusLost(FocusEvent fe) {
+//                    try {
+//                        double v = Double.parseDouble(textDispersionSurface.getText());
+//                        control.setDispersionCoefficientSurface(new double[]{v});
+//                    } catch (NumberFormatException numberFormatException) {
+//                        textDispersionSurface.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
+//                    }
+//                    textDispersionSurface.setForeground(Color.BLACK);
+//                }
+//            });
+//        }
         textSeed.addFocusListener(new FocusAdapter() {
             @Override
             public void focusLost(FocusEvent fe) {
@@ -946,149 +872,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         controller.setSeed(newSeed);
                     } catch (Exception exception) {
                         textSeed.setText(controller.getSeed() + "");
-                    }
-                }
-            }
-
-        });
-        /////Measurements panel
-        checkMeasureContinouslyPipe.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-                    if (checkMeasureContinouslyPipe.isSelected()) {
-                        double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
-
-                        control.getScenario().getMeasurementsPipe().setSamplesPerTimeindex(seconds / ThreadController.getDeltaTime());
-                    } else {
-                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
-                    }
-//                    System.out.println("Sample " + control.getScenario().getMeasurementsPipe().samplesPerTimeinterval + "x per interval");
-                }
-            }
-        });
-
-        checkMeasureResidenceTimePipe.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ParticlePipeComputing.measureOnlyFinalCapacity = !checkMeasureResidenceTimePipe.isSelected();
-
-            }
-        });
-
-        checkMeasureSynchronisedPipe.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ArrayTimeLineMeasurement.synchronizeMeasures = checkMeasureSynchronisedPipe.isSelected();
-
-            }
-        });
-
-        textMeasurementSecondsPipe.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent fe) {
-                try {
-                    textMeasurementSecondsPipe.setValue(control.getScenario().getMeasurementsPipe().getDeltaTimeS());
-                } catch (Exception e) {
-                }
-//                System.out.println("Focus lost");
-//                if (textMeasurementSecondsPipe == null || textMeasurementSecondsPipe.getValue() == null) {
-//                    return;
-//                }
-//                fe.
-//                double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
-//                System.out.println("New timestep for MesaurementPipe: " + seconds + " s. (Focus lost)");
-//                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-//                    if (seconds == control.getScenario().getMeasurementsPipe().getDeltaTimeS()) {
-//                        return; //DO not change, as the values correspond
-//                    }
-//                }
-//                try {
-//                    control.getScenario().getMeasurementsPipe().setIntervalSeconds(seconds, control.getScenario().getStartTime(), control.getScenario().getEndTime());
-//                } catch (Exception e) {
-//                }
-            }
-        });
-        textMeasurementSecondsPipe.addKeyListener(new KeyAdapter() {
-
-            @Override
-            public void keyReleased(KeyEvent ke) {
-                if (ke.getKeyCode() == 10) {
-                    //ENTER/RETURN
-                    try {
-                        double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
-                        System.out.println("New timestep for MesaurementPipe: " + seconds + " s. (Enter)");
-                        if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-                            if (seconds == control.getScenario().getMeasurementsPipe().getDeltaTimeS()) {
-                                return; //DO not change, as the values correspond
-                            }
-                        }
-                        try {
-                            control.getScenario().getMeasurementsPipe().setIntervalSeconds(seconds, control.getScenario().getStartTime(), control.getScenario().getEndTime());
-                        } catch (Exception e) {
-                        }
-                    } catch (Exception exception) {
-                        exception.printStackTrace();
-//                        textMeasurementSeconds.setValue(control.getScenario().getMeasurementsPipe().getDeltaTimeS());
-                    }
-                }
-            }
-
-        });
-
-        /////Measurements panel
-        checkMeasureContinouslySurface.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
-                    control.getScenario().getMeasurementsSurface().continousMeasurements = checkMeasureContinouslySurface.isSelected();
-                }
-            }
-        });
-
-        checkMeasureSynchronisedSurface.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                SurfaceMeasurementRaster.synchronizeMeasures = checkMeasureSynchronisedSurface.isSelected();
-            }
-        });
-
-        textMeasurementSecondsSurface.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent fe) {
-                if (textMeasurementSecondsSurface == null || textMeasurementSecondsSurface.getValue() == null) {
-                    return;
-                }
-                double seconds = Double.parseDouble(textMeasurementSecondsSurface.getText());//((Number) textMeasurementSecondsSurface.getValue()).doubleValue();
-                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
-                    if (seconds == control.getScenario().getMeasurementsSurface().getIndexContainer().getDeltaTimeMS() / 1000.) {
-                        return;
-                    }
-                }
-                try {
-                    control.getScenario().getMeasurementsSurface().setIntervalSeconds(seconds, control.getScenario().getStartTime(), control.getScenario().getEndTime());
-                } catch (Exception e) {
-                }
-            }
-        });
-        textMeasurementSecondsSurface.addKeyListener(new KeyAdapter() {
-
-            @Override
-            public void keyReleased(KeyEvent ke) {
-                if (ke.getKeyCode() == 10) {
-                    //ENTER/RETURN
-                    if (textMeasurementSecondsSurface == null || textMeasurementSecondsSurface.getValue() == null) {
-                        return;
-                    }
-                    double seconds = Double.parseDouble(textMeasurementSecondsSurface.getText());//((Number) textMeasurementSecondsSurface.getValue()).doubleValue();
-                    if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
-                        if (seconds == control.getScenario().getMeasurementsSurface().getIndexContainer().getDeltaTimeMS() / 1000.) {
-                            return;
-                        }
-                    }
-                    try {
-                        control.getScenario().getMeasurementsSurface().setIntervalSeconds(seconds, control.getScenario().getStartTime(), control.getScenario().getEndTime());
-                    } catch (Exception e) {
                     }
                 }
             }
@@ -1290,58 +1073,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         // Zusammenbauen
         this.add(panelVideo);
 
-        //Button Raingauge
-        buttonShowRaingauge = new JButton("Raingauge");
-        buttonShowRaingauge.setToolTipText("Show Raingauge of current scenario.");
-        this.add(buttonShowRaingauge);
-        buttonShowRaingauge.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                JFrame frame = new JFrame("Raingauge");
-                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.setBounds(SingleControllPanel.this.getBounds().x + SingleControllPanel.this.getBounds().width, SingleControllPanel.this.getBounds().y + 30, 400, 300);
-                //Timelinepanel
-                PrecipitationTimelinePanel timelinePanel = new PrecipitationTimelinePanel("Precipitation", control);
-                timelinePanel.startAtZero = true;
-                frame.add(timelinePanel, BorderLayout.CENTER);
-                File file = control.getLoadingCoordinator().getFilePipeResultIDBF();
-                if (file != null) {
-                    try {
-                        try {
-                            frame.setTitle("Raingauge of Piperesults '" + HE_Database.readResultname(file) + "'");
-                        } catch (Exception exception) {
-                            frame.setTitle("Exception reading file: " + exception.getLocalizedMessage());
-                        }
-                        Raingauge_Firebird raingauge = HE_Database.readRegenreihe(file);
-//                        System.out.println("Raingauge to show: "+raingauge);
-                        TimeSeries ts = timelinePanel.createRainGaugeIntervalTimeSeries(raingauge);
-                        ((SeriesKey) ts.getKey()).renderAsBar = true;
-                        timelinePanel.getCollection().addSeries(ts);
-
-                    } catch (Exception ex) {
-                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-                timelinePanel.showCheckBoxPanel(false);
-                TimeSeriesEditorTablePanel panelTable = new TimeSeriesEditorTablePanel(timelinePanel);
-                panelTable.setPreferredSize(new Dimension(30, 100));
-                frame.add(panelTable, BorderLayout.SOUTH);
-                frame.setVisible(true);
-
-                //aktivate visibility of timeseries
-//                for (Object series : timelinePanel.getCollection().getSeries()) {
-//                    if (series instanceof TimeSeries) {
-//                        TimeSeries ts = (TimeSeries) series;
-//                        SeriesKey key = (SeriesKey) ts.getKey();
-//                        key.visible = true;
-//                        System.out.println("KEY" + ts.getKey());
-//                    }
-//                }
-                panelTable.getTable().collectionChanged();
-            }
-        });
-
         JPanel panelstretch = new JPanel(new BorderLayout());
         this.add(panelstretch);
         System.out.println("Ended SIngleCOntrollPanel initialization. start update thread");
@@ -1349,7 +1080,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     }
 
     public void updateGUI() {
-        System.out.println(getClass()+" updateGUI");
+        System.out.println(getClass() + " updateGUI");
         synchronized (updatethreadBarrier) {
             updatethreadBarrier.notifyAll();
         }
@@ -1496,10 +1227,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private JPanel buildFilesLoadingPanel() {
         //Pipenetwork File 
-        panelLoading = new JPanel();
-        panelLoading.setPreferredSize(new Dimension(100, 250));
-        panelLoading.setMinimumSize(new Dimension(100, 220));
-        panelLoading.setLayout(new BoxLayout(panelLoading, BoxLayout.Y_AXIS));
+        panelLoading = panelTabLoading;
+//        panelLoading.setPreferredSize(new Dimension(100, 250));
+        panelLoading.setMaximumSize(new Dimension(500, 250));
+        panelLoading.setLayout(new BoxLayout(panelLoading, BoxLayout.PAGE_AXIS));
         panelLoading.setBorder(new TitledBorder("Files & Loading"));
 
 //        panelFile = new JPanel(new BorderLayout());
@@ -1519,6 +1250,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         buttonSetupSave = new JButton("Save Project...");
         panelSetup.add(buttonSetupLoad, BorderLayout.WEST);
         panelSetup.add(buttonSetupSave, BorderLayout.EAST);
+        labelSetupName = new JLabel();
+        panelSetup.add(labelSetupName, BorderLayout.CENTER);
 
         //Pipe Network 
         JPanel panelNetwork = new JPanel(new GridLayout(2, 1));
@@ -1615,10 +1348,82 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelLoadingStatusStart = new JPanel(new BorderLayout());
         panelLoadingStatusStart.add(buttonStartReloadingAll, BorderLayout.WEST);
         panelLoadingStatusStart.add(buttonStartLoading, BorderLayout.EAST);
-
         panelLoadingStatus.add(panelLoadingStatusStart);
 
+        JPanel panelScenarioInfo = new JPanel(new BorderLayout());
+        panelScenarioInfo.setBorder(new TitledBorder("Scenario"));
+        panelLoading.add(new JSeparator(JSeparator.VERTICAL));
+        labelScenarioInformation = new JLabel();
+        labelScenarioInformation.setPreferredSize(new Dimension(300, 120));
+
+        panelScenarioInfo.add(labelScenarioInformation, BorderLayout.CENTER);
+        panelLoading.add(panelScenarioInfo);
+
+        //Button Raingauge
+        buttonShowRaingauge = new JButton("Raingauge");
+        buttonShowRaingauge.setToolTipText("Show Raingauge of current scenario.");
+        panelScenarioInfo.add(buttonShowRaingauge, BorderLayout.SOUTH);
+        buttonShowRaingauge.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                JFrame frame = new JFrame("Raingauge");
+                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                frame.setBounds(SingleControllPanel.this.getBounds().x + SingleControllPanel.this.getBounds().width, SingleControllPanel.this.getBounds().y + 30, 400, 300);
+                //Timelinepanel
+                PrecipitationTimelinePanel timelinePanel = new PrecipitationTimelinePanel("Precipitation", control);
+                timelinePanel.startAtZero = true;
+                frame.add(timelinePanel, BorderLayout.CENTER);
+                File file = control.getLoadingCoordinator().getFilePipeResultIDBF();
+                if (file != null) {
+                    try {
+                        try {
+                            frame.setTitle("Raingauge of Piperesults '" + HE_Database.readResultname(file) + "'");
+                        } catch (Exception exception) {
+                            frame.setTitle("Exception reading file: " + exception.getLocalizedMessage());
+                        }
+                        Raingauge_Firebird raingauge = HE_Database.readRegenreihe(file);
+//                        System.out.println("Raingauge to show: "+raingauge);
+                        TimeSeries ts = timelinePanel.createRainGaugeIntervalTimeSeries(raingauge);
+                        ((SeriesKey) ts.getKey()).renderAsBar = true;
+                        timelinePanel.getCollection().addSeries(ts);
+
+                    } catch (Exception ex) {
+                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                timelinePanel.showCheckBoxPanel(false);
+                TimeSeriesEditorTablePanel panelTable = new TimeSeriesEditorTablePanel(timelinePanel);
+                panelTable.setPreferredSize(new Dimension(30, 100));
+                frame.add(panelTable, BorderLayout.SOUTH);
+                frame.setVisible(true);
+                panelTable.getTable().collectionChanged();
+            }
+        });
+
         return panelLoading;
+    }
+
+    public void updateScenarioLabel() {
+        StringBuilder str = new StringBuilder("<html>");
+        Scenario sc = control.getScenario();
+        if (control.getNetwork() != null) {
+            Network nw = control.getNetwork();
+            str.append("Pipes:    " + nw.getPipes().size() + "<br>");
+            str.append("Manholes: " + nw.getManholes().size() + "<br>");
+            if (sc != null && sc.getStatusTimesPipe() != null) {
+                str.append("Timestep: " + ((sc.getStatusTimesPipe().getEndTime() - sc.getStatusTimesPipe().getStartTime()) / (sc.getStatusTimesPipe().getNumberOfTimes() - 1) / 1000) + " s<br><br>");
+            }
+        }
+        if (control.getSurface() != null) {
+            str.append("Surface:  " + control.getSurface().getTriangleMids().length + " cells<br>");
+            if (sc != null && sc.getStatusTimesSurface() != null) {
+                str.append("Timestep: " + ((sc.getStatusTimesSurface().getEndTime() - sc.getStatusTimesSurface().getStartTime()) / (sc.getStatusTimesSurface().getNumberOfTimes() - 1) / 1000) + " s<br><br>");
+            }
+
+        }
+        str.append("</html>");
+        labelScenarioInformation.setText(str.toString());
     }
 
     public void startUpdateThread() {
@@ -1670,12 +1475,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     public void loadNetwork(Network network, Object caller) {
         updateLoadingState();
         updateScenarioInformation();
+
+        updateScenarioLabel();
     }
 
     @Override
     public void loadSurface(Surface surface, Object caller) {
         updateLoadingState();
         updateScenarioInformation();
+        updateScenarioLabel();
     }
 
     @Override
@@ -1685,6 +1493,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         updateScenarioInformation();
         updatePanelInjections();
         updateSimulationRunInformation();
+
+        updateScenarioLabel();
     }
 
     public void updateLoadingState() {
@@ -1806,43 +1616,23 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         labelStarttime.setText(labelStarttime.getText() + calStart.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calStart.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calStart.get(GregorianCalendar.MINUTE)) + " ");
         labelEndtime.setText(labelEndtime.getText() + calEnd.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calEnd.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calEnd.get(GregorianCalendar.MINUTE)) + " ");
 
-        if (control != null && control.getScenario() != null) {
-            if (control.getScenario().getMeasurementsPipe() != null) {
-                ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
-                if (mpc.isTimespotmeasurement()) {
-                    checkMeasureContinouslyPipe.setSelected(false);
-                } else {
-                    checkMeasureContinouslyPipe.setSelected(true);
-                }
-                checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-                textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
-            }
-            if (control.getScenario().getMeasurementsSurface() != null) {
-                SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
-                if (mpc.continousMeasurements) {
-                    checkMeasureContinouslySurface.setSelected(true);
-                } else {
-                    checkMeasureContinouslySurface.setSelected(false);
-                }
-                textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
-            }
-        }
-
         textSeed.setText(control.getThreadController().getSeed() + "");
 
         textTimeStep.setText(ThreadController.getDeltaTime() + "");
         checkDrawUpdateIntervall.setSelected(controler.paintOnMap);
 
         labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
-        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
-        try {
-            Dispersion2D_Calculator sc2d = control.getScenario().getMaterialByIndex(control.getScenario().getMaxMaterialID()).getDispersionCalculatorSurface();
-            textDispersionSurface.setText(sc2d.getParameterValues()[0] + "");
-            textDispersionSurface.setToolTipText(sc2d.getParameterOrderDescription()[0]);
-        } catch (Exception e) {
-            textDispersionSurface.setText("");
-            textDispersionSurface.setToolTipText(e.getLocalizedMessage());
-        }
+//        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
+//        try {
+//            Dispersion2D_Calculator sc2d = control.getScenario().getMaterialByIndex(control.getScenario().getMaxMaterialID()).getDispersionCalculatorSurface();
+//            textDispersionSurface.setText(sc2d.getParameterValues()[0] + "");
+//            textDispersionSurface.setToolTipText(sc2d.getParameterOrderDescription()[0]);
+//        } catch (Exception e) {
+//            textDispersionSurface.setText("");
+//            textDispersionSurface.setToolTipText(e.getLocalizedMessage());
+//        }
+        
+        measurementPanel.updateParameters();
     }
 
     public void updateSimulationRunInformation() {
@@ -1891,37 +1681,28 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         buttonRun.setEnabled((control.getNetwork() != null || control.getSurface() != null) && !control.getLoadingCoordinator().isLoading());
 
         if (controler.isSimulating()) {
-            textTimeStep.setEditable(false);
-            textDispersionPipe.setEditable(false);
-            textDispersionSurface.setEditable(false);
-            textMeasurementSecondsPipe.setEditable(false);
-            textMeasurementSecondsSurface.setEditable(false);
+//            textTimeStep.setEditable(false);
+//            textDispersionPipe.setEditable(false);
+//            textDispersionSurface.setEditable(false);
+
             textSeed.setEditable(false);
             textTimeStep.setEditable(false);
-            checkMeasureContinouslyPipe.setEnabled(false);
-            checkMeasureContinouslySurface.setEnabled(false);
-            checkMeasureResidenceTimePipe.setEnabled(false);
-            checkMeasureSynchronisedSurface.setEnabled(false);
-            checkMeasureSynchronisedPipe.setEnabled(false);
+
             buttonPause.setSelected(false);
             buttonRun.setSelected(true);
 
+            measurementPanel.setEditable(false);
+
         } else {
-            textTimeStep.setEditable(true);
-            textDispersionPipe.setEditable(true);
-            textDispersionSurface.setEditable(true);
-            textMeasurementSecondsPipe.setEditable(true);
-            textMeasurementSecondsSurface.setEditable(true);
+//            textTimeStep.setEditable(true);
+//            textDispersionPipe.setEditable(true);
+//            textDispersionSurface.setEditable(true);
             textSeed.setEditable(true);
             textTimeStep.setEditable(true);
-            checkMeasureContinouslyPipe.setEnabled(true);
-            checkMeasureContinouslySurface.setEnabled(true);
-            checkMeasureResidenceTimePipe.setEnabled(true);
-            checkMeasureSynchronisedSurface.setEnabled(true);
-            checkMeasureSynchronisedPipe.setEnabled(true);
 
             buttonRun.setSelected(false);
             buttonPause.setSelected(true);
+            measurementPanel.setEditable(true);
         }
 
     }
@@ -2127,15 +1908,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         buttonRun.setSelected(false);
         buttonPause.setSelected(true);
     }
-    
-    private void startUpdateSimulationThread(){
-        if(updateSimulationThread!=null){
+
+    private void startUpdateSimulationThread() {
+        if (updateSimulationThread != null) {
             updateSimulationThread.interrupt();
         }
-        updateSimulationThread=new Thread("Update Simulation GUI"){
+        updateSimulationThread = new Thread("Update Simulation GUI") {
             @Override
             public void run() {
-                while(!isInterrupted()&&controler.isSimulating()){
+                while (!isInterrupted() && controler.isSimulating()) {
                     updateSimulationRunInformation();
                     try {
                         sleep(500);
@@ -2144,7 +1925,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     }
                 }
             }
-            
+
         };
         updateSimulationThread.start();
     }

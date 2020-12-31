@@ -47,9 +47,9 @@ public class SpillScenario extends Scenario {
         }
 
 //        if (container instanceof ArrayTimeLinePipeContainer) {
-        this.setTimesPipe(timesPipe);
+        this.setStatusTimesPipe(timesPipe);
 //        }else if(container instanceof SparseTimeLinePipeContainer){
-//            this.setTimesPipe(timesPipe);
+//            this.setStatusTimesPipe(timesPipe);
 //        }
     }
 

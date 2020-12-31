@@ -92,9 +92,9 @@ public class AnalyticalSurface extends Surface {
     public void initRectangularMeasurement(double centerX, double centerY, double width, double height, double cellwidthx, double cellwidthy, double totalSeconds, double intervalSeconds) {
         TimeIndexContainer times = null;
         if (times == null && scenario != null) {
-            if (scenario.getTimesSurface() != null) {
-                if (scenario.getTimesSurface() instanceof TimeIndexContainer) {
-                    times = (TimeIndexContainer) scenario.getTimesSurface();
+            if (scenario.getStatusTimesSurface() != null) {
+                if (scenario.getStatusTimesSurface() instanceof TimeIndexContainer) {
+                    times = (TimeIndexContainer) scenario.getStatusTimesSurface();
                 }
             }
         }
@@ -105,7 +105,7 @@ public class AnalyticalSurface extends Surface {
             }
             times = new TimeIndexContainer(time);
             if (scenario != null) {
-                scenario.setTimesSurface(times);
+                scenario.setStatusTimesSurface(times);
             }
             this.setTimeContainer(times);
         }
@@ -123,7 +123,7 @@ public class AnalyticalSurface extends Surface {
             if (sc == null) {
                 sc = new SpillScenario(times, new ArrayList<InjectionInformation>());
                 this.scenario = sc;
-                sc.setTimesSurface(times);
+                sc.setStatusTimesSurface(times);
             }
             Coordinate lonlat = getGeotools().toGlobal(new Coordinate(x, y), true);
             InjectionInformation inj = new InjectionInformation(new Position(lonlat.x, lonlat.y, x, y), false, mass, numberOfParticles, injectionMaterial, timeSeconds);
