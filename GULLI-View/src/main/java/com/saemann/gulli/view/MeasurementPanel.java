@@ -25,12 +25,17 @@ package com.saemann.gulli.view;
 
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
+import com.saemann.gulli.core.control.StoringCoordinator;
+import com.saemann.gulli.core.control.output.OutputIntention;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
+import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectangleRaster;
+import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -44,11 +49,14 @@ import java.text.DecimalFormatSymbols;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 
 /**
@@ -58,14 +66,12 @@ import javax.swing.border.TitledBorder;
  */
 public class MeasurementPanel extends JPanel {
 
-    protected TitledBorder borderPipe, borderSurface;
+    protected TitledBorder borderPipe, borderSurface, borderOutputs;
 
     protected JPanel panelPipeSurrounding, panelSurfaceSurrounding, panelOutputsSurrounding, panelOutputs;
-//    protected JPanel panelPipe, panelSurface, panelInjectionButtons;
 
     protected Controller control;
 
-//    private JPanel panelMeasurement;
     private JFormattedTextField textMeasurementSecondsPipe;
     private JCheckBox checkMeasureContinouslyPipe;
     private JCheckBox checkMeasureResidenceTimePipe;
@@ -74,6 +80,13 @@ public class MeasurementPanel extends JPanel {
     private JCheckBox checkMeasureSynchronisedSurface;
     private JCheckBox checkMeasureSynchronisedPipe;
 
+    private enum GridType {
+        NONE, TRIANGLE, RECTANGLE, OTHER
+    };
+    private JComboBox<GridType> comboSurfaceGrid;
+    private boolean selfChange=false;
+    private JTextField textGridSize = new JTextField();
+
     protected DecimalFormat dfSeconds = new DecimalFormat("#,##0.###", new DecimalFormatSymbols(StartParameters.formatLocale));
     protected JButton buttonNewOutput;
 
@@ -81,39 +94,31 @@ public class MeasurementPanel extends JPanel {
         super(new BorderLayout());
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.control = c;
-//        panelPipe = new JPanel();
 
         DecimalFormatSymbols dfsymb = new DecimalFormatSymbols(StartParameters.formatLocale);
         dfsymb.setGroupingSeparator(' ');
         dfSeconds = new DecimalFormat("#,##0.###", dfsymb);
         dfSeconds.setGroupingSize(3);
 
-//        panelPipe.setLayout(new BoxLayout(panelPipe, BoxLayout.Y_AXIS));
-//        JScrollPane scrollMaterial = new JScrollPane(panelPipe);
         borderPipe = new TitledBorder("Pipe");
+        borderPipe.setBorder(new LineBorder(Color.blue.darker(), 2, true));
         panelPipeSurrounding = new JPanel(new BorderLayout());
         panelPipeSurrounding.setBorder(borderPipe);
         panelPipeSurrounding.setMaximumSize(new Dimension(500, 120));
-//        panelPipeSurrounding.add(scrollMaterial, BorderLayout.CENTER);
         this.add(panelPipeSurrounding, BorderLayout.NORTH);
 
 //        panelSurface = new JPanel();
-        panelSurfaceSurrounding = new JPanel(new BorderLayout());
+        panelSurfaceSurrounding = new JPanel();
+        panelSurfaceSurrounding.setLayout(new BoxLayout(panelSurfaceSurrounding, BoxLayout.Y_AXIS));
         panelSurfaceSurrounding.setMaximumSize(new Dimension(500, 120));
-//        panelSurface.setLayout(new BoxLayout(panelSurface, BoxLayout.Y_AXIS));
-//        JScrollPane scrollInjection = new JScrollPane(panelSurface);
         borderSurface = new TitledBorder("Surface");
+        borderSurface.setBorder(new LineBorder(Color.GREEN.darker(), 2, true));
         panelSurfaceSurrounding.setBorder(borderSurface);
-//        scrollInjection.setPreferredSize(new Dimension(100, 900));
-//        panelSurfaceSurrounding.add(scrollInjection, BorderLayout.CENTER);
-        this.add(panelSurfaceSurrounding, BorderLayout.CENTER);
+        this.add(panelSurfaceSurrounding);
         this.add(new JPanel());
-//        panelInjectionButtons = new JPanel(new GridLayout(1, 2));
-//        panelSurfaceSurrounding.add(panelInjectionButtons, BorderLayout.NORTH);
-
         //Panel Measurement/Sampling options
         JPanel panelMeasurementsPipe = panelPipeSurrounding;
-        panelMeasurementsPipe.setBorder(new TitledBorder("Pipe Network"));
+        panelMeasurementsPipe.setBorder(borderPipe);
         JPanel panelMsec = new JPanel(new BorderLayout());
 
         panelMsec.add(new JLabel("Measure interval: "), BorderLayout.WEST);
@@ -151,8 +156,7 @@ public class MeasurementPanel extends JPanel {
                 textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
             }
         }
-        JPanel panelMeasurementsSurface = panelSurfaceSurrounding;
-        panelMeasurementsSurface.setBorder(new TitledBorder("Surface"));
+        panelSurfaceSurrounding.setBorder(borderSurface);
         JPanel panelMsecS = new JPanel(new BorderLayout());
 
         panelMsecS.add(new JLabel("Measure interval: "), BorderLayout.WEST);
@@ -161,32 +165,37 @@ public class MeasurementPanel extends JPanel {
         textMeasurementSecondsSurface.setToolTipText("Length of measurement interval in seconds.");
 
         panelMsecS.add(textMeasurementSecondsSurface, BorderLayout.CENTER);
-        panelMeasurementsSurface.add(panelMsecS, BorderLayout.NORTH);
+        panelSurfaceSurrounding.add(panelMsecS, BorderLayout.NORTH);
         JPanel panelMcheckSurface = new JPanel(new GridLayout(1, 1));
         checkMeasureContinouslySurface = new JCheckBox("Time continous", false);
         checkMeasureContinouslySurface.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
         checkMeasureSynchronisedSurface = new JCheckBox("Synchronize", SurfaceMeasurementRaster.synchronizeMeasures);
         checkMeasureSynchronisedSurface.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
-
-//        checkMeasureResidenceTimeSurface = new JCheckBox("Residence", false);
-//        checkMeasureResidenceTimeSurface.setToolTipText("<html><b>true</b>: Sample all visited capacities. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
         panelMcheckSurface.add(checkMeasureContinouslySurface);
         panelMcheckSurface.add(checkMeasureSynchronisedSurface);
-//        panelMcheckSurface.add(checkMeasureResidenceTimeSurface);
+
+        //Grid
+        comboSurfaceGrid = new JComboBox<>(GridType.values());
+        comboSurfaceGrid.setToolTipText("Type of Raster for surface measurements");
+        textGridSize.setEnabled(false);
 
         this.add(new JSeparator());
-//Outputs
+        //Outputs
         buttonNewOutput = new JButton("new Output");
         panelOutputsSurrounding = new JPanel(new BorderLayout());
-        panelOutputsSurrounding.setBorder(new TitledBorder("0 Outputs"));
-        panelOutputsSurrounding.add(buttonNewOutput,BorderLayout.NORTH);
-        panelOutputs=new JPanel();
+        borderOutputs = new TitledBorder("0 Outputs");
+        panelOutputsSurrounding.setBorder(borderOutputs);
+        panelOutputsSurrounding.add(buttonNewOutput, BorderLayout.NORTH);
+        panelOutputs = new JPanel();
         panelOutputs.setLayout(new BoxLayout(panelOutputs, BoxLayout.Y_AXIS));
-        JScrollPane scroll=new JScrollPane(panelOutputs);
-        panelOutputsSurrounding.add(scroll,BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(panelOutputs);
+        panelOutputsSurrounding.add(scroll, BorderLayout.CENTER);
         this.add(panelOutputsSurrounding);
 
-        panelMeasurementsSurface.add(panelMcheckSurface, BorderLayout.SOUTH);
+        panelSurfaceSurrounding.add(panelMcheckSurface, BorderLayout.SOUTH);
+        panelSurfaceSurrounding.add(comboSurfaceGrid);
+        panelSurfaceSurrounding.add(textGridSize);
+
         if (control.getScenario() != null) {
             if (control.getScenario().getMeasurementsSurface() != null) {
                 SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
@@ -240,22 +249,6 @@ public class MeasurementPanel extends JPanel {
                     textMeasurementSecondsPipe.setValue(control.getScenario().getMeasurementsPipe().getDeltaTimeS());
                 } catch (Exception e) {
                 }
-//                System.out.println("Focus lost");
-//                if (textMeasurementSecondsPipe == null || textMeasurementSecondsPipe.getValue() == null) {
-//                    return;
-//                }
-//                fe.
-//                double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
-//                System.out.println("New timestep for MesaurementPipe: " + seconds + " s. (Focus lost)");
-//                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-//                    if (seconds == control.getScenario().getMeasurementsPipe().getDeltaTimeS()) {
-//                        return; //DO not change, as the values correspond
-//                    }
-//                }
-//                try {
-//                    control.getScenario().getMeasurementsPipe().setIntervalSeconds(seconds, control.getScenario().getStartTime(), control.getScenario().getEndTime());
-//                } catch (Exception e) {
-//                }
             }
         });
         textMeasurementSecondsPipe.addKeyListener(new KeyAdapter() {
@@ -278,7 +271,6 @@ public class MeasurementPanel extends JPanel {
                         }
                     } catch (Exception exception) {
                         exception.printStackTrace();
-//                        textMeasurementSeconds.setValue(control.getScenario().getMeasurementsPipe().getDeltaTimeS());
                     }
                 }
             }
@@ -343,6 +335,45 @@ public class MeasurementPanel extends JPanel {
             }
 
         });
+
+        comboSurfaceGrid.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(selfChange)return;
+                if (comboSurfaceGrid.getSelectedItem() == GridType.NONE) {
+                } else if (comboSurfaceGrid.getSelectedItem() == GridType.TRIANGLE) {
+                    SurfaceMeasurementTriangleRaster smr = SurfaceMeasurementTriangleRaster.init(control);
+                    control.getSurface().setMeasurementRaster(smr);
+                    if (control.getScenario() != null) {
+                        control.getScenario().setMeasurementsSurface(smr);
+                    }
+                } else if (comboSurfaceGrid.getSelectedItem() == GridType.RECTANGLE) {
+                    double dx = 50;//Double.parseDouble(textGridSize.getText().replaceAll("[^0-9]", "").replaceAll(",", "."));
+                    SurfaceMeasurementRectangleRaster smr = SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(control.getSurface(), dx, dx);
+                    control.getSurface().setMeasurementRaster(smr);
+                    if (control.getScenario() != null) {
+                        control.getScenario().setMeasurementsSurface(smr);
+                    }
+                }
+                updateParameters();
+            }
+        });
+        
+        textGridSize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if(comboSurfaceGrid.getSelectedItem()==GridType.RECTANGLE){
+                    double dx = Double.parseDouble(textGridSize.getText().replaceAll("[^0-9]", "").replaceAll(",", "."));
+                    SurfaceMeasurementRectangleRaster smr = SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(control.getSurface(), dx, dx);
+                    control.getSurface().setMeasurementRaster(smr);
+                    if (control.getScenario() != null) {
+                        control.getScenario().setMeasurementsSurface(smr);
+                    }
+                }
+                updateParameters();
+                
+            }
+        });
     }
 
     public void updateParameters() {
@@ -367,6 +398,36 @@ public class MeasurementPanel extends JPanel {
                 textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
             }
         }
+        panelOutputs.removeAll();
+        if (control != null && control.getStoringCoordinator() != null) {
+            StoringCoordinator sc = control.getStoringCoordinator();
+            int counter = 0;
+            for (OutputIntention fout : sc.getFinalOutputs()) {
+                panelOutputs.add(new OutputPanel(fout, counter++));
+            }
+            borderOutputs.setTitle(sc.getFinalOutputs().size() + " Outputs");
+        }
+
+        if (control != null && control.getSurface() != null) {
+            selfChange=true;
+            if (control.getSurface().getMeasurementRaster() == null) {
+                comboSurfaceGrid.setSelectedItem(GridType.NONE);
+            } else {
+                if (control.getSurface().getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+                    comboSurfaceGrid.setSelectedItem(GridType.TRIANGLE);
+                    textGridSize.setText(control.getSurface().getMeasurementRaster().getNumberOfCells() + " triangles");
+                    textGridSize.setToolTipText("Number of cells");
+                } else if (control.getSurface().getMeasurementRaster() instanceof SurfaceMeasurementRectangleRaster) {
+                    comboSurfaceGrid.setSelectedItem(GridType.RECTANGLE);
+                    textGridSize.setText(((SurfaceMeasurementRectangleRaster) control.getSurface().getMeasurementRaster()).getxIntervalWidth() + " m");
+                    textGridSize.setToolTipText("Grid interval [m]");
+                } else {
+                    textGridSize.setText(control.getSurface().getMeasurementRaster().getClass().getSimpleName());
+                    textGridSize.setToolTipText("Unknown type of Raster");
+                }
+            }
+            selfChange=false;
+        }
     }
 
     public void setEditable(boolean editable) {
@@ -378,5 +439,9 @@ public class MeasurementPanel extends JPanel {
         checkMeasureSynchronisedSurface.setEnabled(editable);
         checkMeasureSynchronisedPipe.setEnabled(editable);
 
+        textGridSize.setEnabled(editable);
+        selfChange=true;
+        comboSurfaceGrid.setEnabled(editable);
+        selfChange=false;
     }
 }

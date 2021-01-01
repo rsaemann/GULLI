@@ -999,10 +999,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 try {
                     if (false) {
                         int id = 0;
+                        Coordinate[] coords = new Coordinate[4];
+                        int[] nodes;
                         for (int i = 0; i < shownSurfaceTriangles.length; i++) {
                             id = shownSurfaceTriangles[i];
-                            Coordinate[] coords = new Coordinate[4];
-                            int[] nodes = surface.getTriangleNodes()[id];
+
+                            nodes = surface.getTriangleNodes()[id];
                             for (int j = 0; j < 3; j++) {
                                 coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
                             }
@@ -1014,11 +1016,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 break;
                             }
                         }
-                    }
-                    if (true) {
+                    } else {
                         int id = 0;
+                        Coordinate[] coords = new Coordinate[4];
                         for (int[] nodes : surface.getTriangleNodes()) {
-                            Coordinate[] coords = new Coordinate[4];
+
                             for (int j = 0; j < 3; j++) {
                                 coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
                             }
@@ -1102,25 +1104,30 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     }
                 } else {
                     id = 0;
+                    Coordinate[] coords = new Coordinate[4];
+                    Layer layer = mapViewer.getLayer(layerSurfaceGrid);
+                    AreaPainting[] aps = new AreaPainting[Math.min(surface.getTriangleNodes().length, maximumNumberOfSurfaceShapes)];
                     for (int[] nodes : surface.getTriangleNodes()) {
                         try {
-                            Coordinate[] coords = new Coordinate[4];
                             for (int j = 0; j < 3; j++) {
-
                                 coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-
                             }
                             coords[3] = coords[0];//Close ring
                             AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
-                            mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
+                            aps[id] = ap;
                             id++;
                         } catch (TransformException ex) {
                             Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                         }
-                        if (id > maximumNumberOfSurfaceShapes) {
+                        if (id >= maximumNumberOfSurfaceShapes) {
                             break;
                         }
                     }
+                    if (layer == null) {
+                        layer = new Layer(layerSurfaceGrid, chTrianglesGrid);
+                        mapViewer.getLayers().add(layer);
+                    }
+                    layer.setPaintElements(aps);
                 }
             }
 //            if (false) {
@@ -2433,7 +2440,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             } else if (string.equals(layerInjectionLocation)) {
                 for (InjectionInformation injection : injections) {
                     if (injection.getId() % injections.size() == id) {
-                        if(injection.getPosition()==null)return;
+                        if (injection.getPosition() == null) {
+                            return;
+                        }
                         StringBuilder str = new StringBuilder("Injection id:").append(id);
                         if (injection.spillOnSurface()) {
                             str.append(";to Surface triangle").append(injection.getCapacityID());

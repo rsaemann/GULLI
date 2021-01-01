@@ -324,7 +324,6 @@ public class GeoTools {
 
     public Coordinate toGlobal(Coordinate geomUTM) throws TransformException {
         return JTS.transform(geomUTM, null, transform_utm2wgs);
-
     }
 
     public Coordinate toGlobal(Coordinate geomUTM, boolean longitudeFirst) throws TransformException {

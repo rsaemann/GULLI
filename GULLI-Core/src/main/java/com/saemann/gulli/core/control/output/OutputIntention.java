@@ -40,4 +40,28 @@ public interface OutputIntention {
      */
     public File writeOutput(StoringCoordinator sc);
 
+    public File getOutputFile();
+
+    public void setOutputFile(File output);
+
+    public String getFileSuffix();
+
+    public String getFilePath();
+
+    public double[] getParameterValuesDouble();
+
+    public void setParameterValueDouble(int index, double value);
+
+    public String[] getParameterNamesDouble();
+
+    public int[] getParameterValuesInt();
+
+    public String[] getParameterNamesInt();
+
+    public void setParameterValueInt(int index, int value);
+
+    public void setFileFormat(StoringCoordinator.FileFormat ff);
+
+    public StoringCoordinator.FileFormat getFileFormat();
+
 }

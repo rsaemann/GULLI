@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.model.surface.measurement;
 
+import com.saemann.gulli.core.control.Controller;
 import org.locationtech.jts.geom.Coordinate;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
@@ -57,14 +58,6 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     private boolean usedInCurrentStep = false;
 
-//    /**
-//     * if true the counting of each particle thread is done in seperate counters
-//     * for each thread. at the end a synchronization call is needed to store the
-//     * total value. if false each thread is blocked on writing the particle
-//     * count directly. this is slower due to the blocking.
-//     */
-//    public static boolean synchronizeOnlyAtEnd = false;
-//    private final Object monitort = new String("Monitor");
     public SurfaceMeasurementTriangleRaster(Surface surf, int numberOfMaterials, TimeIndexContainer time, int numberOfParticleThreads) {
         this.surf = surf;
         this.times = time;
@@ -74,6 +67,24 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         this.measurementsInTimeinterval = new int[time.getNumberOfTimes()];
 
         measurementTimestamp = new long[measurementsInTimeinterval.length];
+    }
+
+    public static SurfaceMeasurementTriangleRaster init(Controller c) {
+        int numberMaterials = 0;
+        if (c.getScenario() != null) {
+            numberMaterials = c.getScenario().getMaxMaterialID() + 1;
+            if (c.getScenario().getMaterials() != null) {
+                numberMaterials = Math.max(numberMaterials, c.getScenario().getMaterials().size());
+            }
+        }
+        TimeIndexContainer tic;
+        if (c.getSurface().getMeasurementRaster() != null) {
+            tic = c.getSurface().getMeasurementRaster().getIndexContainer();
+        } else {
+            tic = new TimeIndexContainer(c.getSurface().getTimes());
+        }
+        SurfaceMeasurementTriangleRaster smr = new SurfaceMeasurementTriangleRaster(c.getSurface(), numberMaterials, tic, c.getThreadController().getNumberOfParallelThreads());
+        return smr;
     }
 
     @Override
@@ -86,8 +97,8 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
             //for risk map do not show inertial particles
             return;
         }
-        
-        if(particle.getTravelledPathLength()<particle.getMaterial().travellengthToMeasure){
+
+        if (particle.getTravelledPathLength() < particle.getMaterial().travellengthToMeasure) {
             return;
         }
 //        statuse[threadIndex] = 1;
@@ -96,8 +107,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         if (id < 0) {
             return;
         }
-        
-        
+
 //        statuse[threadIndex] = 2;
         if (!countStayingParticle) {
 //            statuse[threadIndex] = 3;

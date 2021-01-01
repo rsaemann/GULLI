@@ -56,6 +56,8 @@ public class ContaminationMass implements OutputIntention {
      */
     public int minimumParticleCount = 1;
 
+    private File outputFile = null;
+
     @Override
     public File writeOutput(StoringCoordinator sc) {
         String materialName;
@@ -79,4 +81,75 @@ public class ContaminationMass implements OutputIntention {
         return null;
     }
 
+    @Override
+    public String getFileSuffix() {
+        return fileformat.name();
+    }
+
+    @Override
+    public String getFilePath() {
+        return "./dyn#MaterialName#.csv";
+    }
+
+    @Override
+    public File getOutputFile() {
+        return outputFile;
+    }
+
+    @Override
+    public void setOutputFile(File output) {
+        this.outputFile = output;
+    }
+
+    @Override
+    public double[] getParameterValuesDouble() {
+        return null;
+    }
+
+    @Override
+    public void setParameterValueDouble(int index, double value) {
+    }
+
+    @Override
+    public String[] getParameterNamesDouble() {
+        return null;
+    }
+
+    @Override
+    public int[] getParameterValuesInt() {
+        return new int[]{materialIndex,minimumParticleCount};
+    }
+
+    @Override
+    public String[] getParameterNamesInt() {
+        return new String[]{"Material index (-1=all)","min. Number of particles"};
+    }
+
+    @Override
+    public void setParameterValueInt(int index, int value) {
+        if(index==0){
+            this.materialIndex=value;
+        }else if(index==1){
+            this.minimumParticleCount=value;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Dynamic Contamination Mass (.csv) of "+(materialIndex<0?" all Materials":"Material "+materialIndex);
+    }
+
+    @Override
+    public StoringCoordinator.FileFormat getFileFormat() {
+        return StoringCoordinator.FileFormat.CSV;
+    }
+
+    @Override
+    public void setFileFormat(StoringCoordinator.FileFormat ff) {
+    }
+    
+    
+    
+
+    
 }
