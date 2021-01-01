@@ -57,6 +57,8 @@ public class RandomGenerator {
 
     public void reset() {
             sr = new SplittableRandom(seed);
+            haveNextFastGaussian=false;
+            nextFastGaussian=0;
     }
     
     public boolean hasEqualValues(RandomGenerator other) {

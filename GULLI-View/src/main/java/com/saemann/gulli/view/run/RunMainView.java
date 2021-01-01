@@ -1,26 +1,26 @@
 package com.saemann.gulli.view.run;
 
+import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.StoringCoordinator;
+import com.saemann.gulli.core.control.listener.LoadingActionAdapter;
+import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.output.ContaminationParticles;
 import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
+import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
-import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JSeparator;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Manhole;
+import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.view.ViewController;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
@@ -213,30 +213,57 @@ public class RunMainView {
                     control.recalculateInjections();
                     control.resetScenario();
 
-                    if (StartParameters.isAutoStartatStartup()) {
-                        if (control.getScenario() != null) {
-                            // Start the simulation.
-                            control.start();
-                            final Runnable r = this;
-
-                            new Thread("Loading finished listener remover") {
-                                @Override
-                                public void run() {
-                                    try {
-                                        //Wait some time to enable a repaint of GUI.
-                                        //Otherwise some drawing Exceptions occure.
-                                        sleep(2000);
-                                    } catch (InterruptedException ex) {
-                                        Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
-                                    }
-                                    lc.loadingFinishedListener.remove(r);
-                                }
-                            }.start();
-                        }
-                    }
+//                    if (StartParameters.isAutoStartatStartup()) {
+//                        System.out.println("Autostart simulation");
+//                        if (control.getScenario() != null) {
+//                            // Start the simulation.
+//                            control.start();
+//                            final Runnable r = this;
+//
+//                            new Thread("Loading finished listener remover") {
+//                                @Override
+//                                public void run() {
+//                                    try {
+//                                        //Wait some time to enable a repaint of GUI.
+//                                        //Otherwise some drawing Exceptions occure.
+//                                        sleep(2000);
+//                                    } catch (InterruptedException ex) {
+//                                        Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
+//                                    }
+//                                    lc.loadingFinishedListener.remove(r);
+//                                }
+//                            }.start();
+//                        }
+//                    }
 
                 }
             });
+        }
+
+        if (StartParameters.isAutoStartatStartup()) {
+            final Runnable r = new Runnable() {
+                @Override
+                public void run() {
+                        control.recalculateInjections();
+                        control.start();
+                        Runnable runner=this;
+                        new Thread("Loading finished listener remover") {
+                                @Override
+                            public void run() {
+                                try {
+                                    //Wait some time to enable a repaint of GUI.
+                                    //Otherwise some drawing Exceptions occure.
+                                    sleep(2000);
+                                } catch (InterruptedException ex) {
+                                    Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                                lc.loadingFinishedListener.remove(runner);
+                            }
+                        }.start();
+                    
+                }
+            };
+            lc.loadingFinishedListener.add(r);
         }
 
         control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
@@ -251,6 +278,5 @@ public class RunMainView {
             }
         }
 
-        
     }
 }

@@ -208,9 +208,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         //initialize number of threads on the surface 
         if (control.getSurface() != null && control.getSurface().getMeasurementRaster() != null) {
             control.getSurface().getMeasurementRaster().setNumberOfThreads(barrier_particle.getThreads().size());
-//            control.getSurface().getMeasurementRaster().monitor = new TriangleMeasurement[barrier_particle.getThreads().size()];
-//            control.getSurface().getMeasurementRaster().statuse = new int[control.getSurface().getMeasurementRaster().monitor.length];
-
         }
 
         barrier_sync.setStepStartTime(simulationTimeMS);
@@ -511,6 +508,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 rng.reset();
             }
         } catch (Exception e) {
+            e.printStackTrace();
         }
         if (control.getSurface() != null) {
             control.getSurface().reset();

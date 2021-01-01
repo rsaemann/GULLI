@@ -29,7 +29,6 @@ import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
 import com.saemann.gulli.core.control.multievents.PipeResultData;
-import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.particlecontrol.injection.ArealInjection;
 import com.saemann.gulli.core.control.particlecontrol.injection.ManholeInjection;
 import com.saemann.gulli.core.control.particlecontrol.injection.ParticleInjection;

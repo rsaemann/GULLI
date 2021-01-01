@@ -442,7 +442,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             }
             Inlet[] objects = surface.getInlets();
             if (objects != null) {
-                ColorHolder chinlet = new ColorHolder(Color.cyan, "Inlet");
+                ColorHolder chinlet = new ColorHolder(Color.darkGray, "Inlet");
                 ColorHolder chinletPipe = new ColorHolder(Color.cyan, "Inlet's pipe");
 //                int counter = 0;
                 long start = System.currentTimeMillis();
