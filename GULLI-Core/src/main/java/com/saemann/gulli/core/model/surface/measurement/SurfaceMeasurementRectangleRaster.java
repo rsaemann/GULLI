@@ -36,7 +36,7 @@ import org.locationtech.jts.geom.Coordinate;
 public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster {
 
     /**
-     * [x-index][y-index][timeindex][materialindex]:mass
+     * [x-index][y-index][timeindex][materialindex]:mass*duration
      */
     public double[][][][] mass;
 
@@ -63,6 +63,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         particlecounter = new long[numberXIntervals][][][];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
         measurementTimestamp = new long[measurementsInTimeinterval.length];
+        durationInTimeinterval=new double[measurementsInTimeinterval.length];
     }
 
     public static SurfaceMeasurementRectangleRaster SurfaceMeasurementRectangleRaster(Surface surf, int numberXInterval, int numberYInterval) {
@@ -136,7 +137,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     }
 
     @Override
-    public void measureParticle(long time, Particle particle, int index) {
+    public void measureParticle(long time, Particle particle, double residenceDuration, int index) {
         if (!continousMeasurements && !measurementsActive) {
             return;
         }
@@ -187,20 +188,20 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
             if (synchronizeMeasures) {
                 synchronized (mass[xindex][yindex][timeIndex]) {
 
-                    mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
+                    mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass() * residenceDuration;
                     try {
-                        particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                        particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += residenceDuration;
                     } catch (Exception e) {
                         //this arrays seems not to be initialized by another thread. wait some time for completion.
                         Thread.sleep(20);
                         if (particlecounter[xindex][yindex] != null) {
-                            particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                            particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += residenceDuration;
                         }
                     }
                 }
             } else {
-                mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass();
-                particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex]++;
+                mass[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += particle.getParticleMass() * residenceDuration;
+                particlecounter[xindex][yindex][timeIndex][particle.getMaterial().materialIndex] += residenceDuration;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -222,6 +223,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
 
         measurementTimestamp = new long[measurementsInTimeinterval.length];
+        durationInTimeinterval = new double[measurementsInTimeinterval.length];
     }
 
     public int getNumberOfMaterials() {
@@ -411,11 +413,12 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
 
         measurementTimestamp = new long[measurementsInTimeinterval.length];
+        durationInTimeinterval = new double[measurementsInTimeinterval.length];
     }
 
     @Override
     public void breakAllLocks() {
-        throw new UnsupportedOperationException("RectangularRaster is working with 'synchronize' that cannot be unlocked"); //To change body of generated methods, choose Tools | Templates.
+
     }
 
     @Override
@@ -447,7 +450,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         }
         int x = cellIndex / numberYIntervals;
         int y = cellIndex % numberYIntervals;
-        return mass[x][y][timeindex][materialIndex] / measurementsInTimeinterval[timeindex];
+        return mass[x][y][timeindex][materialIndex] / durationInTimeinterval[timeindex];
     }
 
     @Override

@@ -157,16 +157,16 @@ public class AnalyticalSolutionTransport2D {
 
         //get the particlecounts/masses/areas in right order
         int times = surface.getMeasurementRaster().getIndexContainer().getNumberOfTimes();//tri.get(triID[0]).getTimes().getNumberOfTimes();
-        int[][] partcount = new int[triID.length][times];
+        double[][] partcount = new double[triID.length][times];
 
-        int[][] pc = new int[1][times];
+        double[][] pc = new double[1][times];
         double[][] mass = new double[1][times];
         double[][] masscount = new double[triID.length][times];
         double[] area = new double[triID.length];
         for (int i = 0; i < triID.length; i++) {
 
             pc = tri.get(triID[triIdexesSorted[i]]).getParticlecount();
-            mass = tri.get(triID[triIdexesSorted[i]]).getMass();
+            mass = tri.get(triID[triIdexesSorted[i]]).getMassResidence();
             area[i] = surface.calcTriangleArea(triID[triIdexesSorted[i]]);
 
             for (int j = 0; j < times; j++) {

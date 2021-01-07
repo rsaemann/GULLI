@@ -205,7 +205,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //    public Dispersion2D_Calculator getDiffusionCalculator() {
 //        return D;
 //    }
-
     /**
      * Reset this module to prepare for a start of an identical new simulation.
      */
@@ -252,8 +251,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         shouldReRandomize = true;
         moveParticleCellIterative(p, dt);
 //        }
-        if (p.isOnSurface()) {
-            surface.getMeasurementRaster().measureParticle(simulationtime, p, threadindex);
+        if (p.isOnSurface() && !surface.getMeasurementRaster().spatialConsistency) {
+            surface.getMeasurementRaster().measureParticle(simulationtime, p, 1, threadindex);
         }
     }
 
@@ -595,6 +594,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                                     lengthfactor *= 0.95;
                                     posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                                     posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                                    if (surface.getMeasurementRaster().spatialConsistency) {
+                                        p.setPosition3D(posxneu, posyneu);
+                                        p.surfaceCellID = cellID;
+                                        surface.getMeasurementRaster().measureParticle(simulationtime, p, lengthfactor * timeLeft, threadindex);
+                                    }
                                     timeLeft -= (1. - lengthfactor);
 //                                    status = 11;
 //                                    if (verbose) {
@@ -611,6 +615,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     }
                     posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                     posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+                    if (surface.getMeasurementRaster().spatialConsistency) {
+                        p.setPosition3D(posxneu, posyneu);
+                        p.surfaceCellID = cellID;
+                        surface.getMeasurementRaster().measureParticle(simulationtime, p, lengthfactor * timeLeft, threadindex);
+                    }
                     timeLeft *= (1. - lengthfactor);
 //                    cellID = cellIDnew;
 //                    status = 2;
@@ -634,10 +643,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         //is in new
                         if (lengthfactor < 0.0001) {
                             if (shortLengthCounter > 3) {
-                               
+
                                 if (verbose) {
-                                    System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew+" target v="+tempVelocity[0]+","+tempVelocity[1]+" iteration:"+loopcounter+" actual v:"+totalvelocity+" status:"+status+"  length");
-                                } 
+                                    System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew + " target v=" + tempVelocity[0] + "," + tempVelocity[1] + " iteration:" + loopcounter + " actual v:" + totalvelocity + " status:" + status + "  length");
+                                }
 //                                status = 25;
                                 break;
                             }
@@ -753,6 +762,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         lengthfactor *= 0.95;
                         posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                         posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
+
+                        if (surface.getMeasurementRaster().spatialConsistency) {
+                            p.setPosition3D(posxneu, posyneu);
+                            p.surfaceCellID = cellID;
+                            surface.getMeasurementRaster().measureParticle(simulationtime, p, timeLeft, threadindex);
+                        }
                         timeLeft -= (1. - lengthfactor);
 //                        status = 15;
                         break;
@@ -785,6 +800,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         p.setPosition3D(posxneu, posyneu);
         p.surfaceCellID = cellID;
+        if (surface.getMeasurementRaster().spatialConsistency) {
+            surface.getMeasurementRaster().measureParticle(simulationtime, p, timeLeft, threadindex);
+        }
     }
 
     public void checkSurrounding(Particle p) {
@@ -937,7 +955,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //    public String getDiffusionString() {
 //        return D.getDiffusionString();
 //    }
-
     @Override
     public void setDeltaTimestep(double seconds) {
         this.dt = (float) seconds;

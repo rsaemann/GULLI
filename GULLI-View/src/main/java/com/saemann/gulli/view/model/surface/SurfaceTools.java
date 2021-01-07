@@ -72,7 +72,6 @@ import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 
-
 /**
  * Tools for mapping Surface and Pipenetwork to each other.
  *
@@ -1356,10 +1355,13 @@ public class SurfaceTools implements LocationIDListener {
             frame.mapViewer.addPaintInfoToLayer(layerManhole, np);
         }
         for (Pipe pipe : network.getPipes()) {
-            ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
-            list.add(pipe.getStartConnection().getPosition());
-            list.add(pipe.getEndConnection().getPosition());
-            ArrowPainting np = new ArrowPainting(pipe.getAutoID(), PaintManager.toRGIS(list), chPipe);
+//            ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
+//            list.add(pipe.getStartConnection().getPosition());
+//            list.add(pipe.getEndConnection().getPosition());
+            Coordinate[] list = new Coordinate[2];
+            list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
+            list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
+            ArrowPainting np = new ArrowPainting(pipe.getAutoID(), list, chPipe);
             frame.mapViewer.addPaintInfoToLayer(layerPipe, np);
         }
 

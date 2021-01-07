@@ -60,6 +60,7 @@ import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.rgis.control.LocationIDListener;
 import com.saemann.rgis.view.ColorHolder;
 import com.saemann.rgis.view.DoubleColorHolder;
+import com.saemann.rgis.view.GradientColorHolder;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
 import com.saemann.rgis.view.shapes.AreaPainting;
@@ -71,6 +72,7 @@ import com.saemann.rgis.view.shapes.NodePainting;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.projection.ProjectionException;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateXY;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
@@ -177,7 +179,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private final DoubleColorHolder chTrianglesWaterlevel = new DoubleColorHolder(Color.white, Color.blue, "Surface Waterlevel");
 //    ColorHolder chTriangleMids = new ColorHolder(Color.orange, "Triangle Mids");
     ColorHolder chSurfaceVelocity = new ColorHolder(Color.blue, "Surface Velocity");
-    DoubleColorHolder chSurfaceHeatMap = new DoubleColorHolder(Color.red, Color.yellow, "HeatMap");
+    GradientColorHolder chSurfaceHeatMap = new GradientColorHolder(0, 1, Color.yellow, Color.red, 255, "HeatMap");
     public final String layerLabelWaterlevel = "WL_TEXT";
 
     private final ColorHolder chPolygon = new ColorHolder(Color.magenta, "Polygon");
@@ -491,10 +493,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         try {
             //Draw Pipes of this network
             for (final Pipe pipe : network.getPipes()) {
-                ArrayList<com.saemann.gulli.core.model.GeoPosition2D> listG = new ArrayList<>(2);
-                listG.add(pipe.getFlowInletConnection().getPosition());
-                listG.add(pipe.getFlowOutletConnection().getPosition());
-                ArrayList<com.saemann.rgis.model.GeoPosition2D> list = toRGIS(listG);
+//                ArrayList<com.saemann.gulli.core.model.GeoPosition2D> listG = new ArrayList<>(2);
+//                listG.add(pipe.getFlowInletConnection().getPosition());
+//                listG.add(pipe.getFlowOutletConnection().getPosition());
+//                ArrayList<com.saemann.rgis.model.GeoPosition2D> list = toRGIS(listG);
+
+                Coordinate[] list = new Coordinate[2];
+                list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
+                list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
+
                 if (pipeShow == pipeShow.GREY) {
                     ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes);
                     if (!drawPipesAsArrows) {
@@ -631,7 +638,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
                     try {
                         if (pipe.getEndConnection().getManhole().isSetAsOutlet()) {
-                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), MapViewer.COLORHOLDER_LABEL, list.get(list.size() - 1), "Outlet: " + pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength()) + " kg");
+                            Position3D pos = pipe.getEndConnection().getPosition();
+                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), pos.getLongitude(), pos.getLatitude(), MapViewer.COLORHOLDER_LABEL, "Outlet: " + pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength()) + " kg");
                             mapViewer.addPaintInfoToLayer("OutletMass", lp);
                         }
 
@@ -1130,35 +1138,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     layer.setPaintElements(aps);
                 }
             }
-//            if (false) {
-//                for (int i = 0; i < shownSurfaceTriangles.length; i++) {
-//                    id = shownSurfaceTriangles[i];
-//                    try {
-//                        NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chTrianglesGrid);
-//                        id++;
-//                        mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
-//                        if (id > maximumNumberOfSurfaceShapes) {
-//                            break;
-//                        }
-//                    } catch (TransformException ex) {
-//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//                }
-//            }
-//            if (true) {
-//                for (double[] triangleMid : surface.getTriangleMids()) {
-//                    try {
-//                        NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
-//                        id++;
-//                        mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
-//                        if (id > maximumNumberOfSurfaceShapes) {
-//                            break;
-//                        }
-//                    } catch (TransformException ex) {
-//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-//                    }
-//                }
-//            }
 
         } else if (this.surfaceShow == SURFACESHOW.SPECTRALMAP) {
             try {
@@ -1298,25 +1277,27 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
         } else if (this.surfaceShow == SURFACESHOW.HEATMAP_LIN || this.surfaceShow == SURFACESHOW.HEATMAP_LOG || this.surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
             try {
+                Layer layer = mapViewer.getLayer(layerSurfaceContaminated);
+                if (layer == null) {
+                    layer = new Layer(layerSurfaceContaminated, chSurfaceHeatMap);
+                    mapViewer.getLayers().add(layer);
+                }
                 if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
                     SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
                     synchronized (raster) {
-                        int totalparticleCount = 0;
+                        double totalmass = 0;
                         for (InjectionInformation injection : control.getScenario().getInjections()) {
-                            totalparticleCount += injection.getNumberOfParticles();//getMass();//
+                            totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
                         }
-                        //Find Layer and set represntative Colorholder, so everyone can change the colors in program
-//                    mapViewer.clearLayer(layerSurfaceContaminated);
-                        mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, new NodePainting(-1, new Coordinate(), chSurfaceHeatMap));
-
+                        boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
                         /**
                          * count of particles per triangle exceeding this number
                          * will get high color shapes. used to scale the color
                          * between low color to max color.
                          */
-                        double highColorCount = 1 * totalparticleCount;
-                        if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
-                            highColorCount = Math.log10(totalparticleCount);
+                        double highColorCount = 1 * totalmass;
+                        if (logarithmic) {
+                            highColorCount = Math.log10(totalmass) + 5;
                         }
 
                         double totalmeasurements = 0;
@@ -1327,109 +1308,131 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             System.err.println("No measurements.");
                             return;
                         }
-//                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
-                        int bagatell = (int) (0.0001 * totalparticleCount);
+
+                        double bagatell = (0.00001 * totalmass);
                         int nbMaterials = raster.getNumberOfMaterials();
                         int nbtimes = raster.measurementTimestamp.length;
-//                        System.out.println("Bagatellgrenze: " + bagatell);
+                        double duration = 0;
+                        for (int i = 0; i < raster.durationInTimeinterval.length; i++) {
+                            duration += raster.durationInTimeinterval[i];
+                        }
+                        double normalisation = 1.0 / (double) duration;
+//                        System.out.println("Total duration of "+duration+" = "+(duration/60)+" min = "+(duration/3600)+"h");
+
                         for (int i = 0; i < raster.getMeasurements().length; i++) {
                             TriangleMeasurement triangleMeasurement = raster.getMeasurements()[i];
                             if (triangleMeasurement == null) {
                                 continue;
                             }
-//                            int i = (int) tri.getCapacityID();
-                            int ptclSum = 0;
-                            int timesum = 0;
+                            double cellMass = 0;
+                            double timesum = 0;
                             for (int t = 0; t < nbtimes; t++) {
                                 timesum = 0;
                                 for (int m = 0; m < nbMaterials; m++) {
-                                    timesum += triangleMeasurement.getParticlecount()[m][t];
+                                    timesum += triangleMeasurement.getMassResidence()[m][t];
                                 }
                                 if (surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
                                     if (timesum <= bagatell) {
-//                                        System.out.println(+timesum+" / "+nbtimes+" = "+(timesum / nbtimes));
                                         continue;
                                     }
                                 }
-                                ptclSum += timesum;
+                                cellMass += timesum;
                             }
-                            Color color;
-                            if (ptclSum == 0) {
-                                color = null;
+                            if (cellMass == 0) {
                                 continue;
-                            } else {
-
-                                if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
-                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(ptclSum) / highColorCount));
-                                } else {
-                                    //Linear
-
-                                    color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (ptclSum) / highColorCount);
-
-                                }
                             }
-                            if (color != null) {
-                                if (drawTrianglesAsNodes) {
-                                    Coordinate c = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]));
-                                    NodePainting np = new NodePainting(i, c, new ColorHolder(color));
-//                                    NodePainting np = new NodePainting(i, tri.getPosition3D(0).lonLatCoordinate(), new ColorHolder(color));
-                                    np.setRadius(2);
-                                    mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, np);
+                            final double frac;
+                            if (logarithmic) {
+                                frac = (Math.log10(cellMass * normalisation) + 5) / highColorCount;
+                            } else {
+                                //Linear
+                                frac = cellMass * normalisation;
+                            }
 
-                                } else {
-                                    //Convert Coordinates
-                                    try {
-                                        int[] nodes = surface.getTriangleNodes()[i];
-                                        Coordinate[] coords = new Coordinate[4];
-                                        for (int j = 0; j < 3; j++) {
-                                            coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-//                                    System.out.println("x="+coords[j].x+"    y="+coords[j].y);
-                                        }
-                                        coords[3] = coords[0];//Close ring
-                                        AreaPainting ap = new AreaPainting(i, new DoubleColorHolder(color, color, "Contamination"), gf.createLinearRing(coords)) {
+                            if (drawTrianglesAsNodes) {
+                                Coordinate c = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]));
 
-                                            @Override
-                                            public boolean paint(Graphics2D g2) {
-                                                try {
-                                                    g2.setColor(this.getColor().getFillColor());
-                                                    g2.fill(this.getOutlineShape());
-                                                } catch (Exception e) {
-                                                    return false;
-                                                }
-                                                return true;
-                                            }
+                                NodePainting np = new NodePainting(i, c, chSurfaceHeatMap) {
+                                    @Override
+                                    public boolean paint(Graphics2D g2) {
 
-                                        };
-                                        mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
-                                    } catch (Exception exception) {
-                                        System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
-                                        System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-                                        throw exception;
+                                        g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+
+                                        return super.paint(g2); //To change body of generated methods, choose Tools | Templates.
                                     }
+                                };
+//                                    NodePainting np = new NodePainting(i, tri.getPosition3D(0).lonLatCoordinate(), new ColorHolder(color));
+                                np.setRadius(2);
+                                layer.add(np, false);
+//                                mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, np);
+
+                            } else {
+                                //Convert Coordinates
+                                try {
+                                    int[] nodes = surface.getTriangleNodes()[i];
+                                    Coordinate[] coords = new Coordinate[4];
+                                    for (int j = 0; j < 3; j++) {
+                                        coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+                                    }
+                                    coords[3] = coords[0];//Close ring
+                                    AreaPainting ap = new AreaPainting(i, chSurfaceHeatMap, gf.createLinearRing(coords)) {
+
+                                        @Override
+                                        public boolean paint(Graphics2D g2) {
+                                            try {
+                                                g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+                                                g2.fill(this.getOutlineShape());
+                                            } catch (Exception e) {
+                                                return false;
+                                            }
+                                            return true;
+                                        }
+
+                                    };
+                                    layer.add(ap, false);
+//                                    mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
+                                } catch (Exception exception) {
+                                    System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
+                                    System.err.println("number of triangles: " + surface.getTriangleNodes().length);
+                                    throw exception;
                                 }
                             }
                         }
                     }
+//                    }
                 } else if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementRectangleRaster) {
                     SurfaceMeasurementRectangleRaster raster = (SurfaceMeasurementRectangleRaster) surface.getMeasurementRaster();
                     synchronized (raster) {
-                        int totalparticleCount = raster.getMaxParticleCount();
-//                        for (InjectionInformation injection : control.getScenario().getInjections()) {
-//                            totalparticleCount += injection.getNumberOfParticles();
-//                        }
-                        //Find Layer and set represntative Colorholder, so everyone can change the colors in program
-//                    mapViewer.clearLayer(layerSurfaceContaminated);
-                        mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, new NodePainting(-1, new Coordinate(), chSurfaceHeatMap));
-
+                        double totalmass = 0;
+                        for (InjectionInformation injection : control.getScenario().getInjections()) {
+                            totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
+                        }
+                        boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
                         /**
                          * count of particles per triangle exceeding this number
                          * will get high color shapes. used to scale the color
                          * between low color to max color.
                          */
-                        double highColorCount = 1 * totalparticleCount;
-                        if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
-                            highColorCount = Math.log10(totalparticleCount);
+                        double highColorCount = 1 * totalmass;
+                        if (logarithmic) {
+                            highColorCount = Math.log10(totalmass) + 5;
                         }
+
+                        double totalmeasurements = 0;
+                        for (int i = 0; i < raster.measurementTimestamp.length; i++) {
+                            totalmeasurements += raster.measurementTimestamp[i];
+                        }
+                        if (totalmeasurements < 1) {
+                            System.err.println("No measurements.");
+                            return;
+                        }
+
+                        double bagatell = (0.00001 * totalmass);
+                        double duration = 0;
+                        for (int i = 0; i < raster.durationInTimeinterval.length; i++) {
+                            duration += raster.durationInTimeinterval[i];
+                        }
+                        double normalisation = 1.0 / (double) duration;
 
 //                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
                         for (int x = 0; x < raster.getNumberXIntervals(); x++) {
@@ -1440,51 +1443,66 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 if (raster.getParticlecounter()[x][y] == null) {
                                     continue;
                                 }
-                                int particlesum = 0;
+                                double massum = 0;
                                 for (int t = 0; t < raster.getNumberOfTimes(); t++) {
-
                                     for (int m = 0; m < raster.getNumberOfMaterials(); m++) {
-                                        particlesum += raster.getParticlecounter()[x][y][t][m];
+                                        massum += raster.getMass()[x][y][t][m];
                                     }
                                 }
-
-                                Color color;
-                                if (particlesum == 0) {
-                                    color = null;
+                                if (massum <= bagatell) {
+                                    continue;
+                                }
+                                final double frac;
+                                if (massum == 0) {
+                                    continue;
                                 } else {
-                                    if (surfaceShow == SURFACESHOW.HEATMAP_LOG) {
-                                        color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (Math.log10(particlesum) / highColorCount));
+
+                                    if (logarithmic) {
+                                        frac = (Math.log10(massum * normalisation) + 5) / highColorCount;
                                     } else {
                                         //Linear
-                                        color = interpolateColor(chSurfaceHeatMap.getFillColor(), chSurfaceHeatMap.getColor(), (particlesum) / highColorCount);
+                                        frac = massum * normalisation;
                                     }
                                 }
-                                if (color != null) {
-                                    int id = x + y * raster.getNumberXIntervals();
-                                    if (drawTrianglesAsNodes) {
-                                        Coordinate c = surface.getGeotools().toGlobal(raster.getMidCoordinate(x, y));
-                                        NodePainting np = new NodePainting(id, c, new ColorHolder(color));
-//                                    NodePainting np = new NodePainting(i, tri.getPosition3D(0).lonLatCoordinate(), new ColorHolder(color));
-                                        np.setRadius(2);
-                                        mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, np);
+                                int id = x + y * raster.getNumberXIntervals();
+                                if (drawTrianglesAsNodes) {
+                                    Coordinate c = surface.getGeotools().toGlobal(raster.getMidCoordinate(x, y));
+                                    NodePainting np = new NodePainting(id, c, chSurfaceHeatMap) {
+                                        @Override
+                                        public boolean paint(Graphics2D g2) {
 
-                                    } else {
-                                        //Convert Coordinates
-                                        try {
-//                                            int[] nodes = surface.getTriangleNodes()[i];
-                                            Coordinate[] coordsUTM = raster.getRectangleBound(x, y);
-                                            Coordinate[] coordsWGS = new Coordinate[5];
-                                            for (int j = 0; j < 4; j++) {
-                                                coordsWGS[j] = surface.getGeotools().toGlobal(coordsUTM[j]);
-                                            }
-                                            coordsWGS[4] = coordsWGS[0];//Close ring
-                                            AreaPainting ap = new AreaPainting(id, new DoubleColorHolder(color, color, "Contamination"), gf.createLinearRing(coordsWGS));
-                                            mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
-                                        } catch (Exception exception) {
-                                            System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + id);
-                                            System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-                                            throw exception;
+                                            g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+
+                                            return super.paint(g2);
                                         }
+                                    };
+                                    np.setRadius(2);
+                                    layer.add(np, false);
+
+                                } else {
+                                    //Convert Coordinates
+                                    try {
+                                        Coordinate[] coordsUTM = raster.getRectangleBound(x, y);
+                                        Coordinate[] coordsWGS = new Coordinate[5];
+                                        for (int j = 0; j < 4; j++) {
+                                            coordsWGS[j] = surface.getGeotools().toGlobal(coordsUTM[j]);
+                                        }
+                                        coordsWGS[4] = coordsWGS[0];//Close ring
+                                        AreaPainting ap = new AreaPainting(id, chSurfaceHeatMap, gf.createLinearRing(coordsWGS)) {
+                                            @Override
+                                            public boolean paint(Graphics2D g2) {
+                                                g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+                                                g2.draw(outlineShape);
+                                                g2.fill(outlineShape);
+                                                return true;
+                                            }
+                                        };
+                                        layer.add(ap, false);
+//                                            mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
+                                    } catch (Exception exception) {
+                                        System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + id);
+                                        System.err.println("number of triangles: " + surface.getTriangleNodes().length);
+                                        throw exception;
                                     }
                                 }
 
@@ -1492,6 +1510,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         }
                     }
                 }
+
                 mapViewer.recalculateShapes();
                 mapViewer.recomputeLegend();
             } catch (Exception e) {
@@ -1918,10 +1937,13 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         showPipes = pipesVisible;
         if (pipesVisible) {
             for (Pipe pipe : network.getPipes()) {
-                ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
-                list.add(pipe.getFlowInletConnection().getPosition());
-                list.add(pipe.getFlowOutletConnection().getPosition());
-                LinePainting lp = new LinePainting(pipe.getAutoID(), toRGIS(list), chPipes);
+//                ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
+//                list.add(pipe.getFlowInletConnection().getPosition());
+//                list.add(pipe.getFlowOutletConnection().getPosition());
+                Coordinate[] list = new Coordinate[2];
+                list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
+                list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
+                LinePainting lp = new LinePainting(pipe.getAutoID(), list, chPipes);
                 mapViewer.addPaintInfoToLayer(layerPipes, lp);
 //                mapViewer.addLineStringsColored(layerPipes, pipe.getAutoID(), list, chPipes, chPipes.getStroke());
             }
@@ -2102,9 +2124,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 surfaceLayer.setPaintElements(arraySurface);//arrayListSurface.toArray(new ParticleNodePainting[arrayListSurface.size()]));
             }
             double[] tempstorage = new double[2];
+            Coordinate tempCoordinate = new Coordinate();
             for (int i = 0; i < particlePaintings.length; i++) {
                 ParticleNodePainting np = particlePaintings[i];
                 if (np == null) {
+                    System.out.println("Nodepainting [" + i + "] is null");
                     break;
                 }
                 Particle p = ps[i];
@@ -2124,10 +2148,14 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 surfaceLayer.add(pnp);
                                 arraySurface[nb_surface] = pnp;
                             } else {
-                                geoToolsSurface.toGlobal(p.getPosition3d(), np.longLat, tempstorage, true);
+//                                Coordinate newCoord=new Coordinate();
+                                geoToolsSurface.toGlobal(p.getPosition3d(), tempCoordinate, tempstorage, true);
+
+//                                System.out.println("new surface LatLong is "+newCoord);
                                 np.setColor(chParticlesSurface);
-                                np.updateFromCoordinate();
+                                np.setLongLat(tempCoordinate.x, tempCoordinate.y);
 //                                arrayListSurface.add(np);
+//System.out.println("Surface np position is "+np.getRefLongitude()+", "+np.getRefLatitude());
                                 arraySurface[nb_surface] = np;
                             }
 
@@ -2143,17 +2171,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             }
                             Position3D pos = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual());
                             if (np == null) {
-                                ParticleNodePainting pnp = new ParticleNodePainting(p, i, pos.lonLatCoordinate(), chParticlesNetwork);
+                                Coordinate coord = new CoordinateXY(pos.getLongitude(), pos.getLatitude());
+                                ParticleNodePainting pnp = new ParticleNodePainting(p, i, coord, chParticlesNetwork);
                                 particlePaintings[i] = pnp;
                                 networkLayer.add(pnp);
                                 arrayNetwork[nB_network] = pnp;
                             } else {
                                 //only change coordinate
-                                np.longLat = pos.lonLatCoordinate();
-//                            geoToolsNetwork.toGlobal(pos.get3DCoordinate(), np.longLat, true);
+//                                System.out.println("new pipe LatLong is "+pos);
+                                np.setLongLat(pos.getLongitude(), pos.getLatitude());
                                 np.setColor(chParticlesNetwork);
-                                np.updateFromCoordinate();
-//                                arrayListNetwork.add(np);
                                 arrayNetwork[nB_network] = np;
                             }
 
@@ -2416,17 +2443,35 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         if (measurement == null) {
                             str.append("none");
                         } else {
-                            int sum = 0;
+                            double sum = 0;
                             for (int i = 0; i < measurement.getParticlecount().length; i++) {
-                                int materialsum = 0;
+                                double materialsum = 0;
                                 for (int t = 0; t < measurement.getParticlecount()[i].length; t++) {
                                     materialsum += measurement.getParticlecount()[i][t];
 
                                 }
-                                str.append(materialsum).append(", ");
+                                str.append(df1.format(materialsum)).append(", ");
                                 sum += materialsum;
                             }
-                            str.append("\u03a3 ").append(sum);
+                            if (measurement.getParticlecount().length > 1) {
+                                str.append("\u03a3 ").append(df1.format(sum));
+                            }
+                            sum = 0;
+                            str.append(";Mass: ");
+                            for (int i = 0; i < measurement.getParticlecount().length; i++) {
+                                double materialsum = 0;
+                                for (int t = 0; t < measurement.getParticlecount()[i].length; t++) {
+                                    materialsum += measurement.getMassResidence()[i][t];
+
+                                }
+                                str.append(df1.format(materialsum)).append(", ");
+                                sum += materialsum;
+                            }
+                            if (measurement.getParticlecount().length > 1) {
+                                str.append("\u03a3 ").append(df1.format(sum));
+                            }
+                            str.append("kg");
+
                         }
                     }
                 }
@@ -2469,24 +2514,29 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public void showTravelpath(HistoryParticle hp) {
         mapViewer.clearLayer(layerHistoryPath);
 
-        ArrayList<com.saemann.gulli.core.model.GeoPosition2D> line = new ArrayList<>(hp.getHistory().size());
+        Coordinate[] list = new Coordinate[hp.getHistory().size()];
+//        ArrayList<com.saemann.gulli.core.model.GeoPosition2D> line = new ArrayList<>(hp.getHistory().size());
+        int index = 0;
         for (Capacity c : hp.getHistory()) {
             try {
                 if (c instanceof Manhole) {
-                    line.add(((Manhole) c).getPosition());
+//                    line.add(((Manhole) c).getPosition());
+                    list[index] = new CoordinateXY(((Manhole) c).getPosition().getLongitude(), ((Manhole) c).getPosition().getLatitude());
                 } else if (c instanceof SurfaceTriangle) {
-                    line.add(((SurfaceTriangle) c).getPosition3D(0));
+//                    line.add(((SurfaceTriangle) c).getPosition3D(0));
+                    list[index] = new CoordinateXY(c.getPosition3D(0).getLongitude(), c.getPosition3D(0).getLatitude());
                 } else {
-                    line.add(c.getPosition3D(0));
+                    list[index] = new CoordinateXY(c.getPosition3D(0).getLongitude(), c.getPosition3D(0).getLatitude());
                 }
+                index++;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        if (line.isEmpty()) {
+        if (index < 2) {
             return;
         }
-        LinePainting lp = new LinePainting(0, toRGIS(line), new ColorHolder(Color.red, "Travelled path"));
+        LinePainting lp = new LinePainting(0, list, new ColorHolder(Color.red, "Travelled path"));
         mapViewer.addPaintInfoToLayer(layerHistoryPath, lp);
     }
 
@@ -2577,12 +2627,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public void setSelectedPipe(long id) {
         for (Pipe pipe : network.getPipes()) {
             if (pipe.getAutoID() == id) {
-                ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
-                list.add(pipe.getFlowInletConnection().getPosition());
-                list.add(pipe.getFlowOutletConnection().getPosition());
+//                ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
+//                list.add(pipe.getFlowInletConnection().getPosition());
+//                list.add(pipe.getFlowOutletConnection().getPosition());
                 ColorHolder ch = new ColorHolder(Color.red, "Selected");
                 ch.setStroke(new BasicStroke(2));
-                LinePainting lp = new LinePainting(0, toRGIS(list), ch);
+                Coordinate[] list = new Coordinate[2];
+                list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
+                list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
+
+                LinePainting lp = new LinePainting(0, list, ch);
                 mapViewer.addPaintInfoToLayer("SELECT", lp);
                 mapViewer.setSelectedObject(lp);
                 mapViewer.recalculateShapes();
@@ -2599,13 +2653,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         mapViewer.clearLayer(layerPipes);
         for (Pipe pipe : network.getPipes()) {
             double f = pipe.getProfile().getFillRate(pipe.getStatusTimeLine().getWaterlevel(timeIndex));
-            ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
-            list.add(pipe.getFlowInletConnection().getPosition());
-            list.add(pipe.getFlowOutletConnection().getPosition());
+//            ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list = new ArrayList<>(2);
+//            list.add(pipe.getFlowInletConnection().getPosition());
+//            list.add(pipe.getFlowOutletConnection().getPosition());
+            Coordinate[] list = new Coordinate[2];
+            list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
+            list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
             ArrowPainting p;
 
             if (f < 1) {
-                p = new ArrowPainting(pipe.getAutoID(), toRGIS(list), chPipes) {
+                p = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
                     @Override
                     public boolean paint(Graphics2D g2) {
                         try {
@@ -2626,7 +2683,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 };
             } else {
                 ColorHolder c = chFillrate[Math.min(101, Math.max((int) f, 0))];
-                p = new ArrowPainting(pipe.getAutoID(), toRGIS(list), c) {
+                p = new ArrowPainting(pipe.getAutoID(), list, c) {
                     @Override
                     public boolean paint(Graphics2D g2) {
                         try {
@@ -3287,42 +3344,40 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public class ParticleNodePainting extends NodePainting {
 
-        public Coordinate longLat;
+//        public Coordinate longLat;
         Particle p;
 
         public ParticleNodePainting(Particle p, long id, Coordinate position, ColorHolder color) {
             super(id, position, color);
             this.p = p;
-            this.longLat = position;
-            this.positionWGS84 = new com.saemann.rgis.model.GeoPosition2D() {
-
-                @Override
-                public double getLatitude() {
-                    return longLat.y;
-                }
-
-                @Override
-                public double getLongitude() {
-                    return longLat.x;
-                }
-            };
+////            this.longLat = position;
+//            this.positionWGS84 = new com.saemann.rgis.model.GeoPosition2D() {
+//
+//                @Override
+//                public double getLatitude() {
+//                    return refLatitude;
+//                }
+//
+//                @Override
+//                public double getLongitude() {
+//                    return refLongitude;
+//                }
+//            };
         }
 
-        @Override
-        public double getRefLatitude() {
-            return longLat.y;
-        }
-
-        @Override
-        public double getRefLongitude() {
-            return longLat.x;
-        }
-
-        @Override
-        public com.saemann.rgis.model.GeoPosition2D getPosition() {
-            return positionWGS84;
-        }
-
+//        @Override
+//        public double getRefLatitude() {
+//            return refLatitude;
+//        }
+//
+//        @Override
+//        public double getRefLongitude() {
+//            return refLongitude;
+//        }
+//        @Override
+//        public com.saemann.rgis.model.GeoPosition2D getPosition() {
+//            return positionWGS84;
+//        }
         @Override
         public boolean paint(Graphics2D g2) {
             if (p.isInactive()) {
@@ -3357,39 +3412,24 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         }
 
         public void setLongLat(Coordinate longLat) {
-            this.longLat = longLat;
+//            this.longLat = longLat;
             this.refLatitude = longLat.y;
             this.refLongitude = longLat.x;
         }
 
-        public void updateFromCoordinate() {
-            this.refLatitude = longLat.y;
-            this.refLongitude = longLat.x;
-
-        }
-
-        @Override
-        public void updateShape(double refX, double refY, int zoom, MapViewer mapViewer) {
-
-            super.updateShape(refX, refY, zoom, mapViewer); //To change body of generated methods, choose Tools | Templates.
-//            System.out.println("paint to "+refX+", "+refY);
-        }
-
-        @Override
-        public boolean needPainting(float minLat, float minLong, float maxLat, float maxLong) {
-            boolean pant = super.needPainting(minLat, minLong, maxLat, maxLong); //To change body of generated methods, choose Tools | Templates.
-//            System.out.println("is painted? "+pant);
-            return pant;
+        public void setLongLat(double longitude, double latitude) {
+            this.refLatitude = latitude;
+            this.refLongitude = longitude;
         }
 
     }
 
-    public static ArrayList<com.saemann.rgis.model.GeoPosition2D> toRGIS(ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list) {
-        ArrayList<com.saemann.rgis.model.GeoPosition2D> newlist = new ArrayList<>(list.size());
-        for (com.saemann.gulli.core.model.GeoPosition2D geoPosition : list) {
-            com.saemann.rgis.model.GeoPosition gp = new com.saemann.rgis.model.GeoPosition(geoPosition.getLatitude(), geoPosition.getLongitude());
-            newlist.add(gp);
-        }
-        return newlist;
-    }
+//    public static ArrayList<com.saemann.rgis.model.GeoPosition2D> toRGIS(ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list) {
+//        ArrayList<com.saemann.rgis.model.GeoPosition2D> newlist = new ArrayList<>(list.size());
+//        for (com.saemann.gulli.core.model.GeoPosition2D geoPosition : list) {
+//            com.saemann.rgis.model.GeoPosition gp = new com.saemann.rgis.model.GeoPosition(geoPosition.getLatitude(), geoPosition.getLongitude());
+//            newlist.add(gp);
+//        }
+//        return newlist;
+//    }
 }

@@ -188,7 +188,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         for (int i = 0; i < 10; i++) {
             SurfaceTriangle triangle = (SurfaceTriangle) p.getSurrounding_actual();
 
-            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p, 0);
+            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p,1, 0);
 
 //            if (triangle.measurement != null) {
 //                triangle.measurement.measureParticle(ThreadController.getSimulationTimeMS(), p);

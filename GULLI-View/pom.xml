@@ -104,6 +104,9 @@
             <releases>
                 <updatePolicy>never</updatePolicy>
             </releases>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
         </repository> 
         <repository>
             <id>centralMaven</id>
@@ -112,6 +115,9 @@
             <releases>
                 <updatePolicy>never</updatePolicy>
             </releases>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
         </repository>  
         <repository>
             <id>osgeo</id>

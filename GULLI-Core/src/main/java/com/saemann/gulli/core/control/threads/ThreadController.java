@@ -173,7 +173,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //
 //        barrier_positionUpdate.initialize();
         barrier_sync = new SingleThreadBarrier<>("SyncBarrier", this);
-        syncThread_pipes = new SynchronizationThreadPipe("SyncThread_Pipes", barrier_sync, control);
+        syncThread_pipes = new SynchronizationThreadPipe("SyncThread", barrier_sync, control);
         barrier_sync.setThread(syncThread_pipes);
 //        barrier_sync.addThread(syncThread_pipes);
 //        barrier_sync.addThread(new SynchronizationThreadSurface("SyncThread_Surface", barrier_sync, control));

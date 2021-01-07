@@ -75,11 +75,23 @@ public abstract class SurfaceMeasurementRaster {
     public boolean continousMeasurements = true;
 
     /**
+     * If enabled, particles will be counted on every cell they visit, Otherwise
+     * they are only counted in the final cell.
+     */
+    public boolean spatialConsistency = true;
+
+    /**
      * Number of samples taken during the Sampling interval. This is usually 1
      * if continuous sampling is disabled. The counter is increased at the end
      * of each sampling.
      */
     public int[] measurementsInTimeinterval;
+    
+    /**
+     * Seconds sampled during the Sampling interval.  The counter is increased at the end
+     * of each sampling.
+     */
+    public double[] durationInTimeinterval;
 
     /**
      * The LAST timestamp of a sampling (end of simulation loop) for the current
@@ -99,10 +111,11 @@ public abstract class SurfaceMeasurementRaster {
      *
      * @param time current time at the moment of sampling
      * @param particle the particle to sample
+     * @param residenceTime in seconds
      * @param threadIndex the number of the thread, which performs this sampling
      * call
      */
-    public abstract void measureParticle(long time, Particle particle, int threadIndex);
+    public abstract void measureParticle(long time, Particle particle, double residenceTime, int threadIndex);
 
     public abstract void setNumberOfMaterials(int numberOfMaterials);
 
@@ -132,13 +145,13 @@ public abstract class SurfaceMeasurementRaster {
      * @return mass in kg in the cell
      */
     public abstract double getMassInCell(int cellIndex, int timeindex, int materialIndex);
-    
+
     /**
      * The mass (in kg) of the materiel (with materialIndex). Note that this
      * method returns the total counted mass during intervals of continuous
-     * sampling. This need to be divided by the number of samples to get the mean mass during the sampling period.
-     * If continuous sampling is disabled, the snapshot at the
-     * timeindex is returned.
+     * sampling. This need to be divided by the number of samples to get the
+     * mean mass during the sampling period. If continuous sampling is disabled,
+     * the snapshot at the timeindex is returned.
      *
      * @param cellIndex
      * @param timeindex

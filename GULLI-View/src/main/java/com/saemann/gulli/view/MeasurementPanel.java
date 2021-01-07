@@ -26,6 +26,7 @@ package com.saemann.gulli.view;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.StoringCoordinator;
+import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.output.OutputIntention;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.threads.ThreadController;
@@ -52,7 +53,9 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
@@ -77,6 +80,7 @@ public class MeasurementPanel extends JPanel {
     private JCheckBox checkMeasureResidenceTimePipe;
     private JFormattedTextField textMeasurementSecondsSurface;
     private JCheckBox checkMeasureContinouslySurface;
+    private JCheckBox checkMeasureSpatialConsistentSurface;
     private JCheckBox checkMeasureSynchronisedSurface;
     private JCheckBox checkMeasureSynchronisedPipe;
 
@@ -84,7 +88,7 @@ public class MeasurementPanel extends JPanel {
         NONE, TRIANGLE, RECTANGLE, OTHER
     };
     private JComboBox<GridType> comboSurfaceGrid;
-    private boolean selfChange=false;
+    private boolean selfChange = false;
     private JTextField textGridSize = new JTextField();
 
     protected DecimalFormat dfSeconds = new DecimalFormat("#,##0.###", new DecimalFormatSymbols(StartParameters.formatLocale));
@@ -129,11 +133,11 @@ public class MeasurementPanel extends JPanel {
         panelMsec.add(textMeasurementSecondsPipe, BorderLayout.CENTER);
         panelMeasurementsPipe.add(panelMsec, BorderLayout.NORTH);
         JPanel panelMcheck = new JPanel(new GridLayout(1, 3));
-        checkMeasureContinouslyPipe = new JCheckBox("Time contin.", false);
+        checkMeasureContinouslyPipe = new JCheckBox("Time continuous", false);
         checkMeasureContinouslyPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
 
-        checkMeasureResidenceTimePipe = new JCheckBox("Space contin.", false);
-        checkMeasureResidenceTimePipe.setToolTipText("<html><b>true</b>: Sample all visited capacities. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
+        checkMeasureResidenceTimePipe = new JCheckBox("Spatial consistency", false);
+        checkMeasureResidenceTimePipe.setToolTipText("<html><b>true</b>: Sample all visited capacities, weighted by the residence time. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
 
         checkMeasureSynchronisedPipe = new JCheckBox("Synchronize", ArrayTimeLineMeasurement.synchronizeMeasures);
         checkMeasureSynchronisedPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
@@ -167,11 +171,15 @@ public class MeasurementPanel extends JPanel {
         panelMsecS.add(textMeasurementSecondsSurface, BorderLayout.CENTER);
         panelSurfaceSurrounding.add(panelMsecS, BorderLayout.NORTH);
         JPanel panelMcheckSurface = new JPanel(new GridLayout(1, 1));
-        checkMeasureContinouslySurface = new JCheckBox("Time continous", false);
+        checkMeasureContinouslySurface = new JCheckBox("Time continuous", false);
         checkMeasureContinouslySurface.setToolTipText("<html><b>true</b>: slow, accurate measurement in every simulation timestep, mean calculated for the interval. <br><b>false</b>: fast sampling only at the end of an interval.</html>");
+        checkMeasureSpatialConsistentSurface = new JCheckBox("Spatial consistency", false);
+        checkMeasureSpatialConsistentSurface.setToolTipText("<html><b>true</b>: Sample all visited cells, weighted by the residence time. <br><b>false</b>: Sample Only in final cells at end of simulation step</html>");
+
         checkMeasureSynchronisedSurface = new JCheckBox("Synchronize", SurfaceMeasurementRaster.synchronizeMeasures);
         checkMeasureSynchronisedSurface.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
         panelMcheckSurface.add(checkMeasureContinouslySurface);
+        panelMcheckSurface.add(checkMeasureSpatialConsistentSurface);
         panelMcheckSurface.add(checkMeasureSynchronisedSurface);
 
         //Grid
@@ -186,6 +194,7 @@ public class MeasurementPanel extends JPanel {
         borderOutputs = new TitledBorder("0 Outputs");
         panelOutputsSurrounding.setBorder(borderOutputs);
         panelOutputsSurrounding.add(buttonNewOutput, BorderLayout.NORTH);
+
         panelOutputs = new JPanel();
         panelOutputs.setLayout(new BoxLayout(panelOutputs, BoxLayout.Y_AXIS));
         JScrollPane scroll = new JScrollPane(panelOutputs);
@@ -203,6 +212,11 @@ public class MeasurementPanel extends JPanel {
                     checkMeasureContinouslySurface.setSelected(true);
                 } else {
                     checkMeasureContinouslySurface.setSelected(false);
+                }
+                if (mpc.spatialConsistency) {
+                    checkMeasureSpatialConsistentSurface.setSelected(true);
+                } else {
+                    checkMeasureSpatialConsistentSurface.setSelected(false);
                 }
                 textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
 
@@ -287,6 +301,15 @@ public class MeasurementPanel extends JPanel {
             }
         });
 
+        checkMeasureSpatialConsistentSurface.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
+                    control.getScenario().getMeasurementsSurface().spatialConsistency = checkMeasureSpatialConsistentSurface.isSelected();
+                }
+            }
+        });
+
         checkMeasureSynchronisedSurface.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -339,7 +362,9 @@ public class MeasurementPanel extends JPanel {
         comboSurfaceGrid.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(selfChange)return;
+                if (selfChange) {
+                    return;
+                }
                 if (comboSurfaceGrid.getSelectedItem() == GridType.NONE) {
                 } else if (comboSurfaceGrid.getSelectedItem() == GridType.TRIANGLE) {
                     SurfaceMeasurementTriangleRaster smr = SurfaceMeasurementTriangleRaster.init(control);
@@ -358,11 +383,11 @@ public class MeasurementPanel extends JPanel {
                 updateParameters();
             }
         });
-        
+
         textGridSize.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(comboSurfaceGrid.getSelectedItem()==GridType.RECTANGLE){
+                if (comboSurfaceGrid.getSelectedItem() == GridType.RECTANGLE) {
                     double dx = Double.parseDouble(textGridSize.getText().replaceAll("[^0-9]", "").replaceAll(",", "."));
                     SurfaceMeasurementRectangleRaster smr = SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(control.getSurface(), dx, dx);
                     control.getSurface().setMeasurementRaster(smr);
@@ -371,7 +396,15 @@ public class MeasurementPanel extends JPanel {
                     }
                 }
                 updateParameters();
-                
+                repaint();
+            }
+        });
+
+        buttonNewOutput.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
+                updateParameters();
             }
         });
     }
@@ -395,6 +428,11 @@ public class MeasurementPanel extends JPanel {
                 } else {
                     checkMeasureContinouslySurface.setSelected(false);
                 }
+                if (mpc.spatialConsistency) {
+                    checkMeasureSpatialConsistentSurface.setSelected(true);
+                } else {
+                    checkMeasureSpatialConsistentSurface.setSelected(false);
+                }
                 textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
             }
         }
@@ -404,12 +442,24 @@ public class MeasurementPanel extends JPanel {
             int counter = 0;
             for (OutputIntention fout : sc.getFinalOutputs()) {
                 panelOutputs.add(new OutputPanel(fout, counter++));
+                JPopupMenu popup = new JPopupMenu();
+                JMenuItem itemdelete = new JMenuItem("Remove");
+                popup.add(itemdelete);
+                itemdelete.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        control.getStoringCoordinator().getFinalOutputs().remove(fout);
+                        popup.setVisible(false);
+                        updateParameters();
+                    }
+                });
+                panelOutputs.add(popup);
             }
             borderOutputs.setTitle(sc.getFinalOutputs().size() + " Outputs");
         }
 
         if (control != null && control.getSurface() != null) {
-            selfChange=true;
+            selfChange = true;
             if (control.getSurface().getMeasurementRaster() == null) {
                 comboSurfaceGrid.setSelectedItem(GridType.NONE);
             } else {
@@ -426,7 +476,7 @@ public class MeasurementPanel extends JPanel {
                     textGridSize.setToolTipText("Unknown type of Raster");
                 }
             }
-            selfChange=false;
+            selfChange = false;
         }
     }
 
@@ -436,12 +486,13 @@ public class MeasurementPanel extends JPanel {
         checkMeasureContinouslyPipe.setEnabled(editable);
         checkMeasureContinouslySurface.setEnabled(editable);
         checkMeasureResidenceTimePipe.setEnabled(editable);
+        checkMeasureContinouslyPipe.setEnabled(editable);
         checkMeasureSynchronisedSurface.setEnabled(editable);
         checkMeasureSynchronisedPipe.setEnabled(editable);
 
         textGridSize.setEnabled(editable);
-        selfChange=true;
+        selfChange = true;
         comboSurfaceGrid.setEnabled(editable);
-        selfChange=false;
+        selfChange = false;
     }
 }

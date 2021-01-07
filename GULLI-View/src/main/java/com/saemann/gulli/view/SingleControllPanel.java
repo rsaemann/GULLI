@@ -88,8 +88,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  * @author saemann
  */
 public class SingleControllPanel extends JPanel implements LoadingActionListener, SimulationActionListener {
-    
-    public static boolean advancedOpions=false;
+
+    public static boolean advancedOpions = false;
 
     private MapViewer mapViewer;
     private PaintManager paintManager;
@@ -693,6 +693,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
             @Override
             public void focusLost(FocusEvent fe) {
+                if (!textTimeStep.isEditable()) {
+                    return;
+                }
                 super.focusLost(fe); //To change body of generated methods, choose Tools | Templates.
                 try {
                     double dt = Double.parseDouble(textTimeStep.getText());
@@ -805,9 +808,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelShapes.add(labelSliderTime);
 
         this.add(panelShapes);
-        panelShapePipe = new JPanel(new GridLayout((advancedOpions?4:2), 1));
-        TitledBorder borderShapePipe=new TitledBorder("Pipe Shapes");
-        borderShapePipe.setBorder(new LineBorder(Color.BLUE.darker(), 2,true));
+        panelShapePipe = new JPanel(new GridLayout((advancedOpions ? 4 : 2), 1));
+        TitledBorder borderShapePipe = new TitledBorder("Pipe Shapes");
+        borderShapePipe.setBorder(new LineBorder(Color.BLUE.darker(), 2, true));
         panelShapePipe.setBorder(borderShapePipe);
         final JComboBox<PaintManager.PIPESHOW> comboPipeShow = new JComboBox<>(PaintManager.PIPESHOW.values());
 
@@ -816,8 +819,12 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         comboPipeShow.setSelectedItem(PaintManager.PIPESHOW.GREY);
         buttonLoadAllPipeTimelines = new JButton("Load all Timelines");
         buttonLoadAllPipeTimelines.setToolTipText("Show values for all pipes & manholes, not only for the subset of affected capacities.");
-        if(advancedOpions)panelShapePipe.add(buttonLoadAllPipeTimelines);
-        if(advancedOpions)panelShapePipe.add(comboPipeThemes);
+        if (advancedOpions) {
+            panelShapePipe.add(buttonLoadAllPipeTimelines);
+        }
+        if (advancedOpions) {
+            panelShapePipe.add(comboPipeThemes);
+        }
         panelShapePipe.add(comboPipeShow);
 
         panelShapes.add(panelShapePipe);
@@ -932,7 +939,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         });
 
         // Zusammenbauen
-        if(advancedOpions)this.add(panelVideo);
+        if (advancedOpions) {
+            this.add(panelVideo);
+        }
 
         JPanel panelstretch = new JPanel(new BorderLayout());
         this.add(panelstretch);
@@ -1473,33 +1482,39 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         long seconds = ((controler.getSimulationTime() - controler.getSimulationStartTime()) / 1000L);
         double minutes = seconds / 60.;
         double hours = minutes / 60.;
-        timeelapsed.delete(0, timeelapsed.capacity());
-        if (hours > 0) {
-            timeelapsed.append((int) hours).append("h ");
-        }
-        if (minutes > 0) {
-            timeelapsed.append((int) minutes % 60).append("m ");
-        }
-        if (seconds > 0) {
-            if ((int) seconds % 60 < 10) {
-                timeelapsed.append("0");
+        synchronized (timeelapsed) {
+            try {
+                timeelapsed.delete(0, timeelapsed.capacity());
+
+            } catch (Exception e) {
+                timeelapsed = new StringBuilder(30);
             }
-            timeelapsed.append((int) seconds % 60).append("s ");
-        }
-        int percent = (int) (0.5 + 100 * (controler.getSimulationTime() - controler.getSimulationStartTime()) / (double) ((controler.getSimulationTimeEnd() - controler.getSimulationStartTime())));
-        progressSimulation.setValue(percent);
-        timeelapsed.append(" = ").append(seconds).append("s");
-        labelSimulationTime.setText(timeelapsed.toString());
+            if (hours > 0) {
+                timeelapsed.append((int) hours).append("h ");
+            }
+            if (minutes > 0) {
+                timeelapsed.append((int) minutes % 60).append("m ");
+            }
+            if (seconds > 0) {
+                if ((int) seconds % 60 < 10) {
+                    timeelapsed.append("0");
+                }
+                timeelapsed.append((int) seconds % 60).append("s ");
+            }
+            int percent = (int) (0.5 + 100 * (controler.getSimulationTime() - controler.getSimulationStartTime()) / (double) ((controler.getSimulationTimeEnd() - controler.getSimulationStartTime())));
+            progressSimulation.setValue(percent);
+            timeelapsed.append(" = ").append(seconds).append("s");
+            labelSimulationTime.setText(timeelapsed.toString());
 
-        calActual.setTimeInMillis(controler.getSimulationTime());
-        labelactualTime.setText(calActual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calActual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calActual.get(GregorianCalendar.MINUTE)) + " ");
+            calActual.setTimeInMillis(controler.getSimulationTime());
+            labelactualTime.setText(calActual.get(GregorianCalendar.HOUR_OF_DAY) + ":" + (calActual.get(GregorianCalendar.MINUTE) < 10 ? "0" : "") + (calActual.get(GregorianCalendar.MINUTE)) + " ");
 
-        if (frame != null) {
-            if (controler.isSimulating()) {
-                frame.setTitle(">" + percent + "% Run");
+            if (frame != null) {
+                if (controler.isSimulating()) {
+                    frame.setTitle(">" + percent + "% Run");
+                }
             }
         }
-
     }
 
     /**
@@ -1537,41 +1552,48 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     }
 
     private void startGUIUpdateThread() {
-        updateGUIThread = new Thread("GUI Repaint SinglecontrolPanel") {
-            @Override
-            public void run() {
-                while (!isInterrupted()) {
-                    try {
-                        updateLoadingState();
-                        updateScenarioInformation();
-                        updateSimulationRunInformation();
+        if (updateGUIThread != null) {
+            updateGUIThread.interrupt();
+            updateGUIThread = null;
+        }
+        if (updateGUIThread == null) {
+            updateGUIThread = new Thread("GUI Repaint SinglecontrolPanel") {
+                @Override
+                public void run() {
+                    while (!isInterrupted()) {
+                        try {
+                            updateLoadingState();
+                            updateScenarioInformation();
+                            updateSimulationRunInformation();
 //                        updatePanelInjections();
-                        updateEditableState();
-                        //Information about shapes
-                        if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
-                            if (panelShapePipe.getBorder() instanceof TitledBorder) {
-                                ((TitledBorder) panelShapePipe.getBorder()).setTitle("Pipe Shapes (" + control.getNetwork().getPipes().size() + ")");
+                            updateEditableState();
+                            //Information about shapes
+                            if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
+                                if (panelShapePipe.getBorder() instanceof TitledBorder) {
+                                    ((TitledBorder) panelShapePipe.getBorder()).setTitle("Pipe Shapes (" + control.getNetwork().getPipes().size() + ")");
+                                }
                             }
-                        }
-                        if (control.getSurface() != null && control.getSurface().getTriangleMids() != null) {
-                            if (panelShapesSurface.getBorder() instanceof TitledBorder) {
-                                ((TitledBorder) panelShapesSurface.getBorder()).setTitle("Surface Shapes (" + control.getSurface().getTriangleMids().length + ")");
+                            if (control.getSurface() != null && control.getSurface().getTriangleMids() != null) {
+                                if (panelShapesSurface.getBorder() instanceof TitledBorder) {
+                                    ((TitledBorder) panelShapesSurface.getBorder()).setTitle("Surface Shapes (" + control.getSurface().getTriangleMids().length + ")");
+                                }
+
+                            }
+                            synchronized (updatethreadBarrier) {
+                                updatethreadBarrier.wait();
+
                             }
 
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                        synchronized (updatethreadBarrier) {
-                            updatethreadBarrier.wait();
-
-                        }
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+                    System.out.println("Update Thread is interrupted and terminates here.");
                 }
-                System.out.println("Update Thread is interrupted and terminates here.");
-            }
-        };
-        updateGUIThread.start();
+            };
+            updateGUIThread.start();
+        }
+
     }
 
     private void updatePanelInjections() {
@@ -1657,24 +1679,30 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     }
 
     private void startUpdateSimulationThread() {
-        if (updateSimulationThread != null) {
-            updateSimulationThread.interrupt();
+        if (updateSimulationThread != null && !updateSimulationThread.isAlive()) {
+            try {
+                updateSimulationThread.interrupt();
+            } catch (Exception e) {
+            }
+            updateSimulationThread=null;
         }
-        updateSimulationThread = new Thread("Update Simulation GUI") {
-            @Override
-            public void run() {
-                while (!isInterrupted() && controler.isSimulating()) {
-                    updateSimulationRunInformation();
-                    try {
-                        sleep(500);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+        if (updateSimulationThread == null || !updateSimulationThread.isAlive()) {
+            updateSimulationThread = new Thread("Update Simulation GUI") {
+                @Override
+                public void run() {
+                    while (!isInterrupted() && controler.isSimulating()) {
+                        updateSimulationRunInformation();
+                        try {
+                            sleep(500);
+                        } catch (InterruptedException ex) {
+//                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 }
-            }
 
-        };
-        updateSimulationThread.start();
+            };
+            updateSimulationThread.start();
+        }
     }
 
 }

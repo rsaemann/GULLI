@@ -373,7 +373,7 @@ public class ShapeTools {
                         //index out of bounds
                         continue;
                     }
-                    int[] particles = measurement.getParticlecount()[materialIndex];
+                    double[] particles = measurement.getParticlecount()[materialIndex];
                     int sum = 0;
                     for (int i = 0; i < particles.length; i++) {
                         sum += particles[i];

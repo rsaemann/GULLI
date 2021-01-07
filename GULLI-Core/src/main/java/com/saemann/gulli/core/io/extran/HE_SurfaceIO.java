@@ -873,6 +873,105 @@ public class HE_SurfaceIO {
         }
     }
 
+    public static void writeSurfaceMassCSV(File outputFile, Surface surface, int materialIndex, int numberOfParticles, int decimalDigits) throws IOException {
+        if (surface == null) {
+            throw new NullPointerException("No Surface set. No output file written.");
+        }
+        int categories = surface.getNumberOfMaterials();
+        if (categories < 1) {
+            throw new NullPointerException("No Surface Material Categories. No output file written.");
+        }
+        //Number of particles can be a decimal number if continuous measurements is enabled
+        DecimalFormat df2 = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.US));
+        df2.setMaximumFractionDigits(decimalDigits);
+        double sampleDuration = 0;
+        int[] samplesTaken = surface.getMeasurementRaster().measurementsInTimeinterval;
+        int numberofIntervals = samplesTaken.length;
+        if (samplesTaken[samplesTaken.length - 1] < 1) {
+            numberofIntervals--;
+
+        }
+        for (int i = 0; i < surface.getMeasurementRaster().durationInTimeinterval.length; i++) {
+            sampleDuration += surface.getMeasurementRaster().durationInTimeinterval[i];
+        }
+
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
+            bw.write("Mass on surface cells [kg]");
+            bw.newLine();
+            if (surface.fileTriangles != null) {
+                bw.write("Surface:" + surface.fileTriangles.getParentFile().getName() + "/" + surface.fileTriangles.getName());
+                bw.newLine();
+            }
+            bw.write("Reduced Net:" + (surface.mapIndizes != null && !surface.mapIndizes.isEmpty()));
+            bw.newLine();
+            bw.write("CellCount:" + surface.getMeasurementRaster().getNumberOfCells());
+            bw.newLine();
+            bw.write("ParticleCount:" + numberOfParticles);
+            bw.newLine();
+            bw.write("Contaminant category:" + materialIndex);
+            bw.newLine();
+            bw.write("Timesteps:" + numberofIntervals);
+            bw.newLine();
+            bw.write("Samples taken:");
+            for (int i = 0; i < numberofIntervals; i++) {
+                if (i > 0) {
+                    bw.write(";");
+                }
+                bw.write(samplesTaken[i] + "");
+            }
+            bw.newLine();
+            bw.write("Total sample duration [s]:" + sampleDuration);
+            bw.newLine();
+            bw.write("Sampling duration [s]:");
+            for (int i = 0; i < numberofIntervals; i++) {
+                if (i > 0) {
+                    bw.write(";");
+                }
+                bw.write(surface.getMeasurementRaster().durationInTimeinterval[i] + "");
+            }
+            bw.newLine();
+            bw.write("Timestamps:");
+            for (int i = 0; i < numberofIntervals; i++) {
+                if (i > 0) {
+                    bw.write(";");
+                }
+                bw.write(surface.getMeasurementRaster().measurementTimestamp[i] + "");
+            }
+            bw.newLine();
+            bw.write("Stepduration:" + surface.getMeasurementRaster().getIndexContainer().getDeltaTimeMS() + "ms");
+            bw.newLine();
+            bw.write("TriangleID;[Coordinate];#Max;#0;#1;#2;...");
+            bw.newLine();
+            bw.write("***");
+            bw.newLine();
+            StringBuffer buffer = new StringBuffer(80);
+//            if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+            SurfaceMeasurementRaster raster = /*(SurfaceMeasurementTriangleRaster)*/ surface.getMeasurementRaster();
+            int cellcount = raster.getNumberOfCells();
+            int timesteps = raster.getIndexContainer().getNumberOfTimes();
+            for (int mID = 0; mID < cellcount; mID++) {
+                if (raster.isCellContaminated(mID)) {
+                    buffer.delete(0, buffer.length());
+
+                    double max = 0;
+                    for (int j = 0; j < timesteps; j++) {
+                        double particles = raster.getMassInCell(mID, j, materialIndex);
+                        max = Math.max(max, particles);
+                        buffer.append(";").append(df2.format(particles));
+                    }
+                    if (max >0) {//Only write cell information, if there is content
+                        bw.write(mID + ";");
+                        Coordinate coord = raster.getCenterOfCell(mID);
+                        bw.write("[" + df2.format(coord.x) + "," + df2.format(coord.y) + "," + df2.format(coord.z) + "]");
+                        bw.write(";" + max);
+                        bw.write(buffer.toString());
+                        bw.newLine();
+                    }
+                }
+            }
+        }
+    }
+
     public static void writeSurfaceWaterlevelDynamicsCSV(File outputFile, Surface surface) throws IOException {
         if (surface == null) {
             throw new NullPointerException("No Surface set. No output file written.");
@@ -1372,7 +1471,7 @@ public class HE_SurfaceIO {
                 for (int j = 0; j < mass.length; j++) {
                     mass[j] = 0;
                     for (int t = 0; t < tr.getIndexContainer().getNumberOfTimes(); t++) {
-                        mass[j] += m.getMass()[j][t];
+                        mass[j] += m.getMassResidence()[j][t];
                     }
                     bw.write(dfLong.format(mass[j]) + ",");
                 }

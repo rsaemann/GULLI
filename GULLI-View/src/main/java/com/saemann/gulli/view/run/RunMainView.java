@@ -1,26 +1,17 @@
 package com.saemann.gulli.view.run;
 
-import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
-import com.saemann.gulli.core.control.StoringCoordinator;
-import com.saemann.gulli.core.control.listener.LoadingActionAdapter;
-import com.saemann.gulli.core.control.listener.LoadingActionListener;
-import com.saemann.gulli.core.control.output.ContaminationParticles;
-import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
-import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
-import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Manhole;
-import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.view.ViewController;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
@@ -212,30 +203,6 @@ public class RunMainView {
 
                     control.recalculateInjections();
                     control.resetScenario();
-
-//                    if (StartParameters.isAutoStartatStartup()) {
-//                        System.out.println("Autostart simulation");
-//                        if (control.getScenario() != null) {
-//                            // Start the simulation.
-//                            control.start();
-//                            final Runnable r = this;
-//
-//                            new Thread("Loading finished listener remover") {
-//                                @Override
-//                                public void run() {
-//                                    try {
-//                                        //Wait some time to enable a repaint of GUI.
-//                                        //Otherwise some drawing Exceptions occure.
-//                                        sleep(2000);
-//                                    } catch (InterruptedException ex) {
-//                                        Logger.getLogger(RunMainView.class.getName()).log(Level.SEVERE, null, ex);
-//                                    }
-//                                    lc.loadingFinishedListener.remove(r);
-//                                }
-//                            }.start();
-//                        }
-//                    }
-
                 }
             });
         }
@@ -266,10 +233,10 @@ public class RunMainView {
             lc.loadingFinishedListener.add(r);
         }
 
-        control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
-        StoringCoordinator.verbose = true;
-        control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoJSON, -1, true));
-        control.getStoringCoordinator().addFinalOuput(new ContaminationParticles());
+//        control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
+////        StoringCoordinator.verbose = true;
+//        control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoJSON, -1, true));
+//        control.getStoringCoordinator().addFinalOuput(new ContaminationParticles());
 
         //Start loading the set files. 
         if (lc.getFileNetwork() != null || lc.getFilePipeResultIDBF() != null || lc.getFileSurfaceTriangleIndicesDAT() != null) {

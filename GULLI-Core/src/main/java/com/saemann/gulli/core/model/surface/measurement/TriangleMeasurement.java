@@ -26,7 +26,7 @@ package com.saemann.gulli.core.model.surface.measurement;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Stores number/mass of particles on a surface triangle
+ * Stores number/massresidence of particles on a surface triangle
  *
  * @author saemann
  */
@@ -34,9 +34,10 @@ public class TriangleMeasurement {
 
     int triangleID;
     /**
-     * [material index][timeindex]
+     * residence massresidence [kg*s]
+ [material index][timeindex]
      */
-    double[][] mass;
+    double[][] massresidence;
 
 //    /**
 //     * temporal stores the counter for each thread seperately [material
@@ -46,7 +47,7 @@ public class TriangleMeasurement {
     /**
      * [material index][timeindex]
      */
-    int[][] particlecounter;
+    double[][] particlecounter;
 
 //    /**
 //     * temporal stores the counter for each thread seperately [material
@@ -61,8 +62,8 @@ public class TriangleMeasurement {
     public TriangleMeasurement(int triangleID, int numberOfTimes, int numberOfMaterials, int numberOfThreads) {
 
         this.triangleID = triangleID;
-        this.mass = new double[numberOfMaterials][numberOfTimes];
-        this.particlecounter = new int[numberOfMaterials][numberOfTimes];
+        this.massresidence = new double[numberOfMaterials][numberOfTimes];
+        this.particlecounter = new double[numberOfMaterials][numberOfTimes];
 //        this.threadMass = new double[numberOfMaterials][numberOfThreads];
 //        this.threadParticleCounter = new int[numberOfMaterials][numberOfThreads];
 
@@ -75,10 +76,10 @@ public class TriangleMeasurement {
     /**
      * [material index][timeindex]
      *
-     * @return
+     * @return Massresidence [kg*s]
      */
-    public double[][] getMass() {
-        return mass;
+    public double[][] getMassResidence() {
+        return massresidence;
     }
 
     /**
@@ -86,7 +87,7 @@ public class TriangleMeasurement {
      *
      * @return
      */
-    public int[][] getParticlecount() {
+    public double[][] getParticlecount() {
         return particlecounter;
     }
 
@@ -105,15 +106,4 @@ public class TriangleMeasurement {
         return counter;
     }
 
-//    public void synchronizeMeasurements(int timeindex) {
-//        for (int i = 0; i < mass.length; i++) {
-//            for (int j = 0; j < threadMass[0].length; j++) {
-//                mass[i][timeindex] += threadMass[i][j];
-//                threadMass[i][j] = 0;
-//                particlecounter[i][timeindex] += particlecounter[i][j];
-//                particlecounter[i][j] = 0;
-//            }
-//        }
-//
-//    }
 }

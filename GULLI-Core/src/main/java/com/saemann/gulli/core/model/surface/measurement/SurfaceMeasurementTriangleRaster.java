@@ -65,6 +65,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         this.measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
         this.numberOfParticleThreads = numberOfParticleThreads;
         this.measurementsInTimeinterval = new int[time.getNumberOfTimes()];
+        this.durationInTimeinterval = new double[time.getNumberOfTimes()];
 
         measurementTimestamp = new long[measurementsInTimeinterval.length];
     }
@@ -88,7 +89,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
     }
 
     @Override
-    public void measureParticle(long time, Particle particle, int threadIndex) {
+    public void measureParticle(long time, Particle particle, double residenceDuration, int threadIndex) {
         if (!continousMeasurements && !measurementsActive) {
             return;
         }
@@ -133,7 +134,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
                 m = createMeasurement(id);
             }
 //            if (synchronizeOnlyAtEnd) {
-//                m.mass[materialIndex][threadIndex] += particle.getParticleMass();
+//                m.massresidence[materialIndex][threadIndex] += particle.getParticleMass();
 //                m.particlecounter[materialIndex][threadIndex]++;
 //                if (!m.used) {
 //                    m.used = true;
@@ -147,8 +148,8 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
                     monitor[threadIndex] = m;
                     m.lock.lock();
                     try {
-                        m.mass[materialIndex][timeindex] += particle.particleMass;
-                        m.particlecounter[materialIndex][timeindex]++;
+                        m.massresidence[materialIndex][timeindex] += particle.particleMass * residenceDuration;
+                        m.particlecounter[materialIndex][timeindex] += residenceDuration;
                     } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
@@ -157,8 +158,8 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
                     }
                 }
             } else {
-                m.mass[materialIndex][timeindex] += particle.particleMass;
-                m.particlecounter[materialIndex][timeindex]++;
+                m.massresidence[materialIndex][timeindex] += particle.particleMass * residenceDuration;
+                m.particlecounter[materialIndex][timeindex] += residenceDuration;
             }
         } catch (IndexOutOfBoundsException e) {
             e.printStackTrace();
@@ -236,6 +237,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         }
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
         measurementTimestamp = new long[measurementsInTimeinterval.length];
+        durationInTimeinterval = new double[measurementsInTimeinterval.length];
     }
 
     @Override
@@ -244,12 +246,14 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         measurements = new TriangleMeasurement[surf.getTriangleNodes().length];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
         measurementTimestamp = new long[measurementsInTimeinterval.length];
+        durationInTimeinterval = new double[measurementsInTimeinterval.length];
     }
 
     public Surface getSurface() {
         return surf;
     }
 
+    @Override
     public int getNumberOfMaterials() {
         return numberOfMaterials;
     }
@@ -295,12 +299,12 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         if (measurementsInTimeinterval[timeindex] == 0) {
             return 0;
         }
-        return measurements[cellIndex].mass[materialIndex][timeindex] / measurementsInTimeinterval[timeindex];
+        return measurements[cellIndex].massresidence[materialIndex][timeindex] / durationInTimeinterval[timeindex];
     }
 
     @Override
     public double getRawMassInCell(int cellIndex, int timeindex, int materialIndex) {
-        return measurements[cellIndex].mass[materialIndex][timeindex];
+        return measurements[cellIndex].massresidence[materialIndex][timeindex];
     }
 
     /**
@@ -315,7 +319,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
 
     @Override
     public double getRawNumberOfParticlesInCell(int cellIndex, int timeindex, int materialIndex) {
-        return measurements[cellIndex].particlecounter[materialIndex][timeindex];
+        return measurements[cellIndex].particlecounter[materialIndex][timeindex] / durationInTimeinterval[timeindex];
     }
 
 }

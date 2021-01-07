@@ -1305,9 +1305,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             double mass_s = 0;
             int count_s = 0;
             for (int j = 0; j < numberOfMaterials; j++) {
-                mass[j].addOrUpdate(time, triM.getMass()[j][i] * timescale);
+                mass[j].addOrUpdate(time, triM.getMassResidence()[j][i] * timescale);
                 count[j].addOrUpdate(time, triM.getParticlecount()[j][i] * timescale);
-                mass_s += triM.getMass()[j][i];
+                mass_s += triM.getMassResidence()[j][i];
                 count_s += triM.getParticlecount()[j][i];
             }
             mass_sum.addOrUpdate(time, mass_s * timescale);
