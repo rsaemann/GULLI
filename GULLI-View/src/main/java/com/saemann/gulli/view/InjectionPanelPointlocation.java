@@ -77,7 +77,7 @@ public class InjectionPanelPointlocation extends JPanel {
         this.paintManager = paintManager;
         //Name
 //        textname = new JTextField(info.getMaterial().getName());
-        spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, 0, Integer.MAX_VALUE, 1));
+        spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, -1, Integer.MAX_VALUE, 1));
         this.add(spinnerMaterial);
         this.add(new JLabel("Material [" + info.getMaterial().materialIndex + "]:" + info.getMaterial().getName()));
 //        this.add(textname);

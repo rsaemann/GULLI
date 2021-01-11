@@ -2,7 +2,6 @@ package com.saemann.gulli.view.timeline;
 
 import com.itextpdf.awt.PdfGraphics2D;
 import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -90,7 +89,6 @@ import java.text.DecimalFormatSymbols;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.jfree.chart.block.BlockBorder;
-import org.jfree.chart.block.LineBorder;
 import org.jfree.chart.ui.Layer;
 import org.jfree.chart.ui.RectangleAnchor;
 import org.jfree.chart.ui.RectangleEdge;
@@ -1634,7 +1632,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 } catch (Exception e) {
                     System.err.println("Paintexception in Chartpanel catched: " + e.getLocalizedMessage());
-                    e.printStackTrace();
+//                    e.printStackTrace();
                 }
             }
         };

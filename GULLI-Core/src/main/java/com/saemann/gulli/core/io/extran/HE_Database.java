@@ -1,5 +1,6 @@
 package com.saemann.gulli.core.io.extran;
 
+import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.HEInjectionInformation;
 import com.saemann.gulli.core.control.scenario.injection.HE_AreaInjection;
 import com.saemann.gulli.core.control.scenario.injection.HE_MessdatenInjection;
@@ -181,6 +182,27 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
             //Load JDBC Drivers
             if (!registeredFirebird) {
+                String jnaPATH = System.getProperty("jna.library.path");
+                if (jnaPATH == null) {
+                    if (StartParameters.getPathFirebirdDLL() == null) {
+                        jnaPATH = new String();
+                    } else {
+                        jnaPATH = new String(StartParameters.getPathFirebirdDLL());
+                    }
+                    System.out.println("Create new JNA Path for Firebird: '" + jnaPATH + "'");
+                } else {
+                    System.out.println("Existing JNA path:'" + jnaPATH + "'");
+                    if (!jnaPATH.contains(StartParameters.getPathFirebirdDLL())) {
+                        jnaPATH += ";" + StartParameters.getPathFirebirdDLL();
+                        System.out.println("Added new Path " + StartParameters.getPathFirebirdDLL());
+                    } else {
+                        System.out.println("Path to Firebird already known " + StartParameters.getPathFirebirdDLL() + " in " + jnaPATH);
+                    }
+                }
+                if (!jnaPATH.isEmpty()) {
+                    System.out.println("Set new JNA Path '" + jnaPATH + "'");
+                    System.setProperty("jna.library.path", jnaPATH);
+                }
                 registerFirebirdDriver();
                 if (!registeredFirebird) {
                     try {
@@ -879,41 +901,42 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     try {
                         res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,gelaendehoehe,HoeheVollfuellung,sohlhoehe,ID from Versickerungselement ORDER BY ID;");
                     } catch (SQLException sQLException) {
-                        System.err.println("Networkmodel has no information about manhole diameter.");
+                        System.err.println("Networkmodel has no information about manhole diameter." + sQLException.getLocalizedMessage());
                     }
 //                    c = res.getMetaData().getColumnCount();
+                    if (!res.isClosed()) {
+                        while (res.next()) {
+                            try {
+                                String name = res.getString(1);
 
-                    while (res.next()) {
-                        try {
-                            String name = res.getString(1);
+                                double x = res.getDouble(2);
+                                double y = res.getDouble(3);
+                                Coordinate coordDB = new Coordinate(x, y);
 
-                            double x = res.getDouble(2);
-                            double y = res.getDouble(3);
-                            Coordinate coordDB = new Coordinate(x, y);
+                                Coordinate coordUTM = SHP_IO_GULLI.transform(coordDB, transformDB_UTM); //gt.toGlobal(coord);
+                                Coordinate coordWGS = SHP_IO_GULLI.transform(coordDB, transformDB_WGS); //gt.toGlobal(coord);
 
-                            Coordinate coordUTM = SHP_IO_GULLI.transform(coordDB, transformDB_UTM); //gt.toGlobal(coord);
-                            Coordinate coordWGS = SHP_IO_GULLI.transform(coordDB, transformDB_WGS); //gt.toGlobal(coord);
+                                Position position = new Position(coordWGS.x, coordWGS.y, coordUTM.x, coordUTM.y);
 
-                            Position position = new Position(coordWGS.x, coordWGS.y, coordUTM.x, coordUTM.y);
+                                Profile p;
+                                //standarddiameter 1m
+                                p = schachtprofile.get(1);
+                                if (p == null) {
+                                    p = new CircularProfile(1);
+                                    schachtprofile.put(1, p);
+                                }
 
-                            Profile p;
-                            //standarddiameter 1m
-                            p = schachtprofile.get(1);
-                            if (p == null) {
-                                p = new CircularProfile(1);
-                                schachtprofile.put(1, p);
+                                Manhole m = new Manhole(position, name, p);
+                                m.setSurface_height(res.getFloat(5));
+                                m.setTop_height(res.getFloat(6));
+                                m.setSole_height(res.getFloat(7));
+                                m.setManualID(res.getInt(8));
+                                smap.put(name, m);
+                            } catch (SQLException | MismatchedDimensionException | TransformException exception) {
+                                System.err.println("Fehler bei SQL Abfrage.Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5));
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
                             }
-
-                            Manhole m = new Manhole(position, name, p);
-                            m.setSurface_height(res.getFloat(5));
-                            m.setTop_height(res.getFloat(6));
-                            m.setSole_height(res.getFloat(7));
-                            m.setManualID(res.getInt(8));
-                            smap.put(name, m);
-                        } catch (SQLException | MismatchedDimensionException | TransformException exception) {
-                            System.err.println("Fehler bei SQL Abfrage.Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5));
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
                         }
                     }
                 }
@@ -2250,7 +2273,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         if (!rs.isBeforeFirst()) {
             //Resultset is empty
             rs.close();
-            st.close();
+//            st.close();
             rs = st.executeQuery("SELECT NAME FROM EXTRANPARAMETERSATZ");//This will only return 1 result row, because EXTRAN2DPARAMETERSATZ only contains one row after a single simulation.
             if (!rs.isBeforeFirst()) {
                 //Resultset is empty

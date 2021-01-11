@@ -100,26 +100,6 @@ public class SFTP_Client {
         };
 
         session.setUserInfo(userInfo);
-//        session.connect(10000);
-//        ChannelSftp c = (ChannelSftp) session.openChannel("sftp");
-//        c.connect(10000);
-//        System.out.println("channel: " + c + "; " + c.getClass());
-//        try {
-//            System.out.println("pwd:" + c.pwd());
-//        } catch (SftpException ex) {
-//            Logger.getLogger(SFTP_Client.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        System.out.println("-----");
-//        try {
-//            Vector v = c.ls("isu2");
-//            for (Object v1 : v) {
-//                ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) v1;
-//                System.out.println(entry.getFilename() + " " + entry.getAttrs().getAtimeString() + "  " + entry.getAttrs().getMtimeString());
-//            }
-//        } catch (SftpException ex) {
-//            Logger.getLogger(SFTP_Client.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        session.disconnect();
 
     }
 
@@ -147,8 +127,6 @@ public class SFTP_Client {
     public String[] listFileNames(String remoteDirectory) throws JSchException, SftpException {
 
         ChannelSftp c = getChannel();
-//        System.out.println("c=" + c + "   connected:" + c.isConnected() + " closed:" + c.isClosed());
-
         Vector v = c.ls(remoteDirectory);
         String[] str = new String[v.size()];
         for (int i = 0; i < str.length; i++) {
@@ -279,33 +257,6 @@ public class SFTP_Client {
         getChannel().put(fis, localFile.getName());
         fis.close();
         return true;
-    }
-
-    public static void main_(String[] args) {
-
-        try {
-
-            SFTP_Client client = SFTP_Client.FromFile(".\\SFTP.ini");
-            String subfolder="xxx";
-            String[] names = client.listFileNames(subfolder);
-
-            for (String name : names) {
-                if (name.length() > 3) {
-                    System.out.println("Download " + name);
-                    client.download(subfolder, name, "C:\\" + name);
-                    break;
-                }
-            }
-
-            client.close();
-
-        } catch (IOException ex) {
-            Logger.getLogger(SFTP_Client.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (JSchException ex) {
-            Logger.getLogger(SFTP_Client.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SftpException ex) {
-            Logger.getLogger(SFTP_Client.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
 }

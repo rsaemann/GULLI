@@ -323,7 +323,7 @@ public class MeasurementPanel extends JPanel {
                 if (textMeasurementSecondsSurface == null || textMeasurementSecondsSurface.getValue() == null) {
                     return;
                 }
-                double seconds = Double.parseDouble(textMeasurementSecondsSurface.getText());//((Number) textMeasurementSecondsSurface.getValue()).doubleValue();
+                double seconds = ((Number)textMeasurementSecondsSurface.getValue()).doubleValue();//((Number) textMeasurementSecondsSurface.getValue()).doubleValue();
                 if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
                     if (seconds == control.getScenario().getMeasurementsSurface().getIndexContainer().getDeltaTimeMS() / 1000.) {
                         return;
@@ -363,6 +363,12 @@ public class MeasurementPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (selfChange) {
+                    return;
+                }
+                if(control.getSurface()==null){
+                    selfChange=true;
+                    comboSurfaceGrid.setSelectedItem(GridType.NONE);
+                    selfChange=false;
                     return;
                 }
                 if (comboSurfaceGrid.getSelectedItem() == GridType.NONE) {

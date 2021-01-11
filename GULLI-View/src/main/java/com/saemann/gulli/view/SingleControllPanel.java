@@ -7,6 +7,7 @@ import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
+import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.threads.ThreadController;
@@ -122,7 +123,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
     private JButton buttonFileSurface, buttonFileWaterdepths;
 
-    private boolean wasrunning = false;
+    private ButtonGroup group_timestep;
+    private JRadioButton radioExplicit, radioStepsplicit, radioCrankNicolson;
+//    private boolean wasrunning = false;
     private final JCheckBox checkDrawUpdateIntervall;
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
     private JSlider sliderTimeShape;
@@ -262,7 +265,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         // SImulation Parameter
         JPanel panelParameter = new JPanel(new GridLayout(2, 1));
         panelParameter.setBorder(new TitledBorder("Parameter"));
-        panelParameter.setMaximumSize(new Dimension(400, 70));
+        panelParameter.setMaximumSize(new Dimension(500, 70));
         panelTabSimulation.add(panelParameter);
         //timestep
         JPanel panelParameterTimestep = new JPanel(new BorderLayout());
@@ -271,8 +274,24 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelParameterTimestep.add(textTimeStep, BorderLayout.CENTER);
         panelParameterTimestep.add(new JLabel("sec."), BorderLayout.EAST);
         panelParameter.add(panelParameterTimestep);
+        //TimestepCalculation Explicit/CrankNicolson
+        JPanel panelTimestepCalculation = new JPanel(new GridLayout(1, 3, 2, 2));
+        panelTimestepCalculation.setMaximumSize(new Dimension(500, 50));
+        group_timestep = new ButtonGroup();
+        radioExplicit = new JRadioButton("Explicit", ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.EXPLICIT);
+        radioExplicit.setToolTipText("Reference time for velocity is the start of the simulation loop cycle.");
+        radioStepsplicit = new JRadioButton("Stepsplicit", ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.STEPSPLICIT);
+        radioStepsplicit.setToolTipText("Reference time for velocity calculation is the entrance time of a particle into a new cell.");
+        radioCrankNicolson = new JRadioButton("Crank-Nicolson", ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.CRANKNICOLSON);
+        radioCrankNicolson.setToolTipText("Use mean velocity in the time interval of the loop cycle.");
+        group_timestep.add(radioCrankNicolson);
+        group_timestep.add(radioExplicit);
+        group_timestep.add(radioStepsplicit);
+        panelTimestepCalculation.add(radioExplicit);
+        panelTimestepCalculation.add(radioStepsplicit);
+        panelTimestepCalculation.add(radioCrankNicolson);
+        panelTabSimulation.add(panelTimestepCalculation);
         // Velocity Function instead of Dispersion
-
         checkVelocityFunction = new JCheckBox("Velocity function", ParticlePipeComputing.useStreamlineVelocity);
         checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
         //Seed
@@ -689,6 +708,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         //Update thread to show information about running simulation. e.g. number of active particles
         new Thread("GUI SimulationInformation Update").start();
 
+        //Panel Simulation
         textTimeStep.addFocusListener(new FocusAdapter() {
 
             @Override
@@ -712,6 +732,30 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             public void actionPerformed(ActionEvent ae) {
                 ParticlePipeComputing.useStreamlineVelocity = checkVelocityFunction.isSelected();
                 textDispersionPipe.setEnabled(!checkVelocityFunction.isSelected());
+            }
+        });
+        radioExplicit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (radioExplicit.isSelected()) {
+                    ParticleSurfaceComputing2D.timeIntegration = ParticleSurfaceComputing2D.TIMEINTEGRATION.EXPLICIT;
+                }
+            }
+        });
+        radioStepsplicit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (radioStepsplicit.isSelected()) {
+                    ParticleSurfaceComputing2D.timeIntegration = ParticleSurfaceComputing2D.TIMEINTEGRATION.STEPSPLICIT;
+                }
+            }
+        });
+        radioCrankNicolson.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (radioCrankNicolson.isSelected()) {
+                    ParticleSurfaceComputing2D.timeIntegration = ParticleSurfaceComputing2D.TIMEINTEGRATION.CRANKNICOLSON;
+                }
             }
         });
 
@@ -1684,7 +1728,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 updateSimulationThread.interrupt();
             } catch (Exception e) {
             }
-            updateSimulationThread=null;
+            updateSimulationThread = null;
         }
         if (updateSimulationThread == null || !updateSimulationThread.isAlive()) {
             updateSimulationThread = new Thread("Update Simulation GUI") {

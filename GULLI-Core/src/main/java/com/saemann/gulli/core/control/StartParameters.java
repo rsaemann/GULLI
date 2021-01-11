@@ -47,6 +47,7 @@ public class StartParameters {
     private static String streetinletsPath;
     private static String startFilePath;
     private static String pathUndergroundVTU;
+    private static String pathFirebirdDLL;
 
     private static boolean autoLoadatStartup = true;
     private static boolean autoStartatStartup = false;
@@ -83,6 +84,7 @@ public class StartParameters {
             if (!fileStartParameter.exists()) {
                 saveParameter();
             }
+            System.out.println("Load Parameters from "+fileStartParameter);
             br = new BufferedReader(new FileReader(fileStartParameter));
 
             String line = "";
@@ -95,6 +97,8 @@ public class StartParameters {
 //                    System.out.println("startfile read from ini is:'" + startFilePath + "'");
                 } else if (line.startsWith("subsurfaceVTU=")) {
                     pathUndergroundVTU = line.substring(line.indexOf("=") + 1);
+                } else if (line.startsWith("FirebirdDLL=")) {
+                    pathFirebirdDLL = line.substring(line.indexOf("=") + 1);
                 } else if (line.startsWith("autoLoad=")) {
                     autoLoadatStartup = Boolean.parseBoolean(line.substring(line.indexOf("=") + 1));
                 } else if (line.startsWith("startFirst=")) {
@@ -200,7 +204,9 @@ public class StartParameters {
 //            bw.write("streetInlets_ShapefilePath=" + (streetinletsPath != null ? streetinletsPath : ""));
 //            bw.newLine();
             bw.write("subsurfaceVTU=" + (pathUndergroundVTU != null ? pathUndergroundVTU : ""));
+            bw.newLine();
             bw.flush();
+            bw.write("FirebirdDLL="+ (pathFirebirdDLL != null ? pathFirebirdDLL : ""));
             bw.newLine();
             bw.newLine();
             bw.write("## Frame bounds");
@@ -459,5 +465,20 @@ public class StartParameters {
     public static boolean isAutoStartatStartup() {
         return autoStartatStartup;
     }
+
+    public static String getPathFirebirdDLL() {
+        return pathFirebirdDLL;
+    }
+
+    public static void setPathFirebirdDLL(String pathFirebirdDLL) {
+        StartParameters.pathFirebirdDLL = pathFirebirdDLL;
+        try {
+            saveParameter();
+        } catch (IOException ex) {
+            Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    
 
 }

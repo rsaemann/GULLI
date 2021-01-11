@@ -126,6 +126,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
         if (mass_reference == null) {
             this.container.loadTimelineMassflux(this, pipeManualID, pipeName);
         }
+        if(mass_reference==null)return 0;
         return mass_reference[temporalIndex][material];
     }
 

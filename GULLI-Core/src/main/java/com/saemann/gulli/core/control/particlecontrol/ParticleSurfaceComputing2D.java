@@ -148,9 +148,24 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public static int numberOfErrors = 0;
 
     /**
+     * If true, not the start of the current timestep is used but the mean value
+     * in this timestep
+     */
+    public enum TIMEINTEGRATION {
+        EXPLICIT, STEPSPLICIT, CRANKNICOLSON
+    };
+    public static TIMEINTEGRATION timeIntegration = TIMEINTEGRATION.STEPSPLICIT;
+
+    /**
+     * actual timeindex for the particle in loop. A sub-step time of the
+     * surface's snapshots. Used for more accurate interpolation if timesteps
+     * are large.
+     */
+    private double actualisedTime;
+    /**
      * Create new random numbers for the random walk step every X seconds
      */
-    public static float randomizeAfterSeconds = Float.POSITIVE_INFINITY;
+//    public static float randomizeAfterSeconds = Float.POSITIVE_INFINITY;
 
     /////Arrays to be filled from other functions. so no extra allocation is needed.
     private double[] particlevelocity = new double[2];
@@ -160,11 +175,18 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double[] tempDiff = new double[2];
     private double[] tempProjection = new double[2];
     private float[] tempVelocity = new float[2];
+    private float[] tempVelocity2 = new float[2];
+    private double[] tempVelocityD = new double[2];
+    private double[] tempVelocityD2 = new double[2];
 
     private double[] tempPosLow = new double[3], tempPosUp = new double[3];
 
     private double posxalt, posyalt, posxneu, posyneu, totalvelocity;
     private float timeLeft;
+    private double surfaceTimeIndexDoubleStart = 0;
+    private double surfaceTimeIndexDoubleEnd = 0;
+    private double surfaceActualFrac = 0;
+    private int surfaceActualIndexInt = 0;
 
     private boolean shouldReRandomize = true;
 
@@ -227,6 +249,31 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     public void setSimulationtime(long simulationtime) {
         this.simulationtime = simulationtime;
+        if (null == timeIntegration) {
+            surfaceTimeIndexDoubleStart = surface.getActualTimeIndex_double();
+            surfaceTimeIndexDoubleEnd = surfaceTimeIndexDoubleStart;
+        } else {
+            switch (timeIntegration) {
+                case CRANKNICOLSON:
+                    surfaceTimeIndexDoubleStart = surface.getActualTimeIndex_double();
+                    surfaceTimeIndexDoubleEnd = surface.getTimes().getTimeIndexDouble((long) (simulationtime + dt * 1000));
+                    surfaceActualFrac = surfaceTimeIndexDoubleStart % 1.;
+                    surfaceActualIndexInt = (int) surfaceTimeIndexDoubleStart;
+                    break;
+                case STEPSPLICIT:
+                    surfaceTimeIndexDoubleStart = surface.getActualTimeIndex_double();
+                    surfaceTimeIndexDoubleEnd = surface.getTimes().getTimeIndexDouble((long) (simulationtime + dt * 1000));
+                    surfaceActualFrac = surfaceTimeIndexDoubleStart % 1.;
+                    surfaceActualIndexInt = (int) surfaceTimeIndexDoubleStart;
+                    break;
+                default:
+                    surfaceTimeIndexDoubleStart = surface.getActualTimeIndex_double();
+                    surfaceTimeIndexDoubleEnd = surfaceTimeIndexDoubleStart;
+                    surfaceActualFrac = surfaceTimeIndexDoubleStart % 1.;
+                    surfaceActualIndexInt = (int) surfaceTimeIndexDoubleStart;
+                    break;
+            }
+        }
     }
 
     /**
@@ -239,18 +286,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public void moveParticle(Particle p) {
         checkSurrounding(p);
         shortLengthCounter = 0;
-//        if (randomizeAfterSeconds < dt) {
-//            int numberOfloops = (int) (dt / randomizeAfterSeconds);
-//            cellID = p.surfaceCellID;
-//            for (int i = 0; i < numberOfloops; i++) {
-//                shouldReRandomize = true;
-//                moveParticleCellIterative(p, randomizeAfterSeconds);
-//            }
-//        } else {
+
         cellID = p.surfaceCellID;
         shouldReRandomize = true;
         moveParticleCellIterative(p, dt);
-//        }
+
         if (p.isOnSurface() && !surface.getMeasurementRaster().spatialConsistency) {
             surface.getMeasurementRaster().measureParticle(simulationtime, p, 1, threadindex);
         }
@@ -266,13 +306,71 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * @return false if particle does not move;
      */
     public boolean calcPrePosition(Particle p, float timeLeft, float dt) {
+        switch (timeIntegration) {
+            case CRANKNICOLSON:
+//                actualisedTime = (surfaceTimeIndexDoubleStart + surfaceTimeIndexDoubleStart) / 2.;
+                surface.getTriangleVelocity(cellID, surfaceTimeIndexDoubleStart, tempVelocityD);
+                surface.getTriangleVelocity(cellID, surfaceTimeIndexDoubleEnd, tempVelocityD2);
+                particlevelocity[0] = (tempVelocityD[0] + tempVelocityD2[0]) * 0.5;
+                particlevelocity[1] = (tempVelocityD[1] + tempVelocityD2[1]) * 0.5;
+//                if (p.getId() == 7987) {
+//                    System.out.println("CrankNicolson");
+//                    System.out.println("  ###");
+//                    System.out.println("Computing: Surface Time: " + surfaceTimeIndexDoubleStart + " - " + surfaceTimeIndexDoubleEnd);
+//                    System.out.println("actualtime: " + surfaceTimeIndexDoubleStart + ", timeleft: " + timeLeft + "   dt=" + dt);
+//                    System.out.println("Frac: 0.5");
+//                    System.out.println("v0(" + cellID + "): " + tempVelocity[0] + "  " + tempVelocity[1]);
+//                    System.out.println("v1(" + cellID + "): " + tempVelocity2[0] + "  " + tempVelocity2[1]);
+//                    System.out.println(particlevelocity[0] + "   " + particlevelocity[1]);
+//                }
+                break;
+            case STEPSPLICIT:
+//                if (p.getId() == 7987) {
+//                    System.out.println("Stepsplicit");
+//                }
+                actualisedTime = surfaceTimeIndexDoubleEnd + (surfaceTimeIndexDoubleStart - surfaceTimeIndexDoubleEnd) * (timeLeft / dt);
+                tempVelocity = surface.getTriangleVelocity(cellID, (int) actualisedTime);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                tempVelocity2 = surface.getTriangleVelocity(cellID, (int) actualisedTime + 1);
+                particlevelocity[0] = tempVelocity[0] + (tempVelocity2[0] - tempVelocity[0]) * (actualisedTime % 1.);
+                particlevelocity[1] = tempVelocity[1] + (tempVelocity2[1] - tempVelocity[1]) * (actualisedTime % 1.);
+                break;
+            default:
+//                if (p.getId() == 7987) {
+//                    System.out.println("Else");
+//                }
+//                actualisedTime = surfaceTimeIndexDoubleStart;
+                tempVelocity = surface.getTriangleVelocity(cellID, surfaceActualIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                tempVelocity2 = surface.getTriangleVelocity(cellID, surfaceActualIndexInt + 1);
+                particlevelocity[0] = tempVelocity[0] + (tempVelocity2[0] - tempVelocity[0]) * (surfaceActualFrac);
+                particlevelocity[1] = tempVelocity[1] + (tempVelocity2[1] - tempVelocity[1]) * (surfaceActualFrac);
+//                if (p.getId() == 7987) {
+//                    System.out.println("Else");
+//                    System.out.println("  ###");
+//                    System.out.println("Computing: Surface Time: " + surfaceTimeIndexDoubleStart + " - " + surfaceTimeIndexDoubleEnd);
+//                    System.out.println("actualtime: " + surfaceTimeIndexDoubleStart + ", timeleft: " + timeLeft + "   dt=" + dt);
+//                    System.out.println("Frac: " + actualisedTime % 1.);
+//                    System.out.println("v0(" + cellID + "): " + tempVelocity[0] + "  " + tempVelocity[1]);
+//                    System.out.println("v1(" + cellID + "): " + tempVelocity2[0] + "  " + tempVelocity2[1]);
+//                    System.out.println(particlevelocity[0] + "   " + particlevelocity[1]);
+//                }
+                break;
+        }
+
+//        if(p.getId()==79872){
+//            System.out.println("  ###");
+//            System.out.println("Computing: Surface Time: "+surfaceTimeIndexDoubleStart+" - "+surfaceTimeIndexDoubleEnd);
+//            System.out.println("actualtime: "+actualisedTime+", timeleft: "+timeLeft+"   dt="+dt);
+//            System.out.println("Frac: "+ actualisedTime%1.);
+//            System.out.println("v0("+cellID+"): "+vt_t[0]+"  "+vt_t[1]);
+//             System.out.println("v1("+cellID+"): "+vt_tp[0]+"  "+vt_tp[1]);
+//            System.out.println(particlevelocity[0]+"   "+particlevelocity[1]);
+//        }
 //        if (useSubdividedTimestamps) {
 //            double timeIndexD = surface.getTimeIndexDouble((long) (surface.getActualTime() + (dt - timeLeft) * 1000));
 //            surface.getTriangleVelocity(cellID, timeIndexD, particlevelocity);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);           
 //        } else {
-        particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
+//        particlevelocity = surface.getParticleVelocity2D(p, cellID, particlevelocity, temp_barycentricWeights);
 //        }
-
         totalvelocity = testVelocity(particlevelocity);
 
         if (enableDiffusion) {
@@ -779,6 +877,34 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         }
 
         //Test if new position is inside the old cell
+        moveToSurroundingCell(vertex0, vertex1, vertex2);
+//        GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
+//        if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
+//            posxneu = posxneu * 0.8 + surface.getTriangleMids()[cellID][0] * 0.2;
+//            posyneu = posyneu * 0.8 + surface.getTriangleMids()[cellID][1] * 0.2;
+//            GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
+//            if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
+//                posxneu = posxneu * 0.5 + surface.getTriangleMids()[cellID][0] * 0.5;
+//                posyneu = posyneu * 0.5 + surface.getTriangleMids()[cellID][1] * 0.5;
+//                GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
+//                if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
+//                    if (verbose) {
+//                        System.out.println(loopcounter + "  will still not be in " + temp_barycentricWeightsOld[0] + ", " + temp_barycentricWeightsOld[1] + ", " + temp_barycentricWeightsOld[2]);
+//                    }
+//                    posxneu = surface.getTriangleMids()[cellID][0];
+//                    posyneu = surface.getTriangleMids()[cellID][1];
+//                }
+//            }
+//        }
+
+        p.setPosition3D(posxneu, posyneu);
+        p.surfaceCellID = cellID;
+        if (surface.getMeasurementRaster().spatialConsistency) {
+            surface.getMeasurementRaster().measureParticle(simulationtime, p, timeLeft, threadindex);
+        }
+    }
+
+    public void moveToSurroundingCell(double[] vertex0, double[] vertex1, double[] vertex2) {
         GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
         if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
             posxneu = posxneu * 0.8 + surface.getTriangleMids()[cellID][0] * 0.2;
@@ -796,12 +922,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     posyneu = surface.getTriangleMids()[cellID][1];
                 }
             }
-        }
-
-        p.setPosition3D(posxneu, posyneu);
-        p.surfaceCellID = cellID;
-        if (surface.getMeasurementRaster().spatialConsistency) {
-            surface.getMeasurementRaster().measureParticle(simulationtime, p, timeLeft, threadindex);
         }
     }
 
@@ -959,11 +1079,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public void setDeltaTimestep(double seconds) {
         this.dt = (float) seconds;
 
-        if (randomizeAfterSeconds < dt) {
-            this.sqrt2dt = (float) Math.sqrt(2 * randomizeAfterSeconds);
-        } else {
-            this.sqrt2dt = (float) Math.sqrt(2 * dt);
-        }
+//        if (randomizeAfterSeconds < dt) {
+//            this.sqrt2dt = (float) Math.sqrt(2 * randomizeAfterSeconds);
+//        } else {
+        this.sqrt2dt = (float) Math.sqrt(2 * dt);
+//        }
     }
 
     @Override

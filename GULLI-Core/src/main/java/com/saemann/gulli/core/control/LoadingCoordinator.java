@@ -1789,20 +1789,22 @@ public class LoadingCoordinator {
 
         setup.setNetworkdispersion(ParticlePipeComputing.getDispersionCoefficient());
 
-        ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
-        if (mp != null) {
-            setup.setPipeMeasurementtimestep(mp.getDeltaTimeS());
-            setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
-        }
-        setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
-        setup.setPipeMeasurementSynchronize(ArrayTimeLineMeasurement.synchronizeMeasures);
+        if (control.getScenario() != null) {
+            ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
+            if (mp != null) {
+                setup.setPipeMeasurementtimestep(mp.getDeltaTimeS());
+                setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
+            }
+            setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
+            setup.setPipeMeasurementSynchronize(ArrayTimeLineMeasurement.synchronizeMeasures);
 
-        SurfaceMeasurementRaster sr = control.getScenario().getMeasurementsSurface();
-        if (sr != null) {
-            setup.setSurfaceMeasurementtimestep((sr.getIndexContainer().getTimeMilliseconds(1) - sr.getIndexContainer().getTimeMilliseconds(0)) / 1000.);
-            setup.setSurfaceMeasurementTimeContinuous(sr.continousMeasurements);
+            SurfaceMeasurementRaster sr = control.getScenario().getMeasurementsSurface();
+            if (sr != null) {
+                setup.setSurfaceMeasurementtimestep((sr.getIndexContainer().getTimeMilliseconds(1) - sr.getIndexContainer().getTimeMilliseconds(0)) / 1000.);
+                setup.setSurfaceMeasurementTimeContinuous(sr.continousMeasurements);
+            }
+            setup.setSurfaceMeasurementSynchronize(SurfaceMeasurementRaster.synchronizeMeasures);
         }
-        setup.setSurfaceMeasurementSynchronize(SurfaceMeasurementRaster.synchronizeMeasures);
 
         return Setup_IO.saveScenario(file, setup);
 
