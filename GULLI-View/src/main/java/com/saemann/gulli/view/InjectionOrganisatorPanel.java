@@ -41,7 +41,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.border.TitledBorder;
 
@@ -221,12 +223,31 @@ public class InjectionOrganisatorPanel extends JPanel {
         }
         borderInjections.setTitle((control.getScenario().getInjections().size()) + " Injections");
         for (InjectionInformation inj : control.getScenario().getInjections()) {
+            JPanel panel=null;
             if (inj.spilldistributed) {
                 InjectionPanelAreal ia = new InjectionPanelAreal(inj, map, paintManager);
+                panel=ia;
                 panelInjections.add(ia);
             } else {
                 InjectionPanelPointlocation ip = new InjectionPanelPointlocation(inj, map, paintManager);
+                panel=ip;
                 panelInjections.add(ip);
+            }
+            if(panel!=null){
+                JPopupMenu popup=new JPopupMenu();
+                JMenuItem itemRemove=new JMenuItem("Remove");
+                popup.add(itemRemove);
+                panel.setComponentPopupMenu(popup);
+                itemRemove.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        
+                        control.getScenario().getInjections().remove(inj);
+                        control.recalculateInjections();
+                        popup.setVisible(false);
+                        recreatePanels();
+                    }
+                });
             }
         }
         panelInjections.revalidate();

@@ -28,8 +28,7 @@ public class ParticleThread extends Thread {
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(1);
     boolean runendless = true;
 
-    public int particleID = -1;
-    public Particle particle;
+//    public int particleID = -1;
 
     private ParticleSurfaceComputing2D surfcomp;
     public int status = -1;
@@ -109,11 +108,13 @@ public class ParticleThread extends Thread {
 
         while (runendless) {
             try {
+                
                 fromto = threadController.getNextParticlesToTreat(fromto);
                 if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
                     barrier.loopfinished(this);
                 } else {
+                    activeCalculation=true;
                     //Got valid order to threat particles.
                     this.simulationTime = barrier.getStepStartTime();
                     this.surfcomp.setActualSimulationTime(simulationTime);
@@ -143,6 +144,7 @@ public class ParticleThread extends Thread {
                                 //All further particles area also waiting. Break the loop here.
                                 break;
                             } else {
+                                status=1;
                                 if (p.getInjectionInformation().spillOnSurface()) {
                                     SurfaceInjection si = (SurfaceInjection) p.getInjectionInformation();
                                     p.setSurrounding_actual(si.getInjectionCapacity());
@@ -167,6 +169,7 @@ public class ParticleThread extends Thread {
                                 } else {
                                     System.err.println("Do not know where to spill " + p.getInjectionInformation());
                                 }
+                                status=0;
                             }
                         }
                         //check if it has been initialized from waiting list yet
@@ -181,6 +184,7 @@ public class ParticleThread extends Thread {
                         }
                     }
                     p=null;
+                    activeCalculation=false;
                 }
             } catch (Exception ex) {
                 activeCalculation = false;
@@ -222,6 +226,15 @@ public class ParticleThread extends Thread {
 
     public void addParticlemeasurement(ParticleMeasurement pm) {
         this.messung.add(pm);
+    }
+    
+    public Particle getActualParticle(){
+        return p;
+    }
+    
+    public int getActualParticleBlockStartIndex(){
+        if(fromto==null)return -1;
+        return fromto[0];
     }
 
 }

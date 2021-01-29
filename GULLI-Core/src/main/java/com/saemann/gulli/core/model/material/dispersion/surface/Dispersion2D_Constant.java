@@ -293,6 +293,11 @@ public class Dispersion2D_Constant implements Dispersion2D_Calculator {
         return new String[]{unit, unit};
     }
 
+    @Override
+    public boolean isIsotropic() {
+        return true;
+    }
+
     public class NoDiffusionStringException extends Exception {
 
         public NoDiffusionStringException() {

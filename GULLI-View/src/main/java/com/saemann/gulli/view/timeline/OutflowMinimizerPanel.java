@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2020 B1.
+ * Copyright 2020 Saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,12 +84,12 @@ public class OutflowMinimizerPanel extends JPanel {
         panelTargetValue = new JPanel(new GridLayout(2, 1));
         groupTarget = new ButtonGroup();
         radioConcentration = new JRadioButton("Concentration", true);
-        radioMass = new JRadioButton("Mass", false);
+        radioMass = new JRadioButton("Massflux", false);
         groupTarget.add(radioMass);
         groupTarget.add(radioConcentration);
         panelTargetValue.add(radioConcentration);
         panelTargetValue.add(radioMass);
-        paint = new Color(255, 200, 20, 150);
+        paint = new Color(255, 200, 20, 140);
 
         this.add(panelTargetValue, BorderLayout.NORTH);
 
@@ -105,7 +105,7 @@ public class OutflowMinimizerPanel extends JPanel {
             @Override
             public void stateChanged(ChangeEvent e) {
 
-                textMaxVolume.setText(slider.getValue() + "");
+                textMaxVolume.setText(slider.getValue() + "   ("+df.format(slider.getValue()*100./slider.getMaximum())+"%)");
             }
         });
 
@@ -122,7 +122,7 @@ public class OutflowMinimizerPanel extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 targetVolume = slider.getValue();
-                textMaxVolume.setText(targetVolume + "");
+                textMaxVolume.setText(targetVolume + "   ("+df.format(slider.getValue()*100./slider.getMaximum())+"%)");
                 updateOutput();
             }
         });
@@ -167,7 +167,7 @@ public class OutflowMinimizerPanel extends JPanel {
             } else if (radioMass.isSelected()) {
                 minimizer.orderByPollutionMass();
             } else {
-                throw new UnsupportedOperationException("DO not know what to optimize");
+                throw new UnsupportedOperationException("Do not know what to optimize");
             }
             minimizer.findMaximumIntervals(targetVolume);
             ArrayList<OutletMinimizer.PollutionDischargeInterval> regions = minimizer.getMaximumIntervals();
@@ -176,9 +176,9 @@ public class OutflowMinimizerPanel extends JPanel {
             XYPlot plot = chartPanel.getChart().getXYPlot();
             plot.clearDomainMarkers();
 //            int index = 0;
-            System.out.println("Produced new minimizer results for target volume: " + targetVolume + " -> " + regions.size() + " regions.");
+//            System.out.println("Produced new minimizer results for target volume: " + targetVolume + " -> " + regions.size() + " regions.");
             for (OutletMinimizer.PollutionDischargeInterval region : regions) {
-                System.out.println(region.intervalIndex + " intervals from " + new Date(region.start) + "  to " + new Date(region.end));
+//                System.out.println(region.intervalIndex + " intervals from " + new Date(region.start) + "  to " + new Date(region.end));
                 IntervalMarker marker = new IntervalMarker(region.start, region.end, paint);
                 plot.addDomainMarker(marker);
             }

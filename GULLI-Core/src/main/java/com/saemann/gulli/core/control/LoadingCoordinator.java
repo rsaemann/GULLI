@@ -277,8 +277,11 @@ public class LoadingCoordinator {
                     }
                     // Loading Surface topology
                     if (loadingSurface == LOADINGSTATUS.REQUESTED) {
+                        manhRefs = null;
+                        inletRefs = null;
                         surface = loadSurface();
                         changedSurface = true;
+
                     }
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
@@ -290,10 +293,6 @@ public class LoadingCoordinator {
                             try {
                                 if (verbose) {
                                     System.out.println("ReMapping surface&network");
-                                }
-                                if (changedSurface) {
-                                    manhRefs = null;
-                                    inletRefs = null;
                                 }
                                 surface.clearNamedCapacityMap();
                                 mapManholes(surface, network);
@@ -1096,7 +1095,6 @@ public class LoadingCoordinator {
         this.scenario = null;
         this.surface = null;
         this.network = null;
-        this.manualInjections.clear();
         this.totalInjections.clear();
         this.startLoadingRequestedFiles(asThread);
     }
@@ -1407,6 +1405,10 @@ public class LoadingCoordinator {
 
     public void requestDependentFiles(File pipeResult, boolean requestSurface, boolean clearOtherResults) throws SQLException, IOException {
         this.setPipeResultsFile(pipeResult, clearOtherResults);
+        if (pipeResult == null) {
+            System.out.println("Result File to request dependend files is null.");
+            return;
+        }
         File nwf = findCorrespondingPipeNetworkFile(pipeResult);
         if (nwf != null) {
             this.setPipeNetworkFile(nwf);
@@ -1702,7 +1704,8 @@ public class LoadingCoordinator {
                 }
                 return true;
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
+            System.err.println("Problem loading Project setup file " + file);
             Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;
@@ -1714,33 +1717,48 @@ public class LoadingCoordinator {
      *
      * @param setup
      */
-    public void applySetup(Setup setup) {
+    public void applySetup(Setup setup) throws SQLException, FileNotFoundException, IOException {
         this.setPipeResultsFile(setup.files.pipeResult, true);
-        try {
-            this.requestDependentFiles(setup.files.pipeResult, setup.useSurface, true);
-            if (setup.files.pipeNetwork != null && setup.files.pipeNetwork.exists()) {
-                if (!setup.files.pipeNetwork.equals(this.fileNetwork)) {
-                    this.setPipeNetworkFile(setup.files.pipeNetwork);
-                }
-            }
-            if (setup.files.surfaceDirectory != null && setup.files.surfaceDirectory.exists()) {
-                this.setSurfaceTopologyDirectory(setup.files.surfaceDirectory);
-            }
-            if (setup.files.surfaceResult != null && setup.files.surfaceResult.exists()) {
-                this.setSurfaceFlowfieldFile(setup.files.surfaceResult);
-            }
 
-            this.manualInjections.clear();
-            if (setup.injections != null && setup.injections.size() > 0) {
-                for (InjectionInformation in : setup.injections) {
-                    this.manualInjections.add(in);
-                }
+        this.requestDependentFiles(setup.files.pipeResult, setup.useSurface, true);
+        if (setup.files.pipeNetwork != null && setup.files.pipeNetwork.exists()) {
+            if (!setup.files.pipeNetwork.equals(this.fileNetwork)) {
+                this.setPipeNetworkFile(setup.files.pipeNetwork);
             }
-
-            control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
-        } catch (Exception ex) {
-            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
+        if (setup.files.surfaceDirectory != null && setup.files.surfaceDirectory.exists()) {
+            this.setSurfaceTopologyDirectory(setup.files.surfaceDirectory);
+        }
+        if (setup.files.surfaceResult != null && setup.files.surfaceResult.exists()) {
+            this.setSurfaceFlowfieldFile(setup.files.surfaceResult);
+        }
+
+        this.manualInjections.clear();
+        if (setup.injections != null && setup.injections.size() > 0) {
+            for (InjectionInformation in : setup.injections) {
+                this.manualInjections.add(in);
+            }
+        }
+
+//        control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
+
+        if (control.getSurface() != null) {
+            if (control.getSurface().getMeasurementRaster() != null) {
+                SurfaceMeasurementRaster sr = control.getSurface().getMeasurementRaster();
+                sr.spatialConsistency = setup.isSurfaceMeasurementSpatialConsistent();
+                sr.continousMeasurements = setup.isSurfaceMeasurementTimeContinuous();
+                
+            }
+        }
+        SurfaceMeasurementRaster.synchronizeMeasures = setup.isSurfaceMeasurementSynchronize();
+        
+        ParticlePipeComputing.measureOnlyFinalCapacity = !setup.isPipeMeasurementSpatialConsistent();
+        ArrayTimeLineMeasurement.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
+        try {
+            control.getScenario().getMeasurementsPipe().setIntervalSeconds(setup.getPipeMeasurementtimestep(), control.getScenario().getStartTime(), control.getScenario().getEndTime());
+        } catch (Exception e) {
+        }
+
         control.getThreadController().setDeltaTime(setup.getTimestepTransport());
     }
 
@@ -1802,6 +1820,7 @@ public class LoadingCoordinator {
             if (sr != null) {
                 setup.setSurfaceMeasurementtimestep((sr.getIndexContainer().getTimeMilliseconds(1) - sr.getIndexContainer().getTimeMilliseconds(0)) / 1000.);
                 setup.setSurfaceMeasurementTimeContinuous(sr.continousMeasurements);
+                setup.setSurfaceMeasurementSpatialConsistent(sr.spatialConsistency);
             }
             setup.setSurfaceMeasurementSynchronize(SurfaceMeasurementRaster.synchronizeMeasures);
         }

@@ -2133,8 +2133,14 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 }
                 Particle p = ps[i];
                 if (p.isActive()) {
-                    if (p.getPosition3d() == null || Double.isNaN(p.getPosition3d().x)) {
+                    if (p.getPosition3d() == null) {
                         positionnull++;
+//                        System.out.println("Position of particle " + p.getId() + " is null. "+p.status);
+                        continue;
+                    }
+                    if (Double.isNaN(p.getPosition3d().x)) {
+                        positionnull++;
+//                        System.out.println("Position of particle " + p.getId() + " is NaN. "+p.status+"  cell: "+p.surfaceCellID+" pos: "+p.getPosition3d());
                         continue;
                     }
                     if (p.isOnSurface()) {

@@ -94,5 +94,12 @@ public interface Dispersion2D_Calculator {
      * @param parameter parameters to set.
      */
     public void setParameterValues(double[] parameter);
+    
+    /**
+     * Dispersion has different values in x/y direction?
+     * 
+     * @return 
+     */
+    public boolean isIsotropic();
 
 }

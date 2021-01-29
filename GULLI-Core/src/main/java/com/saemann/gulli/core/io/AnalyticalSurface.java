@@ -52,6 +52,7 @@ public class AnalyticalSurface extends Surface {
     protected double waterlevel;
     protected double vx, vy;
     protected double[] velocity;
+    protected float[] velocityF;
     protected double[] maxWL;
 
     /**
@@ -87,6 +88,7 @@ public class AnalyticalSurface extends Surface {
         this.vx = vx;
         this.vy = vy;
         this.velocity = new double[]{vx, vy};
+        this.velocityF=new float[]{(float)vx,(float)vy};
     }
 
     public void initRectangularMeasurement(double centerX, double centerY, double width, double height, double cellwidthx, double cellwidthy, double totalSeconds, double intervalSeconds) {
@@ -318,6 +320,25 @@ public class AnalyticalSurface extends Surface {
 //        System.out.println("getvelocity with barycentric ");
         return velocity;
     }
+
+    @Override
+    public float[] getTriangleVelocity(int triangleID, double indexDouble) {
+        return velocityF;
+    }
+
+    @Override
+    public float[] getTriangleVelocity(int triangleID, int indexInteger) {
+        return  velocityF;
+    }
+
+    @Override
+    public void getTriangleVelocity(int triangleID, double indexDouble, double[] tofill) {
+        tofill[0]=velocityF[0];
+        tofill[1]=velocityF[1];
+        
+    }
+    
+    
 
     public Scenario getScenario() {
         scenario.setMeasurementsSurface(rectraster);

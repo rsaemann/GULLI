@@ -48,8 +48,8 @@ public class Setup {
     protected double timestepTransport = 1;
     protected Dispersion2D_Constant diffusion;
     protected double networkdispersion = 2;
-    protected boolean routingSurfaceEnterDryCells=true;
-    protected double routingSurfaceDryflowVelocity=0.005;
+    protected boolean routingSurfaceEnterDryCells = true;
+    protected double routingSurfaceDryflowVelocity = 0.005;
 
     protected double pipeMeasurementtimestep = 300;
     protected boolean pipeMeasurementSynchronize = true;
@@ -59,6 +59,7 @@ public class Setup {
     protected double surfaceMeasurementtimestep = 300;
     protected boolean surfaceMeasurementSynchronize = true;
     protected boolean surfaceMeasurementTimeContinuous = true;
+    protected boolean surfaceMeasurementSpatialConsistent = true;
     protected SurfaceMeasurementRaster surfaceMeasurementRasterClass;
 
     public FileContainer getFiles() {
@@ -157,6 +158,14 @@ public class Setup {
         this.surfaceMeasurementTimeContinuous = surfaceMeasurementTimeContinuous;
     }
 
+    public boolean isSurfaceMeasurementSpatialConsistent() {
+        return surfaceMeasurementSpatialConsistent;
+    }
+    
+    public void setSurfaceMeasurementSpatialConsistent(boolean surfaceMeasurementSpatialConsistent) {
+        this.surfaceMeasurementSpatialConsistent = surfaceMeasurementSpatialConsistent;
+    }
+
     public boolean isLoadResultInjections() {
         return loadResultInjections;
     }
@@ -204,7 +213,5 @@ public class Setup {
     public void setRoutingSurfaceDryflowVelocity(double routingSurfaceDryflowVelocity) {
         this.routingSurfaceDryflowVelocity = routingSurfaceDryflowVelocity;
     }
-    
-    
 
 }

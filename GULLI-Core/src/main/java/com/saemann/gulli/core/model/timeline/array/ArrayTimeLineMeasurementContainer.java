@@ -156,7 +156,7 @@ public class ArrayTimeLineMeasurementContainer {
     }
 
     public void setIntervalSeconds(double seconds, long startTime, long endTime) {
-        if (seconds == this.getDeltaTimeS()) {
+        if (seconds == this.getDeltaTimeS()&&startTime==this.getStartTime()&&endTime==this.getEndTime()) {
             //Nothing changed
             return;
         }

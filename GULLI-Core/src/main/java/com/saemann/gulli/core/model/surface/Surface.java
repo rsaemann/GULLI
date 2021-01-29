@@ -229,12 +229,13 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        this.triangleCapacity = new HashMap<>(100);
 //        
 //        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
-
-        actualVelocity = new double[triangleNodes.length][2];
-        actualVelocitySet = new boolean[actualVelocity.length];
-
         this.paths = new HashMap<>(100);
-        calculateDownhillSlopes();
+        if (triangleNodes != null) {
+            actualVelocity = new double[triangleNodes.length][2];
+            actualVelocitySet = new boolean[actualVelocity.length];
+            calculateDownhillSlopes();
+        }
+
     }
 
     public void initSparseTriangleVelocityLoading(SurfaceVelocityLoader velocityLoader, boolean initTriangleVelocity, boolean initNodeVelocity) {
@@ -1732,7 +1733,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public void applyManholeRefs(Network network, ArrayList<Pair<String, Integer>> manhRefs) {
-
+        
         if (capacityNames == null || capacityNames.isEmpty()) {
             capacityNames = buildNamedCapacityMap(network);
         }
@@ -2362,10 +2363,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //                if (!actualVelocitySet[triangleID]) {
 //                    synchronized (actualVelocity[triangleID]) {
 //                        if (!actualVelocitySet[triangleID]) {
-                            float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
-                            float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
-                    tofillVelocity[0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
-                    tofillVelocity[1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
+                float[] vt_t = getTriangleVelocity(triangleID, timeIndexInt);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                float[] vt_tp = getTriangleVelocity(triangleID, timeIndexInt + 1);//triangleID, timeIndexInt, (float) timeFrac, toFillSurfaceVelocity[0][0]);
+                tofillVelocity[0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
+                tofillVelocity[1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
 //                            actualVelocity[triangleID][0] = vt_t[0] + (vt_tp[0] - vt_t[0]) * timeFrac;
 //                            actualVelocity[triangleID][1] = vt_t[1] + (vt_tp[1] - vt_t[1]) * timeFrac;
 
@@ -2381,7 +2382,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //                        }
 //                    }
 //                }
-
 //                tofillVelocity[0] = actualVelocity[triangleID][0];
 //                tofillVelocity[1] = actualVelocity[triangleID][1];
             } else {

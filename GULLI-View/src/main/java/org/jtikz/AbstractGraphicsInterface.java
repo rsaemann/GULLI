@@ -66,6 +66,7 @@ public abstract class AbstractGraphicsInterface extends Graphics2D implements Cl
         return g;
     }
 
+    @Override
     public final AbstractGraphicsInterface create(int x, int y, int width, int height) {
         if (verbose) {
             System.err.println("create(" + x + ", " + y + ", " + width + ", " + height + ", " + currentClip + ")");

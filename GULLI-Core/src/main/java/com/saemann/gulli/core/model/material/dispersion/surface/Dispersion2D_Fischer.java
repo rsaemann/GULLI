@@ -266,6 +266,11 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
         return new String[]{"m","m"};
     }
 
+    @Override
+    public boolean isIsotropic() {
+       return false;
+    }
+
     public class NoDiffusionStringException extends Exception {
 
         public NoDiffusionStringException() {

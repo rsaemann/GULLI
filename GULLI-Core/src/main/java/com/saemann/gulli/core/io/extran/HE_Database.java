@@ -1142,21 +1142,64 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     String controlType = res.getString(4);
                     Capacity.SEWER_TYPE type = Capacity.SEWER_TYPE.UNKNOWN;
 
-//                    if (controlType.equals("0") || controlType.equals("KM")) {
-//                        type = Capacity.SEWER_TYPE.MIX;
-//                    } else if (controlType.equals("1") || controlType.equals("R")) {
-//                        type = Capacity.SEWER_TYPE.DRAIN;
-//
-//                    } else if (controlType.equals("2") || controlType.equals("S")) {
-//                        type = Capacity.SEWER_TYPE.SEWER;
-//
-//                    } else {
-//                        System.out.println("Kanalart '" + controlType + "' ist noch icht bekannt. in " + this.getClass()
-//                                .getName());
-//                    }
                     pipe.setWaterType(type);
                     //Database does not give a length for a pump because there is almost no storage in such pipes.
-                    pipe.setLength(1f);//(float) upper.getPosition().distance(lower.getPosition()));
+                    pipe.setLength(1f);
+                    pipe.setManualID(res.getInt(5));
+
+                    pipes_sewer.add(pipe);
+                }
+                res.close();
+                
+                
+                ////   Discharge-COntroller Q-Regler
+                ////
+                res = st.executeQuery("SELECT name,schachtoben,schachtunten,Kanalart,ID,Querschnitt,SohlhoeheUnten,SohlhoeheOben from QREGLER;");
+//                c = res.getMetaData().getColumnCount();
+                while (res.next()) {
+                    String name = res.getString(1);
+                    String nameoben = res.getString(2);
+                    String nameunten = res.getString(3);
+                    Manhole mhoben = smap.get(nameoben);
+                    Manhole mhunten = smap.get(nameunten);
+                    int diameter=(int)(res.getDouble(6)*1000);
+
+                    if (mhoben == null) {
+                        System.err.println(HE_Database.class
+                                + "::Can not find upper manhole '" + nameoben + "' for q-regler " + name);
+
+                        continue;
+                    }
+                    if (mhunten == null) {
+                        System.err.println("Can not find lower manhole '" + nameunten + "' for q-regler " + name);
+                        continue;
+                    }
+
+                    Profile p = schachtprofile.get(diameter);
+                    if (p == null) {
+                        p = new CircularProfile(diameter);
+                        schachtprofile.put(diameter, p);
+                    }
+                    //Verbindungen anlegen
+                    //Define the Position of Connections
+                    Connection_Manhole_Pipe upper, lower;
+                    //Do not change the direction of Pipes, also not if they are pointed against gravity flow.
+                    upper = new Connection_Manhole_Pipe(mhoben.getPosition(), mhoben.getSole_height());
+                    lower = new Connection_Manhole_Pipe(mhunten.getPosition(), mhunten.getSole_height());
+
+                    Pipe pipe = new Pipe(upper, lower, p);
+                    pipe.setName(name);
+
+                    mhoben.addConnection(upper);
+                    mhunten.addConnection(lower);
+
+                    // fertig Connections zwischen Schacht und haltung eingefügt
+//                    String controlType = res.getString(4);
+                    Capacity.SEWER_TYPE type = Capacity.SEWER_TYPE.UNKNOWN;
+
+                    pipe.setWaterType(type);
+                    //Database does not give a length for a pump because there is almost no storage in such pipes.
+                    pipe.setLength(1f);
                     pipe.setManualID(res.getInt(5));
 
                     pipes_sewer.add(pipe);
@@ -3504,7 +3547,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
         } catch (SQLException ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             if (tc != null) {

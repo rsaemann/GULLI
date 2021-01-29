@@ -29,7 +29,8 @@ import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.rgis.view.MapViewer;
 import java.text.DecimalFormatSymbols;
-import java.text.NumberFormat;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 
 /**
  * Displays information about InjectionInformation
@@ -63,6 +64,8 @@ public class InjectionPanelPointlocation extends JPanel {
     protected MapViewer map;
     protected PaintManager paintManager;
     protected JButton buttonSetPosition;
+    
+    protected JPopupMenu popup;
 
     protected InjectionPanelPointlocation() {
 
@@ -166,6 +169,8 @@ public class InjectionPanelPointlocation extends JPanel {
                 buttonSetPosition.setForeground(Color.darkGray);
             }
         }
+        
+
 
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
             @Override
@@ -275,10 +280,11 @@ public class InjectionPanelPointlocation extends JPanel {
                     info.setCapacity(null);
                     info.setTriangleID(-1);
                     info.spillOnSurface = checkSurface.isSelected();
-                    System.out.println("clicked on " + latlon);
+//                    System.out.println("clicked on " + latlon);
+                    map.removeMouseListener(this);
+                    buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
                 }
-                map.removeMouseListener(this);
-                buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
+
             }
         };
         buttonSetPosition.addActionListener(new ActionListener() {

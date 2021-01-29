@@ -94,13 +94,14 @@ import org.jfree.chart.ui.RectangleAnchor;
 import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.chart.ui.RectangleInsets;
 import org.jtikz.TikzGraphics2D;
+import org.jtikz.TikzPDFGraphics2D;
 
 /**
  *
  * @author saemann
  */
 public class CapacityTimelinePanel extends JPanel implements CapacitySelectionListener {
-    
+
     protected ChartPanel panelChart;
     public TimeSeriesCollection collection;
     protected JCheckBox[] checkboxes;
@@ -108,11 +109,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected ValueMarker marker;
     protected HashMap<String, Boolean> checks = new HashMap<>(20);
     public boolean showSimulationTime = true;
-    
+
     protected JPanel panelSouth;
     protected JTextField textTitle;
     protected JComboBox<LEGEND_POSITION> comboLegendPosition;
-    
+
     public boolean showMarkerLabelTime = true;
     protected String title;
 
@@ -121,7 +122,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
      * local format. standard is US.
      */
     public static Locale FormatLocale = StartParameters.formatLocale;
-    
+
     protected DecimalFormat numberFormat;
 
     // public boolean showVelocityInformationInputPoints = true;
@@ -129,27 +130,27 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private boolean showSeconds = true;
     HashMap<String, Integer> yAxisMap = new HashMap<>(10);
     protected int numberUsedDataSetSlots = 0;
-    
+
     public enum LEGEND_POSITION {
-        
+
         HIDDEN, OUTER_BOTTOM, OUTER_RIGHT, INNER_TOP_LEFT, INNER_TOP_CENTER, INNER_TOP_RIGHT, INNER_BOTTOM_LEFT, INNER_BOTTOM_CENTER, INNER_BOTTOM_RIGHT
     }
-    
+
     public float maxLegendwith = 0.4f;
 
     /**
      * Try to make JFreechart look like a matlab plot.
      */
     public static boolean matlabStyle = true;
-    
+
     public static String directoryPDFsave = ".";
     /**
      * Thread building the timelines in Background.
      */
     private Thread t;
-    
+
     protected final Controller controller;
-    
+
     ArrayList<PipeResultData> container;
 //    protected BasicStroke stroke0 = new BasicStroke(2);
 //    protected BasicStroke stroke1 = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0.1f, 6}, 0);
@@ -158,26 +159,26 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //    protected BasicStroke stroke5Dot = new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{1, Float.POSITIVE_INFINITY}, 0);
 
     public boolean prepareTimelinesInThread = false;
-    
+
     public final ArrayList<CollectionChangedListener> collectionListener = new ArrayList<>();
 
     /**
      * read only
      */
     public Capacity actualShown;
-    
+
     private Font titleFont = new Font(Font.SERIF, Font.ROMAN_BASELINE, 20);
 
     //Init Timeseries
     //Status
     //Momentum
     private final TimeSeries moment0_particleMass = new TimeSeries(new SeriesKey("M0 \u03a3Mass Ptcl", "", "kg", Color.red, new AxisKey("Moment0", "Mass [kg] ")));
-    
+
     private final TimeSeries moment1_refvorgabe = new TimeSeries(new SeriesKey("M1 CoM ref", "", "m", Color.GREEN, new AxisKey("Moment", "1. Moment [m]")));
     private final TimeSeries moment1_messung = new TimeSeries(new SeriesKey("M1 CoM ptcl", "", "m", Color.red, new AxisKey("Moment", "1. Moment [m]")));
     private final TimeSeries moment1_delta = new TimeSeries(new SeriesKey("\u0394 M1 (Ptcl-Ref)", "", "m", Color.red.darker(), new AxisKey("Moment", "1. Moment [m]")));
     private final TimeSeries moment1_delta_relative = new TimeSeries(new SeriesKey("Rel. \u0394 M1", "", "-", Color.red, new AxisKey("Relative Error", "Relative Error [-]")));
-    
+
     private final TimeSeries moment2_ref = new TimeSeries(new SeriesKey("M2 Var ref", "", "m²", Color.GREEN, new AxisKey("Moment2", "2. Moment [m²]")));
     private final TimeSeries moment2_mess = new TimeSeries(new SeriesKey("M2 Var ptcl", "", "m²", Color.red, new AxisKey("Moment2", "2. Moment [m²]")));
     private final TimeSeries moment2_delta = new TimeSeries(new SeriesKey("\u0394 M2 Var (Ptcl-Ref)", "", "m²", Color.orange.darker(), new AxisKey("Moment2", "2. Moment [m²]")));
@@ -197,26 +198,26 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V", "Velocity [m/s]"), 0), "Time", "m/s");
     private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.green, new AxisKey("Q", "Discharge [m³/s]"), 0), "Time", "m³/s");
-    
+
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.blue, new AxisKey("lvl"), 0), "Time", "m");
     private final TimeSeries volpipe0 = new TimeSeries(new SeriesKey("Volume", "V", "m³", new Color(100, 0, 255), new AxisKey("Vol", "Volume [m³]"), 0), "Time", "m³");
-    
+
     private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
     private final TimeSeries m_massflux = new TimeSeries(new SeriesKey("ptc Massflux total", "", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
-    
+
     private final TimeSeries refConcentrationTotal = new TimeSeries(new SeriesKey("ref. Concentration total", "", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
     private final TimeSeries m_c = new TimeSeries(new SeriesKey("ptcl. Concentration total", "", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
-    
+
     private final ArrayList<TimeSeries> ref_massFlux_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> mes_massFlux_Type = new ArrayList<>(2);
-    
+
     private final ArrayList<TimeSeries> ref_Concentration_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> mes_concentration_Type = new ArrayList<>(2);
-    
+
     public static final ValueMarker zero_Marker = new ValueMarker(0, Color.LIGHT_GRAY, new BasicStroke(1));
-    
+
     public CapacityTimelinePanel(String title, Controller c/*, PipeResultData... input*/) {
-        
+
         super(new BorderLayout());
         panelSouth = new JPanel(new BorderLayout());
         this.title = title;
@@ -231,6 +232,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         initChart(title);
         addPDFexport(panelChart, this);
         addLaTeX_TikzExport(panelChart, this);
+        addLaTeX_TikzPDFExport(panelChart, this);
         addEMFexport();
         addMatlabSeriesExport();
         addTimeSeriesExport();
@@ -241,10 +243,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
         } catch (Exception e) {
         }
-        
+
         textTitle = new JTextField();
         textTitle.setToolTipText("Title to display in Chart.");
-        
+
         panelSouth.add(textTitle, BorderLayout.CENTER);
         this.add(panelSouth, BorderLayout.SOUTH);
         textTitle.addActionListener(new ActionListener() {
@@ -269,19 +271,19 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             setLegendPosition(LEGEND_POSITION.values()[StartParameters.getTimelinePanelLegendPosition()]);
         } catch (Exception e) {
         }
-        
+
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
                 panelChart.setMaximumDrawHeight(getHeight());
                 panelChart.setMaximumDrawWidth(getWidth());
-                
+
             }
-            
+
         });
-        
+
     }
-    
+
     public void initCollection() {
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_vol.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m.getKey()).name, false);
@@ -291,29 +293,29 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refConcentrationTotal.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refMassfluxTotal.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_massflux.getKey()).name, false);
-        
+
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_sum.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) hpipe0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
-        
+
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment0_particleMass.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta_relative.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_messung.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_refvorgabe.getKey()).name, false);
-        
+
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_delta_relative.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_variance.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_mess.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment2_ref.getKey()).name, false);
     }
-    
+
     public void setLegendPosition(LEGEND_POSITION pos) {
         panelChart.getChart().getXYPlot().clearAnnotations();
-        
+
         if (pos == LEGEND_POSITION.HIDDEN) {
             panelChart.getChart().getLegend().setVisible(false);
         } else if (pos == LEGEND_POSITION.OUTER_BOTTOM) {
@@ -357,12 +359,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             panelChart.getChart().getLegend().setVisible(false);
             XYTitleAnnotation annotation = new XYTitleAnnotation(0, 0, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_LEFT);
             annotation.setMaxWidth(maxLegendwith);
-            
+
             panelChart.getChart().getXYPlot().addAnnotation(annotation);
         }
         StartParameters.setTimelinePanelLegendPosition(pos.ordinal());
     }
-    
+
     public void showCheckBoxPanel(boolean showPanel) {
         if (!showPanel) {
             this.remove(panelChecks);
@@ -370,7 +372,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             this.add(panelChecks, BorderLayout.SOUTH);
         }
     }
-    
+
     public void showZeroLine(boolean show) {
         if (show) {
             panelChart.getChart().getXYPlot().addRangeMarker(0, zero_Marker, Layer.BACKGROUND);
@@ -378,7 +380,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             panelChart.getChart().getXYPlot().removeRangeMarker(zero_Marker);
         }
     }
-    
+
     public void setStorage(final Capacity c, final String title) {
         if (c == null) {
             return;
@@ -400,14 +402,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.t = new Thread("Capacity Timeline Panel") {
             @Override
             public void run() {
-                
+
                 try {
 //                    if (CapacityTimelinePanel.this.collection != null) {
 //                        CapacityTimelinePanel.this.collection.removeAllSeries();
 //                    }
                     CapacityTimelinePanel.this.title = title;
                     if (c == null) {
-                        
+
                     } else {
                         CapacityTimelinePanel.this.updateChart("Preparing... " + c);
                         if (c instanceof Pipe) {
@@ -429,18 +431,18 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             System.out.println(this.getClass() + "::setStorage() : Type " + c.getClass() + "is not known to handle for building Timelines.");
                         }
                     }
-                    
+
                     if (this.isInterrupted()) {
                         System.out.println("Stop Plot preparation (alive? " + isAlive() + ", interrupted? " + isInterrupted() + ")");
                         return;
                     }
-                    
+
                     CapacityTimelinePanel.this.updateCheckboxPanel();
-                    
+
                     CapacityTimelinePanel.this.updateChart(title);
-                    
+
                     CapacityTimelinePanel.this.updateShownTimeSeries();
-                    
+
                     for (CollectionChangedListener ci : collectionListener) {
                         ci.collectionChanged();
                     }
@@ -448,7 +450,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     e.printStackTrace();
                 }
             }
-            
+
         };
         if (prepareTimelinesInThread) {
             t.start();
@@ -472,7 +474,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //        time -= offset;
         return time;
     }
-    
+
     public void markTime(long time) {
 
 //        if (showSimulationTime && controller != null) {
@@ -492,7 +494,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         marker.setValue(time);
         if (showMarkerLabelTime) {
             Date d = new Date(time);
-            
+
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
             marker.setLabel(sdf.format(d));
         } else {
@@ -504,24 +506,24 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             marker = null;
         }
     }
-    
+
     public void removeMarker() {
         if (marker != null) {
             ((XYPlot) this.panelChart.getChart().getPlot()).removeDomainMarker(marker);
             marker = null;
         }
     }
-    
+
     public void updateDateAxis(TimeContainer tc) {
         if (showSimulationTime) {
-            
+
             final long start = tc.getFirstTime();
             final long end = tc.getLastTime();
             if (end - start < 1000L * 60 * 60 * 120) {
                 //If the simulation is less than 120 minutes, only show minutes and hide hours
                 dateAxis.setLabel("Time [min:sec]");
                 showSeconds = true;
-                
+
                 dateAxis.setDateFormatOverride(new DateFormat() {
                     @Override
                     public StringBuffer format(Date date, StringBuffer buff, FieldPosition fieldPosition) {
@@ -551,7 +553,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         }
                         return buff;
                     }
-                    
+
                     @Override
                     public Date parse(String source, ParsePosition pos) {
                         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -563,7 +565,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
         }
     }
-    
+
     private void buildPipeTimeline(TimeLinePipe tl, ArrayTimeLineMeasurement tlm, double pipeLength) {
 
 //        System.out.println("go through timeseries: " + collection.getSeriesCount());
@@ -616,19 +618,19 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 } catch (CloneNotSupportedException ex) {
                     Logger.getLogger(CapacityTimelinePanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                
+
             } else {
                 series.setNotify(false);
                 series.clear();
             }
         }
-        
+
         this.collection.removeAllSeries();
         this.panelChart.getChart().setNotify(false);
         collection.setNotify(false);
-        
+
         updateDateAxis(tl.getTimeContainer());
-        
+
         TimeSeries v, q, vol;
         TimeSeries hpipe;
         v = v0;
@@ -657,7 +659,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         m_p_l_sum.clear();
         m_p_l.clear();
         m_vol.clear();
-        
+
         moment0_particleMass.clear();
         moment1_messung.clear();
         moment1_refvorgabe.clear();
@@ -678,7 +680,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         SeriesKey key = new SeriesKey("ref Massflux " + materialnames[j], "mf_ref_" + j, "kg/s", Color.orange.darker().darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
                         key.setVisible(((SeriesKey) refMassfluxTotal.getKey()).isVisible());
                         ref_massFlux_Type.add(new TimeSeries(key, "Time", "kg/s"));
-                        
+
                     }
                     if (ref_Concentration_Type.size() < j + 1) {
                         SeriesKey key = new SeriesKey("ref Concentration " + materialnames[j], "c_ref_" + j, "kg/m³", Color.black, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
@@ -712,7 +714,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 m2 = m2 / m0;//-> [s^2]
                 System.out.println(pipeLength + " m: ref. Mt0: " + m0 + " kg/s\tMT1: " + m1 / 60 + " s\tMt2: " + m2 / 3600 + "min^2");
             }
-            
+
             for (int i = 0; i < tl.getTimeContainer().getNumberOfTimes(); i++) {
                 Date d;
                 long timeMilliseconds = tl.getTimeContainer().getTimeMilliseconds(i);
@@ -731,18 +733,18 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     System.out.println("container.numberoftimes=" + tl.getTimeContainer().getNumberOfTimes());
                     System.out.println("tl.container.numberoftimes=" + tl.getTimeContainer().getNumberOfTimes());
                     System.out.println("i= " + i);
-                    
+
                 }
                 q.addOrUpdate(time, tl.getDischarge(i));
                 hpipe.addOrUpdate(time, tl.getWaterlevel(i));
                 vol.addOrUpdate(time, tl.getVolume(i));
-                
+
                 try {
                     moment1_refvorgabe.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment1[i]);
                     moment2_ref.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment2[i]);
                 } catch (Exception e) {
                 }
-                
+
                 double massflux_total = 0;
                 for (int j = 0; j < ref_massFlux_Type.size(); j++) {
                     ref_massFlux_Type.get(j).addOrUpdate(time, Math.abs(tl.getMassflux_reference(i, j)));
@@ -757,17 +759,17 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //                        refConcentration.addOrUpdate(time, tl.getMassflux_reference(index) / tl.getWaterlevel(index));
                     refConcentrationTotal.addOrUpdate(time, concentration_total);
                     refMassfluxTotal.addOrUpdate(time, massflux_total);
-                    
+
                 }
             }
-            
+
         }
-        
+
         if (tlm != null && tlm.getContainer() != null) {
             float mass_sum = 0;
             double offset = 0;
             double offset2 = 0;
-            
+
             for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
                 String name;
                 Material m = controller.getScenario().getMaterialByIndex(j);
@@ -787,7 +789,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     mes_concentration_Type.add(new TimeSeries(key, "Time", "kg/m³"));
                 }
             }
-            
+
             if (false) {
                 //Calculate moment in time (only for benchmark output. Should be disabled in regular calculation
                 //0. Moment
@@ -810,12 +812,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 m2 = m2 / m0;//-> [s^2]
                 System.out.println(pipeLength + " m: mes. Mt0: " + m0 + " kg/s\tMT1: " + m1 / 60 + " s\tMt2: " + m2 / 3600 + "min^2");
             }
-            
+
             long moveVisiblePointToIntervalMid = 0;
             if (!tlm.getContainer().isTimespotmeasurement()) {
                 moveVisiblePointToIntervalMid = (long) (-tlm.getContainer().getDeltaTimeS() * 500);
             }
-            
+
             for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
                 Date d;
                 long timeMeasurement = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i);
@@ -833,9 +835,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 } else {
                     d = new Date(timeMeasurement);//tlm.getContainer().getTimeMillisecondsAtIndex(i) + (i == 0 ? 0 : moveVisiblePointToIntervalMid));
                 }
-                
+
                 RegularTimePeriod time = new Second(d);
-                
+
                 if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
                     ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
 
@@ -848,7 +850,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     }
                     mass /= tlm.getContainer().samplesInTimeInterval[i];
                     moment0_particleMass.addOrUpdate(time, mass);
-                    
+
                     double m1 = tlm.getContainer().getMomentum1_xm(i);
                     if (!Double.isNaN(m1) && m1 > 0) {
                         moment1_messung.addOrUpdate(time, m1);
@@ -856,7 +858,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             //Get reference Momentum index to calculate difference and statistics
                             double refTimeIndex = tl.getTimeContainer().getTimeIndexDouble(timeMeasurement);// i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / (double) tlm.getContainer().getNumberOfTimes();
                             int refTimeIndexInt = (int) refTimeIndex;
-                            
+
                             double refFrac = refTimeIndex % 1;
                             if (refTimeIndex >= cont.moment1.length - 0.5) {
                                 //out of bounds
@@ -874,13 +876,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             if (i > -1 && mref > 0 && !Double.isNaN(mref)) {
                                 moment1_delta.addOrUpdate(time, m1 - mref);
                                 moment1_delta_relative.addOrUpdate(time, (m1 - mref) / mref);
-                                
+
                                 double m2 = tlm.getContainer().getMomentum2_xm(i, m1);
                                 moment2_mess.addOrUpdate(time, m2);
-                                
+
                                 moment2_ref.addOrUpdate(time, m2ref);
                                 double delta2 = m2 - m2ref;
-                                
+
                                 moment2_delta.addOrUpdate(time, delta2);
                                 if (i >= 0 && m2ref != 0) {
                                     moment2_delta_relative.addOrUpdate(time, delta2 / m2ref);
@@ -889,7 +891,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         }
                     }
                 }
-                
+
                 float vol_c = tlm.getVolume(i);
                 if (!Double.isNaN(vol_c)) {
                     m_vol.addOrUpdate(time, vol_c);
@@ -899,7 +901,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                  * [m^3/s]
                  */
                 double discharge = tl.getDischarge(statusTimeIndex);
-                
+
                 double massFluxSum = 0;
                 double massSum = 0;
                 /**
@@ -913,35 +915,39 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     double c = tlm.getConcentrationOfType(i, j);
                     if (Double.isNaN(c)) {
                         c = 0;
+                    }else if (Double.isInfinite(c)) {
+                        c = 0;
                     }
                     double mf = c * discharge;
                     mes_massFlux_Type.get(j).addOrUpdate(time, mf);
                     mes_concentration_Type.get(j).addOrUpdate(time, c);
-                    
+
                     massFluxSum += mf;
                     massSum += c * vol_c;
                 }
                 mass_sum += massFluxSum * dt;
-                
+
                 m_massflux.addOrUpdate(time, massFluxSum);
                 m_m.addOrUpdate(time, massSum);
                 m_m_sum.addOrUpdate(time, mass_sum);
-                
+
                 float c = tlm.getConcentration(i);
                 if (Double.isNaN(c)) {
                     m_c.addOrUpdate(time, 0);
-                } else {
+                } else if (Double.isInfinite(c)) {
+                    m_c.addOrUpdate(time, 0);
+                } else{
                     m_c.addOrUpdate(time, c);
                 }
-                
+
                 float p = tlm.getParticles(i);
-                
+
                 if (Double.isNaN(p)) {
                     m_p.addOrUpdate(time, 0);
                 } else {
                     m_p.addOrUpdate(time, p);
                     m_p_l.addOrUpdate(time, p / pipeLength);
-                    
+
                 }
                 try {
                     int n = tlm.getParticles_Visited(i);
@@ -958,12 +964,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } else {
 //            System.out.println("Timeline is initialized?" + ArrayTimeLineMeasurementContainer.isInitialized());
         }
-        
+
         this.collection.addSeries(v);
         this.collection.addSeries(q);
         this.collection.addSeries(hpipe);
         this.collection.addSeries(vol);
-        
+
         if (refMassfluxTotal.getMaxY() > 0 && ref_massFlux_Type.size() > 1) {
             this.collection.addSeries(refMassfluxTotal);
         }
@@ -973,7 +979,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 this.collection.addSeries(ts);
             }
         }
-        
+
         if (m_massflux.getMaxY() > 0 && mes_massFlux_Type.size() > 1) {
             this.collection.addSeries(m_massflux);
         }
@@ -983,7 +989,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 this.collection.addSeries(ts);
             }
         }
-        
+
         if (refConcentrationTotal.getMaxY() > 0 && ref_Concentration_Type.size() > 1) {
             this.collection.addSeries(refConcentrationTotal);
         }
@@ -993,7 +999,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 this.collection.addSeries(ts);
             }
         }
-        
+
         if (m_c.getMaxY() > 0 && mes_concentration_Type.size() > 1) {
             this.collection.addSeries(m_c);
         }
@@ -1003,79 +1009,79 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 this.collection.addSeries(ts);
             }
         }
-        
+
         if (!moment0_particleMass.isEmpty() && (moment0_particleMass.getMaxY() != 0 || moment0_particleMass.getMinY() != 0)) {
             this.collection.addSeries(moment0_particleMass);
         }
-        
+
         if (!moment1_refvorgabe.isEmpty() && (moment1_refvorgabe.getMaxY() != 0 || moment1_refvorgabe.getMinY() != 0)) {
             this.collection.addSeries(moment1_refvorgabe);
         }
-        
+
         if (!moment1_messung.isEmpty() && (moment1_messung.getMaxY() != 0 || moment1_messung.getMinY() != 0)) {
             this.collection.addSeries(moment1_messung);
         }
-        
+
         if (!moment1_delta.isEmpty() && (moment1_delta.getMaxY() != 0 || moment1_delta.getMinY() != 0)) {
             this.collection.addSeries(moment1_delta);
         }
         if (!moment1_delta_relative.isEmpty() && (moment1_delta_relative.getMaxY() != 0 || moment1_delta_relative.getMinY() != 0)) {
             this.collection.addSeries(moment1_delta_relative);
         }
-        
+
         if (!moment2_ref.isEmpty() && moment2_ref.getMaxY() != 0) {
             this.collection.addSeries(moment2_ref);
         }
-        
+
         if (!moment2_mess.isEmpty() && moment2_mess.getMaxY() != 0) {
             this.collection.addSeries(moment2_mess);
         }
-        
+
         if (!moment2_delta.isEmpty()) {
             this.collection.addSeries(moment2_delta);
         }
-        
+
         if (!moment2_delta_relative.isEmpty()) {
             this.collection.addSeries(moment2_delta_relative);
         }
-        
+
         if (!moment2_variance.isEmpty()) {
             this.collection.addSeries(moment2_variance);
-            
+
         }
-        
+
         if (m_n.getMaxY() > 0) {
             this.collection.addSeries(m_n);
         }
-        
+
         if (m_m_sum.getMaxY() > 0) {
             this.collection.addSeries(m_m_sum);
         }
-        
+
         if (m_p.getMaxY() > 0) {
             this.collection.addSeries(m_p);
         }
-        
+
         if (m_p_sum.getMaxY() > 0) {
             this.collection.addSeries(m_p_sum);
         }
-        
+
         if (m_p_l.getMaxY() > 0) {
             this.collection.addSeries(m_p_l);
         }
-        
+
         if (m_p_l_sum.getMaxY() > 0) {
             this.collection.addSeries(m_p_l_sum);
         }
-        
+
         if (m_vol.getMaxY() > 0) {
             this.collection.addSeries(m_vol);
         }
-        
+
         if (m_m.getMaxY() > 0) {
             this.collection.addSeries(m_m);
         }
-        
+
         if (!persistent.isEmpty()) {
             for (TimeSeries ts : persistent) {
                 this.collection.addSeries(ts);
@@ -1084,14 +1090,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } else {
 //            System.out.println("no peristent timeseries");
         }
-        
+
         for (int i = 0; i < panelChart.getChart().getXYPlot().getRendererCount(); i++) {
             XYItemRenderer r = panelChart.getChart().getXYPlot().getRenderer(i);
             XYDataset ds = panelChart.getChart().getXYPlot().getDataset(i);
             if (r != null && ds != null) {
                 for (int j = 0; j < ds.getSeriesCount(); j++) {
                     r.setSeriesVisible(j, ((SeriesKey) ds.getSeriesKey(j)).isVisible(), false);
-                    
+
                 }
             }
         }
@@ -1099,7 +1105,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.panelChart.getChart().setNotify(true);
         this.panelChart.getChart().fireChartChanged();
     }
-    
+
     private void buildManholeTimeline(StorageVolume vol) {
         TimeSeries h = new TimeSeries(new SeriesKey("Waterheight", "h", "m", Color.BLUE, new AxisKey("h")), "m", "Time");
         TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan), "m", "Time");
@@ -1142,38 +1148,38 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 } catch (CloneNotSupportedException ex) {
                     Logger.getLogger(CapacityTimelinePanel.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                
+
             } else {
                 series.setNotify(false);
                 series.clear();
             }
         }
-        
+
         this.collection.removeAllSeries();
         this.collection.addSeries(h);
         this.collection.addSeries(lvl);
         this.collection.addSeries(lflow);
         this.collection.addSeries(topHeight);
-        
+
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) h.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lvl.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lflow.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) topHeight.getKey()).name, false);
-        
+
         if (!persistent.isEmpty()) {
             for (TimeSeries ts : persistent) {
                 this.collection.addSeries(ts);
             }
         }
-        
+
     }
-    
+
     private void buildSurfaceCellTimeline(int sampleID, int triangleID, Surface surface) {
         this.collection.removeAllSeries();
         if (sampleID >= 0) {
             // Measurements
             int numberOfMaterials = surface.getMeasurementRaster().getNumberOfMaterials();
-            
+
             TimeSeries[] mass = new TimeSeries[numberOfMaterials];//(new SeriesKey("Mass", "m", "kg", Color.orange, new AxisKey("m")), "kg", "Time");
             TimeSeries[] count = new TimeSeries[numberOfMaterials];//(new SeriesKey("Particles", "N", " ", Color.orange, new AxisKey("N")), " ", "Time");
 
@@ -1185,12 +1191,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
             TimeIndexContainer timecontainer = surface.getMeasurementRaster().getIndexContainer();
             SurfaceMeasurementRaster raster = surface.getMeasurementRaster();
-            
+
             double timescale = 1;
             if (raster.continousMeasurements) {
                 timescale = ThreadController.getDeltaTime() / (timecontainer.getDeltaTimeMS() / 1000.);
             }
-            
+
             for (int i = 0; i < timecontainer.getNumberOfTimes(); i++) {
                 Date d;
                 if (showSimulationTime) {
@@ -1212,7 +1218,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 mass_sum.addOrUpdate(time, mass_s * timescale);
                 count_sum.addOrUpdate(time, count_s * timescale);
             }
-            
+
             if (numberOfMaterials > 1) {
                 this.collection.addSeries(mass_sum);
                 this.collection.addSeries(count_sum);
@@ -1254,13 +1260,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             double vres = Math.sqrt(vexy[0] * vexy[0] + vexy[1] * vexy[1]);
                             v.addOrUpdate(time, vres);
                         }
-                        
+
                     }
                 }
                 if (!lvl.isEmpty()) {
                     this.collection.addSeries(lvl);
                     StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lvl.getKey()).name, false);
-                    
+
                 }
                 if (!v.isEmpty()) {
                     this.collection.addSeries(v);
@@ -1268,9 +1274,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 }
             }
         }
-        
+
     }
-    
+
     private void buildTriangleMeasurementTimeline(TriangleMeasurement triM, Surface surface) {
 
         //Status timeline of triangle might have another timecontainer than measurements
@@ -1278,7 +1284,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         TimeSeries v = new TimeSeries(new SeriesKey("Velocity", "v", "m/s", Color.red, new AxisKey("v", "Velocity [m/s]")), "m/s", "Time");
         // Measurements
         int numberOfMaterials = triM.getParticlecount().length;
-        
+
         TimeSeries[] mass = new TimeSeries[numberOfMaterials];//(new SeriesKey("Mass", "m", "kg", Color.orange, new AxisKey("m")), "kg", "Time");
         TimeSeries[] count = new TimeSeries[numberOfMaterials];//(new SeriesKey("Particles", "N", " ", Color.orange, new AxisKey("N")), " ", "Time");
 
@@ -1289,9 +1295,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             mass[i] = new TimeSeries(new SeriesKey("Mass (" + i + ")", "m(" + i + ")", "kg", Color.PINK, new AxisKey("m", "Mass")), "kg", "Time");
         }
         TimeIndexContainer timecontainer = surface.getMeasurementRaster().getIndexContainer();
-        
+
         double timescale = ThreadController.getDeltaTime() / (timecontainer.getDeltaTimeMS() / 1000.);
-        
+
         for (int i = 0; i < timecontainer.getNumberOfTimes(); i++) {
             Date d;
             if (showSimulationTime) {
@@ -1311,7 +1317,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             mass_sum.addOrUpdate(time, mass_s * timescale);
             count_sum.addOrUpdate(time, count_s * timescale);
         }
-        
+
         if (controller != null && controller.getSurface() != null) {
             Surface surf = controller.getSurface();
             int id = triM.getTriangleID();
@@ -1341,7 +1347,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         double vres = Math.sqrt(vexy[0] * vexy[0] + vexy[1] * vexy[1]);
                         v.addOrUpdate(time, vres);
                     }
-                    
+
                 }
             }
         }
@@ -1360,14 +1366,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         if (!v.isEmpty()) {
             this.collection.addSeries(v);
         }
-        
+
     }
-    
+
     private void initCheckboxpanel() {
         panelChecks = new JPanel();
         this.add(panelChecks, BorderLayout.SOUTH);
     }
-    
+
     public void updateCheckboxPanel() {
         panelChecks.removeAll();
         if (this.collection == null || this.collection.getSeries().isEmpty()) {
@@ -1413,7 +1419,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
         this.revalidate();
     }
-    
+
     public void updateShownTimeSeries() {
         if (this.collection == null) {
             return;
@@ -1430,149 +1436,154 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 e.printStackTrace();
             }
         }
-        
+
         numberUsedDataSetSlots = 0;
         yAxisMap.clear();
-        
+
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
         int indexDataset = 0;
         int indexSeries = 0;
 //        System.out.println("checkboxes: "+checkboxes.length);
         for (int i = 0; i < checkboxes.length; i++) {
-            if (checkboxes[i].isSelected()) {
-                if (this.collection.getSeries(i) == null) {
-                    continue;
-                }
-                SeriesKey key = (SeriesKey) collection.getSeries(i).getKey();
-                /**
-                 * Baue neues Dataset wenn keine Wiederekennung zu finden ist
-                 */
-                TimeSeriesCollection dataset = null;
-                if (key.axisKey == null || key.axisKey.name == null) {
-                    /*
+            try {
+                if (checkboxes[i].isSelected()) {
+                    if (this.collection.getSeries(i) == null) {
+                        continue;
+                    }
+                    SeriesKey key = (SeriesKey) collection.getSeries(i).getKey();
+                    /**
+                     * Baue neues Dataset wenn keine Wiederekennung zu finden
+                     * ist
+                     */
+                    TimeSeriesCollection dataset = null;
+                    if (key.axisKey == null || key.axisKey.name == null) {
+                        /*
                      * No recognition (mapping to other dataset) required.
                      * Build a new Dataset+Yaxis for this TimeSeries
-                     */
-                    indexDataset = numberUsedDataSetSlots;
-                    numberUsedDataSetSlots++;
-                    dataset = new TimeSeriesCollection(this.collection.getSeries(i));
-                    plot.setDataset(indexDataset, dataset);
-                    renderer = new XYLineAndShapeRenderer(true, false);
-                    plot.setRenderer(indexDataset, renderer);
-                    
-                    NumberAxis axis2 = new NumberAxis(checkboxes[i].getText());
-                    axis2.setNumberFormatOverride(numberFormat);//NumberFormat.getNumberInstance(FormatLocale));
-                    yAxisMap.put(axis2.getLabel(), indexDataset);
-                    axis2.setAutoRangeIncludesZero(false);
-                    plot.setRangeAxis(indexDataset, axis2);
-                    plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-                } else {
-                    NumberAxis yAxis;
-                    if (yAxisMap.containsKey(key.axisKey.toString())) {
-                        indexDataset = yAxisMap.get(key.axisKey.toString());
-                        yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
-//                        yAxis.setNumberFormatOverride(NumberFormat.getCurrencyInstance(Locale.US));
-                        dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
-                        indexSeries = dataset.getSeriesCount();
-                        TimeSeries ts = (TimeSeries) this.collection.getSeries(i);
-                        if (key.logarithmic) {
-                            makeTimeSeriesAbsolute(ts);
-                        }
-                        dataset.addSeries(ts);
-                        renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
-                        renderer.setSeriesStroke(indexSeries, key.stroke);
-                    } else {
-                        // Axis key not yet in use. Build new Dataset for this Yaxis
+                         */
                         indexDataset = numberUsedDataSetSlots;
                         numberUsedDataSetSlots++;
-                        yAxisMap.put(key.axisKey.toString(), indexDataset);
-                        indexSeries = 0;
-                        String label = key.axisKey.label;
-                        if (label == null || label.isEmpty()) {
-                            label = "[" + key.unit + "]";
-                        }
-                        if (key.logarithmic) {
-                            yAxis = new LogarithmicAxis(label);
+                        dataset = new TimeSeriesCollection(this.collection.getSeries(i));
+                        plot.setDataset(indexDataset, dataset);
+                        renderer = new XYLineAndShapeRenderer(true, false);
+                        plot.setRenderer(indexDataset, renderer);
+
+                        NumberAxis axis2 = new NumberAxis(checkboxes[i].getText());
+                        axis2.setNumberFormatOverride(numberFormat);//NumberFormat.getNumberInstance(FormatLocale));
+                        yAxisMap.put(axis2.getLabel(), indexDataset);
+                        axis2.setAutoRangeIncludesZero(false);
+                        plot.setRangeAxis(indexDataset, axis2);
+                        plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                    } else {
+                        NumberAxis yAxis;
+                        if (yAxisMap.containsKey(key.axisKey.toString())) {
+                            indexDataset = yAxisMap.get(key.axisKey.toString());
+                            yAxis = (NumberAxis) plot.getRangeAxis(indexDataset);
+//                        yAxis.setNumberFormatOverride(NumberFormat.getCurrencyInstance(Locale.US));
+                            dataset = (TimeSeriesCollection) plot.getDataset(indexDataset);
+                            indexSeries = dataset.getSeriesCount();
+                            TimeSeries ts = (TimeSeries) this.collection.getSeries(i);
+                            if (key.logarithmic) {
+                                makeTimeSeriesAbsolute(ts);
+                            }
+                            dataset.addSeries(ts);
+                            renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
+                            renderer.setSeriesStroke(indexSeries, key.stroke);
                         } else {
-                            yAxis = new NumberAxis(label);
-                        }
+                            // Axis key not yet in use. Build new Dataset for this Yaxis
+                            indexDataset = numberUsedDataSetSlots;
+                            numberUsedDataSetSlots++;
+                            yAxisMap.put(key.axisKey.toString(), indexDataset);
+                            indexSeries = 0;
+                            String label = key.axisKey.label;
+                            if (label == null || label.isEmpty()) {
+                                label = "[" + key.unit + "]";
+                            }
+                            if (key.logarithmic) {
+                                yAxis = new LogarithmicAxis(label);
+                            } else {
+                                yAxis = new NumberAxis(label);
+                            }
 //                        yAxis.getNumberFormatOverride()..setNumberFormatOverride(numberFormat);//NumberFormat.getNumberInstance(FormatLocale));
 //                        if (key.axisKey.label != null) {
 //                            yAxis = new NumberAxis(key.axisKey.label);
 //                        } else {
 //                            yAxis = new NumberAxis("[" + key.unit + "]");
 //                        }
-                        if (key.axisKey != null) {
-                            if (key.axisKey.manualBounds) {
-                                yAxis.setLowerBound(key.axisKey.lowerBound);
-                                yAxis.setUpperBound(key.axisKey.upperBound);
-                            } else {
-                                key.axisKey.lowerBound = yAxis.getLowerBound();
-                                key.axisKey.upperBound = yAxis.getUpperBound();
-                            }
-                        }
-//                        yAxisMap.put(yAxis.getLabel(), indexDataset);
-                        XYIntervalRenderer intervalRenderer = new XYIntervalRenderer();
-                        intervalRenderer.drawinterval = true;
-                        if (key.axisKey != null) {
-                            intervalRenderer.interval = key.axisKey.drawInterval;
-                        }
-                        renderer = intervalRenderer;// new XYIntervalRenderer();//new XYLineAndShapeRenderer(true, false);
-                        renderer.setSeriesStroke(indexSeries, key.stroke);
-                        plot.setRenderer(indexDataset, renderer);
-                        
-                        yAxis.setAutoRangeIncludesZero(false);
-                        
-                        plot.setRangeAxis(indexDataset, yAxis);
-                        plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-                        dataset = new TimeSeriesCollection(this.collection.getSeries(i));
-                        
-                        if (key.logarithmic) {
-                            for (Object s : dataset.getSeries()) {
-                                if (s instanceof TimeSeries) {
-                                    TimeSeries ts = (TimeSeries) s;
-                                    makeTimeSeriesAbsolute(ts);
+                            if (key.axisKey != null) {
+                                if (key.axisKey.manualBounds) {
+                                    yAxis.setLowerBound(key.axisKey.lowerBound);
+                                    yAxis.setUpperBound(key.axisKey.upperBound);
+                                } else {
+                                    key.axisKey.lowerBound = yAxis.getLowerBound();
+                                    key.axisKey.upperBound = yAxis.getUpperBound();
                                 }
+                            }
+//                        yAxisMap.put(yAxis.getLabel(), indexDataset);
+                            XYIntervalRenderer intervalRenderer = new XYIntervalRenderer();
+                            intervalRenderer.drawinterval = true;
+                            if (key.axisKey != null) {
+                                intervalRenderer.interval = key.axisKey.drawInterval;
+                            }
+                            renderer = intervalRenderer;// new XYIntervalRenderer();//new XYLineAndShapeRenderer(true, false);
+                            renderer.setSeriesStroke(indexSeries, key.stroke);
+                            plot.setRenderer(indexDataset, renderer);
+
+                            yAxis.setAutoRangeIncludesZero(false);
+
+                            plot.setRangeAxis(indexDataset, yAxis);
+                            plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
+                            dataset = new TimeSeriesCollection(this.collection.getSeries(i));
+
+                            if (key.logarithmic) {
+                                for (Object s : dataset.getSeries()) {
+                                    if (s instanceof TimeSeries) {
+                                        TimeSeries ts = (TimeSeries) s;
+                                        makeTimeSeriesAbsolute(ts);
+                                    }
+                                }
+                            }
+                            try {
+                                plot.setDataset(indexDataset, dataset);
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
                         }
                         try {
-                            plot.setDataset(indexDataset, dataset);
+                            plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
                         } catch (Exception e) {
-                            e.printStackTrace();
                         }
                     }
-                    try {
-                        plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-                    } catch (Exception e) {
+                    renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
+                    renderer.setDrawSeriesLineAsPath(true);
+                    if (key.lineColor != null) {
+                        renderer.setSeriesPaint(indexSeries, key.lineColor);
                     }
-                }
-                renderer = (XYLineAndShapeRenderer) plot.getRenderer(indexDataset);
-                renderer.setDrawSeriesLineAsPath(true);
-                if (key.lineColor != null) {
-                    renderer.setSeriesPaint(indexSeries, key.lineColor);
-                }
-                if (key.stroke != null) {
-                    renderer.setSeriesStroke(indexSeries, key.stroke);
-                    renderer.setSeriesLinesVisible(indexSeries, true);
-                } else {
-                    renderer.setSeriesLinesVisible(indexSeries, false);
-                }
-                if (key.shape != null && key.shape.getShape() != null) {
-                    renderer.setSeriesShape(indexSeries, key.shape.getShape());
-                    renderer.setSeriesShapesFilled(indexSeries, key.shapeFilled);
-                    renderer.setSeriesShapesVisible(indexSeries, true);
-                    if (key.axisKey != null && key.axisKey.drawInterval > 1) {
-                        if (renderer instanceof XYIntervalRenderer) {
-                            ((XYIntervalRenderer) renderer).interval = key.axisKey.drawInterval;
+                    if (key.stroke != null) {
+                        renderer.setSeriesStroke(indexSeries, key.stroke);
+                        renderer.setSeriesLinesVisible(indexSeries, true);
+                    } else {
+                        renderer.setSeriesLinesVisible(indexSeries, false);
+                    }
+                    if (key.shape != null && key.shape.getShape() != null) {
+                        renderer.setSeriesShape(indexSeries, key.shape.getShape());
+                        renderer.setSeriesShapesFilled(indexSeries, key.shapeFilled);
+                        renderer.setSeriesShapesVisible(indexSeries, true);
+                        if (key.axisKey != null && key.axisKey.drawInterval > 1) {
+                            if (renderer instanceof XYIntervalRenderer) {
+                                ((XYIntervalRenderer) renderer).interval = key.axisKey.drawInterval;
+                            }
                         }
-                    }
 //                    System.out.println("Series "+key.label+" shape: "+key.shape);
-                } else {
-                    renderer.setSeriesShape(indexSeries, null);
-                    renderer.setSeriesShapesVisible(indexSeries, false);
+                    } else {
+                        renderer.setSeriesShape(indexSeries, null);
+                        renderer.setSeriesShapesVisible(indexSeries, false);
 //                    System.out.println("Series "+key.label+" without shape");
+                    }
+                    indexDataset++;
                 }
-                indexDataset++;
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
         }
         if (matlabStyle) {
@@ -1599,7 +1610,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
         }
     }
-    
+
     private void initChart(String title) {
         if (title == null) {
             title = "";
@@ -1610,9 +1621,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } else {
             chart = ChartFactory.createTimeSeriesChart(title, "Tageszeit", "", collection, true, true, true);
         }
-        
+
         XYPlot plot = chart.getXYPlot();
-        
+
         try {
             dateAxis = (DateAxis) plot.getDomainAxis();
             dateAxis.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -1632,7 +1643,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 } catch (Exception e) {
                     System.err.println("Paintexception in Chartpanel catched: " + e.getLocalizedMessage());
-//                    e.printStackTrace();
+                    e.printStackTrace();
                 }
             }
         };
@@ -1640,7 +1651,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         panelChart.setMaximumDrawHeight((int) (250));
         panelChart.setMaximumDrawWidth((int) (500));
     }
-    
+
     private void updateChart(String title) {
         if (title == null) {
             title = "";
@@ -1650,7 +1661,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             panelChart.getChart().getTitle().setFont(titleFont);
         }
     }
-    
+
     public static void addPDFexport(final ChartPanel panelChart, final JComponent surroundingContainer) {
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
@@ -1673,7 +1684,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 JMenu m = (JMenu) menu.getComponent(index);
                 m.add(item, 0);
             }
-            
+
             item.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent ae) {
@@ -1714,9 +1725,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         try {
                             panelChart.getChart().setBackgroundPaint(Color.white);
                             Rectangle rec = new Rectangle(0, 0, panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
-                            
+
                             System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
-                            
+
                             Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
                             FileOutputStream fos = new FileOutputStream(output);
                             PdfWriter writer = PdfWriter.getInstance(doc, fos);
@@ -1730,24 +1741,24 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             g2d.dispose();
                             doc.close();
                             fos.close();
-                            
+
                         } catch (Exception ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
                             JOptionPane.showMessageDialog(panelChart, ex.getLocalizedMessage(), "PDF writer exception", JOptionPane.ERROR_MESSAGE);
                         } finally {
-                            
+
                         }
                         panelChart.getChart().setBackgroundPaint(formerBackground);
                     }
                 }
             });
-            
+
         } catch (NoClassDefFoundError e) {
             System.err.println("itextpdf libraries not found. PDF export for Timeline Panel disabled.");
         }
     }
-    
+
     public static void addLaTeX_TikzExport(final ChartPanel panelChart, final JComponent surroundingContainer) {
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
@@ -1770,7 +1781,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 JMenu m = (JMenu) menu.getComponent(index);
                 m.add(item, 0);
             }
-            
+
             item.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent ae) {
@@ -1788,8 +1799,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //                        }
 //                        
 //                    };
-                    fc.setFileFilter(new FileNameExtensionFilter("LaTeX File", new String[] {"tex","tikz"}));
-                        fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    fc.setFileFilter(new FileNameExtensionFilter("LaTeX File", new String[]{"tex", "tikz"}));
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
                     int n = fc.showSaveDialog(panelChart);
                     if (n == JFileChooser.APPROVE_OPTION) {
                         File output = fc.getSelectedFile();
@@ -1798,7 +1809,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 return;
                             }
                         }
-                        
+
                         directoryPDFsave = output.getParent();
                         panelChart.setDefaultDirectoryForSaveAs(output.getParentFile());
                         StartParameters.setPictureExportPath(directoryPDFsave);
@@ -1812,14 +1823,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
 //                            System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
                             try (FileOutputStream fos = new FileOutputStream(output)) {
-                                TikzGraphics2D g2d = new TikzGraphics2D(fos,rec);
+                                TikzGraphics2D g2d = new TikzGraphics2D(fos, rec);
 //                            g2d.translate(-surroundingContainer.getX(), 0);// -surroundingContainer.getY());
                                 panelChart.getChart().draw(g2d, rec);
-                                
+
                                 g2d.finalize();
-                                System.out.println("Created file "+output);
+                                System.out.println("Created file " + output);
                             }
-                            
+
                         } catch (FileNotFoundException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
@@ -1827,7 +1838,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
                         } finally {
-                            
+
                         }
                         panelChart.getChart().setBackgroundPaint(formerBackground);
                     }
@@ -1838,7 +1849,89 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             System.err.println("itextpdf libraries not found. PDF export for Timeline Panel disabled.");
         }
     }
-    
+
+    public static void addLaTeX_TikzPDFExport(final ChartPanel panelChart, final JComponent surroundingContainer) {
+        JPopupMenu menu = panelChart.getPopupMenu();
+        try {
+            panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
+            int index = 3; //usually at the 3rd position
+            for (int i = 0; i < menu.getComponentCount(); i++) {
+                if (menu.getComponent(i) instanceof JMenu) {
+                    JMenu m = (JMenu) menu.getComponent(i);
+                    String label = m.getActionCommand().toLowerCase();
+                    if (label.contains("save") || label.contains("speich")) {
+                        index = i;
+                    }
+                }
+            }
+            JMenuItem item = new JMenuItem("TikZ&PDF...");
+            item.setToolTipText("Create a tikz picture with every but text packed into a PDF.");
+            if (index < 0 || !(menu.getComponent(index) instanceof JMenu)) {
+                //Add at the very end if the correct position could not be found
+                menu.add(item);
+            } else {
+                JMenu m = (JMenu) menu.getComponent(index);
+                m.add(item, 0);
+            }
+
+            item.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave);
+
+                    fc.setFileFilter(new FileNameExtensionFilter("LaTeX File", new String[]{"tex", "tikz"}));
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    int n = fc.showSaveDialog(panelChart);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        if (output.exists()) {
+                            if (JOptionPane.showConfirmDialog(panelChart, "Override existing file?", output.getName() + " already exists", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION) {
+                                return;
+                            }
+                        }
+
+                        directoryPDFsave = output.getParent();
+                        panelChart.setDefaultDirectoryForSaveAs(output.getParentFile());
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                        if (!output.getName().endsWith(".tex")) {
+                            output = new File(output.getAbsolutePath() + ".tex");
+                        }
+                        Paint formerBackground = panelChart.getChart().getBackgroundPaint();
+                        try {
+                            panelChart.getChart().setBackgroundPaint(Color.white);
+                            Rectangle rec = new Rectangle(0, 0, panelChart.getWidth(), panelChart.getHeight());
+
+                            TikzPDFGraphics2D g2d = new TikzPDFGraphics2D(output.getParentFile(), output.getName(), rec);
+
+                            panelChart.setMaximumDrawWidth((int) rec.getWidth());
+                            panelChart.setMinimumDrawWidth((int) rec.getWidth());
+                            panelChart.setMaximumDrawHeight((int) rec.getHeight());
+                            panelChart.setMinimumDrawHeight((int) rec.getHeight());
+
+                            panelChart.getChart().draw(g2d, rec);
+
+                            g2d.finalize();
+                            System.out.println("Created file " + output);
+
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } catch (Exception ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } finally {
+
+                        }
+                        panelChart.getChart().setBackgroundPaint(formerBackground);
+                    }
+                }
+            }
+            );
+        } catch (NoClassDefFoundError e) {
+            System.err.println("itextpdf libraries not found. PDF export for Timeline Panel disabled.");
+        }
+    }
+
     private void addEMFexport() {
         try {
             JPopupMenu menu = this.panelChart.getPopupMenu();
@@ -1904,12 +1997,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 g2d.endExport();
                                 //                                    g2d.closeStream();
                                 out.flush();
-                                
+
                             }
                         } catch (FileNotFoundException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
-                            
+
                         } catch (IOException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
@@ -1918,12 +2011,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     }
                 }
             });
-            
+
         } catch (NoClassDefFoundError e) {
             System.err.println("No libraries for emfGraphics found. Disable emf graphics export in " + getClass());
         }
     }
-    
+
     private void addTimeSeriesExport() {
         try {
             JPopupMenu menu = this.panelChart.getPopupMenu();
@@ -1946,11 +2039,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 m.add(item, 0);
             }
             item.addActionListener(new ActionListener() {
-                
+
                 @Override
                 public void actionPerformed(ActionEvent ae) {
                     JFileChooser fc = new JFileChooser(directoryPDFsave) {
-                        
+
                         @Override
                         public boolean accept(File file) {
                             if (file.isDirectory()) {
@@ -1975,11 +2068,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 e.printStackTrace();
                             }
                             TimeSeries_IO.saveTimeSeriesCollection(output2, prefix, collection);
-                            
+
                         } catch (FileNotFoundException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
-                            
+
                         } catch (IOException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
@@ -1990,9 +2083,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
     }
-    
+
     private void addMatlabSeriesExport() {
         try {
             JPopupMenu menu = this.panelChart.getPopupMenu();
@@ -2015,11 +2108,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 m.add(item, 0);
             }
             item.addActionListener(new ActionListener() {
-                
+
                 @Override
                 public void actionPerformed(ActionEvent ae) {
                     JFileChooser fc = new JFileChooser(directoryPDFsave) {
-                        
+
                         @Override
                         public boolean accept(File file) {
                             if (file.isDirectory()) {
@@ -2033,7 +2126,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     if (n == JFileChooser.APPROVE_OPTION) {
                         File output = fc.getSelectedFile();
                         directoryPDFsave = output.getAbsolutePath();
-                        
+
                         StartParameters.setPictureExportPath(directoryPDFsave);
                         File output2 = new File(output.getAbsolutePath());
                         try {
@@ -2048,11 +2141,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                 e.printStackTrace();
                             }
                             TimeSeries_IO.saveTimeSeriesCollectionAsMatlab(output2, prefix, collection, capacityname, true);
-                            
+
                         } catch (FileNotFoundException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
-                            
+
                         } catch (IOException ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
@@ -2063,9 +2156,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
     }
-    
+
     public static TimeSeries createMovingaverageCentral(TimeSeries ts, int maxinvolvedPeriods, String name, boolean originIsShiftTimeSeries) {
         SeriesKey oldKey = (SeriesKey) ts.getKey();
         Color colorNew = null;
@@ -2074,7 +2167,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
         return createMovingaverageCentral(ts, maxinvolvedPeriods, name, colorNew, originIsShiftTimeSeries);
     }
-    
+
     public static TimeSeries createMovingaverageCentral(TimeSeries ts, int maxinvolvedPeriods, String name, Color c, boolean originIsShiftTimeSeries) {
         SeriesKey oldKey = (SeriesKey) ts.getKey();
         Color colorNew = c;
@@ -2090,7 +2183,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 RegularTimePeriod p = ts.getTimePeriod(i);
                 for (int j = i - radius; j < i + radius; j++) {
                     sum += ts.getDataItem(j).getValue().doubleValue();
-                    
+
                 }
                 double wert = sum / nenner;
                 average.add(p, wert);
@@ -2148,7 +2241,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 //        return average;
 //    }
     public TimeSeries createConcentrationMovingaverageCentral(ArrayTimeLineMeasurement mtm, int maxinvolvedPeriods) {
-        
+
         SeriesKey newKey = new SeriesKey(maxinvolvedPeriods + " mean of Concentration", maxinvolvedPeriods + " mean c", "kg/m³", Color.GREEN, AxisKey.CONCENTRATION());
         TimeSeries average = new TimeSeries(newKey);
         int minIndex = maxinvolvedPeriods / 2 + 1;
@@ -2163,31 +2256,31 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             } else {
                 d = new Date(mtm.getContainer().getTimeMillisecondsAtIndex(i));
             }
-            
+
             RegularTimePeriod p = new Millisecond(d);
             double counter = 0;
             for (int j = i - radius; j < i + radius; j++) {
                 if (mtm.hasValues(j)) {
                     sum += mtm.getConcentration(j);
                 }
-                
+
                 counter++;
             }
             double wert = sum / counter;
             average.add(p, wert);
         }
-        
+
         return average;
     }
-    
+
     public TimeSeriesCollection getCollection() {
-        
+
         return collection;
     }
-    
+
     public static void main1(String[] args) {
         Color old = Color.white;
-        
+
         System.out.println("Old:   " + old);
         System.out.println("10x:   " + new Color(old.getRGB() * 10));
         System.out.println("100x:  " + new Color(old.getRGB() * 100));
@@ -2196,10 +2289,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         System.out.println("100000:" + new Color(old.getRGB() * 100000));
         System.out.println("1000000:" + new Color(old.getRGB() * 1000000));
     }
-    
+
     @Override
     public void selectCapacity(Capacity c, Object caller) {
         this.setStorage(c, c.toString());
     }
-    
+
 }

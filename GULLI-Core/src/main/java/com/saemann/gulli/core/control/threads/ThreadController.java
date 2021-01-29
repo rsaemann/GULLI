@@ -28,6 +28,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
+import com.saemann.gulli.core.control.maths.RandomArray;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -166,21 +167,9 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             barrier_particle.addThread(pt);
         }
         barrier_particle.initialize();
-//        barrier_positionUpdate = new SingleThreadBarrier("LocationBarrier", this);
-//
-//        LocationThread put = new LocationThread("LocationThread", barrier_positionUpdate);
-//        barrier_positionUpdate.setThread(put);
-//
-//        barrier_positionUpdate.initialize();
         barrier_sync = new SingleThreadBarrier<>("SyncBarrier", this);
         syncThread_pipes = new SynchronizationThreadPipe("SyncThread", barrier_sync, control);
         barrier_sync.setThread(syncThread_pipes);
-//        barrier_sync.addThread(syncThread_pipes);
-//        barrier_sync.addThread(new SynchronizationThreadSurface("SyncThread_Surface", barrier_sync, control));
-//        for (int i = 0; i < numberParallelSyncThreads; i++) {
-//            SynchronizationThreadPipe syncThread = new SynchronizationThreadPipe("SyncThread[" + i + "]", barrier_sync, control);
-//            barrier_sync.addThread(syncThread);
-//        }
 
         barrier_sync.initialize();
 
@@ -261,6 +250,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             Random r = new Random(seed);
             for (int i = 0; i < randomNumberGenerators.length; i++) {
                 RandomGenerator newGen = new RandomGenerator(r.nextLong());// newField = new RandomArray(r.nextLong(), (int) (treatblocksize * 10 + 19));
+//                RandomArray newGen=new RandomArray(r.nextLong(), 100007);
+                
                 randomNumberGenerators[i] = newGen;
             }
         }
@@ -968,27 +959,32 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                 int someoneRunning = -1;
 
                                 for (Object thread : barrier_particle.getThreads()) {
-                                    if (thread instanceof ParticleThread) {
-                                        ParticleThread pt = (ParticleThread) thread;
-                                        str.append("\n ");
-                                        str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status);// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
-                                        if (pt.particle != null) {
-                                            str.append("   Particle: " + pt.particleID + " in " + pt.particle.getSurrounding_actual() + " : status=" + pt.particle.status);
-                                        }
-                                        if (pt.pc != null) {
-                                            str.append("  PipeComp.status=" + pt.pc.status);
-                                        }
-                                        if (pt.getSurfaceComputing() != null) {
-                                            try {
-                                                str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
-                                            } catch (Exception e) {
+                                    try {
+                                        if (thread instanceof ParticleThread) {
+                                            ParticleThread pt = (ParticleThread) thread;
+                                            str.append("\n ");
+                                            str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status + ", index:" + pt.getActualParticleBlockStartIndex());// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
+                                            if (pt.getActualParticle() != null) {
+                                                Particle p = pt.getActualParticle();
+                                                str.append("   Particle: " + p.getId() + " in " + p.getSurrounding_actual() + " : status=" + p.status);
+                                            }
+                                            if (pt.pc != null) {
+                                                str.append("  PipeComp.status=" + pt.pc.status);
+                                            }
+                                            if (pt.getSurfaceComputing() != null) {
+                                                try {
+                                                    str.append("    surfComputing: " + pt.getSurfaceComputing().reportCalculationStatus());
+                                                } catch (Exception e) {
+                                                }
+                                            }
+                                            if (pt.getState() == State.BLOCKED) {
+                                                someoneblocked = pt.threadIndex;
+                                            } else if (pt.getState() == State.RUNNABLE) {
+                                                someoneRunning = pt.threadIndex;
                                             }
                                         }
-                                        if (pt.getState() == State.BLOCKED) {
-                                            someoneblocked = pt.threadIndex;
-                                        } else if (pt.getState() == State.RUNNABLE) {
-                                            someoneRunning = pt.threadIndex;
-                                        }
+                                    } catch (Exception exception) {
+                                        System.err.println("Exception "+exception.getLocalizedMessage());
                                     }
 
                                 }
@@ -1028,7 +1024,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                             }
                             laststep = steps;
                         }
-                        Thread.sleep(5000);
+                        Thread.sleep(15000);
 
                     } catch (Exception ex) {
                         Logger.getLogger(ThreadController.class
@@ -1102,6 +1098,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
     @Override
     public void loadSurface(Surface surface, Object caller) {
+//        System.out.println(getClass()+"::loadSurface "+surface+", caller:"+caller);
         for (ParticleThread pt : barrier_particle.getThreads()) {
             pt.setSurface(surface);
         }

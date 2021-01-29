@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2020 B1.
+ * Copyright 2020 Saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,10 @@
  */
 package com.saemann.gulli.core.control.particlecontrol.injection;
 
-import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Manhole;
 
 /**
- *
+ * 
  * @author Sämann
  */
 public class ManholeInjection implements ParticleInjection {

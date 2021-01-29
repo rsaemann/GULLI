@@ -119,6 +119,8 @@ public class Setup_IO {
         bw.newLine();
         bw.write("\t\t\t<Timecontinuous>" + setup.isSurfaceMeasurementTimeContinuous() + "</>");
         bw.newLine();
+        bw.write("\t\t\t<Spatialconsistent>" + setup.isPipeMeasurementSpatialConsistent() + "</>");
+        bw.newLine();
         bw.write("\t\t\t<Synchronize Writing>" + setup.isSurfaceMeasurementSynchronize() + "</>");
         bw.newLine();
         bw.write("\t\t</Surface>");
@@ -198,14 +200,18 @@ public class Setup_IO {
         for (InjectionInformation injection : scenario.getInjections()) {
             bw.write("\t<Injection id=" + injection.getId() + ">");
             bw.newLine();
-
             bw.write("\t\t<OnSurface>" + injection.spillOnSurface() + "</>");
             bw.newLine();
 
             if (injection.spillOnSurface()) {
-                if (injection.getCapacityID() >= 0) {
-                    bw.write("\t\t<Surfacecell>" + injection.getCapacityID() + "</>");
+                if (injection.spilldistributed) {
+                    bw.write("\t\t<Diffusive>true</>");
                     bw.newLine();
+                } else {
+                    if (injection.getCapacityID() >= 0) {
+                        bw.write("\t\t<Surfacecell>" + injection.getCapacityID() + "</>");
+                        bw.newLine();
+                    }
                 }
             } else if (injection.spillInManhole()) {
                 if (injection.getCapacity() != null) {
@@ -268,7 +274,7 @@ public class Setup_IO {
         HashMap<Integer, Material> materials = new HashMap<>();
 //        Material mat=null;
         int materialID = 0;
-        double materialDensity;
+//        double materialDensity;
         String materialName = null;
         Routing_Calculator materialFlowCalculator = null;
         Dispersion1D_Calculator materialDispersionCalculatorPipe = null;
@@ -279,6 +285,7 @@ public class Setup_IO {
         GeoPosition injectionPosition = null;
         double injectionLatitude = -1, injectionLongitude = -1;
         boolean injectionOnSurface = false;
+        boolean injectionDiffusive = false;
         int injectionCapacityID = -1;
         String injectionCapacityName = null;
         int injection_materialID = 0;
@@ -302,6 +309,8 @@ public class Setup_IO {
                         state = 4;
                     } else if (line.contains("<Injections")) {
                         state = 5;
+                    } else if (line.contains("<Measuring")) {
+                        state = 6;
                     }
                 }
                 if (state == 1) {
@@ -309,9 +318,9 @@ public class Setup_IO {
                         String name = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                         scenario.setName(name);
                         state = -1;
+                        continue;
                     }
-                }
-                if (state == 2) {
+                } else if (state == 2) {
                     //InputFiles
                     if (line.contains("<NetworkTopology>")) {
                         String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
@@ -333,8 +342,7 @@ public class Setup_IO {
                     if (line.contains("/InputFiles")) {
                         state = -1;
                     }
-                }
-                if (state == 3) {
+                } else if (state == 3) {
                     //Simulationparameters
                     if (line.contains("Timestep")) {
                         Double dt = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
@@ -348,15 +356,21 @@ public class Setup_IO {
                     }
                 } else if (state == 4) {
                     //Materials
-                    if (line.contains("/Material")) {
+                    if (line.contains("/Materials")) {
                         state = -1;
+                        continue;
+                    }
+                    if (line.contains("/Material")) {
                         if (materialFlowCalculator == null) {
                             materialFlowCalculator = new Routing_Homogene();
-                            System.err.println("Created default " + materialFlowCalculator.getClass().getSimpleName() + " for material " + materialName + " (" + materialID + ")");
+//                            System.err.println("Created default " + materialFlowCalculator.getClass().getSimpleName() + " for material " + materialName + " (" + materialID + ")");
                         }
 
                         Material mat = new Material(materialName, 1000, materialID, materialFlowCalculator, materialDispersionCalculatorPipe, materialDispersionCalculatorSurface);
                         materials.put(mat.materialIndex, mat);
+                        materialName=null;
+                        materialFlowCalculator=null;
+                        materialDispersionCalculatorPipe=null;
                         continue;
                     }
 
@@ -409,24 +423,6 @@ public class Setup_IO {
                                 Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
                             }
                         }
-                        if (line.contains("</")) {
-//                        try {
-//                            double d = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-//                            if (networkRelation) {
-//                                setup.setNetworkdispersion(d);
-//                            }
-//                            if (surfaceRelation) {
-//                                Dispersion2D_Constant dc = new Dispersion2D_Constant();
-//                                dc = new Dispersion2D_Constant();
-//                                dc.Dxx = d;
-//                                dc.Dyy = d;
-//                                dc.D = new double[]{dc.Dxx, dc.Dyy, dc.Dyy};
-//                                materialDispersionCalculatorSurface = dc;
-//                            }
-//                        } catch (Exception exception) {
-//                            exception.printStackTrace();
-//                        }
-                        }
                     }
                 } else if (state == 5) {
                     //Injections
@@ -446,10 +442,14 @@ public class Setup_IO {
                                 InjectionInformation inj = null;
                                 Material mat = materials.get(injection_materialID);
                                 if (mat == null) {
-                                    System.err.println("No material found for injection " + injectionID + ": " + injectionCapacityName);
+                                    System.err.println("No material found for injection " + injectionID + ": " + injectionCapacityName+"   materials:"+materials.size());
                                 } else {
                                     if (injectionOnSurface) {
-                                        inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), false, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                        if (injectionDiffusive) {
+                                            inj = InjectionInformation.DIFFUSIVE_ON_SURFACE(injectionMass, injectionParticles, mat);
+                                        } else {
+                                            inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), false, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                        }
                                     } else {
                                         if (injectionPosition != null) {
                                             inj = new InjectionInformation(injectionPosition, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
@@ -467,14 +467,17 @@ public class Setup_IO {
                                         System.err.println("Could not create Injection for " + injectionID + ": " + injectionCapacityName);
                                     }
                                 }
+
                                 injectionCapacityID = -1;
                                 injectionCapacityName = null;
                                 injectionDuration = 0;
                                 injectionPosition = null;
-
+                                injectionDiffusive=false;
                                 break;
                             }
-                            if (line.contains("<OnSurface>")) {
+                            if (line.contains("<Diffusive>")) {
+                                injectionDiffusive = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("<OnSurface>")) {
                                 injectionOnSurface = Boolean.parseBoolean(line.substring(line.indexOf("<OnSurface") + 11, line.indexOf("</")));
                             } else if (line.contains("Latitude")) {
                                 injectionLatitude = Double.parseDouble(line.substring(line.indexOf("Latitude") + 9, line.indexOf("</")));
@@ -500,6 +503,61 @@ public class Setup_IO {
                         }
                     }
 
+                } else if (state == 6) {
+                    //Measuring
+                    if (line.contains("/Measuring")) {
+                        state = -1;
+                        continue;
+                    }
+
+                    if (line.contains("<Surface")) {
+                        surfaceRelation = true;
+                        networkRelation = false;
+                    } else if (line.contains("</Surface")) {
+                        surfaceRelation = false;
+                    } else if (line.contains("<Network")) {
+                        surfaceRelation = false;
+                        networkRelation = true;
+                    } else if (line.contains("</Network")) {
+                        networkRelation = false;
+                    }
+                    /*<Interval unit='s'>60.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>false</>*/
+                    if (line.contains("Interval")) {
+                        double seconds = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (surfaceRelation) {
+                            setup.setSurfaceMeasurementtimestep(seconds);
+                        }
+                        if (networkRelation) {
+                            setup.setPipeMeasurementtimestep(seconds);
+                        }
+                    } else if (line.contains("Timecontinuous")) {
+                        boolean timeconti = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (networkRelation) {
+                            setup.setPipeMeasurementTimeContinuous(timeconti);
+                        }
+                        if (surfaceRelation) {
+                            setup.setSurfaceMeasurementTimeContinuous(timeconti);
+                        }
+                    } else if (line.contains("Spatialconsistent")) {
+                        boolean spatialContio = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (networkRelation) {
+                            setup.setPipeMeasurementSpatialConsistent(spatialContio);
+                        }
+                        if (surfaceRelation) {
+                            setup.setSurfaceMeasurementSpatialConsistent(spatialContio);
+                        }
+                    } else if (line.contains("Synchronize")) {
+                        boolean sync = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (networkRelation) {
+                            setup.setPipeMeasurementSynchronize(sync);
+                        }
+                        if (surfaceRelation) {
+                            setup.setSurfaceMeasurementSynchronize(sync);
+                        }
+                    }
                 }
             } catch (Exception exception) {
                 exception.printStackTrace();

@@ -91,7 +91,7 @@ public class EditorTableFrame extends JFrame {
                 JFileChooser fc = new JFileChooser(CapacityTimelinePanel.directoryPDFsave) {
                     @Override
                     public boolean accept(File file) {
-                        if (file.isDirectory() || file.getName().endsWith(".tse")) {
+                        if (file.isDirectory() || file.getName().endsWith(".tse") || file.getName().endsWith(".xys")) {
                             return true;
                         }
                         return false;
@@ -104,8 +104,10 @@ public class EditorTableFrame extends JFrame {
                     try {
                         CapacityTimelinePanel.directoryPDFsave = fc.getSelectedFile().getAbsolutePath();
                         if (fc.getSelectedFiles() == null || fc.getSelectedFiles().length == 1) {
-                            TimeSeries ts = TimeSeries_IO.readTimeSeries(fc.getSelectedFile());
-                            tablePanel.getTable().collection.addSeries(ts);
+                            if (fc.getSelectedFile().getName().endsWith("tse")) {
+                                TimeSeries ts = TimeSeries_IO.readTimeSeries(fc.getSelectedFile());
+                                tablePanel.getTable().collection.addSeries(ts);
+                            }
                         } else {
                             List<File> list1 = Arrays.asList(fc.getSelectedFiles());
                             ArrayList<File> list = new ArrayList<>(list1);

@@ -273,6 +273,11 @@ public class Dispersion2D_Waterlevel implements Dispersion2D_Calculator {
         return new String[]{"m/s"};
     }
 
+    @Override
+    public boolean isIsotropic() {
+       return true;
+    }
+
     public class NoDiffusionStringException extends Exception {
 
         public NoDiffusionStringException() {

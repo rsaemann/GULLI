@@ -424,9 +424,12 @@ public class MeasurementPanel extends JPanel {
                 } else {
                     checkMeasureContinouslyPipe.setSelected(true);
                 }
-                checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
+                
                 textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
             }
+            checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
+            checkMeasureSynchronisedPipe.setSelected(ArrayTimeLineMeasurement.synchronizeMeasures);
+            
             if (control.getScenario().getMeasurementsSurface() != null) {
                 SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
                 if (mpc.continousMeasurements) {
@@ -439,8 +442,10 @@ public class MeasurementPanel extends JPanel {
                 } else {
                     checkMeasureSpatialConsistentSurface.setSelected(false);
                 }
+                checkMeasureSynchronisedSurface.setSelected(mpc.synchronizeMeasures);
                 textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
             }
+            
         }
         panelOutputs.removeAll();
         if (control != null && control.getStoringCoordinator() != null) {
@@ -492,6 +497,7 @@ public class MeasurementPanel extends JPanel {
         checkMeasureContinouslyPipe.setEnabled(editable);
         checkMeasureContinouslySurface.setEnabled(editable);
         checkMeasureResidenceTimePipe.setEnabled(editable);
+        checkMeasureSpatialConsistentSurface.setEnabled(editable);
         checkMeasureContinouslyPipe.setEnabled(editable);
         checkMeasureSynchronisedSurface.setEnabled(editable);
         checkMeasureSynchronisedPipe.setEnabled(editable);

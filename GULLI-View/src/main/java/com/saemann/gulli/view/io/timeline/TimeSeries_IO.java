@@ -30,6 +30,9 @@ import com.saemann.gulli.view.timeline.AxisKey;
 import com.saemann.gulli.view.timeline.SeriesKey;
 import com.saemann.gulli.view.timeline.customCell.ShapeEditor.SHAPES;
 import org.jfree.data.category.CategoryDataset;
+import org.jfree.data.xy.XYDataItem;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
 /**
  * Load an Save Timeseries for JFreeChart Panel. Used in the TimelinePanel to
@@ -93,6 +96,62 @@ public class TimeSeries_IO {
         os.close();
     }
 
+    public static void saveXYSeries(File file, XYSeries series) throws FileNotFoundException, IOException {
+        if (!(series.getKey() instanceof SeriesKey)) {
+            throw new IllegalArgumentException("XYSeries '" + series.getKey() + "' has no SeriesKey. Can not be saved to '" + file.getAbsolutePath() + "'.");
+        }
+        SeriesKey key = (SeriesKey) series.getKey();
+        OutputStream os = new FileOutputStream(file);
+        OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("UTF-8"));
+        BufferedWriter bw = new BufferedWriter(osw);
+        bw.write(key.toString() + "\n");
+        bw.write("name ;" + key.name + "\n");
+        bw.write("ysymbl;" + key.symbol + "\n");
+        bw.write("yunit ;" + key.unit + "\n");
+        bw.write("ylabel;" + key.label + "\n");
+        if (key.axisKey == null) {
+            bw.write("yaxis ;" + key.symbol + ";\n");
+        } else {
+            bw.write("yaxis ;" + key.axisKey.name + ";" + key.axisKey.label + "\n");
+        }
+        bw.write("index;" + key.containerIndex + "\n");
+        bw.write("show ;" + key.isVisible() + "\n");
+        bw.write("color;" + key.lineColor + ";" + key.lineColor.getRGB() + "\n");
+        bw.write("strok;");
+        if (key.stroke == null) {
+            bw.write("null\n");
+        } else {
+            bw.write(key.stroke.getLineWidth() + ";" + key.stroke.getEndCap() + ";" + key.stroke.getLineJoin() + ";" + key.stroke.getMiterLimit() + ";{");
+            if (key.stroke.getDashArray() != null) {
+                for (int i = 0; i < key.stroke.getDashArray().length; i++) {
+                    if (i > 0) {
+                        bw.write(",");
+                    }
+                    bw.write(key.stroke.getDashArray()[i] + "");
+                }
+            }
+            bw.write("};" + key.stroke.getDashPhase() + "\n");
+        }
+        bw.write("shape;");
+        if (key.shape == null) {
+            bw.write(SHAPES.EMPTY + "\n");
+        } else {
+            bw.write(key.shape.name() + "\n");
+        }
+        bw.write("value;" + series.getItemCount() + "\n");
+        bw.write("X;Y\n");
+
+        for (int i = 0; i < series.getItemCount(); i++) {
+            XYDataItem item = series.getDataItem(i);
+            bw.write(item.getXValue() + ";" + item.getYValue() + "\n");
+        }
+        bw.write("end");
+        bw.flush();
+        bw.close();
+        osw.close();
+        os.close();
+    }
+
     public static void saveTimeSeriesCollection(File directory, String nameprefix, TimeSeriesCollection collection) throws IOException {
         if (!directory.exists()) {
             directory.mkdirs();
@@ -103,13 +162,36 @@ public class TimeSeries_IO {
                 TimeSeries s = collection.getSeries(i);
                 SeriesKey key = (SeriesKey) s.getKey();
                 File file;
-                if (key.file == null || key.file.isEmpty() || !key.file.endsWith("tse")||key.persist) {
+                if (key.file == null || key.file.isEmpty() || !key.file.endsWith("tse") || key.persist) {
                     file = new File(dir + nameprefix + (key.label + "_" + key.containerIndex).replaceAll("/", "") + ".tse");
                 } else {
                     file = new File(dir + key.file);
                 }
 
                 saveTimeSeries(file, s);
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+    }
+
+    public static void saveXYSeriesCollection(File directory, String nameprefix, XYSeriesCollection collection) throws IOException {
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+        String dir = directory.getAbsolutePath() + File.separator;
+        for (int i = 0; i < collection.getSeriesCount(); i++) {
+            try {
+                XYSeries s = collection.getSeries(i);
+                SeriesKey key = (SeriesKey) s.getKey();
+                File file;
+                if (key.file == null || key.file.isEmpty() || !key.file.endsWith("tse") || key.persist) {
+                    file = new File(dir + nameprefix + (key.label + "_" + key.containerIndex).replaceAll("/", "") + ".xys");
+                } else {
+                    file = new File(dir + key.file);
+                }
+                System.out.println("Store in "+file);
+                saveXYSeries(file, s);
             } catch (Exception exception) {
                 exception.printStackTrace();
             }
@@ -233,6 +315,122 @@ public class TimeSeries_IO {
         key.file = tseFile.getName();
         return ts;
     }
+    
+    public static XYSeries readXYSeries(File xysFile) throws FileNotFoundException, IOException {
+
+        String name, symbol, unit;
+        FileInputStream fis = new FileInputStream(xysFile);
+        InputStreamReader isr = new InputStreamReader(fis, Charset.forName("UTF-8"));
+        BufferedReader br = new BufferedReader(isr);
+        String line = "";
+        //Keystring can be dumped
+        br.readLine();
+        //Every header is 6 digits long
+        int head = 6;
+        //2.Row: name
+        name = br.readLine().substring(head);
+        //3.Row: symbol
+        symbol = br.readLine().substring(head+1);
+        // uni
+        unit = br.readLine().substring(head+1);
+        String label = br.readLine().substring(head+1);
+        String[] axis = br.readLine().substring(head+1).split(";");
+        int index = Integer.parseInt(br.readLine().substring(head));
+        boolean visible = Boolean.parseBoolean(br.readLine().substring(head));
+        String colorstring = br.readLine().substring(head);
+        String strokeString = br.readLine().substring(head);
+        String shapeString = null;
+        while (br.ready()) {
+            line = br.readLine();
+            if (line.startsWith("shape")) {
+                shapeString = line.substring(head);
+            } else if (line.startsWith("X")) {
+                //Dump
+                break;
+            }
+        }
+
+        //Decode Axis Key
+        AxisKey axisKey = new AxisKey(axis[0]);
+        if (axis.length > 1 && axis[1] != null && !axis[1].isEmpty() && !axis[1].equals("null")) {
+            axisKey.label = axis[1];
+        }
+
+        SeriesKey key = new SeriesKey(name, symbol, unit, Color.black, axisKey, index);
+        key.setVisible(visible);
+        key.label = label;
+
+        XYSeries ts = new XYSeries(key);
+
+        //Read listed values.
+        String[] lines;
+        DateFormat df = new SimpleDateFormat();
+        while (br.ready()) {
+            line = br.readLine();
+            if (line.startsWith("end")) {
+                break;
+            }
+            lines = line.split(";");
+            try {
+                double x = Double.parseDouble(lines[0]);
+                double y = Double.parseDouble(lines[1]);
+                ts.add(x, y,false);
+            } catch (Exception exception) {
+                System.out.println("++++" + exception.getLocalizedMessage());
+                System.out.println("line    :'" + line + "'");
+                System.out.println("lines[0]:'" + lines[0] + "'");
+                System.out.println("lines[1]:'" + lines[1] + "'");
+                exception.printStackTrace();
+                break;
+            }
+        }
+
+        //decode Color
+        String rgbstring = colorstring.split(";")[1];
+        Color color = new Color(Integer.parseInt(rgbstring));
+        key.lineColor = color;
+
+        //decode stroke
+        BasicStroke stroke;
+
+        String[] s = strokeString.split(";");
+        //dasharray [4]
+        if (s.length >= 5) {
+            if (s[4].length() < 3) {
+                //Create Stroke without dasharray
+                stroke = new BasicStroke(Float.parseFloat(s[0]), Integer.parseInt(s[1]), Integer.parseInt(s[2]), Float.parseFloat(s[3]));
+            } else {
+                //{} abschneiden
+                String s4 = s[4];
+                s4 = s4.substring(1, s4.length() - 2);
+                String[] dashs = s4.split(",");
+                float[] dasharray = new float[dashs.length];
+                for (int i = 0; i < dashs.length; i++) {
+                    if (dashs[i].equals("Infinit")) {
+                        dasharray[i] = Float.POSITIVE_INFINITY;
+                    } else {
+                        dasharray[i] = Float.parseFloat(dashs[i]);
+                    }
+                }
+                stroke = new BasicStroke(Float.parseFloat(s[0]), Integer.parseInt(s[1]), Integer.parseInt(s[2]), Float.parseFloat(s[3]), dasharray, Float.parseFloat(s[5]));
+            }
+            key.stroke = stroke;
+        } else {
+            key.stroke = null;
+        }
+        //Shape
+        try {
+            if (shapeString != null) {
+                SHAPES shp = SHAPES.valueOf(shapeString);
+                key.shape = shp;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        key.file = xysFile.getName();
+        return ts;
+    }
 
     public static void saveTimeSeriesAsMatlabFigure(TimeSeries series, File outputfile, String capacity_name) throws IOException {
         if (!(series.getKey() instanceof SeriesKey)) {
@@ -268,15 +466,15 @@ public class TimeSeries_IO {
         stbY.append("];");
         bw.write(stbX + "\n");
         bw.write(stbY + "\n");
-        
-        String name=key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2");
 
-        bw.write("plot(x,y,'b-','DisplayName','"+name+"');\n");
+        String name = key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2");
 
-       // bw.write("legend('" + key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "')\n");
+        bw.write("plot(x,y,'b-','DisplayName','" + name + "');\n");
+
+        // bw.write("legend('" + key.label.replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "')\n");
         bw.write("xlabel('Time [min]');\n");
         bw.write("ylabel('" + key.unit.replaceAll("³", "^3") + "');\n");
-         bw.write("legend SHOW\n");
+        bw.write("legend SHOW\n");
 
         if (capacity_name != null) {
             bw.write("title('" + key.name + " in " + capacity_name + "');\n");
@@ -327,7 +525,7 @@ public class TimeSeries_IO {
      * @throws IOException
      */
     public static void saveDatasetAsMatlab(File file, DefaultBoxAndWhiskerCategoryDataset dataset, String x_axisLabel, boolean xIsString) throws FileNotFoundException, IOException {
-        DecimalFormat df4=new DecimalFormat("0.####", DecimalFormatSymbols.getInstance(Locale.US));
+        DecimalFormat df4 = new DecimalFormat("0.####", DecimalFormatSymbols.getInstance(Locale.US));
         OutputStream os = new FileOutputStream(file);
         OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("ASCII"));
         BufferedWriter bw = new BufferedWriter(osw);
@@ -338,7 +536,7 @@ public class TimeSeries_IO {
 
         bw.write("figure(1)\n");
         bw.write("hold off\n\n");
-        
+
         bw.flush();
         for (int r = 0; r < dataset.getRowCount(); r++) {
             bw.append("%% ").append(dataset.getRowKey(r).toString()).append("\n");
@@ -358,11 +556,11 @@ public class TimeSeries_IO {
                         stbX.append(df4.format(Double.parseDouble((String) dataset.getColumnKey(i))));
                     } catch (Exception e) {
                         e.printStackTrace();
-                        xIsString=true;
+                        xIsString = true;
                         stbX.append("\'").append(dataset.getColumnKey(i)).append("\'");
                     }
                 }
-                
+
                 if (item == null) {
                     System.out.println("Item [" + r + "," + i + "] is null");
                     stbY.append("NaN");
@@ -378,7 +576,7 @@ public class TimeSeries_IO {
             bw.write("plot(x,y,'x-','DisplayName','" + dataset.getRowKey(r).toString().replaceAll("_", "\\\\_").replaceAll("³", "^3").replaceAll("²", "^2") + "');\n");
 
             bw.write("xlabel('" + x_axisLabel + "');\n");
-            if(r==0){
+            if (r == 0) {
                 bw.write("hold on;\n");
             }
 
@@ -395,7 +593,7 @@ public class TimeSeries_IO {
         os.close();
 
     }
-    
+
     public static void saveCategoryDataset(File file, CategoryDataset dataset, String name) throws FileNotFoundException, IOException {
         OutputStream os = new FileOutputStream(file);
         OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("UTF-8"));
@@ -424,7 +622,7 @@ public class TimeSeries_IO {
         osw.close();
         os.close();
     }
-    
+
     public static void saveCategoryDataset(File file, DefaultBoxAndWhiskerCategoryDataset dataset, String name) throws FileNotFoundException, IOException {
         OutputStream os = new FileOutputStream(file);
         OutputStreamWriter osw = new OutputStreamWriter(os, Charset.forName("UTF-8"));
@@ -459,7 +657,7 @@ public class TimeSeries_IO {
         InputStreamReader isr = new InputStreamReader(fiss, Charset.forName("UTF-8"));
         BufferedReader br = new BufferedReader(isr);
         String[] rowLabels = null;
-        String name="";
+        String name = "";
         int index = -1;
         while (br.ready()) {
             String line = br.readLine();

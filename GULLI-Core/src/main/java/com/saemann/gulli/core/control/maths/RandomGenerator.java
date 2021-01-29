@@ -36,11 +36,13 @@ public class RandomGenerator {
     private boolean haveNextFastGaussian;
     private double nextFastGaussian;
 
-    private final long seed;
-    private SplittableRandom sr;
+    protected final long seed;
+    protected SplittableRandom sr;
     public static int numberOfGaussLoops = 0;
     public static int numberOfDoubleLoops = 0;
-    private double v1, v2, x1;
+    private double v1, v2;
+    private final double pi2=Math.PI*2;
+//    private double sqrtlogv1;
 
     public RandomGenerator(long seed) {
         this.seed = seed;
@@ -74,10 +76,10 @@ public class RandomGenerator {
         if (!haveNextFastGaussian) {
             v1 = sr.nextDouble();
             v2 = sr.nextDouble();
-            x1 = Math.sqrt(-2 * Math.log(v1)) * Math.cos(2 * Math.PI * v2);
-            nextFastGaussian = Math.sqrt(-2 * Math.log(v1)) * Math.sin(2 * Math.PI * v2);
+            double sqrtlogv1 = Math.sqrt(-2 * Math.log(v1));
+            nextFastGaussian = sqrtlogv1 * Math.sin(pi2 * v2);
             haveNextFastGaussian = true;
-            return x1;
+            return sqrtlogv1 * Math.cos(pi2 * v2);
         } else {
             haveNextFastGaussian = false;
             return nextFastGaussian;

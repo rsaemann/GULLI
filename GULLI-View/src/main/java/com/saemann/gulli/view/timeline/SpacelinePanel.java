@@ -50,17 +50,29 @@ import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
+import com.saemann.gulli.view.io.timeline.TimeSeries_IO;
 import static com.saemann.gulli.view.timeline.CapacityTimelinePanel.matlabStyle;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JMenuBar;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.annotations.XYTitleAnnotation;
 import org.jfree.chart.axis.LogarithmicAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.chart.ui.RectangleAnchor;
+import org.jfree.chart.ui.RectangleEdge;
 import org.jfree.chart.ui.RectangleInsets;
+import org.jfree.data.xy.AbstractIntervalXYDataset;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -81,6 +93,9 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     protected JPanel panelChecks;
     protected ValueMarker marker;
     protected HashMap<String, Boolean> checks = new HashMap<>(20);
+
+    protected JComboBox<CapacityTimelinePanel.LEGEND_POSITION> comboLegendPosition;
+    public float maxLegendwith = 0.4f;
 
     public boolean showmarker = true, showMarkerDistance = true;
     protected String title;
@@ -128,6 +143,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 
     public SpacelinePanel(ArrayTimeLinePipeContainer referenceContainer, ArrayTimeLineMeasurementContainer tl, String title) {
         super(new BorderLayout());
+        directoryPDFsave = StartParameters.getPictureExportPath();
         this.title = title;
         panelNorth = new JPanel(new BorderLayout());
         this.add(panelNorth, BorderLayout.NORTH);
@@ -137,7 +153,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         this.add(splitpane, BorderLayout.CENTER);
         editorpanel = new XYSeriesEditorTablePanel();
         editorpanel.setSpacelinePanel(this);
-
+        this.collection = editorpanel.getTable().collection;
 //        if (!(tl instanceof ArrayTimeLinePipe)) {
 //            throw new NullPointerException("Timeline must be of Type " + ArrayTimeLinePipe.class + " to get 1. and 2. momentum of mass. is: "+tl);
 //        }
@@ -148,9 +164,27 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         } catch (Exception e) {
         }
 
+        comboLegendPosition = new JComboBox<>(CapacityTimelinePanel.LEGEND_POSITION.values());
+        comboLegendPosition.setSelectedIndex(StartParameters.getTimelinePanelLegendPosition());
+        panelNorth.add(comboLegendPosition, BorderLayout.SOUTH);
+        comboLegendPosition.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setLegendPosition((CapacityTimelinePanel.LEGEND_POSITION) comboLegendPosition.getSelectedItem());
+            }
+        });
+        try {
+            setLegendPosition(CapacityTimelinePanel.LEGEND_POSITION.values()[StartParameters.getTimelinePanelLegendPosition()]);
+        } catch (Exception e) {
+        }
+
         initChart(title);
         addPDFexport();
         addEMFexport();
+        CapacityTimelinePanel.addLaTeX_TikzExport(panelChart, panelChartContainer);
+        CapacityTimelinePanel.addLaTeX_TikzPDFExport(panelChart, panelChartContainer);
+        addSeriesExport();
+
         splitpane.add(editorpanel);
         splitpane.setDividerLocation(0.7);
     }
@@ -866,6 +900,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 //        plot.setDomainAxis(new NumberAxis("Position x [m]"));
         this.panelChart = new ChartPanel(chart);
         panelChartContainer.add(panelChart, BorderLayout.CENTER);
+        panelChartContainer.add(comboLegendPosition, BorderLayout.SOUTH);
         splitpane.add(panelChartContainer);
         updateTimeSlider();
 
@@ -1063,6 +1098,69 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         }
     }
 
+    private void addSeriesExport() {
+        try {
+            JPopupMenu menu = this.panelChart.getPopupMenu();
+            int index = 3; //usually at the 3rd position
+            for (int i = 0; i < menu.getComponentCount(); i++) {
+                if (menu.getComponent(i) instanceof JMenu) {
+                    JMenu m = (JMenu) menu.getComponent(i);
+                    String label = m.getActionCommand().toLowerCase();
+                    if (label.contains("save") || label.contains("speich")) {
+                        index = i;
+                    }
+                }
+            }
+            JMenuItem item = new JMenuItem("Series...");
+            if (index < 0 || !(menu.getComponent(index) instanceof JMenu)) {
+                //Add at the very end if the correct position could not be found
+                menu.add(item);
+            } else {
+                JMenu m = (JMenu) menu.getComponent(index);
+                m.add(item, 0);
+            }
+            item.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave) {
+
+                        @Override
+                        public boolean accept(File file) {
+                            if (file.isDirectory()) {
+                                return true;
+                            }
+                            return false;
+                        }
+                    };
+                    fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    int n = fc.showSaveDialog(SpacelinePanel.this);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        directoryPDFsave = output.getAbsolutePath();
+                        File output2 = new File(output.getAbsolutePath());
+                        try {
+                            String prefix = panelChart.getChart().getTitle().getText().replaceAll(" ", "").replaceAll(":", "");
+                            System.out.println("XYCollection has " + collection.getSeriesCount() + " series.");
+                            TimeSeries_IO.saveXYSeriesCollection(output2, prefix, collection);
+
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+
+                        } catch (IOException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
     public static XYSeries createMovingaverageCentral(XYSeries original, int maxinvolvedPeriods, String name, XYSeries target) {
         if (target == null) {
             SeriesKey oldKey = (SeriesKey) original.getKey();
@@ -1160,6 +1258,120 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 
     public void setDividerlocation(double ratio) {
         this.splitpane.setDividerLocation(ratio);
+    }
+
+    public AbstractIntervalXYDataset getIntervalXYDataset() {
+        return this.collection;
+    }
+
+    public void setLegendPosition(CapacityTimelinePanel.LEGEND_POSITION pos) {
+        panelChart.getChart().getXYPlot().clearAnnotations();
+
+        if (pos == CapacityTimelinePanel.LEGEND_POSITION.HIDDEN) {
+            panelChart.getChart().getLegend().setVisible(false);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.OUTER_BOTTOM) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.BOTTOM);
+            panelChart.getChart().getLegend().setVisible(true);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.OUTER_RIGHT) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(true);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.INNER_TOP_RIGHT) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(1, 1, panelChart.getChart().getLegend(), RectangleAnchor.TOP_RIGHT);
+            annotation.setMaxWidth(maxLegendwith);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.INNER_TOP_CENTER) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0.5, 1, panelChart.getChart().getLegend(), RectangleAnchor.TOP);
+            annotation.setMaxWidth(maxLegendwith);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.INNER_TOP_LEFT) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0, 1, panelChart.getChart().getLegend(), RectangleAnchor.TOP_LEFT);
+            annotation.setMaxWidth(maxLegendwith);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.INNER_BOTTOM_RIGHT) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(1, 0, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_RIGHT);
+            annotation.setMaxWidth(maxLegendwith);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.INNER_BOTTOM_CENTER) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0.5, 0, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM);
+            annotation.setMaxWidth(maxLegendwith);
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        } else if (pos == CapacityTimelinePanel.LEGEND_POSITION.INNER_BOTTOM_LEFT) {
+            panelChart.getChart().getLegend().setPosition(RectangleEdge.RIGHT);
+            panelChart.getChart().getLegend().setVisible(false);
+            XYTitleAnnotation annotation = new XYTitleAnnotation(0, 0, panelChart.getChart().getLegend(), RectangleAnchor.BOTTOM_LEFT);
+            annotation.setMaxWidth(maxLegendwith);
+
+            panelChart.getChart().getXYPlot().addAnnotation(annotation);
+        }
+    }
+
+    public void addOpenMenu(JFrame frame) {
+        // Menubar
+        JMenuBar menu = new JMenuBar();
+        JMenu menu_File = new JMenu("File");
+        JMenuItem item_add = new JMenuItem("Add...");
+        menu.add(menu_File);
+        menu_File.add(item_add);
+        frame.setJMenuBar(menu);
+        item_add.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                JFileChooser fc = new JFileChooser(CapacityTimelinePanel.directoryPDFsave) {
+                    @Override
+                    public boolean accept(File file) {
+                        if (file.isDirectory() || file.getName().endsWith(".xys")) {
+                            return true;
+                        }
+                        return false;
+                    }
+                };
+                fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                fc.setMultiSelectionEnabled(true);
+                int n = fc.showOpenDialog(frame);
+                if (n == JFileChooser.APPROVE_OPTION) {
+                    try {
+                        CapacityTimelinePanel.directoryPDFsave = fc.getSelectedFile().getAbsolutePath();
+                        if (fc.getSelectedFiles() == null || fc.getSelectedFiles().length == 1) {
+                            if (fc.getSelectedFile().getName().endsWith("xys")) {
+                                XYSeries ts = TimeSeries_IO.readXYSeries(fc.getSelectedFile());
+                                System.out.println("Loaded " + ts.getKey());
+                                collection.addSeries(ts);
+                            }
+                        } else {
+                            List<File> list1 = Arrays.asList(fc.getSelectedFiles());
+                            ArrayList<File> list = new ArrayList<>(list1);
+                            Iterator<File> it = list.iterator();
+
+                            it = list.iterator();
+                            while (it.hasNext()) {
+                                File f = it.next();
+                                {
+                                    XYSeries series = TimeSeries_IO.readXYSeries(f);
+                                    System.out.println("Loaded " + series.getKey());
+                                    collection.addSeries(series);
+                                    it.remove();
+                                }
+                            }
+                        }
+                        editorpanel.getTable().updateTableByCollection();
+                        panelChart.repaint();
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                    } catch (IOException ex) {
+                        Logger.getLogger(XYSeriesTable.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        });
     }
 
 }
