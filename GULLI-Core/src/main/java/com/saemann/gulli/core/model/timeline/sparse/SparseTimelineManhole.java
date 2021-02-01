@@ -25,7 +25,6 @@ package com.saemann.gulli.core.model.timeline.sparse;
 
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeLineManhole;
-import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.core.model.topology.StorageVolume;
 
 /**
@@ -51,17 +50,24 @@ public class SparseTimelineManhole implements TimeLineManhole {
      */
     private float[] flux;
 
+    /**
+     * inflow in m^3/s from external sources like HYSTEM or 1d surface runoff
+     * models.
+     */
+    private float[] inflow;
+
     private final float soleheight;
 
     private float actualWaterHeight, actualFlowToSurface, actualWaterlevel;
     private long actualTimestamp;
     private boolean initialized = false;
+    private float actualInflow;
 
     public SparseTimelineManhole(SparseTimeLineManholeContainer container, StorageVolume manhole) {
         this.container = container;
         this.manholeManualID = manhole.getManualID();
         this.soleheight = manhole.getSole_height();
-        this.manholeName=manhole.getName();
+        this.manholeName = manhole.getName();
     }
 
     public SparseTimelineManhole(SparseTimeLineManholeContainer container, long manholeManualID, String manholeName, float soleHeight) {
@@ -175,10 +181,25 @@ public class SparseTimelineManhole implements TimeLineManhole {
             this.actualFlowToSurface = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
             this.actualWaterHeight = getValue_DoubleIndex(waterheight, container.getActualTimeIndex_double());
             this.actualWaterlevel = actualWaterHeight - soleheight;
+            if (inflow != null) {
+                this.actualInflow = getValue_DoubleIndex(inflow, container.getActualTimeIndex_double());
+            }
             this.actualTimestamp = container.getActualTime();
 //            System.out.println(Thread.currentThread().getName()+" leaves SparseTimeline for "+manholeName);
 
         }
+    }
+
+    @Override
+    public float getInflow(int temporalIndex) {
+        if (inflow == null) {
+            container.loadTimelineInflow(this, manholeManualID, manholeName);
+        }
+        return inflow[temporalIndex];
+    }
+
+    public void setInflow(float[] inflow) {
+        this.inflow = inflow;
     }
 
 }

@@ -27,6 +27,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -75,7 +76,7 @@ public class AnalyticalChannel {
     private Scenario scenario;
     TimeIndexContainer times;
 
-    private ArrayList<InjectionInformation> injections;
+    private ArrayList<InjectionInfo> injections;
     private ArrayTimeLinePipe[] timelinesPipe;
     private ArrayTimeLinePipeContainer pipeTLcontainer;
 
@@ -98,7 +99,7 @@ public class AnalyticalChannel {
 
         this.numberOfTimeIntervals = (int) (simulationDurationS / timeIntervalDurationS);
         this.timeintervallengthMS = (int) (timeIntervalDurationS * 1000);
-        injections = new ArrayList<InjectionInformation>();
+        injections = new ArrayList<>();
         System.out.println("create timelines");
 
         long[] times_ = new long[numberOfTimeIntervals + 1];
@@ -217,6 +218,11 @@ public class AnalyticalChannel {
             public float getActualWaterLevel() {
                 return waterlevel;
             }
+
+            @Override
+            public float getInflow(int temporalIndex) {
+                return 0;
+            }
         };
 
         for (int i = 1; i < numberOfChannelElements; i++) {
@@ -298,7 +304,7 @@ public class AnalyticalChannel {
         this.scenario = new Scenario() {
 
             @Override
-            public ArrayList<InjectionInformation> getInjections() {
+            public ArrayList<InjectionInfo> getInjections() {
                 return injections;
             }
 

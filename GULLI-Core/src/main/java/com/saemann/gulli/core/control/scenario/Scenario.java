@@ -25,6 +25,7 @@ package com.saemann.gulli.core.control.scenario;
 
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.Controller;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
@@ -102,7 +103,7 @@ public abstract class Scenario {
         }
     }
 
-    public ArrayList<InjectionInformation> getInjections() {
+    public ArrayList<InjectionInfo> getInjections() {
         return null;
     }
 
@@ -215,7 +216,7 @@ public abstract class Scenario {
 
     public int getMaxMaterialID() {
         int max = -1;
-        for (InjectionInformation injection : getInjections()) {
+        for (InjectionInfo injection : getInjections()) {
             if (injection != null && injection.getMaterial() != null) {
                 max = Math.max(max, injection.getMaterial().materialIndex);
             }
@@ -224,8 +225,8 @@ public abstract class Scenario {
     }
 
     public Material getMaterialByIndex(int materialIndex) {
-        ArrayList<InjectionInformation> injs = getInjections();
-        for (InjectionInformation inj : injs) {
+        ArrayList<? extends InjectionInfo> injs = getInjections();
+        for (InjectionInfo inj : injs) {
             if (inj.getMaterial() != null && inj.getMaterial().materialIndex == materialIndex) {
                 return inj.getMaterial();
             }

@@ -25,6 +25,7 @@ package com.saemann.gulli.core.io;
 
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -123,7 +124,7 @@ public class AnalyticalSurface extends Surface {
         try {
             Scenario sc = this.scenario;
             if (sc == null) {
-                sc = new SpillScenario(times, new ArrayList<InjectionInformation>());
+                sc = new SpillScenario(times, new ArrayList<InjectionInfo>());
                 this.scenario = sc;
                 sc.setStatusTimesSurface(times);
             }

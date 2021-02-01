@@ -1,4 +1,4 @@
-package com.saemann.gulli.view;
+package com.saemann.gulli.view.injection;
 
 import com.saemann.gulli.core.control.StartParameters;
 import java.awt.Color;
@@ -47,7 +47,7 @@ public class MaterialPanel extends JPanel {
     protected JComboBox<Material.DISPERSION_SURFACE> comboDispersionSurface;
     protected JPanel panelDispersionSurfaceParameters;
 
-    protected MaterialPanel(Material mat) {
+    public MaterialPanel(Material mat) {
         super();
         this.setMinimumSize(new Dimension(100, 150));
         this.setPreferredSize(this.getMinimumSize());
@@ -133,75 +133,79 @@ public class MaterialPanel extends JPanel {
 
         //Pipe dispersion
         Dispersion1D_Calculator pc = material.getDispersionCalculatorPipe();
-        if (pc instanceof Dispersion1D_Constant) {
-            comboDispersionPipe.setSelectedItem(Material.DISPERSION_PIPE.CONSTANT);
-        } else {
-            System.out.println("Unknown Dispersion calculator 1d '" + pc.getClass() + " for material " + material.toString());
-        }
+        if (pc != null) {
+            if (pc instanceof Dispersion1D_Constant) {
+                comboDispersionPipe.setSelectedItem(Material.DISPERSION_PIPE.CONSTANT);
+            } else {
+                System.out.println("Unknown Dispersion calculator 1d '" + pc.getClass() + " for material " + material.toString());
+            }
 
-        panelDispersionPipeParameters.removeAll();
-        final double[] parameters = pc.getParameterValues();
-        panelDispersionPipeParameters.setLayout(new GridLayout(1, pc.getNumberOfParameters() * 3));
-        for (int i = 0; i < pc.getNumberOfParameters(); i++) {
-            JLabel labelName = new JLabel(pc.getParameterDescription()[i]);
-            labelName.setMaximumSize(new Dimension(100, 30));
-            labelName.setToolTipText(labelName.getText());
-            JFormattedTextField editParameter = new JFormattedTextField(DecimalFormat.getNumberInstance(StartParameters.formatLocale));
-            editParameter.setValue(parameters[i]);
-            editParameter.setToolTipText(labelName.getText());
-            JLabel labelUnit = new JLabel(pc.getParameterUnits()[i]);
-            panelDispersionPipeParameters.add(labelName);
-            panelDispersionPipeParameters.add(editParameter);
-            panelDispersionPipeParameters.add(labelUnit);
-            int index = i;
-            editParameter.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    double newvalue = ((Number) editParameter.getValue()).doubleValue();
-                    parameters[index] = newvalue;
-                    pc.setParameterValues(parameters);
-                    updateValues();
-                }
-            });
+            panelDispersionPipeParameters.removeAll();
+            final double[] parameters = pc.getParameterValues();
+            panelDispersionPipeParameters.setLayout(new GridLayout(1, pc.getNumberOfParameters() * 3));
+            for (int i = 0; i < pc.getNumberOfParameters(); i++) {
+                JLabel labelName = new JLabel(pc.getParameterDescription()[i]);
+                labelName.setMaximumSize(new Dimension(100, 30));
+                labelName.setToolTipText(labelName.getText());
+                JFormattedTextField editParameter = new JFormattedTextField(DecimalFormat.getNumberInstance(StartParameters.formatLocale));
+                editParameter.setValue(parameters[i]);
+                editParameter.setToolTipText(labelName.getText());
+                JLabel labelUnit = new JLabel(pc.getParameterUnits()[i]);
+                panelDispersionPipeParameters.add(labelName);
+                panelDispersionPipeParameters.add(editParameter);
+                panelDispersionPipeParameters.add(labelUnit);
+                int index = i;
+                editParameter.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        double newvalue = ((Number) editParameter.getValue()).doubleValue();
+                        parameters[index] = newvalue;
+                        pc.setParameterValues(parameters);
+                        updateValues();
+                    }
+                });
+            }
         }
         panelDispersionPipeParameters.revalidate();
 
         //Surface dispersion
         Dispersion2D_Calculator sc = material.getDispersionCalculatorSurface();
-        if (sc instanceof Dispersion2D_Constant) {
-            comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.CONSTANT);
-        } else if (sc instanceof Dispersion2D_Fischer) {
-            comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.FISCHER);
-        } else if (sc instanceof Dispersion2D_Waterlevel) {
-            comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.WATERLEVEL);
-        } else {
-            System.out.println("Unknown Dispersion calculator 2d '" + sc.getClass() + " for material " + material.toString());
-        }
+        if (sc != null) {
+            if (sc instanceof Dispersion2D_Constant) {
+                comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.CONSTANT);
+            } else if (sc instanceof Dispersion2D_Fischer) {
+                comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.FISCHER);
+            } else if (sc instanceof Dispersion2D_Waterlevel) {
+                comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.WATERLEVEL);
+            } else {
+                System.out.println("Unknown Dispersion calculator 2d '" + sc.getClass() + " for material " + material.toString());
+            }
 
-        panelDispersionSurfaceParameters.removeAll();
-        final double[] surfParams = sc.getParameterValues();
-        panelDispersionSurfaceParameters.setLayout(new GridLayout(1, surfParams.length * 3));
-        for (int i = 0; i < surfParams.length; i++) {
-            JLabel labelName = new JLabel(sc.getParameterOrderDescription()[i]);
-            labelName.setMaximumSize(new Dimension(100, 30));
-            labelName.setToolTipText(labelName.getText());
-            JFormattedTextField editParameter = new JFormattedTextField(DecimalFormat.getNumberInstance(StartParameters.formatLocale));
-            editParameter.setValue(surfParams[i]);
-            editParameter.setToolTipText(labelName.getText());
-            JLabel labelUnit = new JLabel(sc.getParameterUnits()[i]);
-            panelDispersionSurfaceParameters.add(labelName);
-            panelDispersionSurfaceParameters.add(editParameter);
-            panelDispersionSurfaceParameters.add(labelUnit);
-            int index = i;
-            editParameter.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    double newvalue = ((Number) editParameter.getValue()).doubleValue();
-                    surfParams[index] = newvalue;
-                    sc.setParameterValues(surfParams);
-                    updateValues();
-                }
-            });
+            panelDispersionSurfaceParameters.removeAll();
+            final double[] surfParams = sc.getParameterValues();
+            panelDispersionSurfaceParameters.setLayout(new GridLayout(1, surfParams.length * 3));
+            for (int i = 0; i < surfParams.length; i++) {
+                JLabel labelName = new JLabel(sc.getParameterOrderDescription()[i]);
+                labelName.setMaximumSize(new Dimension(100, 30));
+                labelName.setToolTipText(labelName.getText());
+                JFormattedTextField editParameter = new JFormattedTextField(DecimalFormat.getNumberInstance(StartParameters.formatLocale));
+                editParameter.setValue(surfParams[i]);
+                editParameter.setToolTipText(labelName.getText());
+                JLabel labelUnit = new JLabel(sc.getParameterUnits()[i]);
+                panelDispersionSurfaceParameters.add(labelName);
+                panelDispersionSurfaceParameters.add(editParameter);
+                panelDispersionSurfaceParameters.add(labelUnit);
+                int index = i;
+                editParameter.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        double newvalue = ((Number) editParameter.getValue()).doubleValue();
+                        surfParams[index] = newvalue;
+                        sc.setParameterValues(surfParams);
+                        updateValues();
+                    }
+                });
+            }
         }
         panelDispersionSurfaceParameters.revalidate();
     }

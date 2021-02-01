@@ -87,4 +87,26 @@ public interface InjectionInfo {
     int particlesInInterval(int interval);
     
     public double getIntensity(int intervalIndex);
+
+    public void setCapacity(Capacity capacity);
+
+    public void setId(int i);
+    
+    public boolean hasChanged();
+    
+    public boolean isActive();
+    
+    public void setActive(boolean active);
+
+    public int getMaterialID();
+
+    public void setMaterial(Material material);
+    
+    public int getNumberOfParticles();
+    
+    public void setNumberOfParticles(int number);
+
+    public void resetChanged();
+
+    public int getId();
 }

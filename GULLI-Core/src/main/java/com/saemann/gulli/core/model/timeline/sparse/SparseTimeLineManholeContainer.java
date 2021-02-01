@@ -80,6 +80,14 @@ public class SparseTimeLineManholeContainer extends TimeIndexContainer {
 
         tl.setSpilloutFlux(dataprovider.loadTimeLineSpilloutFlux(manholeManualId, manholeName, getNumberOfTimes()));
     }
+    
+     public void loadTimelineInflow(SparseTimelineManhole tl, long manholeManualId, String manholeName) {
+        if (verboseLaodingRequests) {
+            System.out.println(getClass() + ": request loading inflow timeline for manhole '" + manholeName + "' / " + manholeManualId);
+        }
+
+        tl.setInflow(dataprovider.loadTimeLineInlflow(manholeManualId, manholeName, getNumberOfTimes()));
+    }
 
     public void fillTimeline(SparseTimelineManhole tl, long manholeManualId, String manholeName) {
         if (verboseLaodingRequests) {

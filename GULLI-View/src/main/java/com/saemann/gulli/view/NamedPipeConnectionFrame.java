@@ -3,7 +3,6 @@ package com.saemann.gulli.view;
 import com.saemann.gulli.core.control.PipeActionListener;
 import com.saemann.gulli.core.io.NamedPipeIO;
 import com.saemann.gulli.core.io.NamedPipeIO.PipeActionEvent;
-import com.saemann.gulli.core.io.NamedPipe_IO;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
@@ -32,7 +31,7 @@ public class NamedPipeConnectionFrame extends JFrame implements PipeActionListen
     private JButton buttonConnect, buttonStopConnection;
     private JLabel labelStatusReader, labelStatusWriter;
     private JTextArea textIncoming, textOutgoingWait, textSend;
-    private NamedPipe_IO io;
+    private NamedPipeIO io;
 
     private JButton buttonSendSzenario;
 
@@ -103,7 +102,7 @@ public class NamedPipeConnectionFrame extends JFrame implements PipeActionListen
 
     }
 
-    public void setIo(NamedPipe_IO io) {
+    public void setIo(NamedPipeIO io) {
         this.io = io;
         this.buttonConnect.setEnabled(io != null);
         this.buttonStopConnection.setEnabled(io != null);

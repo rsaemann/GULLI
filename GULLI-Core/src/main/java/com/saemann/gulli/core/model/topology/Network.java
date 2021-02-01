@@ -31,6 +31,11 @@ public class Network {
     protected Collection<Inlet> streetInlets;
     protected String name;
 
+    /**
+     * m^2 of runoff-relevant surface
+     */
+    protected double inflowArea = -1;
+
     public Network(Collection<Pipe> pipes, Collection<Manhole> manholes) {
         this.pipes = (pipes);
         this.manholes = new HashSet<>(manholes);
@@ -121,7 +126,6 @@ public class Network {
             }
         }
         return null;
-//        throw new NullPointerException("Network does not contain a manhole with a name like '" + name + "'.");
     }
 
     /**
@@ -138,7 +142,6 @@ public class Network {
             }
         }
         return null;
-//        throw new NullPointerException("Network does not contain a manhole with a name like '" + name + "'.");
     }
 
     public Pipe getPipeByName(String name) throws NullPointerException {
@@ -148,7 +151,6 @@ public class Network {
             }
         }
         return null;
-//        throw new NullPointerException("Network does not contain a pipe with a name like '" + name + "'.");
     }
 
     public Capacity getCapacityByName(String name) {
@@ -163,7 +165,6 @@ public class Network {
             }
         }
         return null;
-//        throw new NullPointerException("Network does not contain a capacity with a name like '" + name + "'.");
     }
 
     public Pipe getPipeByID(long id) throws NullPointerException {
@@ -173,34 +174,8 @@ public class Network {
             }
         }
         return null;
-//        throw new NullPointerException("Network does not contain a pipe with an ID like '" + id + "'.");
     }
 
-//    public void setTimelines(TimeLineContainer tlc) {
-//        int found = 0, missed = 0;
-//        for (Manhole mh : manholes) {
-//            ListTimeLine<ManholeStamp> tl = tlc.getManholes().get(mh.getName());
-//            if (tl == null) {
-//                missed++;
-//            } else {
-//                found++;
-//                mh.setStatusTimeLine(tl);
-//            }
-//        }
-//
-//        for (Pipe p : pipes) {
-//            ListTimeLine<SimplePipeStamp> tl = tlc.getPipes().get(p.getName());
-//            if (tl == null) {
-//                System.out.println("no timeline found for Pipe " + p.getName());
-//                missed++;
-//            } else {
-//                found++;
-//                p.setStatusTimeLine(tl);
-//            }
-//        }
-//
-//        System.out.println("Timelines added for " + found + " objects. Missed at " + missed + " objects.");
-//    }
     public HashSet<Manhole> getLeaves() {
         HashSet<Manhole> set = new HashSet<>(20);
         for (Manhole mh : manholes) {
@@ -249,6 +224,27 @@ public class Network {
             Logger.getLogger(Network.class.getName()).log(Level.SEVERE, null, ex);
         }
         return null;
+    }
+
+    /**
+     * m^2 of runoff-relevant surface, that is used for the hydrologic part
+     * (inflow at manholes from external run-off model) e.g. HYSTEM , if -1 =
+     * not initialized.
+     *
+     * @return
+     */
+    public double getInflowArea() {
+        return inflowArea;
+    }
+
+    /**
+     * m^2 of runoff-relevant surface, that is used for the hydrologic part
+     * (inflow at manholes from external run-off model) e.g. HYSTEM
+     *
+     * @param inflowArea
+     */
+    public void setInflowArea(double inflowArea) {
+        this.inflowArea = inflowArea;
     }
 
 }

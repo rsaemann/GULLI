@@ -425,23 +425,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
         synchronized (this) {
             if (con == null || con.isClosed()) {
                 if (isSQLite) {
-//                    System.out.println("reopen SQLite connection...");
-//                    long start = System.currentTimeMillis();
-//                try {
-//                    Class.forName("org.sqlite.JDBC");
                     SQLiteConfig config = new SQLiteConfig();
                     config.setEncoding(SQLiteConfig.Encoding.UTF8);
                     config.setReadOnly(this.readOnly);
                     con = DriverManager.getConnection("jdbc:sqlite:" + databaseFile.getAbsolutePath(), config.toProperties());
-//                    System.out.println("Opened SQLite connection after " + ((System.currentTimeMillis() - start) / 1000) + "s.");
-
                     return con;
-//                } catch (ClassNotFoundException ex) {
-//                    Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
-//                }
                 } else {
                     //Firebird
-
                     try {
                         if (this.localFile == null) {
                             System.err.println("local File is null: ");
@@ -449,7 +439,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         String url = "jdbc:firebirdsql:embedded:" + this.localFile.getAbsolutePath().replaceAll("\\\\", "/").toLowerCase();
                         con = DriverManager.getConnection(url, connectionProperties);
                         con.setReadOnly(this.readOnly);
-//                        System.out.println("created new FNConnection " + con);
                         return con;
                     } catch (SQLException e) {
                         throw new IOException("Remote File '" + localFile.getAbsolutePath() + "' can not be used directly. Copy to local or temporal file did not work. " + e.getLocalizedMessage());
@@ -698,6 +687,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     }
 
                 } else {
+                    //Firebird driver case for version < HE 8.0
                     boolean hasDiameter = true;
                     try {
                         res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,DURCHMESSER,gelaendehoehe,deckelhoehe,sohlhoehe,ID from schacht ORDER BY ID;");
@@ -712,7 +702,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     while (res.next()) {
                         try {
                             String name = res.getString(1);
-
+                            if(name.isEmpty()){
+                                System.err.println("Skip manhole without name. ID="+res.getInt(8)+" in table SCHACHT");
+                                continue;
+                            }
                             double x = res.getDouble(2);
                             double y = res.getDouble(3);
                             Coordinate coordDB = new Coordinate(x, y);
@@ -739,13 +732,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 }
                             }
                             Manhole m = new Manhole(position, name, p);
-                            m.setSurface_height(res.getFloat(5));
-                            m.setTop_height(res.getFloat(6));
-                            m.setSole_height(res.getFloat(7));
+                            m.setSurface_height((float) res.getDouble(5));
+                            m.setTop_height((float) res.getDouble(6));
+                            m.setSole_height((float) res.getDouble(7));
                             m.setManualID(res.getInt(8));
                             smap.put(name, m);
                         } catch (SQLException | MismatchedDimensionException | TransformException exception) {
-                            System.err.println("Fehler bei SQL Abfrage.Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5));
+                            System.err.println("Exception for SQL Query @Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5)+"   "+exception.getLocalizedMessage());
+                            exception.printStackTrace();
                         } catch (Exception ex) {
                             ex.printStackTrace();
                         }
@@ -783,9 +777,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 schachtprofile.put(1, p);
                             }
                             Manhole m = new Manhole(position, name, p);
-                            m.setSurface_height(res.getFloat(4));
-                            m.setTop_height(res.getFloat(5));
-                            m.setSole_height(res.getFloat(6));
+                            m.setSurface_height((float) res.getDouble(4));
+                            m.setTop_height((float) res.getDouble(5));
+                            m.setSole_height((float) res.getDouble(6));
                             m.setManualID(res.getInt(7));
                             int raintype = res.getInt(8);
                             if (raintype == 0) {
@@ -805,7 +799,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                 } else {
                     try {
-                        res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,gelaendehoehe,HoeheVollfuellung,sohlhoehe,ID from SPEICHERSCHACHT ORDER BY ID;");
+                        res = st.executeQuery("SELECT name,XKOORDINATE,YKOORDINATE,gelaendehoehe,HoeheVollfuellung,sohlhoehe,ID,ART from SPEICHERSCHACHT ORDER BY ID;");
                     } catch (SQLException sQLException) {
                         System.err.println("Networkmodel has no information about manhole diameter.");
                     }
@@ -833,13 +827,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
                             }
 
                             Manhole m = new Manhole(position, name, p);
-                            m.setSurface_height(res.getFloat(5));
-                            m.setTop_height(res.getFloat(6));
-                            m.setSole_height(res.getFloat(7));
+                            m.setSurface_height((float) res.getDouble(5));
+                            m.setTop_height((float) res.getDouble(6));
+                            m.setSole_height((float) res.getDouble(7));
                             m.setManualID(res.getInt(8));
                             smap.put(name, m);
                         } catch (SQLException | MismatchedDimensionException | TransformException exception) {
-                            System.err.println("Fehler bei SQL Abfrage.Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5));
+                            System.err.println("Fehler bei SQL Abfrage.Storagemanhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5)+"   "+exception.getLocalizedMessage());
                         } catch (Exception ex) {
                             ex.printStackTrace();
                         }
@@ -877,9 +871,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 schachtprofile.put(1, p);
                             }
                             Manhole m = new Manhole(position, name, p);
-                            m.setSurface_height(res.getFloat(4));
-                            m.setTop_height(res.getFloat(5));
-                            m.setSole_height(res.getFloat(6));
+                            m.setSurface_height((float) res.getDouble(4));
+                            m.setTop_height((float) res.getDouble(5));
+                            m.setSole_height((float) res.getDouble(6));
                             m.setManualID(res.getInt(7));
                             int raintype = res.getInt(8);
                             if (raintype == 0) {
@@ -927,13 +921,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 }
 
                                 Manhole m = new Manhole(position, name, p);
-                                m.setSurface_height(res.getFloat(5));
-                                m.setTop_height(res.getFloat(6));
-                                m.setSole_height(res.getFloat(7));
+                                m.setSurface_height((float) res.getDouble(5));
+                                m.setTop_height((float) res.getDouble(6));
+                                m.setSole_height((float) res.getDouble(7));
                                 m.setManualID(res.getInt(8));
                                 smap.put(name, m);
                             } catch (SQLException | MismatchedDimensionException | TransformException exception) {
-                                System.err.println("Fehler bei SQL Abfrage.Manhole: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5));
+                                System.err.println("Fehler bei SQL Abfrage.Versickerungsschacht: name=" + res.getString(1) + ", X=" + res.getString(3) + ", Y=" + res.getString(4) + ", SurfaceHeight=" + res.getString(5)+"   "+exception.getLocalizedMessage());
                             } catch (Exception ex) {
                                 ex.printStackTrace();
                             }
@@ -1033,7 +1027,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                     if (mhoben == null) {
                         System.err.println(HE_Database.class
-                                + "::Can not find upper manhole '" + nameoben + "' for pipe " + name);
+                                + "::Can not find upper manhole '" + nameoben + "' for pipe:'" + name+"' , id="+res.getInt(11));
 
                         continue;
                     }
@@ -1150,8 +1144,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     pipes_sewer.add(pipe);
                 }
                 res.close();
-                
-                
+
                 ////   Discharge-COntroller Q-Regler
                 ////
                 res = st.executeQuery("SELECT name,schachtoben,schachtunten,Kanalart,ID,Querschnitt,SohlhoeheUnten,SohlhoeheOben from QREGLER;");
@@ -1162,7 +1155,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     String nameunten = res.getString(3);
                     Manhole mhoben = smap.get(nameoben);
                     Manhole mhunten = smap.get(nameunten);
-                    int diameter=(int)(res.getDouble(6)*1000);
+                    int diameter = (int) (res.getDouble(6) * 1000);
 
                     if (mhoben == null) {
                         System.err.println(HE_Database.class
@@ -1277,6 +1270,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             pipes_sewer.addAll(pipes_drain);
             Network nw = new Network(pipes_sewer, new HashSet<Manhole>(smap.values()));
+            nw.setInflowArea(loadHYSTEM_runoffArea());
+            
             return nw;
 
         } catch (FactoryException ex) {
@@ -2710,6 +2705,45 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return null;
     }
 
+    public float[] loadTimeLineValuesManhole(long manholeMaualID, String manholeName, int numberOfTimes, String columname) {
+        float[] values = new float[numberOfTimes];
+        ThreadConnection uc = null;
+        try {
+            uc = getUnusedConnection(manholeMaualID);
+
+//            Connection c = getConnection();
+            synchronized (uc) {
+                try {
+                    Statement st = uc.con.createStatement();
+                    //in HE Database only use Pipe ID.
+                    ResultSet rs = st.executeQuery("SELECT " + columname + ",ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeMaualID + " ORDER BY ZEITPUNKT ");
+                    if (!rs.isBeforeFirst()) {
+                        //No Data
+                        System.err.println(getClass() + " could not load " + columname + " values for manhole id:" + manholeMaualID + ". It is not found in the database.");
+                        return values;
+                    }
+                    int index = 0;
+                    while (rs.next()) {
+                        values[index] = rs.getFloat(1);
+                        index++;
+                    }
+                    return values;
+
+                } catch (SQLException ex) {
+                    Logger.getLogger(HE_Database.class
+                            .getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            if (uc != null) {
+                uc.lock.unlock();
+            }
+        }
+        return null;
+    }
+
     @Override
     public float[] loadTimeLineVelocity(long pipeMaualID, String pipeName, int numberOfTimes) {
         return loadTimeLineValuesPipe(pipeMaualID, pipeName, numberOfTimes, "GESCHWINDIGKEIT");
@@ -2723,6 +2757,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
     @Override
     public float[] loadTimeLineFlux(long pipeMaualID, String pipeName, int numberOfTimes) {
         return loadTimeLineValuesPipe(pipeMaualID, pipeName, numberOfTimes, "DURCHFLUSS");
+    }
+
+    @Override
+    public float[] loadTimeLineInlflow(long manholeManualID, String manholeName, int numberOfTimes) {
+        return loadTimeLineValuesManhole(manholeManualID, manholeName, numberOfTimes, "ZUFLUSS");
     }
 
     /**
@@ -2944,25 +2983,24 @@ public class HE_Database implements SparseTimeLineDataProvider {
         try {
             tc = getUnusedConnection(manholeMaualID);
             Connection c = tc.con;
-            Statement st = c.createStatement();
             //in HE Database only use Manhole ID.
-            ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeMaualID + " ORDER BY ZEITPUNKT ");
-            if (!rs.isBeforeFirst()) {
-                //No Data
-                System.err.println(getClass() + " could not load wasserstand for manhole id:" + manholeMaualID + ". It is not found in the database.");
-                return values;
+            try (Statement st = c.createStatement()) {
+                //in HE Database only use Manhole ID.
+                ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeMaualID + " ORDER BY ZEITPUNKT ");
+                if (!rs.isBeforeFirst()) {
+                    //No Data
+                    System.err.println(getClass() + " could not load wasserstand for manhole id:" + manholeMaualID + ". It is not found in the database.");
+                    return values;
+                }
+                int index = 0;
+                while (rs.next()) {
+                    values[index] = rs.getFloat(1);
+                    index++;
+                }
             }
-            int index = 0;
-            while (rs.next()) {
-                values[index] = rs.getFloat(1);
-                index++;
-            }
-            st.close();
             return values;
-
-        } catch (SQLException | IOException ex) {
-            Logger.getLogger(HE_Database.class
-                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             if (tc != null) {
                 tc.lock.unlock();
@@ -3100,7 +3138,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
             Statement st = c.createStatement();
             float[] waterZ = new float[container.getNumberOfTimes()];
             float[] spillflux = new float[container.getNumberOfTimes()];
-            ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeManualID + " ORDER BY ZEITPUNKT ");
+            float[] inflow=new float[container.getNumberOfTimes()];
+            ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ZUFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeManualID + " ORDER BY ZEITPUNKT ");
             if (!rs.isBeforeFirst()) {
                 //No Data
                 System.err.println(getClass() + " could not load wasserstand for manhole id:" + manholeManualID + ". It is not found in the database.");
@@ -3108,6 +3147,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             int index = 0;
             while (rs.next()) {
                 waterZ[index] = rs.getFloat(1);
+                inflow[index]=rs.getFloat(2);
                 index++;
             }
             rs = st.executeQuery("SELECT ID, KNOTEN,ZEITPUNKT, (ABFLUSS-ZUFLUSS) AS NETTO FROM KNOTENLAUFEND2D WHERE ID=" + manholeManualID + " ORDER BY  ZEITPUNKT;");
@@ -3123,6 +3163,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             SparseTimelineManhole stlm = new SparseTimelineManhole(container, manholeManualID, manholeName, soleHeight);
             stlm.setSpilloutFlux(spillflux);
             stlm.setWaterHeight(waterZ);
+            stlm.setInflow(inflow);
             return stlm;
 
         } catch (SQLException ex) {
@@ -3432,6 +3473,21 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return tl;
 
     }
+    
+    public double loadHYSTEM_runoffArea() throws IOException, SQLException{
+        Statement st = getConnection().createStatement();
+        ResultSet rs = st.executeQuery("Select SUM(GROESSE), SUM(ABFLUSS) FROM FLAECHE WHERE ISTINMODUSABFLUSSBILDUNG2D=0 AND HALTUNG!=''");
+        if(!rs.isBeforeFirst()){
+            st.close();
+            return 0;
+        }
+        rs.next();
+        double areaHectar=rs.getDouble(1);
+        double volume=rs.getDouble(2);
+        rs.close();
+        st.close();
+        return areaHectar*10000.;
+    }
 
     @Override
     public boolean fillTimelineManhole(long manholeManualID, String manholeName, SparseTimelineManhole timeline) {
@@ -3448,9 +3504,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
             float[] flux = new float[timeline.getNumberOfTimes()];
             float[] waterheight = new float[flux.length];
+            float[] inflow = new float[flux.length];
             Statement st = c.createStatement();
             //in HE Database only use Manhole ID.
-            ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeManualID + " ORDER BY ZEITPUNKT ");
+            //ZUFLUSS: FLow from HYSTEM TO pipe system
+            ResultSet rs = st.executeQuery("SELECT WASSERSTAND,ZUFLUSS,ID,ZEITPUNKT FROM LAU_GL_S WHERE ID=" + manholeManualID + " ORDER BY ZEITPUNKT ");
             if (!rs.isBeforeFirst()) {
                 //No Data
                 System.err.println(getClass() + " could not load wasserstand for manhole id:" + manholeManualID + ". It is not found in the database.");
@@ -3458,6 +3516,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             int index = 0;
             while (rs.next()) {
                 waterheight[index] = rs.getFloat(1);
+                inflow[index] = rs.getFloat(2);
                 index++;
             }
             rs.close();
@@ -3475,12 +3534,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 flux[index] = res.getFloat(4);
                 index++;
             }
-
-            timeline.setSpilloutFlux(flux);
-            timeline.setWaterHeight(waterheight);
             rs.close();
             st.close();
-
+            timeline.setSpilloutFlux(flux);
+            timeline.setWaterHeight(waterheight);
+            timeline.setInflow(inflow);
             return true;
 
         } catch (SQLException ex) {

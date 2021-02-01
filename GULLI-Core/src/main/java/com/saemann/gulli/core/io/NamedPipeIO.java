@@ -2,6 +2,7 @@ package com.saemann.gulli.core.io;
 
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.PipeActionListener;
+import com.saemann.gulli.core.model.topology.Manhole;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -13,6 +14,7 @@ import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +41,8 @@ public class NamedPipeIO {
     protected final String str_Read = "Reading", str_Connected = "Connected", str_Write = "Writing", str_Try = "Try Connect";
 
     protected LinkedList<String> messagesToSend = new LinkedList<>();
+
+    protected final HashSet<Long> sentIds = new HashSet<>();
 
     protected boolean readingConnected, sendingConnected;
 
@@ -285,9 +289,26 @@ public class NamedPipeIO {
         return str.toString();
     }
 
+    public void notifyAboutFloodedManhole(Manhole manhole) {
+        if (sentIds.contains(manhole.getAutoID())) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("MH;").append(manhole.getAutoID());
+        sb.append(";x:").append(manhole.getPosition().getX());
+        sb.append(";y:").append(manhole.getPosition().getY());
+        addMessageToSend(sb.toString());
+        sentIds.add(manhole.getAutoID());
+    }
+
     public void stopConnection() {
         readerStop = true;
         writerStop = true;
+    }
+
+    public void reset() {
+        addMessageToSend("RESET");
+        sentIds.clear();
     }
 
     public class PipeActionEvent {

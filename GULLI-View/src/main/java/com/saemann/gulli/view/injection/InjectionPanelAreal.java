@@ -1,7 +1,9 @@
-package com.saemann.gulli.view;
+package com.saemann.gulli.view.injection;
 
 import com.saemann.gulli.core.control.StartParameters;
-import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
+import com.saemann.gulli.view.PaintManager;
+import static com.saemann.gulli.view.injection.InjectionPanelPointlocation.gmtToLocal;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -19,9 +21,9 @@ import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import com.saemann.rgis.view.MapViewer;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import javax.swing.JPanel;
 
 /**
  * Displays information about InjectionInformation for an areal, diffusive
@@ -29,15 +31,32 @@ import java.text.DecimalFormatSymbols;
  *
  * @author saemann
  */
-public class InjectionPanelAreal extends InjectionPanelPointlocation {
+public class InjectionPanelAreal extends JPanel {
 
-    protected InjectionPanelAreal(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
+    private InjectionArealInformation info;
+    private PaintManager paintManager;
+    private final JSpinner spinnerMaterial;
+    private final SpinnerDateModel modelInjection;
+    private final JSpinner spinnerInjection;
+    private final JSpinner.DateEditor dateEditorInjection;
+    private final JCheckBox checkInjectionDuration;
+    private final SpinnerNumberModel modelDuration;
+    private final JSpinner spinnerDuration;
+    private final SpinnerNumberModel modelParticles;
+    private final JSpinner spinnerParticles;
+    private final SpinnerNumberModel modelLoad;
+    private final JSpinner spinnerLoad;
+    private final SpinnerNumberModel modelMass;
+    private final JSpinner spinnerMass;
+
+    private boolean selfChanging = false;
+
+    protected InjectionPanelAreal(final InjectionArealInformation info, PaintManager paintManager) {
         super();
         setLayout(new GridLayout(5, 2));
         this.setBorder(new LineBorder(Color.darkGray, 1, true));
 
         this.info = info;
-        this.map = map;
         this.paintManager = paintManager;
         //Name
         spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, 0, Integer.MAX_VALUE, 1));
@@ -59,13 +78,13 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         modelDuration.setValue(info.getDurationSeconds() / 60);
         spinnerDuration = new JSpinner(modelDuration);
         spinnerDuration.setPreferredSize(new Dimension(60, 12));
-        this.add(new JLabel("Duration [min]"));
-        this.add(spinnerDuration);
+//        this.add(new JLabel("Duration [min]"));
+//        this.add(spinnerDuration);
 
         //Number of particles
         modelParticles = new SpinnerNumberModel(info.getNumberOfParticles(), 0, Integer.MAX_VALUE, 5000);
         spinnerParticles = new JSpinner(modelParticles);
-        JSpinner.NumberEditor particlesEditor = new JSpinner.NumberEditor(spinnerParticles, "# ##0.###");
+        JSpinner.NumberEditor particlesEditor = new JSpinner.NumberEditor(spinnerParticles, "# ##0");
         DecimalFormat f = particlesEditor.getFormat();
         f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
         f.setGroupingUsed(true);
@@ -77,12 +96,38 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.add(new JLabel("Particles:"));
         this.add(spinnerParticles);
 
+        //Load        
+        this.add(new JLabel("Areal load [kg/m^2]"));
+        modelLoad = new SpinnerNumberModel(info.getLoad(), 0, Double.POSITIVE_INFINITY, 0.001);
+
+        spinnerLoad = new JSpinner(modelLoad);
+        JSpinner.NumberEditor loadEditor = new JSpinner.NumberEditor(spinnerLoad, "0.####");
+        spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
+        f = loadEditor.getFormat();
+        f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
+        f.setGroupingUsed(true);
+        f.setGroupingSize(3);
+        dfs = f.getDecimalFormatSymbols();
+        dfs.setGroupingSeparator(' ');
+        f.setDecimalFormatSymbols(dfs);
+        spinnerLoad.setEditor(loadEditor);
+        this.add(spinnerLoad);
+
         //Mass        
-        this.add(new JLabel("Distributed Mass [kg]"));
+        this.add(new JLabel("Mass [kg]"));
         modelMass = new SpinnerNumberModel(info.getMass(), 0, Double.POSITIVE_INFINITY, 10.);
 
         spinnerMass = new JSpinner(modelMass);
         JSpinner.NumberEditor massEditor = new JSpinner.NumberEditor(spinnerMass, "0.###");
+        try {
+            if (this.info.getSurface() != null) {
+                massEditor.setToolTipText(this.info.getSurface().calcTotalTriangleArea() + " m² = " + (this.info.getSurface().calcTotalTriangleArea() / 10000.) + " ha");
+                spinnerMass.setToolTipText(massEditor.getToolTipText());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         f = massEditor.getFormat();
         f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
         f.setGroupingUsed(true);
@@ -92,12 +137,19 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         f.setDecimalFormatSymbols(dfs);
         spinnerMass.setEditor(massEditor);
         this.add(spinnerMass);
+        
+                this.setToolTipText("<html><b>2D Area</b>"
+                + "<br> Area: " + (int) info.getSurface().calcTotalTriangleArea() + " m² = " + (int) (info.getSurface().calcTotalTriangleArea() / 10000) + " ha"
+                + " </html>");
 
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
+                if (selfChanging) {
+                    return;
+                }
                 info.setMaterialID((int) spinnerMaterial.getValue());
-                if (info.isChanged()) {
+                if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }
             }
@@ -105,19 +157,25 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.spinnerInjection.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
-//                System.out.println("model injection time: " + localToGMT(modelInjection.getDate().getTime()));
-                info.setStart(localToGMT(modelInjection.getDate().getTime()) / 1000.);
-                if (info.isChanged()) {
+                if (selfChanging) {
+                    return;
+                }
+                info.setStart(InjectionPanelPointlocation.localToGMT(modelInjection.getDate().getTime()) / 1000.);
+                if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }
             }
+
         });
 
         this.spinnerDuration.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
+                if (selfChanging) {
+                    return;
+                }
                 info.setDuration(modelDuration.getNumber().doubleValue() * 60.);
-                if (info.isChanged()) {
+                if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }
             }
@@ -126,10 +184,13 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.checkInjectionDuration.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if (selfChanging) {
+                    return;
+                }
                 info.setActive(checkInjectionDuration.isSelected());
                 spinnerDuration.setEnabled(checkInjectionDuration.isSelected());
                 spinnerInjection.setEnabled(checkInjectionDuration.isSelected());
-                if (info.isChanged()) {
+                if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }
             }
@@ -138,44 +199,55 @@ public class InjectionPanelAreal extends InjectionPanelPointlocation {
         this.spinnerParticles.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
+                if (selfChanging) {
+                    return;
+                }
                 info.setNumberOfParticles(modelParticles.getNumber().intValue());
-                if (info.isChanged()) {
+                if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }
+            }
+        });
+
+        this.spinnerLoad.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent ce) {
+                if (selfChanging) {
+                    return;
+                }
+                selfChanging = true;
+                info.setLoad(modelLoad.getNumber().doubleValue());
+                if (info.hasChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                    spinnerMass.setValue(info.getMass());
+                }
+                spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
+
+                selfChanging = false;
             }
         });
 
         this.spinnerMass.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
-                info.setTotalmass(modelMass.getNumber().doubleValue());
-                if (info.isChanged()) {
-                    setBorder(new TitledBorder("changed"));
+                if (selfChanging) {
+                    return;
                 }
+                selfChanging = true;
+                info.setMass(modelMass.getNumber().doubleValue());
+                if (info.hasChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                    spinnerLoad.setValue(info.getLoad());
+                    spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
+
+                }
+                selfChanging = false;
             }
         });
 
-//        textname.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent ae) {
-//                info.getMaterial().setName(textname.getText());
-//            }
-//        });
         this.setPreferredSize(new Dimension(160, 95));
         this.setMinimumSize(new Dimension(160, 90));
 
     }
 
-    public InjectionPanelAreal(MapViewer map) {
-        this(null, map, null);
-
-    }
-
-//    public long localToGMT(long local) {
-//        return local + localCalendar.get(GregorianCalendar.ZONE_OFFSET);
-//    }
-//
-//    public long gmtToLocal(long gmt) {
-//        return gmt - localCalendar.get(GregorianCalendar.ZONE_OFFSET);
-//    }
 }

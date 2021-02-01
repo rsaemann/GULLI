@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.FileContainer;
@@ -42,7 +43,7 @@ public class Setup {
 
     public Scenario scenario;
 
-    public Collection<InjectionInformation> injections;
+    public Collection<InjectionInfo> injections;
     private boolean loadResultInjections = true;
 
     protected double timestepTransport = 1;
@@ -86,11 +87,11 @@ public class Setup {
         this.scenario = scenario;
     }
 
-    public Collection<InjectionInformation> getInjections() {
+    public Collection<InjectionInfo> getInjections() {
         return injections;
     }
 
-    public void setInjections(Collection<InjectionInformation> injections) {
+    public void setInjections(Collection<InjectionInfo> injections) {
         this.injections = injections;
     }
 

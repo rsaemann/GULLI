@@ -144,21 +144,12 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     private void calculateActualValues() {
-//        if(lock.isLocked()){
-//            System.out.println(pipeName+"Lock is locked , queued "+lock.getQueueLength()+"  threads queued?"+lock.hasQueuedThreads());
-//        }
-//        else{
-//            System.out.println("Lock is free on "+pipeName);
-//        }
+
         lock.lock();
-//        System.out.println(pipeName+"entered , waiting: "+lock.getQueueLength());
-       
         try {
             if (this.actualTimestamp == container.getActualTime()) {
-//                System.out.println(pipeName+"already calculated ");
                 return;//Already calculated by another thread.
             }
-//            System.out.println(pipeName+"  calculate ");
             if (velocity == null) {
                 container.loadTimelineVelocity(this, pipeManualID, pipeName);
             }
@@ -181,9 +172,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
             this.actualDischarge = getValue_DoubleIndex(flux, container.getActualTimeIndex_double());
             this.actualVolume = getValue_DoubleIndex(volume, container.getActualTimeIndex_double());
             this.actualTimestamp = container.getActualTime();
-//            System.out.println(pipeName+"  finished calculation actual values on ");
         } finally {
-//            System.out.println(pipeName+"unlock , waiting: "+lock.getQueueLength());
             lock.unlock();
         }
     }

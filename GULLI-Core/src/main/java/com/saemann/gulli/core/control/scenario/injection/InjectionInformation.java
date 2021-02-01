@@ -44,7 +44,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 public class InjectionInformation implements InjectionInfo {
 
 //    private static int runningID = 0;
-    private int id = -1;
+    protected int id = -1;
 
     public boolean spillOnSurface = false;
 
@@ -84,7 +84,7 @@ public class InjectionInformation implements InjectionInfo {
     protected Capacity capacity;
     protected GeoPosition2D position;
     protected int cellID = -1;
-    public boolean spilldistributed = false;
+//    public boolean spilldistributed = false;
     protected double position1D;
     protected boolean changed = false;
 
@@ -295,14 +295,13 @@ public class InjectionInformation implements InjectionInfo {
         this.totalVolume = volume;
     }
 
-    public static InjectionInformation DIFFUSIVE_ON_SURFACE(double mass, int numberOfParticles, Material material) {
-        InjectionInformation inj = new InjectionInformation(0, 0, mass, numberOfParticles);
-        inj.spilldistributed = true;
-        inj.spillOnSurface = true;
-        inj.material = material;
-        return inj;
-    }
-
+//    public static InjectionInformation DIFFUSIVE_ON_SURFACE(double mass, int numberOfParticles, Material material) {
+//        InjectionInformation inj = new InjectionInformation(0, 0, mass, numberOfParticles);
+////        inj.spilldistributed = true;
+//        inj.spillOnSurface = true;
+//        inj.material = material;
+//        return inj;
+//    }
     private void calculateNumberOfIntervalParticles(int particles) {
 //        double particlesPerMass = particles / totalmass;
         this.number_particles = new int[spillMass.length];
@@ -548,7 +547,16 @@ public class InjectionInformation implements InjectionInfo {
     }
 
     public void setSpillPipesystem(boolean spillPipesystem) {
+        if (this.spillOnSurface != spillPipesystem) {
+            return;
+        }
         this.spillOnSurface = !spillPipesystem;
+        try {
+            if (spillPipesystem && (capacity != null && (capacity instanceof Surface))) {
+                this.capacity = ((Surface) capacity).getManhole(cellID);
+            }
+        } catch (Exception e) {
+        }
         this.changed = true;
     }
 
@@ -622,23 +630,28 @@ public class InjectionInformation implements InjectionInfo {
     public void setMaterialID(int materialID) {
         if (material != null && material.materialIndex != materialID) {
             material = null;
-            changed=true;
+            changed = true;
         }
-        if(materialID!=this.materialID){
-            changed=true;
+        if (materialID != this.materialID) {
+            changed = true;
             this.materialID = materialID;
         }
     }
 
+    @Override
     public int getMaterialID() {
         return materialID;
     }
 
+    @Override
     public void setMaterial(Material material) {
         this.material = material;
-        this.materialID=material.materialIndex;
+        this.materialID = material.materialIndex;
     }
-    
-    
+
+    @Override
+    public boolean hasChanged() {
+        return changed;
+    }
 
 }

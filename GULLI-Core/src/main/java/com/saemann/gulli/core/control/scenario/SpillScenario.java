@@ -23,8 +23,8 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
-import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.Controller;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import java.util.ArrayList;
 import java.util.Date;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
@@ -36,9 +36,9 @@ import com.saemann.gulli.core.model.timeline.array.TimeContainer;
  */
 public class SpillScenario extends Scenario {
 
-    private final ArrayList<InjectionInformation> injections;
+    private final ArrayList<InjectionInfo> injections;
 
-    public SpillScenario(TimeContainer container, ArrayList<InjectionInformation> injections) {
+    public SpillScenario(TimeContainer container, ArrayList<InjectionInfo> injections) {
         super();
         if (injections == null) {
             this.injections = new ArrayList<>(1);
@@ -54,7 +54,7 @@ public class SpillScenario extends Scenario {
     }
 
     @Override
-    public ArrayList<InjectionInformation> getInjections() {
+    public ArrayList<InjectionInfo> getInjections() {
         return injections;
     }
 

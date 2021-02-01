@@ -26,7 +26,7 @@ package com.saemann.gulli.core.control.particlecontrol.injection;
 import com.saemann.gulli.core.model.topology.Manhole;
 
 /**
- * 
+ * Define a manhole as an injection point for a particle
  * @author Sämann
  */
 public class ManholeInjection implements ParticleInjection {

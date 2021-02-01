@@ -39,23 +39,27 @@ import com.saemann.gulli.view.timeline.EditorTableFrame;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
-import java.awt.Color;
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Frame;
-import java.awt.Paint;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.jtikz.TikzGraphics2D;
 
@@ -304,6 +308,42 @@ public class ViewController {
             }
         });
         mapFrame.getMenu_View().add(itemFrameReset);
+
+        JMenu menuHelp = new JMenu("?");
+
+        mapFrame.getJMenuBar().add(menuHelp);
+        JMenuItem itemGULLI = new JMenuItem("GULLI urban pollution transport");
+        JMenuItem itemCopyright = new JMenuItem("Robert Sämann 2015-2020");
+        JMenuItem itemGithub = new JMenuItem("Github link");
+        menuHelp.add(itemGULLI);
+        menuHelp.add(itemCopyright);
+        menuHelp.add(itemGithub);
+        ActionListener action = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JEditorPane ep = new JEditorPane("text/html", "<html><body>Robert Sämann 2015-2020<br>Visit the project homepage on Github:<br><a href=\"https://github.com/rsaemann/GULLI\">https://github.com/rsaemann/GULLI</a>  </body></html>");
+                ep.addHyperlinkListener(new HyperlinkListener() {
+                    @Override
+                    public void hyperlinkUpdate(HyperlinkEvent e) {
+                        if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                            try {
+                                Desktop.getDesktop().browse(e.getURL().toURI());
+                            } catch (URISyntaxException ex) {
+                                Logger.getLogger(ViewController.class.getName()).log(Level.SEVERE, null, ex);
+                            } catch (IOException ex) {
+                                Logger.getLogger(ViewController.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
+                    }
+                });
+                ep.setEditable(false);
+                JOptionPane.showMessageDialog(mapFrame, ep);// "<html>Visit the project homepage on Github:<br><a href=\"https://github.com/rsaemann/GULLI\">https://github.com/rsaemann/GULLI</a>  </html>", "About",JOptionPane.PLAIN_MESSAGE);
+            }
+        };
+        itemGULLI.addActionListener(action);
+        itemCopyright.addActionListener(action);
+        itemGithub.addActionListener(action);
+
     }
 
 }

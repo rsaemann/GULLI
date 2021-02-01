@@ -78,6 +78,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     volatile protected SurfaceMeasurementRaster measurementRaster;
 
+    protected float totalarea = -1;
+
     /**
      * edgelength between neumannNeighbours. [triangleId][nbIndex0-2]: length in
      * meter.
@@ -1733,7 +1735,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public void applyManholeRefs(Network network, ArrayList<Pair<String, Integer>> manhRefs) {
-        
+
         if (capacityNames == null || capacityNames.isEmpty()) {
             capacityNames = buildNamedCapacityMap(network);
         }
@@ -1888,13 +1890,15 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return total area of this surface [m²]
      */
     public double calcTotalTriangleArea() {
-        double surf = 0;
-
+        if (totalarea > 0) {
+            return totalarea;
+        }
+        totalarea = 0;
         for (int[] triangleNode : triangleNodes) {
             double a = 0.5f * (vertices[triangleNode[0]][0] * (vertices[triangleNode[1]][1] - vertices[triangleNode[2]][1]) + vertices[triangleNode[1]][0] * (vertices[triangleNode[2]][1] - vertices[triangleNode[0]][1]) + vertices[triangleNode[2]][0] * (vertices[triangleNode[0]][1] - vertices[triangleNode[1]][1]));
-            surf += Math.abs(a);
+            totalarea += Math.abs(a);
         }
-        return surf;
+        return totalarea;
     }
 
     /**

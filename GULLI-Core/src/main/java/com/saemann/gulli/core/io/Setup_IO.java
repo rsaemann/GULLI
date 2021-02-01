@@ -24,10 +24,12 @@
 package com.saemann.gulli.core.io;
 
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
@@ -197,53 +199,72 @@ public class Setup_IO {
         bw.newLine();
         bw.write("\t<FromNetworkResult>" + setup.isLoadResultInjections() + "</>");
         bw.newLine();
-        for (InjectionInformation injection : scenario.getInjections()) {
-            bw.write("\t<Injection id=" + injection.getId() + ">");
+        for (InjectionInfo inj : scenario.getInjections()) {
+            bw.write("\t<Injection id=" + inj.getId() + ">");
             bw.newLine();
-            bw.write("\t\t<OnSurface>" + injection.spillOnSurface() + "</>");
+            bw.write("\t\t<Type>" + inj.getClass().getSimpleName() + "</>");
             bw.newLine();
+            if (inj instanceof InjectionInformation) {
+                InjectionInformation injection = (InjectionInformation) inj;
 
-            if (injection.spillOnSurface()) {
-                if (injection.spilldistributed) {
-                    bw.write("\t\t<Diffusive>true</>");
-                    bw.newLine();
-                } else {
+                bw.write("\t\t<OnSurface>" + injection.spillOnSurface() + "</>");
+                bw.newLine();
+
+                if (injection.spillOnSurface()) {
+//                if (injection.spilldistributed) {
+//                    bw.write("\t\t<Diffusive>true</>");
+//                    bw.newLine();
+//                } else {
                     if (injection.getCapacityID() >= 0) {
                         bw.write("\t\t<Surfacecell>" + injection.getCapacityID() + "</>");
                         bw.newLine();
                     }
+//                }
+                } else if (injection.spillInManhole()) {
+                    if (injection.getCapacity() != null) {
+                        bw.write("\t\t<Capacity id=" + injection.getCapacity().getManualID() + ">" + injection.getCapacityName() + "</>");
+                        bw.newLine();
+                    } else {
+                        bw.write("\t\t<Capacity>" + injection.getCapacityName() + "</>");
+                        bw.newLine();
+                    }
                 }
-            } else if (injection.spillInManhole()) {
-                if (injection.getCapacity() != null) {
-                    bw.write("\t\t<Capacity id=" + injection.getCapacity().getManualID() + ">" + injection.getCapacityName() + "</>");
+                if (injection.getPosition() != null) {
+                    bw.write("\t\t<Position>");
                     bw.newLine();
-                } else {
-                    bw.write("\t\t<Capacity>" + injection.getCapacityName() + "</>");
+                    bw.write("\t\t\t<Latitude>" + injection.getPosition().getLatitude() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t\t<Longitude>" + injection.getPosition().getLongitude() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t</Position>");
                     bw.newLine();
                 }
+            } else if (inj instanceof InjectionArealInformation) {
+                InjectionArealInformation ai = (InjectionArealInformation) inj;
+                bw.write("\t\t<Diffusive>true</>");
+                bw.newLine();
+                bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
+                bw.newLine();
+            } else if (inj instanceof InjectionInflowInformation) {
+                InjectionInflowInformation ai = (InjectionInflowInformation) inj;
+                bw.write("\t\t<Diffusive>false</>");
+                bw.newLine();
+                bw.write("\t\t<Concentration unit='kg/m^3'>" + ai.getConcentration() + "</>");
+                bw.newLine();
             }
-            if (injection.getPosition() != null) {
-                bw.write("\t\t<Position>");
-                bw.newLine();
-                bw.write("\t\t\t<Latitude>" + injection.getPosition().getLatitude() + "</>");
-                bw.newLine();
-                bw.write("\t\t\t<Longitude>" + injection.getPosition().getLongitude() + "</>");
-                bw.newLine();
-                bw.write("\t\t</Position>");
-                bw.newLine();
-            }
-            bw.write("\t\t<Start unit='s'>" + injection.getStarttimeSimulationsAfterSimulationStart() + "</>");
+            bw.write("\t\t<Start unit='s'>" + inj.getStarttimeSimulationsAfterSimulationStart() + "</>");
             bw.newLine();
-            bw.write("\t\t<Duration unit='s'>" + injection.getDurationSeconds() + "</>");
+            bw.write("\t\t<Duration unit='s'>" + inj.getDurationSeconds() + "</>");
             bw.newLine();
-            bw.write("\t\t<Material id=" + injection.getMaterial().materialIndex + ">" + injection.getMaterial().getName() + "</>");
+            bw.write("\t\t<Material id=" + inj.getMaterial().materialIndex + ">" + inj.getMaterial().getName() + "</>");
             bw.newLine();
-            bw.write("\t\t<Mass unit='kg'>" + injection.getMass() + "</>");
+            bw.write("\t\t<Mass unit='kg'>" + inj.getMass() + "</>");
             bw.newLine();
-            bw.write("\t\t<Particles>" + injection.getNumberOfParticles() + "</>");
+            bw.write("\t\t<Particles>" + inj.getNumberOfParticles() + "</>");
             bw.newLine();
             bw.write("\t</Injection>");
             bw.newLine();
+
         }
 
         bw.write("</Injections>");
@@ -262,7 +283,7 @@ public class Setup_IO {
     public static Setup load(File file) throws FileNotFoundException, IOException {
         Setup setup = new Setup();
         setup.files = new FileContainer(null, null, null, null, null);
-        ArrayList<InjectionInformation> injections = new ArrayList<>();
+        ArrayList<InjectionInfo> injections = new ArrayList<>();
         SpillScenario scenario = new SpillScenario(null, injections);
         setup.scenario = scenario;
         int state = -1;
@@ -282,6 +303,7 @@ public class Setup_IO {
 
         //Injection temporary storage
         int injectionID;
+        String injectionType = null;
         GeoPosition injectionPosition = null;
         double injectionLatitude = -1, injectionLongitude = -1;
         boolean injectionOnSurface = false;
@@ -292,6 +314,7 @@ public class Setup_IO {
         double injectionStart = 0;
         double injectionDuration = 0;
         double injectionMass = 1000;
+        double injectionConcentration = 1;
         int injectionParticles = 10000;
 
         String line = "";
@@ -368,9 +391,9 @@ public class Setup_IO {
 
                         Material mat = new Material(materialName, 1000, materialID, materialFlowCalculator, materialDispersionCalculatorPipe, materialDispersionCalculatorSurface);
                         materials.put(mat.materialIndex, mat);
-                        materialName=null;
-                        materialFlowCalculator=null;
-                        materialDispersionCalculatorPipe=null;
+                        materialName = null;
+                        materialFlowCalculator = null;
+                        materialDispersionCalculatorPipe = null;
                         continue;
                     }
 
@@ -439,26 +462,53 @@ public class Setup_IO {
                             line = br.readLine();
                             if (line.contains("</Injection")) {
                                 //Create Injection
-                                InjectionInformation inj = null;
+                                InjectionInfo inj = null;
                                 Material mat = materials.get(injection_materialID);
                                 if (mat == null) {
-                                    System.err.println("No material found for injection " + injectionID + ": " + injectionCapacityName+"   materials:"+materials.size());
+                                    System.err.println("No material found for injection " + injectionID + ": " + injectionCapacityName + "   materials:" + materials.size());
                                 } else {
-                                    if (injectionOnSurface) {
-                                        if (injectionDiffusive) {
-                                            inj = InjectionInformation.DIFFUSIVE_ON_SURFACE(injectionMass, injectionParticles, mat);
-                                        } else {
+                                    if (injectionType.equals(InjectionInformation.class.getSimpleName())) {
+                                        if (injectionOnSurface) {
+
                                             inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), false, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
-                                        }
-                                    } else {
-                                        if (injectionPosition != null) {
-                                            inj = new InjectionInformation(injectionPosition, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
-                                        } else if (injectionCapacityName != null) {
-                                            inj = new InjectionInformation(injectionCapacityName, 0, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
-                                        } else if (injectionCapacityID >= 0) {
-                                            inj = new InjectionInformation(injectionCapacityID, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+
                                         } else {
-                                            System.err.println("No information about the Manhole to inject");
+                                            if (injectionPosition != null) {
+                                                inj = new InjectionInformation(injectionPosition, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else if (injectionCapacityName != null) {
+                                                inj = new InjectionInformation(injectionCapacityName, 0, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else if (injectionCapacityID >= 0) {
+                                                inj = new InjectionInformation(injectionCapacityID, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else {
+                                                System.err.println("No information about the Manhole to inject");
+                                            }
+                                        }
+                                    } else if (injectionType.equals(InjectionArealInformation.class.getSimpleName())) {
+                                        InjectionArealInformation ainj = new InjectionArealInformation(mat, null, injectionMass, injectionParticles);
+                                        ainj.setMass(injectionMass);
+                                        inj = ainj;
+                                    } else if (injectionType.equals(InjectionInflowInformation.class.getSimpleName())) {
+                                        InjectionInflowInformation ainj = new InjectionInflowInformation(mat, null, injectionConcentration, injectionParticles);
+                                        ainj.setMass(injectionMass);
+                                        inj = ainj;
+                                    } else {
+                                        if (injectionOnSurface) {
+
+                                            if (injectionDiffusive) {
+                                                inj = new InjectionArealInformation(mat, null, injectionMass, injectionParticles);//InjectionInformation.DIFFUSIVE_ON_SURFACE(injectionMass, injectionParticles, mat);
+                                            } else {
+                                                inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), false, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            }
+                                        } else {
+                                            if (injectionPosition != null) {
+                                                inj = new InjectionInformation(injectionPosition, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else if (injectionCapacityName != null) {
+                                                inj = new InjectionInformation(injectionCapacityName, 0, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else if (injectionCapacityID >= 0) {
+                                                inj = new InjectionInformation(injectionCapacityID, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else {
+                                                System.err.println("No information about the Manhole to inject");
+                                            }
                                         }
                                     }
                                     if (inj != null) {
@@ -472,10 +522,13 @@ public class Setup_IO {
                                 injectionCapacityName = null;
                                 injectionDuration = 0;
                                 injectionPosition = null;
-                                injectionDiffusive=false;
+                                injectionDiffusive = false;
                                 break;
                             }
-                            if (line.contains("<Diffusive>")) {
+
+                            if (line.contains("<Type>")) {
+                                injectionType = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                            } else if (line.contains("<Diffusive>")) {
                                 injectionDiffusive = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("<OnSurface>")) {
                                 injectionOnSurface = Boolean.parseBoolean(line.substring(line.indexOf("<OnSurface") + 11, line.indexOf("</")));
@@ -489,6 +542,8 @@ public class Setup_IO {
                                 injectionDuration = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Mass")) {
                                 injectionMass = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Concentration")) {
+                                injectionConcentration = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Particles")) {
                                 injectionParticles = Integer.parseInt(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Materi")) {
@@ -563,8 +618,11 @@ public class Setup_IO {
                 exception.printStackTrace();
             }
         }
+
         br.close();
+
         fr.close();
+
         setup.setInjections(injections);
         return setup;
     }

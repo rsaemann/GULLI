@@ -2,8 +2,6 @@ package com.saemann.gulli.core.control.threads;
 
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
-import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing;
-import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing1D;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.particlecontrol.injection.ManholeInjection;
 import com.saemann.gulli.core.control.particlecontrol.injection.PipeInjection;
@@ -145,9 +143,11 @@ public class ParticleThread extends Thread {
                                 break;
                             } else {
                                 status=1;
+//                                System.out.println("Injectioninformation:: "+p.getInjectionInformation()+" surface? "+p.getInjectionInformation().spillOnSurface());
                                 if (p.getInjectionInformation().spillOnSurface()) {
                                     SurfaceInjection si = (SurfaceInjection) p.getInjectionInformation();
                                     p.setSurrounding_actual(si.getInjectionCapacity());
+//                                    System.out.println("Inject Particle on Surface "+si.getInjectionCapacity());
                                     p.surfaceCellID = (int) si.getInjectionCellID(p.getId());
                                     p.setPosition3D(si.getInjectionPosition(p.getId()));
                                     p.setOnSurface();

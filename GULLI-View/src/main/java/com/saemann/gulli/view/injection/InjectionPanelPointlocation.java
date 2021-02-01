@@ -1,4 +1,4 @@
-package com.saemann.gulli.view;
+package com.saemann.gulli.view.injection;
 
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -27,6 +27,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.topology.Manhole;
+import com.saemann.gulli.view.PaintManager;
 import com.saemann.rgis.view.MapViewer;
 import java.text.DecimalFormatSymbols;
 import javax.swing.JMenuItem;
@@ -304,14 +305,13 @@ public class InjectionPanelPointlocation extends JPanel {
 
     public InjectionPanelPointlocation(MapViewer map) {
         this(null, map, null);
-
     }
 
-    public long localToGMT(long local) {
+    public static long localToGMT(long local) {
         return local + localCalendar.get(GregorianCalendar.ZONE_OFFSET);
     }
 
-    public long gmtToLocal(long gmt) {
+    public static long gmtToLocal(long gmt) {
         return gmt - localCalendar.get(GregorianCalendar.ZONE_OFFSET);
     }
 

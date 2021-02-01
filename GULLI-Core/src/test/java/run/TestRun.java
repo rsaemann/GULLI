@@ -31,6 +31,7 @@ import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
 import com.saemann.gulli.core.control.output.ContaminationParticles;
 import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
+import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.material.Material;
@@ -119,7 +120,8 @@ public class TestRun {
         //Define injections for this scenario 
         int anzahl = 100_000 / 3;
         // Spreading distributed equal all over the domain
-        InjectionInformation diffusiveSurfacePollution = InjectionInformation.DIFFUSIVE_ON_SURFACE(1000, 100_000, new Material("Dust", 1000, true, 0));
+        InjectionArealInformation diffusiveSurfacePollution = new InjectionArealInformation(new Material("Dust", 1000, true, 0), null, 0.001, 10_000);
+            //InjectionInformation.DIFFUSIVE_ON_SURFACE(1000, 100_000, new Material("Dust", 1000, true, 0));
         lc.addManualInjection(diffusiveSurfacePollution);
 
         if (false) {

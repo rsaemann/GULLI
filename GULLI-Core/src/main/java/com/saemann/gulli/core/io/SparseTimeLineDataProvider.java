@@ -48,6 +48,15 @@ public interface SparseTimeLineDataProvider {
 
     public float[] loadTimeLineSpilloutFlux(long ManholeID, String manholeName, int numberOfTimes);
 
+    /**
+     * The timeline for inflow form external sources like the HYSTEM or other hydrological models.
+     * @param ManholeID
+     * @param manholeName
+     * @param numberOfTimes
+     * @return 
+     */
+    public float[] loadTimeLineInlflow(long ManholeID, String manholeName, int numberOfTimes);
+
     public float[][] loadTimeLineMassflux(long pipeMaualID, String pipeName, int numberOfTimes);
 
     public float[][] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes);

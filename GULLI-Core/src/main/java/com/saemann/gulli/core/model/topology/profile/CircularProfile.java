@@ -48,28 +48,14 @@ public class CircularProfile extends Profile {
         this.diameter = diameter_meter;
         this.radius = diameter_meter * 0.5;
         this.totalarea=Math.PI*radius*radius;
-//        initLookupTable();
     }
 
     public CircularProfile(double diameter_meter) {
         this.diameter = (float) diameter_meter;
         this.radius = diameter_meter * 0.5;
         this.totalarea=Math.PI*radius*radius;
-//        initLookupTable();
     }
     
-//    public void initLookupTable(){
-//        //Flowarea by waterheight 0-100%
-//        this.flowarea=new double[101];
-//        for (int i = 0; i < flowarea.length; i++) {
-//            double h=i*diameter/(flowarea.length-1);
-//             //Calculate angle of hydraulic U
-//            double angle = 2 * getAlpha(h);
-//            //Calculate hydraulic area
-//            double area=diameter * diameter * 0.125 * (angle - Math.sin(angle));
-//            flowarea[i]=area;
-//        }
-//    }
 
     /**
      * According to Guo Alpha is the angle from plumb height-axis at the center
@@ -82,12 +68,6 @@ public class CircularProfile extends Profile {
      * @return water surface angle [rad]
      */
     private double getAlpha(double water_level_in_pipe) {
-//        if (water_level_in_pipe == lastAlphaWaterlevel) {
-//            return lastCalculatedAlpha;
-//        }
-//        lastCalculatedAlpha = Math.acos(1 - water_level_in_pipe / radius);
-//        lastAlphaWaterlevel = water_level_in_pipe;
-//        return lastCalculatedAlpha;
         return Math.acos(1 - water_level_in_pipe / radius);
     }
 
@@ -118,28 +98,19 @@ public class CircularProfile extends Profile {
         if(verbose)System.out.println(getClass()+"::getHydraulicRadius");
         synchronized (this) {
             if (water_level_in_pipe == lastCalculatedHydraulicRadiusWL) {
-//                if (lastCalculatedHydraulicRadius < 0.001) {
-//                    System.out.println("Hydraulic Radius: " + df.format(lastCalculatedHydraulicRadius) + "   h=" + water_level_in_pipe + "   bekannt d=" + diameter);
-//                }
                 return lastCalculatedHydraulicRadius;
             }
 
             lastCalculatedHydraulicRadiusWL = water_level_in_pipe;
             if (water_level_in_pipe > diameter) {
                 lastCalculatedHydraulicRadius = 0.25 * diameter;
-//                if (lastCalculatedHydraulicRadius < 0.001) {
-//                    System.out.println("Hydraulic Radius: setze" + df.format(lastCalculatedHydraulicRadius) + "   h=" + water_level_in_pipe + "   h>d d=" + diameter);
-//                }
                 return lastCalculatedHydraulicRadius;
             }
 
             //Calculate angle of hydraulic U
-            double angle = 2 * getAlpha(water_level_in_pipe); //4 * Math.asin(Math.sqrt(water_level_in_pipe / diameter));
+            double angle = 2 * getAlpha(water_level_in_pipe); 
             //Calculate hydraulic area
             lastCalculatedHydraulicRadius = diameter * 0.25 * (1 - Math.sin(angle) / angle);
-//            if (lastCalculatedHydraulicRadius < 0.001) {
-//                System.out.println("Hydraulic Radius setze: " + df.format(lastCalculatedHydraulicRadius) + "   h=" + water_level_in_pipe + "   angle=" + angle);
-//            }
             return lastCalculatedHydraulicRadius;
         }
     }
@@ -153,8 +124,6 @@ public class CircularProfile extends Profile {
 
         }
         double rh = getHydraulicRadius(water_level_in_pipe);
-        //   System.out.println("r_h = " + rh + " m");
-        //   System.out.println("A_h = " + getFlowArea(water_level_in_pipe) + "m²");
         return 4 * Math.log10(4 * fr * rh / (k * 1000)) * 4.429447 * Math.sqrt(rh * Math.abs(hydraulicGradient)) * getFlowArea(water_level_in_pipe);
     }
 

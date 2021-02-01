@@ -631,12 +631,23 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
 
     @Override
     public SparseTimelineManhole loadTimelineManhole(long manholeManualID, String manholeName, float soleheight, SparseTimeLineManholeContainer container) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+           throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+     
     }
 
     @Override
     public long[] loadTimeStepsNetwork(boolean startAtZero) {
         return times;
+    }
+
+    @Override
+    public float[] loadTimeLineInlflow(long ManholeID, String manholeName, int numberOfTimes) {
+        try {
+            return getNodeValues(manholeName, 3);
+        } catch (IOException ex) {
+            Logger.getLogger(SWMM_Out_Reader.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return new float[numberOfTimes];
     }
 
 }

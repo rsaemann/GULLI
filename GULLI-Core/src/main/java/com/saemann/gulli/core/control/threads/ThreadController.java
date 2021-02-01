@@ -28,9 +28,9 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
-import com.saemann.gulli.core.control.maths.RandomArray;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -452,8 +452,8 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             //See if particles need to be added differently
             if (control.getScenario().getInjections() != null) {
                 boolean needRecalculation = false;
-                for (InjectionInformation injection : control.getScenario().getInjections()) {
-                    if (injection.isChanged()) {
+                for (InjectionInfo injection : control.getScenario().getInjections()) {
+                    if (injection.hasChanged()) {
                         needRecalculation = true;
                         break;
                     }
@@ -464,7 +464,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         control.getSurface().setNumberOfMaterials(control.getScenario().getMaxMaterialID() + 1);
                     }
                 }
-                for (InjectionInformation injection : control.getScenario().getInjections()) {
+                for (InjectionInfo injection : control.getScenario().getInjections()) {
                     injection.resetChanged();
                 }
             }

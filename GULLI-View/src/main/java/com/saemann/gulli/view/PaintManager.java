@@ -8,6 +8,7 @@ import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
@@ -197,7 +198,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private ColorHolder[] chFillrate;
 
     private final HashSet<Manhole> affectedManholes = new HashSet<>();
-    private final List<InjectionInformation> injections = new ArrayList<>(0);
+    private final List<InjectionInfo> injections = new ArrayList<>(0);
 
     private Point2D.Double posTopLeftPipeCS, posBotRightPipeCS;
     private Coordinate posTopLeftSurfaceCS, posBotRightSurfaceCS;
@@ -1286,7 +1287,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
                     synchronized (raster) {
                         double totalmass = 0;
-                        for (InjectionInformation injection : control.getScenario().getInjections()) {
+                        for (InjectionInfo injection : control.getScenario().getInjections()) {
                             totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
                         }
                         boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
@@ -1404,7 +1405,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     SurfaceMeasurementRectangleRaster raster = (SurfaceMeasurementRectangleRaster) surface.getMeasurementRaster();
                     synchronized (raster) {
                         double totalmass = 0;
-                        for (InjectionInformation injection : control.getScenario().getInjections()) {
+                        for (InjectionInfo injection : control.getScenario().getInjections()) {
                             totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
                         }
                         boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
@@ -2489,14 +2490,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 mapViewer.repaint();
                 return;
             } else if (string.equals(layerInjectionLocation)) {
-                for (InjectionInformation injection : injections) {
+                for (InjectionInfo injection : injections) {
                     if (injection.getId() % injections.size() == id) {
                         if (injection.getPosition() == null) {
                             return;
                         }
                         StringBuilder str = new StringBuilder("Injection id:").append(id);
                         if (injection.spillOnSurface()) {
-                            str.append(";to Surface triangle").append(injection.getCapacityID());
+                            if (injection instanceof InjectionInformation) {
+                                str.append(";to Surface triangle").append(((InjectionInformation) injection).getCapacityID());
+                            }
                         } else {
                             str.append(";").append(injection.getCapacity());
                         }
@@ -3101,13 +3104,13 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     }
 
-    public void setInjectionLocation(Collection<InjectionInformation> injections) throws Exception {
+    public void setInjectionLocation(Collection<InjectionInfo> injections) throws Exception {
         this.injections.clear();
 //        if (injections.size() > 50) {
 //            throw new Exception("Will not display more than 50 injection locations. (" + injections.size() + ")");
 //        }
         int counter = 0;
-        for (InjectionInformation in : injections) {
+        for (InjectionInfo in : injections) {
             counter++;
             if (injections.size() > 100) {
                 this.injections.addAll(injections);
@@ -3121,16 +3124,18 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 if (in.getPosition() != null) {
                     pos = in.getPosition();
                 } else {
-                    if (in.spillOnSurface()) {
-                        //Calculate from triangle ID
-                        if (in.getCapacityID() >= 0) {
-                            double[] tm = control.getSurface().getTriangleMids()[in.getCapacityID()];
-                            Coordinate c = control.getSurface().getGeotools().toGlobal(new Coordinate(tm[0], tm[1]), false);
-                            pos = new GeoPosition(c.x, c.y);
-                        }
-                    } else {
-                        if (in.getCapacity() != null) {
-                            pos = in.getCapacity().getPosition3D(in.getPosition1D());
+                    if (in instanceof InjectionInformation) {
+                        if (in.spillOnSurface()) {
+                            //Calculate from triangle ID
+                            if (((InjectionInformation) in).getCapacityID() >= 0) {
+                                double[] tm = control.getSurface().getTriangleMids()[((InjectionInformation) in).getCapacityID()];
+                                Coordinate c = control.getSurface().getGeotools().toGlobal(new Coordinate(tm[0], tm[1]), false);
+                                pos = new GeoPosition(c.x, c.y);
+                            }
+                        } else {
+                            if (in.getCapacity() != null) {
+                                pos = in.getCapacity().getPosition3D(((InjectionInformation) in).getPosition1D());
+                            }
                         }
                     }
                 }

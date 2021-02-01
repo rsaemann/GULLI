@@ -193,7 +193,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries m_p_l = new TimeSeries(new SeriesKey("Particles/Length", "", "1/m", Color.orange, new AxisKey("Particle per Length")), "Time", "");
     private final TimeSeries m_p_l_sum = new TimeSeries(new SeriesKey("\u03a3Particles/Length", "", "1/m", Color.orange), "Time", "");
     private final TimeSeries m_m = new TimeSeries(new SeriesKey("p. Mass", "m_p", "kg", Color.red, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey("\u03a3 p. Mass ", "", "kg", Color.pink, new AxisKey("Mass", "Mass [kg]")), "Time", "");
+    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey(/*\u03a3*/"Sum p. Mass ", "", "kg", Color.pink, new AxisKey("Mass", "Mass [kg]")), "Time", "");
     private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan, new AxisKey("Vol", "Volume [m³]")), "Time", "m³");
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V", "Velocity [m/s]"), 0), "Time", "m/s");
@@ -202,17 +202,20 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.blue, new AxisKey("lvl"), 0), "Time", "m");
     private final TimeSeries volpipe0 = new TimeSeries(new SeriesKey("Volume", "V", "m³", new Color(100, 0, 255), new AxisKey("Vol", "Volume [m³]"), 0), "Time", "m³");
 
-    private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref Massflux total", "", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
-    private final TimeSeries m_massflux = new TimeSeries(new SeriesKey("ptc Massflux total", "", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
+    private final TimeSeries refMassfluxTotal = new TimeSeries(new SeriesKey("ref total Massflux", "mf", "kg/s", Color.orange.darker().darker(), keymassFlux, 0), "Time", "");
+    private final TimeSeries m_massflux = new TimeSeries(new SeriesKey("p. total Massflux", "mf", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.dash1), "Time", "");
 
-    private final TimeSeries refConcentrationTotal = new TimeSeries(new SeriesKey("ref. Concentration total", "", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
-    private final TimeSeries m_c = new TimeSeries(new SeriesKey("ptcl. Concentration total", "", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
+    private final TimeSeries refConcentrationTotal = new TimeSeries(new SeriesKey("ref total Concentration", "c", "kg/m³", Color.darkGray.darker(), keyConcentration, 0), "Time", "");
+    private final TimeSeries m_c = new TimeSeries(new SeriesKey("p. total Concentration", "c", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.dash1), "Time", "");
 
     private final ArrayList<TimeSeries> ref_massFlux_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> mes_massFlux_Type = new ArrayList<>(2);
 
     private final ArrayList<TimeSeries> ref_Concentration_Type = new ArrayList<>(2);
     private final ArrayList<TimeSeries> mes_concentration_Type = new ArrayList<>(2);
+
+    //Manhole only
+    private final TimeSeries inflow = new TimeSeries(new SeriesKey("Inflow", "q", "m³/s", Color.green, new AxisKey("Q", "Inflow [m³/s]"), 0), "Time", "m³/s");
 
     public static final ValueMarker zero_Marker = new ValueMarker(0, Color.LIGHT_GRAY, new BasicStroke(1));
 
@@ -779,12 +782,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     name = "" + j;
                 }
                 if (mes_massFlux_Type.size() < j + 1) {
-                    SeriesKey key = new SeriesKey("p. Massflux " + name, "mf_p_" + j, "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
+                    SeriesKey key = new SeriesKey("p. "+name+" Massflux ["+j+"]", "mf", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
                     key.setVisible(((SeriesKey) m_massflux.getKey()).isVisible());
                     mes_massFlux_Type.add(new TimeSeries(key, "Time", "kg/s"));
                 }
                 if (mes_concentration_Type.size() < j + 1) {
-                    SeriesKey key = new SeriesKey("p. Concentration " + name, "c_p_" + j, "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]);
+                    SeriesKey key = new SeriesKey("p. "+ name+" Concentration ["+j+"]" , "c", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]);
                     key.setVisible(((SeriesKey) m_c.getKey()).isVisible());
                     mes_concentration_Type.add(new TimeSeries(key, "Time", "kg/m³"));
                 }
@@ -915,7 +918,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     double c = tlm.getConcentrationOfType(i, j);
                     if (Double.isNaN(c)) {
                         c = 0;
-                    }else if (Double.isInfinite(c)) {
+                    } else if (Double.isInfinite(c)) {
                         c = 0;
                     }
                     double mf = c * discharge;
@@ -936,7 +939,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     m_c.addOrUpdate(time, 0);
                 } else if (Double.isInfinite(c)) {
                     m_c.addOrUpdate(time, 0);
-                } else{
+                } else {
                     m_c.addOrUpdate(time, c);
                 }
 
@@ -1109,7 +1112,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private void buildManholeTimeline(StorageVolume vol) {
         TimeSeries h = new TimeSeries(new SeriesKey("Waterheight", "h", "m", Color.BLUE, new AxisKey("h")), "m", "Time");
         TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan), "m", "Time");
-        TimeSeries lflow = new TimeSeries(new SeriesKey("Flux to Surface", "spillout", "m³/s", Color.magenta), "m³/s", "Time");
+        TimeSeries lflow = new TimeSeries(new SeriesKey("Flux to Surface", "q_spill", "m³/s", Color.magenta), "m³/s", "Time");
+
+        TimeSeries inflow = new TimeSeries(new SeriesKey("Inflow", "q", "m³/s", Color.green), "m³/s", "Time");
         TimeSeries topHeight = new TimeSeries(new SeriesKey("Top", "z", "m", Color.BLACK, new AxisKey("h")), "m", "Time");
         TimeContainer cont = vol.getStatusTimeLine().getTimeContainer();
         for (int i = 0; i < cont.getNumberOfTimes(); i++) {
@@ -1124,6 +1129,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             lvl.add(time, vol.getStatusTimeLine().getWaterZ(i) - vol.getSole_height());
             lflow.add(time, vol.getStatusTimeLine().getFlowToSurface(i));
             topHeight.add(time, vol.getTop_height());
+            inflow.add(time, vol.getStatusTimeLine().getInflow(i));
         }
         ArrayList<TimeSeries> persistent = new ArrayList<>();
         for (int i = 0; i < collection.getSeriesCount(); i++) {
@@ -1159,11 +1165,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.collection.addSeries(h);
         this.collection.addSeries(lvl);
         this.collection.addSeries(lflow);
+        this.collection.addSeries(inflow);
         this.collection.addSeries(topHeight);
 
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) h.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lvl.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) lflow.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) inflow.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) topHeight.getKey()).name, false);
 
         if (!persistent.isEmpty()) {
@@ -1665,7 +1673,18 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     public static void addPDFexport(final ChartPanel panelChart, final JComponent surroundingContainer) {
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
-            panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
+            try {
+                File dir = new File(directoryPDFsave);
+                if (dir.exists()) {
+                    if (dir.isFile()) {
+                        dir = dir.getParentFile();
+                    }
+                    panelChart.setDefaultDirectoryForSaveAs(dir);
+                }
+            } catch (Exception e) {
+                System.out.println("Save directory:'" + directoryPDFsave + "'");
+                e.printStackTrace();
+            }
             int index = 3; //usually at the 3rd position
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {
@@ -1762,7 +1781,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     public static void addLaTeX_TikzExport(final ChartPanel panelChart, final JComponent surroundingContainer) {
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
-            panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
+//            panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
             int index = 3; //usually at the 3rd position
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {
@@ -1786,19 +1805,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 @Override
                 public void actionPerformed(ActionEvent ae) {
                     JFileChooser fc = new JFileChooser(directoryPDFsave);
-//                    {
-//                        @Override
-//                        public boolean accept(File file) {
-//                            if (file.isDirectory()) {
-//                                return true;
-//                            }
-//                            if (file.isFile() && file.getName().endsWith(".tex")) {
-//                                return true;
-//                            }
-//                            return false;
-//                        }
-//                        
-//                    };
                     fc.setFileFilter(new FileNameExtensionFilter("LaTeX File", new String[]{"tex", "tikz"}));
                     fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
                     int n = fc.showSaveDialog(panelChart);
@@ -1853,7 +1859,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     public static void addLaTeX_TikzPDFExport(final ChartPanel panelChart, final JComponent surroundingContainer) {
         JPopupMenu menu = panelChart.getPopupMenu();
         try {
-            panelChart.setDefaultDirectoryForSaveAs(new File(directoryPDFsave));
             int index = 3; //usually at the 3rd position
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {

@@ -21,24 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.saemann.gulli.view;
+package com.saemann.gulli.view.injection;
 
 import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Network;
+import com.saemann.gulli.view.PaintManager;
 import com.saemann.rgis.view.MapViewer;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JMenuItem;
@@ -48,6 +54,8 @@ import javax.swing.JScrollPane;
 import javax.swing.border.TitledBorder;
 
 /**
+ * Panel for the Tab (Injections) in the tool frame. Here, materials and
+ * injections are displayed.
  *
  * @author saemann
  */
@@ -56,11 +64,12 @@ public class InjectionOrganisatorPanel extends JPanel {
     protected TitledBorder borderMaterials, borderInjections;
 
     protected JPanel panelMaterialSurrounding, panelInjectionSurrounding;
-    protected JPanel panelMaterials, panelInjections,panelInjectionButtons;
+    protected JPanel panelMaterials, panelInjections, panelInjectionButtons;
 
     protected JButton buttonNewMaterial;
     private JButton buttonNewInjectionPoint;
     private JButton buttonNewInjectionArea;
+    private JButton buttonNewInjectionInflow;
 
     protected Controller control;
     protected MapViewer map;
@@ -72,30 +81,31 @@ public class InjectionOrganisatorPanel extends JPanel {
         this.map = map;
         this.paintManager = pm;
         panelMaterials = new JPanel();
+        panelMaterials.setBackground(Color.gray);
         panelMaterials.setLayout(new BoxLayout(panelMaterials, BoxLayout.Y_AXIS));
         JScrollPane scrollMaterial = new JScrollPane(panelMaterials);
         borderMaterials = new TitledBorder("Materials");
-        panelMaterialSurrounding=new JPanel(new BorderLayout());
+        panelMaterialSurrounding = new JPanel(new BorderLayout());
         panelMaterialSurrounding.setBorder(borderMaterials);
         panelMaterialSurrounding.setPreferredSize(new Dimension(100, 220));
         panelMaterialSurrounding.add(scrollMaterial, BorderLayout.CENTER);
-        buttonNewMaterial=new JButton("New Material");
-        panelMaterialSurrounding.add(buttonNewMaterial,BorderLayout.NORTH);
-        this.add(panelMaterialSurrounding,BorderLayout.NORTH);
+        buttonNewMaterial = new JButton("New Material");
+        panelMaterialSurrounding.add(buttonNewMaterial, BorderLayout.NORTH);
+        this.add(panelMaterialSurrounding, BorderLayout.NORTH);
 
         panelInjections = new JPanel();
-        panelInjectionSurrounding=new JPanel(new BorderLayout());
-        panelInjectionSurrounding.setMaximumSize(new Dimension(250,200));
+        panelInjections.setBackground(Color.lightGray);
+        panelInjectionSurrounding = new JPanel(new BorderLayout());
+        panelInjectionSurrounding.setMaximumSize(new Dimension(250, 200));
         panelInjections.setLayout(new BoxLayout(panelInjections, BoxLayout.Y_AXIS));
         JScrollPane scrollInjection = new JScrollPane(panelInjections);
         borderInjections = new TitledBorder("Injections");
         panelInjectionSurrounding.setBorder(borderInjections);
 //        scrollInjection.setPreferredSize(new Dimension(100, 900));
         panelInjectionSurrounding.add(scrollInjection, BorderLayout.CENTER);
-        this.add(panelInjectionSurrounding,BorderLayout.CENTER);
-        panelInjectionButtons=new JPanel(new GridLayout(1, 2));
-        panelInjectionSurrounding.add(panelInjectionButtons,BorderLayout.NORTH);
-        
+        this.add(panelInjectionSurrounding, BorderLayout.CENTER);
+        panelInjectionButtons = new JPanel(new GridLayout(1, 3,3,5));
+        panelInjectionSurrounding.add(panelInjectionButtons, BorderLayout.NORTH);
 
         control.addActioListener(new LoadingActionListener() {
             @Override
@@ -115,8 +125,8 @@ public class InjectionOrganisatorPanel extends JPanel {
                 recreatePanels();
             }
         });
-        
-        control.addSimulationListener(new SimulationActionAdapter(){
+
+        control.addSimulationListener(new SimulationActionAdapter() {
             @Override
             public void simulationRESET(Object caller) {
                 recreatePanels();
@@ -126,14 +136,14 @@ public class InjectionOrganisatorPanel extends JPanel {
             public void simulationSTART(Object caller) {
                 updatePanels();
             }
-            
+
         });
 
         buttonNewMaterial.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Material mat=new Material("neu", 1000, true);
-                if(control.getScenario()!=null){
+                Material mat = new Material("Spill", 1000, true);
+                if (control.getScenario() != null) {
                     control.getScenario().getMaterials().add(mat);
                     recreatePanels();
                 }
@@ -141,8 +151,8 @@ public class InjectionOrganisatorPanel extends JPanel {
         });
 
         //Add Injection via button
-        buttonNewInjectionPoint = new JButton("New Point Injection");
-        panelInjectionButtons.add(buttonNewInjectionPoint,BorderLayout.WEST);
+        buttonNewInjectionPoint = new JButton("Point Injection");
+        panelInjectionButtons.add(buttonNewInjectionPoint, BorderLayout.WEST);
         buttonNewInjectionPoint.addActionListener(new ActionListener() {
 
             @Override
@@ -154,18 +164,36 @@ public class InjectionOrganisatorPanel extends JPanel {
             }
         });
 
-        buttonNewInjectionArea = new JButton("New Diffusive Injection");
-        panelInjectionButtons.add(buttonNewInjectionArea,BorderLayout.EAST);
+        buttonNewInjectionArea = new JButton("2D Diffusive Injection");
+        panelInjectionButtons.add(buttonNewInjectionArea, BorderLayout.EAST);
         buttonNewInjectionArea.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent ae) {
-                Material m=new Material("diffusiv", 1000, true);
-                m.travellengthToMeasure=100;
-                InjectionInformation ininfo = new InjectionInformation(control.getSurface(), 0, 500, 10000, m, 0, 0);
-                ininfo.spilldistributed = true;
-                ininfo.spillOnSurface = true;
-                ininfo.setTriangleID(0);
+                Material m = new Material("AFS63", 1000, true);
+                m.travellengthToMeasure = 50;
+                InjectionArealInformation ininfo = InjectionArealInformation.LOAD(m, control.getSurface(), 0.001, 50000);
+//                InjectionInformation ininfo = new InjectionInformation(control.getSurface(), 0, 500, 10000, m, 0, 0);
+//                ininfo.spilldistributed = true;
+//                ininfo.spillOnSurface = true;
+//                ininfo.setTriangleID(0);
+                control.getLoadingCoordinator().addManualInjection(ininfo);
+                control.recalculateInjections();
+            }
+        });
+        buttonNewInjectionInflow = new JButton("Inflow Concentration");
+        panelInjectionButtons.add(buttonNewInjectionInflow, BorderLayout.EAST);
+        buttonNewInjectionInflow.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                Material m = new Material("Inflow", 1000, true);
+                m.travellengthToMeasure = 1;
+                InjectionInflowInformation ininfo = new InjectionInflowInformation(m, control.getNetwork(), 0.1, 50000);
+                if (control.getNetwork() != null && control.getNetwork().getInflowArea() > 0) {
+                    //Create a default value of 10 kg/ha 
+                    ininfo.setMass(control.getNetwork().getInflowArea()*0.001);
+                } 
                 control.getLoadingCoordinator().addManualInjection(ininfo);
                 control.recalculateInjections();
             }
@@ -173,11 +201,11 @@ public class InjectionOrganisatorPanel extends JPanel {
 //
 //        panelTabLoading.add(panelInjection, BorderLayout.CENTER);
     }
-    
-    public void updatePanels(){
+
+    public void updatePanels() {
         for (Component component : panelMaterials.getComponents()) {
-            if(component instanceof MaterialPanel){
-                ((MaterialPanel)component).updateValues();                
+            if (component instanceof MaterialPanel) {
+                ((MaterialPanel) component).updateValues();
             }
         }
 //        for (Component component : panelInjections.getComponents()) {
@@ -207,6 +235,7 @@ public class InjectionOrganisatorPanel extends JPanel {
         for (Material mat : control.getScenario().getMaterials()) {
             MaterialPanel mp = new MaterialPanel(mat);
             panelMaterials.add(mp);
+            panelMaterials.add(Box.createRigidArea(new Dimension(20, 5)));
         }
         panelMaterials.revalidate();
         panelMaterials.repaint();
@@ -222,26 +251,39 @@ public class InjectionOrganisatorPanel extends JPanel {
             return;
         }
         borderInjections.setTitle((control.getScenario().getInjections().size()) + " Injections");
-        for (InjectionInformation inj : control.getScenario().getInjections()) {
-            JPanel panel=null;
-            if (inj.spilldistributed) {
-                InjectionPanelAreal ia = new InjectionPanelAreal(inj, map, paintManager);
-                panel=ia;
+        for (InjectionInfo inj : control.getScenario().getInjections()) {
+            JPanel panel = null;
+            if (inj instanceof InjectionArealInformation) {
+                InjectionPanelAreal ia = new InjectionPanelAreal((InjectionArealInformation) inj, paintManager);
+                panel = ia;
                 panelInjections.add(ia);
-            } else {
-                InjectionPanelPointlocation ip = new InjectionPanelPointlocation(inj, map, paintManager);
-                panel=ip;
+
+            } else if (inj instanceof InjectionInflowInformation) {
+                InjectionPanelInflow ia = new InjectionPanelInflow((InjectionInflowInformation) inj, paintManager);
+                panel = ia;
+                panelInjections.add(ia);
+
+            } else if (inj instanceof InjectionInformation) {
+                InjectionInformation in = (InjectionInformation) inj;
+//                if (in.spilldistributed) {
+//                    InjectionPanelAreal ia = new InjectionPanelAreal(in, paintManager);
+//                    panel = ia;
+//                    panelInjections.add(ia);
+//                } else {
+                InjectionPanelPointlocation ip = new InjectionPanelPointlocation(in, map, paintManager);
+                panel = ip;
                 panelInjections.add(ip);
+//                }
             }
-            if(panel!=null){
-                JPopupMenu popup=new JPopupMenu();
-                JMenuItem itemRemove=new JMenuItem("Remove");
+            if (panel != null) {
+                JPopupMenu popup = new JPopupMenu();
+                JMenuItem itemRemove = new JMenuItem("Remove");
                 popup.add(itemRemove);
                 panel.setComponentPopupMenu(popup);
                 itemRemove.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
-                        
+
                         control.getScenario().getInjections().remove(inj);
                         control.recalculateInjections();
                         popup.setVisible(false);
@@ -249,6 +291,7 @@ public class InjectionOrganisatorPanel extends JPanel {
                     }
                 });
             }
+            panelInjections.add(Box.createRigidArea(new Dimension(20, 5)));
         }
         panelInjections.revalidate();
         panelInjections.repaint();

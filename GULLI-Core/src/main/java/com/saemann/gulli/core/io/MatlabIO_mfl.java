@@ -5,6 +5,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -168,7 +169,7 @@ public class MatlabIO_mfl {
 //        ManholeStamp[] letzte_mhstamps = null;
 //        CustomValue matlabConcentration = new CustomValue("c_Matlab", "c_mat", "kg/m³");
         Material material = new Material("Matlab", 1000, true);
-        final ArrayList<InjectionInformation> injections = new ArrayList<>(lengthX);
+        final ArrayList<InjectionInfo> injections = new ArrayList<>(lengthX);
 //        System.out.println("Load x from 0 to "+lengthX);
         int skipped = 0;
         float[] distancesX = new float[numberOfManholes - 1];
@@ -224,6 +225,11 @@ public class MatlabIO_mfl {
             @Override
             public float getActualWaterLevel() {
                 return 2f;
+            }
+
+            @Override
+            public float getInflow(int temporalIndex) {
+               return 0;
             }
         };
 
@@ -326,7 +332,7 @@ public class MatlabIO_mfl {
 
         //Test total mass of particles
         double masssum = 0;
-        for (InjectionInformation injection : injections) {
+        for (InjectionInfo injection : injections) {
             masssum += injection.getMass();
         }
         System.out.println("sum of injections mass in matlab file: " + masssum + " kg;");
@@ -357,7 +363,7 @@ public class MatlabIO_mfl {
         this.scenario = new Scenario() {
 
             @Override
-            public ArrayList<InjectionInformation> getInjections() {
+            public ArrayList<InjectionInfo> getInjections() {
                 return injections;
             }
 

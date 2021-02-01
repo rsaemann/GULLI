@@ -22,6 +22,12 @@ public class ArrayTimeLineManholeContainer extends TimeIndexContainer {
      */
     public final float[] toSurfaceFlow;
 
+    /**
+     * Inflow from external source (e.g. HYSTEM, 1d-runoff calculation) that
+     * cannot be seen in the tosurface flow.
+     */
+    public final float[] inflow;
+
     public ArrayTimeLinePipeContainer.CALCULATION calculaion_Method = ArrayTimeLinePipeContainer.CALCULATION.LINEAR_INTERPOLATE;
 
     public ArrayTimeLineManholeContainer(TimeContainer time, int numberOfManholes) {
@@ -29,6 +35,7 @@ public class ArrayTimeLineManholeContainer extends TimeIndexContainer {
         this.waterZ = new float[numberOfManholes * time.getNumberOfTimes()];
         this.toSurfaceFlow = new float[numberOfManholes * time.getNumberOfTimes()];
         this.waterLevel = new float[numberOfManholes * time.getNumberOfTimes()];
+        this.inflow=new float[numberOfManholes * time.getNumberOfTimes()];
     }
 
     public ArrayTimeLineManholeContainer(long[] time, int numberOfManholes) {

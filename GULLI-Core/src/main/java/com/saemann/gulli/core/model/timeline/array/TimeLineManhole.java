@@ -13,6 +13,8 @@ public interface TimeLineManhole {
      * @return
      */
     public float getWaterZ(int temporalIndex);
+    
+    public float getInflow(int temporalIndex);
 
     public boolean isWaterlevelIncreasing();
 

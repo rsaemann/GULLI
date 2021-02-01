@@ -32,6 +32,7 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.injection.HEInjectionInformation;
 import com.saemann.gulli.core.control.scenario.injection.HE_MessdatenInjection;
+import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.io.FileContainer;
 import com.saemann.gulli.core.io.extran.CSV_IO;
@@ -163,7 +164,7 @@ public class LoadingCoordinator {
      * Contains definition of injections that are added manually by the user to
      * be part of the simulation
      */
-    private final ArrayList<InjectionInformation> manualInjections = new ArrayList<>();
+    private final ArrayList<InjectionInfo> manualInjections = new ArrayList<>();
 
     /**
      * Add Injections from read from the result (e.g. HE
@@ -175,7 +176,7 @@ public class LoadingCoordinator {
      * List contains manual and scenario injection, loaded from result files.
      * This list will be used in the scenario.
      */
-    private final ArrayList<InjectionInformation> totalInjections = new ArrayList<>();
+    private final ArrayList<InjectionInfo> totalInjections = new ArrayList<>();
 
     public final ArrayList<Runnable> loadingFinishedListener = new ArrayList<>(2);
 
@@ -302,6 +303,20 @@ public class LoadingCoordinator {
                             }
                         }
                     }
+                    if (changedSurface) {
+                        for (InjectionInfo inj : manualInjections) {
+                            if (inj.spillOnSurface()) {
+                                inj.setCapacity(surface);
+                            }
+                        }
+                    }
+                    if (changedPipeNetwork) {
+                        for (InjectionInfo inj : manualInjections) {
+                            if (inj.spillInManhole()) {
+                                inj.setCapacity(null);
+                            }
+                        }
+                    }
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
                         break;
@@ -336,14 +351,10 @@ public class LoadingCoordinator {
                         action.progress = 0f;
                         fireLoadingActionUpdate();
                         for (LoadingActionListener ll : listener) {
-
                             ll.loadScenario(scenario, this);
                         }
-//                        control.loadScenario(scenario);
                     }
                     //Inform controller about updated timecontainer.
-//                    action.description = "GC clean up";
-//                    System.gc();
                     if (isInterrupted()) {
                         System.out.println("   LoadingThread is interrupted -> break");
                         break;
@@ -439,13 +450,13 @@ public class LoadingCoordinator {
             }
 
             //Reset capacity reference from Injections because the object only exist in the old network and has to be found again in the new one
-            for (InjectionInformation injection : manualInjections) {
+            for (InjectionInfo injection : manualInjections) {
                 if (injection == null) {
                     continue;
                 }
                 injection.setCapacity(null);
             }
-            for (InjectionInformation injection : totalInjections) {
+            for (InjectionInfo injection : totalInjections) {
                 if (injection == null) {
                     continue;
                 }
@@ -567,34 +578,36 @@ public class LoadingCoordinator {
                     if (verbose) {
                         System.out.println("Injections: " + manualInjections.size());
                     }
-                    for (InjectionInformation inj : manualInjections) {
-                        if (inj.getCapacity() == null && inj.spillInManhole() && inj.getCapacityName() != null && nw != null) {
-                            //Search for injection reference
-                            Capacity c = network.getCapacityByName(inj.getCapacityName());
-                            inj.setCapacity(c);
-                        }
-                        if (inj.getCapacity() != null) {
-                            Capacity c = inj.getCapacity();
-                            if (c != null && !injManholes.contains(c)) {
-                                injManholes.add(c);
+                    for (InjectionInfo inj : manualInjections) {
+                        if (inj instanceof InjectionInformation) {
+                            if (inj.getCapacity() == null && inj.spillInManhole() && ((InjectionInformation) inj).getCapacityName() != null && nw != null) {
+                                //Search for injection reference
+                                Capacity c = network.getCapacityByName(((InjectionInformation) inj).getCapacityName());
+                                inj.setCapacity(c);
                             }
-                        }
-                        if (inj.getCapacity() == null && inj.spillInManhole() && inj.getPosition() != null) {
+                            if (inj.getCapacity() != null) {
+                                Capacity c = inj.getCapacity();
+                                if (c != null && !injManholes.contains(c)) {
+                                    injManholes.add(c);
+                                }
+                            }
+                            if (inj.getCapacity() == null && inj.spillInManhole() && inj.getPosition() != null) {
+                                if (verbose) {
+                                    System.out.println("Search for Manhole near position " + inj.getPosition());
+                                }
+                                inj.setCapacity(network.getManholeNearPositionLatLon(((InjectionInformation) inj).getPosition()));
+                                if (verbose) {
+                                    System.out.println("found " + inj.getCapacity());
+                                }
+                            }
+                            if (totalInjections.contains(inj)) {
+                                totalInjections.remove(inj);
+                            }
                             if (verbose) {
-                                System.out.println("Search for Manhole near position " + inj.getPosition());
+                                System.out.println("Add injection: " + inj.getMass() + "kg @" + ((InjectionInformation) inj).getCapacityName() + "  start:" + inj.getStarttimeSimulationsAfterSimulationStart() + "s  last " + inj.getDurationSeconds() + "s");
                             }
-                            inj.setCapacity(network.getManholeNearPositionLatLon(inj.getPosition()));
-                            if (verbose) {
-                                System.out.println("found " + inj.getCapacity());
-                            }
+                            totalInjections.add(inj);
                         }
-                        if (totalInjections.contains(inj)) {
-                            totalInjections.remove(inj);
-                        }
-                        if (verbose) {
-                            System.out.println("Add injection: " + inj.getMass() + "kg @" + inj.getCapacityName() + "  start:" + inj.getStarttimeSimulationsAfterSimulationStart() + "s  last " + inj.getDurationSeconds() + "s");
-                        }
-                        totalInjections.add(inj);
                     }
                     if (sparsePipeLoading) {
                         //load minmax velocity
@@ -701,6 +714,14 @@ public class LoadingCoordinator {
                     return false;
                 }
 
+                if (manualInjections != null) {
+                    for (InjectionInfo mi : manualInjections) {
+                        if (!totalInjections.contains(mi)) {
+                            totalInjections.add(mi);
+                        }
+                    }
+                }
+
                 for (int i = 0; i < totalInjections.size(); i++) {
                     totalInjections.get(i).setId(i);
                 }
@@ -767,17 +788,19 @@ public class LoadingCoordinator {
 //                }
 //            }
             //Reset triangle IDs from Injections because the coordinate might have changed
-            for (InjectionInformation injection : manualInjections) {
+            for (InjectionInfo injection : manualInjections) {
                 if (injection.getPosition() != null) {
-                    injection.setTriangleID(-1);
+                    if (injection instanceof InjectionInformation) {
+                        ((InjectionInformation) injection).setTriangleID(-1);
+                    }
                 }
             }
-            //Reset triangle IDs from Injections because the coordinate might have changed
-            for (InjectionInformation injection : totalInjections) {
-                if (injection.getPosition() != null) {
-                    injection.setTriangleID(-1);
-                }
-            }
+//            //Reset triangle IDs from Injections because the coordinate might have changed
+//            for (InjectionInfo injection : totalInjections) {
+//                if (injection.getPosition() != null) {
+//                    injection.setTriangleID(-1);
+//                }
+//            }
 
             if (cancelLoading) {
                 loadingSurface = LOADINGSTATUS.REQUESTED;
@@ -1099,7 +1122,7 @@ public class LoadingCoordinator {
         this.startLoadingRequestedFiles(asThread);
     }
 
-    public boolean addManualInjection(InjectionInformation inj) {
+    public boolean addManualInjection(InjectionInfo inj) {
         if (manualInjections.contains(inj)) {
             if (verbose) {
                 System.out.println("Loadingcoordinator already contains injection @" + inj.getPosition());
@@ -1130,7 +1153,7 @@ public class LoadingCoordinator {
         return manualInjections.add(inj);
     }
 
-    public ArrayList<InjectionInformation> getInjections() {
+    public ArrayList<InjectionInfo> getInjections() {
         return totalInjections;
     }
 
@@ -1735,23 +1758,22 @@ public class LoadingCoordinator {
 
         this.manualInjections.clear();
         if (setup.injections != null && setup.injections.size() > 0) {
-            for (InjectionInformation in : setup.injections) {
+            for (InjectionInfo in : setup.injections) {
                 this.manualInjections.add(in);
             }
         }
 
 //        control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
-
         if (control.getSurface() != null) {
             if (control.getSurface().getMeasurementRaster() != null) {
                 SurfaceMeasurementRaster sr = control.getSurface().getMeasurementRaster();
                 sr.spatialConsistency = setup.isSurfaceMeasurementSpatialConsistent();
                 sr.continousMeasurements = setup.isSurfaceMeasurementTimeContinuous();
-                
+
             }
         }
         SurfaceMeasurementRaster.synchronizeMeasures = setup.isSurfaceMeasurementSynchronize();
-        
+
         ParticlePipeComputing.measureOnlyFinalCapacity = !setup.isPipeMeasurementSpatialConsistent();
         ArrayTimeLineMeasurement.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
         try {

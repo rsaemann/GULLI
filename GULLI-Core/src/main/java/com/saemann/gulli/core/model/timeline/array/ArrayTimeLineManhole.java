@@ -163,4 +163,9 @@ public class ArrayTimeLineManhole implements TimeLineManhole {
         return container;
     }
 
+    @Override
+    public float getInflow(int timeIndex) {
+        return container.inflow[getIndex(timeIndex)];
+    }
+
 }
