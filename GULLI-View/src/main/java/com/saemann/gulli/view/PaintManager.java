@@ -97,7 +97,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public final String layerParticleSurface = layerParticle + "Surf";
     public final String layerParticleNetwork = layerParticle + "Netw";
     public final String layerHistoryPath = "HistoryPath";
-    private ColorHolder chTravelPath = new ColorHolder(Color.red, "Travelled path");
+    private ColorHolder chTravelPath = new ColorHolder(new Color(0f,0f,1f,0.1f), "Travelled path");
     public final String layerShortcut = "SHORTCUT";
     private ColorHolder chShortcut = new ColorHolder(Color.magenta, "Shortcut");
 
@@ -229,7 +229,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, HEATMAP_LIN_BAGATELL, SPECTRALMAP, CONTAMINATIONCLUSTER, VELOCITY, SLOPE, VERTEX_HEIGHT;
+        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, HEATMAP_LIN_BAGATELL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, VELOCITY, SLOPE, VERTEX_HEIGHT;
     };
     private SURFACESHOW surfaceShow = SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -250,7 +250,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             control.getThreadController().paintingInterval = repaintPerLoops;
         }
         chParticles.setStroke(stroke2pRound);
-        chTravelPath.setStroke(stroke2pRound);
+        chTravelPath.setStroke(stroke3pRound);
         chSpillover.setStroke(chParticles.getStroke());
         chPipes.setStroke(stroke2pRound);
 
@@ -1760,6 +1760,36 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             }
             mapViewer.recalculateShapes();
             mapViewer.recomputeLegend();
+        } else if (this.surfaceShow == SURFACESHOW.PARTICLETRACE) {
+            int numberOfTracerParticles = 0;
+            mapViewer.clearLayer(layerHistoryPath);
+            for (Particle p : control.getThreadController().getParticles()) {
+                if (p == null) {
+                    continue;
+                }
+                if (p.tracing()) {
+                    numberOfTracerParticles++;
+                }
+            }
+
+            if (numberOfTracerParticles == 0) {
+                this.surfaceShow = SURFACESHOW.NONE;
+                return;
+            }
+            try {
+                for (Particle p : control.getThreadController().getParticles()) {
+                    if (p == null || !p.tracing()) {
+                        continue;
+                    }
+                    HistoryParticle hp = (HistoryParticle) p;
+                    if(hp.getPositionTrace().size()<2)continue;
+                    ArrowPainting ap=new ArrowPainting(p.getId(), hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]), chTravelPath);
+                    mapViewer.addPaintInfoToLayer(layerHistoryPath, ap);
+                }
+                mapViewer.recalculateShapes();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         } else if (this.surfaceShow == SURFACESHOW.VELOCITY) {
             //Show Arrows of velocity
             if (surface.getTimes() == null) {
@@ -1954,138 +1984,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         mapViewer.repaint();
     }
 
-//    private void addParticle(final Particle p) throws TransformException {
-//        if (particlePaintings.size() > maximumNumberOfParticleShapes) {
-//            return;
-//        }
-//
-//        if (p.isInactive()) {
-//            return;
-//        }
-//        if (p.getPosition3d() == null || (Math.abs(p.getPosition3d().x) < 0.01 && Math.abs(p.getPosition3d().y) < 0.01)) {
-//            Position3D pos = p.injectionSurrounding.getPosition3D(p.injectionPosition1D);
-//            if (pos == null) {
-//                if (p.injectionSurrounding instanceof Surface) {
-//                    Surface surf = (Surface) p.injectionSurrounding;
-//                    double[] utm = surf.getTriangleMids()[p.getInjectionCellID()];
-//                    p.setPosition3D(utm[0], utm[1], utm[2]);
-//                }
-//            }
-//        }
-//        Coordinate globalCoordinate;
-//
-//        if (p.isOnSurface()) {
-//            globalCoordinate = geoToolsSurface.toGlobal(p.getPosition3d(), true);
-//        } else {
-//            globalCoordinate = p.getSurrounding_actual().getPosition3D(p.getPosition1d_actual()).get3DCoordinate();
-//
-//        }
-//
-//        if (p.getClass().equals(HistoryParticle.class
-//        )) {
-//            HistoryParticle hp = (HistoryParticle) p;
-//
-//            NodePainting np = new NodePainting(p.getId(), globalCoordinate, chParticles) {
-//                @Override
-//                public boolean paint(Graphics2D g2) {
-//                    if (p.isInactive()) {
-//                        return false;
-//                    }
-//                    if (this.outlineShape == null || getColor() == null || getColor().color == null) {
-//                        return false;
-//                    }
-//                    if (p.isOnSurface()) {
-//                        g2.setColor(Color.green);
-//                    } else {
-//                        g2.setColor(Color.blue);
-//                    }
-//                    if (p.isDeposited()) {
-//                        g2.setColor(Color.black);
-//                    }
-//
-//                    try {
-//                        super.paint(g2);
-//                    } catch (OutOfMemoryError e) {
-//                        System.gc();
-//                        control.getThreadController().paintOnMap = false;
-//                        System.err.println("Heap Space exceeded. Map repaint deactivated");
-//                        e.printStackTrace();
-//                    }
-//                    return true;
-//                }
-//            };
-//
-//            np.setRadius(
-//                    4);
-//            np.setShapeRound(
-//                    true);
-//            if (showParticles) {
-//                mapViewer.addPaintInfoToLayer(layerParticle, np);
-//            }
-//
-//            particlePaintings.add(np);
-//
-//            return;
-//        }
-//
-//        NodePainting np = new NodePainting(p.getId(), globalCoordinate, chParticles) {
-////            @Override
-//            public boolean paint1(Graphics2D g2) {
-//                if (p.isInactive()) {
-//                    return false;
-//                }
-//                if (this.outlineShape == null || getColor() == null || getColor().color == null) {
-//                    return false;
-//                }
-//
-//                if (p.isOnSurface()) {
-//                    g2.setColor(Color.green);
-//                } else {
-//                    g2.setColor(Color.blue);
-//                }
-//                if (p.isDeposited()) {
-//                    g2.setColor(Color.black);
-//                }
-//
-////                try {
-//////                    Coordinate pos = geoToolsSurface.toGlobal(p.getPosition3d(), true);
-//////                    this.refLongitude = pos.x;
-//////                    this.refLatitude = pos.y;
-////
-////                } catch (TransformException ex) {
-////                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-////                }
-//                super.paint(g2);
-//                return true;
-//            }
-//        };
-//        np.radius = 1;
-//        if (showParticles) {
-//            mapViewer.addPaintInfoToLayer(layerParticle, np);
-//        }
-//        particlePaintings.add(np);
-//    }
-//    public void addParticles(Collection<Particle> particles) {
-////        int count = 0;
-//        this.particles.addAll(particles);
-//        //Create new length of arralist for particles so the addition is faster than with a linkedlist
-//        ArrayList<NodePainting> extendedList = new ArrayList<>(particlePaintings.size() + particles.size());
-//        //Copy old content to list and leave space for the new ones to be added.
-//        extendedList.addAll(particlePaintings);
-//        //Set the extended list to be the actual list
-//        particlePaintings.clear();
-//        particlePaintings = extendedList;
-//        for (Particle particle : particles) {
-//            try {
-//                this.addParticle(particle);
-//
-//            } catch (TransformException ex) {
-//                Logger.getLogger(PaintManager.class
-//                        .getName()).log(Level.SEVERE, null, ex);
-//            }
-//        }
-//
-//    }
     /**
      * Splits the particles in two layers: surface / network particles with
      * individual colors and legend entries.

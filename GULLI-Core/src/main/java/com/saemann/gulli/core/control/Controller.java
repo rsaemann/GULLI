@@ -107,6 +107,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
     /**
      * Every Xth particle becomes a HistoryParticle.
+     * 0=off
      */
     public int intervallHistoryParticles = 0;
 
@@ -761,7 +762,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         for (ParticleListener pl : particleListener) {
             pl.clearParticles(this);
         }
-
         currentAction.description = "Injection spill";
         currentAction.hasProgress = true;
         currentAction.progress = 0f;
@@ -818,18 +818,21 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             Position position = null;
             double pipeposition = 0;
             if (injection_ instanceof InjectionArealInformation) {
-
-                InjectionArealInformation injection = (InjectionArealInformation) injection_;
-                if (injection.getSurface() == null || injection.getSurface() != surface) {
-                    injection.setCapacity(surface);
+                if (surface != null) {
+                    InjectionArealInformation injection = (InjectionArealInformation) injection_;
+                    if (injection.getSurface() == null || injection.getSurface() != surface) {
+                        injection.setCapacity(surface);
+                    }
+                    if (injection.isActive()) {
+                        ArealInjection ai = new ArealInjection(surface);
+                        ArrayList<Particle> particles = createParticlesOverTimespan(injection.getNumberOfParticles(), injection.getMass() / (double) injection.getNumberOfParticles(), ai, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
+                        allParticles.addAll(particles);
+                        ai.setParticleIDs(particles.get(0).getId(), particles.get(particles.size() - 1).getId());
+                    }
+                    injection.resetChanged();
+                }else{
+                    injection_.setActive(false);
                 }
-                if (injection.isActive()) {
-                    ArealInjection ai = new ArealInjection(surface);
-                    ArrayList<Particle> particles = createParticlesOverTimespan(injection.getNumberOfParticles(), injection.getMass() / (double) injection.getNumberOfParticles(), ai, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
-                    allParticles.addAll(particles);
-                    ai.setParticleIDs(particles.get(0).getId(), particles.get(particles.size() - 1).getId());
-                }
-                injection.resetChanged();
             } else if (injection_ instanceof InjectionInflowInformation) {
                 if (injection_.isActive()) {
                     InjectionInflowInformation injection = (InjectionInflowInformation) injection_;

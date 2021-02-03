@@ -193,6 +193,11 @@ public class ParticlePipeComputing {
     public void moveParticle(Particle p) {
 //        moveParticle4_transfersensitive(p);
         moveParticle5_celltransmission(p);
+        if (p.tracing()) {
+            if (p.isInPipeNetwork()) {
+                ((HistoryParticle) p).addToHistory(p.getSurrounding_actual());
+            }
+        }
     }
 
     /**
@@ -1094,7 +1099,7 @@ public class ParticlePipeComputing {
                         }
                         position1d = 0;
                         c = pipe.getEndConnection().getManhole();
-                        if (p.getClass().equals(HistoryParticle.class)) {
+                        if (p.tracing()) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
                     }
@@ -1129,7 +1134,7 @@ public class ParticlePipeComputing {
                             ds_adv += Math.abs(pipe.getLength());
                         }
                         position1d = 0;
-                        if (p.getClass().equals(HistoryParticle.class)) {
+                        if (p.tracing()) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
                     } else {
@@ -1185,8 +1190,8 @@ public class ParticlePipeComputing {
                                 p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                                 p.toSurface = mh;
 //                                p.posToSurface = (float) p.getTravelledPathLength();
-                                if (p.getClass().equals(HistoryParticle.class)) {
-                                    ((HistoryParticle) p).addToHistory(surface);
+                                if (p.tracing()) {
+                                    ((HistoryParticle) p).addToHistory(mh);
                                 }
 //                                            System.out.println("Particle " + p.getId() + " spilled out to triangle " + mh.getSurfaceTriangleID());
                                 break;
@@ -1211,7 +1216,7 @@ public class ParticlePipeComputing {
                                         c = pipe.getEndConnection().getManhole();
 //                                        pipe.getMeasurementTimeLine().addParticle(p);
                                         ds_adv += Math.abs(pipe.getLength());
-                                        if (p.getClass().equals(HistoryParticle.class)) {
+                                        if (p.tracing()) {
                                             ((HistoryParticle) p).addToHistory(c);
                                         }
                                         continue;
@@ -1247,7 +1252,7 @@ public class ParticlePipeComputing {
                                         remaining_dt -= Math.abs(pipe.getLength() / pipe.getVelocity());
 //                                        pipe.getMeasurementTimeLine().addParticle(p);
                                         c = pipe.getStartConnection().getManhole();
-                                        if (p.getClass().equals(HistoryParticle.class)) {
+                                        if (p.tracing()) {
                                             ((HistoryParticle) p).addToHistory(c);
                                         }
                                         if (lengthtype == 0) {
@@ -1322,7 +1327,7 @@ public class ParticlePipeComputing {
                                     if (lengthtype == 0) {
                                         ds_adv += Math.abs(pipe.getLength());
                                     }
-                                    if (p.getClass().equals(HistoryParticle.class)) {
+                                    if (p.tracing()) {
                                         ((HistoryParticle) p).addToHistory(c);
                                     }
                                     continue;
@@ -1355,7 +1360,7 @@ public class ParticlePipeComputing {
                                     if (lengthtype == 0) {
                                         ds_adv += Math.abs(pipe.getLength());
                                     }
-                                    if (p.getClass().equals(HistoryParticle.class)) {
+                                    if (p.tracing()) {
                                         ((HistoryParticle) p).addToHistory(c);
                                     }
                                     continue;
@@ -1557,8 +1562,8 @@ public class ParticlePipeComputing {
                         p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                         p.toSurface = mh;
 //                        p.posToSurface = (float) p.getTravelledPathLength();
-                        if (p.getClass().equals(HistoryParticle.class)) {
-                            ((HistoryParticle) p).addToHistory(surface);
+                        if (p.tracing()) {
+                            ((HistoryParticle) p).addToHistory(mh);
                         }
                         break;
                     } else if (connection.getClass().equals(Manhole_SurfaceBucket.class)) {
@@ -1570,8 +1575,8 @@ public class ParticlePipeComputing {
                         p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                         p.toSurface = mh;
 //                        p.posToSurface = (float) p.getTravelledPathLength();
-                        if (p.getClass().equals(HistoryParticle.class)) {
-                            ((HistoryParticle) p).addToHistory(surface);
+                        if (p.tracing()) {
+                            ((HistoryParticle) p).addToHistory(mh);
                         }
                         break;
                     }
@@ -1625,7 +1630,7 @@ public class ParticlePipeComputing {
                         remaining_dt -= timespend;
                         c = pipe.getEndConnection().getManhole();
                         neuePosition = 0;
-                        if (p.getClass().equals(HistoryParticle.class)) {
+                        if (p.tracing()) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
                         //  if (moved > 0) {

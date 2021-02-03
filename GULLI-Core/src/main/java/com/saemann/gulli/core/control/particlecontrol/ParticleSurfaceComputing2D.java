@@ -26,6 +26,7 @@ package com.saemann.gulli.core.control.particlecontrol;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
+import com.saemann.gulli.core.model.particle.HistoryParticle;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
@@ -146,6 +147,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //    public static boolean multiTimeRandomisation = false;
 
     public static int numberOfErrors = 0;
+
+    /**
+     * The trace of history particles will only be updated (extended) if the
+     * position changed more than this distance.
+     */
+    public static double minTraceDistance = 10;
 
     /**
      * If true, not the start of the current timestep is used but the mean value
@@ -291,6 +298,22 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             // (measurements will not be taken inside the iterative process)
             surface.getMeasurementRaster().measureParticle(simulationtime, p, 1, threadindex);
         }
+
+        if (p.tracing() && p.isOnSurface()) {
+            if (posxalt != posxneu) {
+                if (Math.abs(posxneu - ((HistoryParticle) p).getLastUTMX()) > minTraceDistance || Math.abs(posyneu - ((HistoryParticle) p).getLastUTMy()) > minTraceDistance) {
+                    tempPosLow[0] = posxneu;
+                    tempPosLow[1] = posyneu;
+
+                    try {
+                        surface.getGeotools().toGlobal(tempPosLow, tempPosUp, true);
+                        ((HistoryParticle) p).addToHistory(new Coordinate(tempPosUp[0], tempPosUp[1]), posxneu, posyneu);
+                    } catch (TransformException ex) {
+                        Logger.getLogger(ParticleSurfaceComputing2D.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -338,10 +361,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     particlevelocity[1] = surface.getTriangle_downhilldirection()[cellID][1] * totalvelocity;
                     posxneu = (posxalt + particlevelocity[0] * timeLeft);// only advection
                     posyneu = (posyalt + particlevelocity[1] * timeLeft);// only advection
-                   
+
                 } else {
                     posxneu = posxalt;
-                    posyneu = posyalt;                    
+                    posyneu = posyalt;
                 }
                 p.setDrySurfaceMovement(true);
             } else {
@@ -690,7 +713,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                             GeometryTools.fillBarycentricWeighing(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
                             if (temp_barycentricWeights[0] > 0 && temp_barycentricWeights[1] > 0 && temp_barycentricWeights[2] > 0) {
                                 cellID = cellIDnew;
-                           } else {
+                            } else {
                                 if (verbose) {
                                     System.out.println("roughly pushed to new center " + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
                                 }
@@ -836,8 +859,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 if (p.surfaceCellID >= 0) {
                     double[] xy = surface.getTriangleMids()[p.surfaceCellID];
                     pos = new Coordinate(xy[0], xy[1], xy[2]);
-                } 
-                else {
+                } else {
                     System.err.println("no information of surface ID for Particle " + p);
                     return;
                 }

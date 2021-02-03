@@ -959,7 +959,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         }
     }
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         File file = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Result2D.gdb");
         HE_GDB_IO.verbose = true;
         HE_GDB_IO db = new HE_GDB_IO(file);

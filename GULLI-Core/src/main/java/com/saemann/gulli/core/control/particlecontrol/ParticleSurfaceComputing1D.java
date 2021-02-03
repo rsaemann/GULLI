@@ -169,7 +169,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 //                    }
 //                    triangle.measurement.measureParticle(seed, p);
                     //Particle measurement has moved to sync thread.
-                    if (p.getClass().equals(HistoryParticle.class)) {
+                    if (p.tracing()) {
 //                        status = 36;
                         ((HistoryParticle) p).addToHistory(triangle);
                     }
@@ -288,7 +288,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
 //                    }
 //                    triangle.pariclecount[p.getMaterial().surfaceCountIndex]++;
                     //Particle measurement has moved to sync thread
-                    if (p.getClass().equals(HistoryParticle.class)) {
+                    if (p.tracing()) {
                         ((HistoryParticle) p).addToHistory(tri);
                     }
                 }

@@ -449,8 +449,8 @@ public class Particle {
         this.position3d.x = x;
         this.position3d.y = y;
     }
-    
-     /**
+
+    /**
      * Set x & y component of 3D position. [UTM Coordinates]
      *
      * @param position[0:x,1:y]
@@ -474,5 +474,14 @@ public class Particle {
 //    }
     public static long getMaxID() {
         return counterID;
+    }
+
+    /**
+     * Flag true only if this is a Particle, storing a trace (HistoryParticle)
+     *
+     * @return
+     */
+    public boolean tracing() {
+        return false;
     }
 }

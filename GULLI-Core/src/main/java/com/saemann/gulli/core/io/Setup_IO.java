@@ -262,6 +262,8 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t\t<Particles>" + inj.getNumberOfParticles() + "</>");
             bw.newLine();
+            bw.write("\t\t<Active>" + inj.isActive() + "</>");
+            bw.newLine();
             bw.write("\t</Injection>");
             bw.newLine();
 
@@ -316,6 +318,7 @@ public class Setup_IO {
         double injectionMass = 1000;
         double injectionConcentration = 1;
         int injectionParticles = 10000;
+        boolean injectionActive=true;
 
         String line = "";
         while (br.ready()) {
@@ -512,6 +515,7 @@ public class Setup_IO {
                                         }
                                     }
                                     if (inj != null) {
+                                        inj.setActive(injectionActive);
                                         injections.add(inj);
                                     } else {
                                         System.err.println("Could not create Injection for " + injectionID + ": " + injectionCapacityName);
@@ -554,6 +558,8 @@ public class Setup_IO {
                                 if (injectionCapacityName != null && (injectionCapacityName.equals("null") || injectionCapacityName.isEmpty())) {
                                     injectionCapacityName = null;
                                 }
+                            } else if (line.contains("Active")) {
+                                injectionActive = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             }
                         }
                     }
