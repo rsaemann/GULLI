@@ -15,7 +15,7 @@ public class ArrayTimeLineMeasurementContainer {
     public static ArrayTimeLineMeasurementContainer instance;
 
     private TimeContainer times;
-    public int[] particles;
+    public float[] particles;
     /**
      * Mass of contaminants in total [timeindex]
      */
@@ -118,7 +118,7 @@ public class ArrayTimeLineMeasurementContainer {
         this.numberOfCapacities = numberOfPipes;
         this.numberOfContaminants = numberOfContaminantTypes;
         this.counts = new int[numberOfPipes * numberOfTimes];
-        this.particles = new int[numberOfPipes * numberOfTimes];
+        this.particles = new float[numberOfPipes * numberOfTimes];
         this.particles_visited = new int[numberOfPipes * numberOfTimes];
         this.volumes = new float[numberOfPipes * numberOfTimes];
         this.mass_total = new float[numberOfPipes * numberOfTimes];
@@ -156,7 +156,7 @@ public class ArrayTimeLineMeasurementContainer {
     }
 
     public void setIntervalSeconds(double seconds, long startTime, long endTime) {
-        if (seconds == this.getDeltaTimeS()&&startTime==this.getStartTime()&&endTime==this.getEndTime()) {
+        if (seconds == this.getDeltaTimeS() && startTime == this.getStartTime() && endTime == this.getEndTime()) {
             //Nothing changed
             return;
         }
@@ -170,7 +170,7 @@ public class ArrayTimeLineMeasurementContainer {
         TimeContainer tc = new TimeContainer(t);
         samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
         times = tc;
-        System.out.println("calculate  number of snapshots: "+numberOfTimes);
+        System.out.println("calculate  number of snapshots: " + numberOfTimes);
         initialize(numberOfTimes, numberOfCapacities, numberOfContaminants);
     }
 
@@ -324,7 +324,7 @@ public class ArrayTimeLineMeasurementContainer {
     public void clearValues() {
 
         this.counts = new int[numberOfCapacities * times.getNumberOfTimes()];
-        this.particles = new int[numberOfCapacities * times.getNumberOfTimes()];
+        this.particles = new float[numberOfCapacities * times.getNumberOfTimes()];
         this.particles_visited = new int[numberOfCapacities * times.getNumberOfTimes()];
         this.volumes = new float[numberOfCapacities * times.getNumberOfTimes()];
         this.mass_total = new float[numberOfCapacities * times.getNumberOfTimes()];
@@ -344,6 +344,12 @@ public class ArrayTimeLineMeasurementContainer {
         return r;
     }
 
+    /**
+     * Mean Concentration in timeinterval [kg/m^3]
+     *
+     * @param timeIndex
+     * @return
+     */
     public float[] getConcentrationForTimeIndex(int timeIndex) {
         float[] r = new float[distance.length];
         for (int i = 0; i < distance.length; i++) {
@@ -352,6 +358,12 @@ public class ArrayTimeLineMeasurementContainer {
         return r;
     }
 
+    /**
+     * Mean number of particles in timeinterval
+     *
+     * @param timeIndex
+     * @return
+     */
     public float[] getNumberOfParticlesForTimeIndex(int timeIndex) {
         float[] r = new float[distance.length];
         for (int i = 0; i < distance.length; i++) {
@@ -393,6 +405,10 @@ public class ArrayTimeLineMeasurementContainer {
      */
     public long getMeasurementTimestampAtTimeIndex(int timeindex) {
         return measurementTimes[timeindex];
+    }
+
+    public int getSamplesInTimeInterval(int timeIndex) {
+        return samplesInTimeInterval[timeIndex];
     }
 
 }

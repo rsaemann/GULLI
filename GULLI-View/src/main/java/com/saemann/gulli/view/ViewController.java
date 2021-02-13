@@ -39,9 +39,11 @@ import com.saemann.gulli.view.timeline.EditorTableFrame;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Frame;
+import java.awt.Paint;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -62,6 +64,7 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.jtikz.TikzGraphics2D;
+import org.jtikz.TikzPDFGraphics2D;
 
 /**
  * Controls the interfaces between GUI/view and core-Controller
@@ -292,6 +295,53 @@ public class ViewController {
                         } catch (Exception ex) {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                }
+            }
+            );
+
+            JMenuItem itemPrintPDFTikz = new JMenuItem("Tikz&PDF...");
+            printMenu.add(itemPrintPDFTikz, indexSeperator);
+            itemPrintPDFTikz.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    JFileChooser fc = new JFileChooser(directoryPDFsave);
+
+                    fc.setFileFilter(new FileNameExtensionFilter("LaTeX File", new String[]{"tex", "tikz"}));
+                    fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    int n = fc.showSaveDialog(mapFrame);
+                    if (n == JFileChooser.APPROVE_OPTION) {
+                        File output = fc.getSelectedFile();
+                        if (output.exists()) {
+                            if (JOptionPane.showConfirmDialog(mapFrame, "Override existing file?", output.getName() + " already exists", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION) {
+                                return;
+                            }
+                        }
+
+                        directoryPDFsave = output.getParent();
+                        StartParameters.setPictureExportPath(directoryPDFsave);
+                        if (!output.getName().endsWith(".tex")) {
+                            output = new File(output.getAbsolutePath() + ".tex");
+                        }
+
+                        try {
+                            Rectangle rec = new Rectangle(0, 0, mapViewer.getWidth(), mapViewer.getHeight());
+
+                            TikzPDFGraphics2D g2d = new TikzPDFGraphics2D(output.getParentFile(), output.getName(), rec);
+                            mapViewer.paintMapView(g2d);
+
+                            g2d.finalize();
+                            System.out.println("Created file " + output);
+
+                        } catch (FileNotFoundException ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } catch (Exception ex) {
+                            Logger.getLogger(CapacityTimelinePanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+                        } finally {
+
                         }
                     }
                 }

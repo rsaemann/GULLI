@@ -1,6 +1,5 @@
 package com.saemann.gulli.core.io;
 
-
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -11,6 +10,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManhole;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
@@ -32,6 +32,7 @@ import us.hebi.matlab.mat.types.Matrix;
 
 /**
  * Reds MAtlab .mat files with the new and fast mfl.jar
+ *
  * @author saemann
  */
 public class MatlabIO_mfl {
@@ -49,50 +50,47 @@ public class MatlabIO_mfl {
 
 //        MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s", "m2s","m1s_2","m2s_2"});
 // MatFileFilter filter = new MatFileFilter(new String[]{"x1", "t2", "vs", "hs", "phis", "m1s_c", "m2s_c","m1s_m","m2s_m"});
- 
-       System.out.println((System.currentTimeMillis() - start) + "ms\tinit MatlabFileReader...");
-        mfr= Mat5.readFromFile(f);
+        System.out.println((System.currentTimeMillis() - start) + "ms\tinit MatlabFileReader...");
+        mfr = Mat5.readFromFile(f);
 
-        
-        
 //        mfr = new MatFileReader();
-        
 //        mfr.read(f, filter, 2);
         System.out.println((System.currentTimeMillis() - start) + "ms\t MatlabFileReader loaded.");
 //        System.exit(-1);
     }
+
     public Network readNetwork(File f, int numberOfParticles) throws IOException, Exception {
         return readNetwork(f, numberOfParticles, -1);
     }
-    
-    public Network readNetwork(File f, int numberOfParticles,int maxSeconds) throws IOException, Exception {
+
+    public Network readNetwork(File f, int numberOfParticles, int maxSeconds) throws IOException, Exception {
         long start = System.currentTimeMillis();
 
         Matrix t2 = mfr.getMatrix("t2");
 //        MLArray m1s = mfr.getMLArray("m1s_2");
 //        MLArray m2s = mfr.getMLArray("m2s_2");
-        
+
         Matrix m1 = mfr.getMatrix("m1s_m");
         Matrix m2 = mfr.getMatrix("m2s_m");
-        
-        if(m1==null){
+
+        if (m1 == null) {
             System.out.println("Moment1 is null");
-        }else if (m1.getNumElements()<1){
+        } else if (m1.getNumElements() < 1) {
             System.out.println("Moment1 is empty");
-        }else{
-            System.out.println("Moment1 has "+m1.getNumElements()+" elements");
+        } else {
+            System.out.println("Moment1 has " + m1.getNumElements() + " elements");
         }
-        
-        if(m2==null){
+
+        if (m2 == null) {
             System.out.println("Moment2 is null");
-        }else if (m2.getNumElements()<1){
+        } else if (m2.getNumElements() < 1) {
             System.out.println("Moment2 is empty");
-        }else{
-            System.out.println("Moment2 has "+m2.getNumElements()+" elements");
+        } else {
+            System.out.println("Moment2 has " + m2.getNumElements() + " elements");
         }
-        
-        int numberOfTimes = t2.getNumElements()+1;
-        if(maxSeconds>0){
+
+        int numberOfTimes = t2.getNumElements() + 1;
+        if (maxSeconds > 0) {
             for (int i = 0; i < numberOfTimes; i++) {
                 try {
                     if (t2.getDouble(i) > maxSeconds) {
@@ -101,26 +99,26 @@ public class MatlabIO_mfl {
                         break;
                     }
                 } catch (Exception e) {
-                    System.err.println("i="+i);
+                    System.err.println("i=" + i);
                     e.printStackTrace();
                 }
             }
         }
-        
+
 //        System.out.println("first time: " + new Date(cal.getTimeInMillis()) + "   + times(1): " + t2.get(0));
         times = new long[numberOfTimes];
-        for (int i = 0; i < times.length-1; i++) {
+        for (int i = 0; i < times.length - 1; i++) {
             times[i + 1] = (long) (((t2.getDouble(i)) * 1000));
         }
-        System.out.println("times: use "+times.length+" of "+t2.getNumElements());
-        System.out.println("starttime 0 " + times[0] + " , " + times[1] + " , " + times[2]+" .... "+times[times.length-1]);
+        System.out.println("times: use " + times.length + " of " + t2.getNumElements());
+        System.out.println("starttime 0 " + times[0] + " , " + times[1] + " , " + times[2] + " .... " + times[times.length - 1]);
 //        t2a = null;
         //Fließwerte für t2 auslesen
-        Matrix vs =  mfr.getMatrix("vs");
-        Matrix hs =  mfr.getMatrix("hs");
-        Matrix phis =  mfr.getMatrix("phis");
+        Matrix vs = mfr.getMatrix("vs");
+        Matrix hs = mfr.getMatrix("hs");
+        Matrix phis = mfr.getMatrix("phis");
 
-        Matrix b =  mfr.getMatrix("b"); //width [m]
+        Matrix b = mfr.getMatrix("b"); //width [m]
         float channelwidth = 1;
         if (b != null) {
             channelwidth = b.getFloat(0);
@@ -129,7 +127,7 @@ public class MatlabIO_mfl {
         //Ortsdiskretisierung aufbauen
         Matrix x1 = mfr.getMatrix("x1");
         System.out.println((System.currentTimeMillis() - start) + "ms\tType of 'x1' is " + x1.getClass());
-   
+
         System.out.println("x1 size: " + x1.getNumElements());
         RectangularProfile rec = new RectangularProfile(1, 10);
         CircularProfile circ = new CircularProfile(1);
@@ -142,7 +140,7 @@ public class MatlabIO_mfl {
         System.out.println("phi:" + phis.getNumRows() + "x" + phis.getNumCols());
 
         int numberOfManholes = Math.min(x1.getNumCols(), phis.getNumCols());
-        System.out.println("number of manholes="+numberOfManholes);
+        System.out.println("number of manholes=" + numberOfManholes);
 
         ArrayList<Manhole> manholes = new ArrayList<>(numberOfManholes + 1);
         ArrayList<Pipe> pipes = new ArrayList<>(numberOfManholes);
@@ -156,7 +154,7 @@ public class MatlabIO_mfl {
         GeoTools gt = new GeoTools("EPSG:4326", "EPSG:31467", StartParameters.JTS_WGS84_LONGITUDE_FIRST);// WGS84(lat,lon) <-> Gauss Krüger Zone 3(North,East)
         double dx = x1.getDouble(1) - x1.getDouble(0);
         System.out.println("dx= " + dx + "m");
-        System.out.println("x(0)=" + x1.getDouble(0) + "\t x(size(x)-1)=" + x1.getDouble(x1.getNumElements()- 1));
+        System.out.println("x(0)=" + x1.getDouble(0) + "\t x(size(x)-1)=" + x1.getDouble(x1.getNumElements() - 1));
         double x = -(x1.getDouble(1) - x1.getDouble(0)) * 0.5;
         double y = 0;
         Coordinate coord = new Coordinate(x, y);
@@ -169,6 +167,7 @@ public class MatlabIO_mfl {
 //        ManholeStamp[] letzte_mhstamps = null;
 //        CustomValue matlabConcentration = new CustomValue("c_Matlab", "c_mat", "kg/m³");
         Material material = new Material("Matlab", 1000, true);
+        material.setDispersionCalculatorPipe(new Dispersion1D_Constant(100));
         final ArrayList<InjectionInfo> injections = new ArrayList<>(lengthX);
 //        System.out.println("Load x from 0 to "+lengthX);
         int skipped = 0;
@@ -176,7 +175,7 @@ public class MatlabIO_mfl {
         ArrayTimeLineMeasurementContainer.distance = distancesX;
         pipeTLcontainer.distance = distancesX;
         double mass = 0;
-        System.out.println(" phis: " + phis.getNumDimensions()+ " M:" + phis.getNumRows()+ "  N:" + phis.getNumCols()+ "   x: " + distancesX.length);
+        System.out.println(" phis: " + phis.getNumDimensions() + " M:" + phis.getNumRows() + "  N:" + phis.getNumCols() + "   x: " + distancesX.length);
         for (int i = 0; i < numberOfManholes; i++) {
             if (phis.getDouble(1, i) > 0) {
                 mass += phis.getDouble(1, i) * hs.getDouble(1, i) * dx * channelwidth;
@@ -229,13 +228,12 @@ public class MatlabIO_mfl {
 
             @Override
             public float getInflow(int temporalIndex) {
-               return 0;
+                return 0;
             }
         };
 
         double tempMassSum = 0;
         int counterParticles = 0;
-        
 
         for (int i = 1; i < numberOfManholes; i++) {
 //            if (i > 1000) {
@@ -289,25 +287,25 @@ public class MatlabIO_mfl {
                     }
                 }
 //                if (i < numberOfManholes - 6) {
-                    //Move the injection position upstream, so the intital mass is equal to the matlab reference injection.
-                    try {
-                        double particlemass = phis.getFloat(1, i) * hs.getFloat(1, i) * dx * channelwidth;
-                        tempMassSum += particlemass;
-                        int particles = (int) ((tempMassSum / mass) * numberOfParticles); //Number of particles that have to be released up to here
-                        if (particles > counterParticles) {
-                            //Find pipe upstream where this should be injected
+                //Move the injection position upstream, so the intital mass is equal to the matlab reference injection.
+                try {
+                    double particlemass = phis.getFloat(1, i) * hs.getFloat(1, i) * dx * channelwidth;
+                    tempMassSum += particlemass;
+                    int particles = (int) ((tempMassSum / mass) * numberOfParticles); //Number of particles that have to be released up to here
+                    if (particles > counterParticles) {
+                        //Find pipe upstream where this should be injected
 //                            double upstream=vs.getDouble(1,i)*1;
 //                            Pipe pipe=pipes.get((int) (i-upstream-1));
-                            
-                            //Insert the amount of missing number of particles
-                            int nparticles = particles - counterParticles;
-                            InjectionInformation inj = new InjectionInformation(p, /*1.-upstream%1.*/0 * dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 1, 0);//p.getLength() * 0.5,material,particlemass,  
-                            counterParticles += nparticles;
-                            injections.add(inj);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Buffer exeption for index " + i + "+5 / " + phis.getNumElements());
+
+                        //Insert the amount of missing number of particles
+                        int nparticles = particles - counterParticles;
+                        InjectionInformation inj = new InjectionInformation(p, /*1.-upstream%1.*/ 0 * dx / 2., nparticles * massPerParticle/* particlemass*/, nparticles, material, 1, 0);//p.getLength() * 0.5,material,particlemass,  
+                        counterParticles += nparticles;
+                        injections.add(inj);
                     }
+                } catch (Exception e) {
+                    System.err.println("Buffer exeption for index " + i + "+5 / " + phis.getNumElements());
+                }
 //                }
 
                 p.setStatusTimeLine(tl);

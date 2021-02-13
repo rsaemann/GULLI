@@ -41,7 +41,7 @@ public class RandomGenerator {
     public static int numberOfGaussLoops = 0;
     public static int numberOfDoubleLoops = 0;
     private double v1, v2;
-    private final double pi2=Math.PI*2;
+    private final double pi2 = Math.PI * 2;
 //    private double sqrtlogv1;
 
     public RandomGenerator(long seed) {
@@ -50,21 +50,21 @@ public class RandomGenerator {
     }
 
     public double nextGaussian() {
-                return nextfastGaussian();
+        return nextfastGaussian();
     }
 
     public double nextDouble() {
-                return sr.nextDouble();
+        return sr.nextDouble();
     }
 
     public void reset() {
-            sr = new SplittableRandom(seed);
-            haveNextFastGaussian=false;
-            nextFastGaussian=0;
+        sr = new SplittableRandom(seed);
+        haveNextFastGaussian = false;
+        nextFastGaussian = 0;
     }
-    
+
     public boolean hasEqualValues(RandomGenerator other) {
-        return other.seed==this.seed;
+        return other.seed == this.seed;
     }
 
     public long getSeed() {
@@ -72,7 +72,7 @@ public class RandomGenerator {
     }
 
     //inspired by https://gist.github.com/brendano/4561065
-    public double nextfastGaussian() {
+    protected double nextfastGaussian() {
         if (!haveNextFastGaussian) {
             v1 = sr.nextDouble();
             v2 = sr.nextDouble();

@@ -1,7 +1,6 @@
 package com.saemann.gulli.view.injection;
 
 import com.saemann.gulli.core.control.StartParameters;
-import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
 import com.saemann.gulli.view.PaintManager;
 import static com.saemann.gulli.view.injection.InjectionPanelPointlocation.gmtToLocal;
@@ -43,6 +42,8 @@ public class InjectionPanelInflow extends JPanel {
     private final JCheckBox checkInjectionDuration;
     private final SpinnerNumberModel modelDuration;
     private final JSpinner spinnerDuration;
+    private final SpinnerNumberModel modelLoad;
+    private final JSpinner spinnerLoad;
     private final SpinnerNumberModel modelParticles;
     private final JSpinner spinnerParticles;
     private final SpinnerNumberModel modelConcentration;
@@ -54,11 +55,12 @@ public class InjectionPanelInflow extends JPanel {
 
     protected InjectionPanelInflow(final InjectionInflowInformation info, PaintManager paintManager) {
         super();
-        setLayout(new GridLayout(6, 2));
-        this.setBorder(new LineBorder(Color.darkGray, 1, true));
+        setLayout(new GridLayout(7, 2));
+        this.setBorder(new TitledBorder(new LineBorder(Color.blue.darker(), 1, true),"Inflow"));
 
         this.info = info;
         this.paintManager = paintManager;
+        
         //Name
         spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, 0, Integer.MAX_VALUE, 1));
         this.add(spinnerMaterial);
@@ -103,7 +105,7 @@ public class InjectionPanelInflow extends JPanel {
         this.add(lp);
         this.add(spinnerParticles);
 
-        //Load        
+        //Concentration        
         this.add(new JLabel("Concentration [kg/m^3]"));
         modelConcentration = new SpinnerNumberModel(info.getConcentration(), 0, Double.POSITIVE_INFINITY, 0.001);
 
@@ -118,6 +120,15 @@ public class InjectionPanelInflow extends JPanel {
         f.setDecimalFormatSymbols(dfs);
         spinnerCOncentration.setEditor(loadEditor);
         this.add(spinnerCOncentration);
+
+        //Load
+        modelLoad = new SpinnerNumberModel(0., 0., Double.POSITIVE_INFINITY, 0.001);
+        modelLoad.setValue(info.getLoad());
+        spinnerLoad = new JSpinner(modelLoad);
+        spinnerLoad.setPreferredSize(new Dimension(60, 12));
+        spinnerLoad.setToolTipText((int)(info.getLoad()*10000)+" kg/ha");
+        this.add(new JLabel("Load [kg/m^2]"));
+        this.add(spinnerLoad);
 
         //Mass    
         JLabel lm = new JLabel("Mass [kg]");
@@ -142,9 +153,10 @@ public class InjectionPanelInflow extends JPanel {
         spinnerMass.setEditor(massEditor);
         this.add(spinnerMass);
         try {
+            
             this.setToolTipText("<html><b>Inflow</b>"
-                    + "<br> Area: " + (int) info.getNetwork().getInflowArea() + " m² = " + (int) (info.getNetwork().getInflowArea() / 10000) + " ha"
-                    + "<br>Volume: " + (int)info.getTotalvolume() + "m^3 </html>");
+                    + "<br> Area: " + (int) info.getTotalArea()+ " m² = " + (int) (info.getTotalArea() / 10000) + " ha"
+                    + "<br>Volume: " + (int) info.getTotalvolume() + "m^3 </html>");
         } catch (Exception e) {
         }
 
@@ -215,6 +227,24 @@ public class InjectionPanelInflow extends JPanel {
             }
         });
 
+        this.spinnerLoad.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent ce) {
+                if (selfChanging) {
+                    return;
+                }
+                selfChanging = true;
+                info.setLoad(modelLoad.getNumber().doubleValue());
+                if (info.hasChanged()) {
+                    setBorder(new TitledBorder("changed"));
+                    spinnerMass.setValue(info.getMass());
+                    spinnerCOncentration.setValue(info.getConcentration());
+                    spinnerLoad.setValue(info.getLoad());
+                }
+                selfChanging = false;
+            }
+        });
+
         this.spinnerCOncentration.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent ce) {
@@ -226,6 +256,8 @@ public class InjectionPanelInflow extends JPanel {
                 if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                     spinnerMass.setValue(info.getMass());
+                    spinnerCOncentration.setValue(info.getConcentration());
+                    spinnerLoad.setValue(info.getLoad());
                 }
                 selfChanging = false;
             }
@@ -241,14 +273,16 @@ public class InjectionPanelInflow extends JPanel {
                 info.setMass(modelMass.getNumber().doubleValue());
                 if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
+                    spinnerMass.setValue(info.getMass());
                     spinnerCOncentration.setValue(info.getConcentration());
+                    spinnerLoad.setValue(info.getLoad());
                 }
                 selfChanging = false;
             }
         });
 
-        this.setPreferredSize(new Dimension(160, 95));
-        this.setMinimumSize(new Dimension(160, 90));
+        this.setPreferredSize(new Dimension(160, 150));
+        this.setMinimumSize(new Dimension(160, 130));
 
     }
 

@@ -27,6 +27,7 @@ import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.multievents.PipeResultData;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
+import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.scenario.Setup;
@@ -87,7 +88,7 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class LoadingCoordinator {
 
-    private SpillScenario scenario;
+    private Scenario scenario;
     private boolean changedSurface;
 
     public enum LOADINGSTATUS {
@@ -1762,11 +1763,16 @@ public class LoadingCoordinator {
                 this.manualInjections.add(in);
             }
         }
+        if (this.scenario == null) {
+            if (setup.scenario != null) {
+                this.scenario = setup.scenario;
+            }
+        }
 
 //        control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
-        if (control.getSurface() != null) {
-            if (control.getSurface().getMeasurementRaster() != null) {
-                SurfaceMeasurementRaster sr = control.getSurface().getMeasurementRaster();
+        if (surface != null) {
+            if (surface.getMeasurementRaster() != null) {
+                SurfaceMeasurementRaster sr = surface.getMeasurementRaster();
                 sr.spatialConsistency = setup.isSurfaceMeasurementSpatialConsistent();
                 sr.continousMeasurements = setup.isSurfaceMeasurementTimeContinuous();
 
@@ -1777,8 +1783,12 @@ public class LoadingCoordinator {
         ParticlePipeComputing.measureOnlyFinalCapacity = !setup.isPipeMeasurementSpatialConsistent();
         ArrayTimeLineMeasurement.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
         try {
-            control.getScenario().getMeasurementsPipe().setIntervalSeconds(setup.getPipeMeasurementtimestep(), control.getScenario().getStartTime(), control.getScenario().getEndTime());
+            scenario.getMeasurementsPipe().setIntervalSeconds(setup.getPipeMeasurementtimestep(), scenario.getStartTime(), scenario.getEndTime());
+
         } catch (Exception e) {
+        }
+        if (scenario != null && setup.materials != null) {
+            scenario.setMaterials(new ArrayList<Material>(setup.materials));
         }
 
         control.getThreadController().setDeltaTime(setup.getTimestepTransport());
@@ -1826,8 +1836,6 @@ public class LoadingCoordinator {
         setup.scenario = scenario;
 
         setup.setTimestepTransport(ThreadController.getDeltaTime());
-
-        setup.setNetworkdispersion(ParticlePipeComputing.getDispersionCoefficient());
 
         if (control.getScenario() != null) {
             ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();

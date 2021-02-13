@@ -79,6 +79,7 @@ import com.saemann.gulli.view.timeline.SeriesKey;
 import com.saemann.gulli.view.timeline.TimeSeriesEditorTablePanel;
 import com.saemann.gulli.view.video.GIFVideoCreator;
 import com.saemann.rgis.view.MapViewer;
+import java.util.ArrayList;
 import javax.swing.JSeparator;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -130,6 +131,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
+
+    private final ArrayList<JComboBox<PaintManager.SURFACESHOW>> combosDurfaceShow = new ArrayList<>();
+    final JCheckBox checkTrianglesNodes;
 
     private JLabel labelScenarioInformation;
 
@@ -893,13 +897,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         TitledBorder borderShapeSurface = new TitledBorder("Surface Shapes");
         borderShapeSurface.setBorder(new LineBorder(Color.GREEN.darker(), 2, true));
         panelShapesSurface.setBorder(borderShapeSurface);
-        final JComboBox<PaintManager.SURFACESHOW> comboSurfaceShow = new JComboBox<>(PaintManager.SURFACESHOW.values());
-        if (paintManager != null) {
-            comboSurfaceShow.setSelectedItem(paintManager.getSurfaceShow());
-        }
-        final JCheckBox checkTrianglesNodes = new JCheckBox("Triangles as Nodes", paintManager.isDrawingTrianglesAsNodes());
-        panelShapesSurface.add(comboSurfaceShow, BorderLayout.NORTH);
-        panelShapesSurface.add(checkTrianglesNodes, BorderLayout.SOUTH);
+        checkTrianglesNodes = new JCheckBox("Triangles as Nodes", paintManager.isDrawingTrianglesAsNodes());
+        updatePanelShapes();
         panelShapes.add(panelShapesSurface);
 
         final JCheckBox checkPipeArrows = new JCheckBox("Pipes as Arrows", paintManager.isDrawPipesAsArrows());
@@ -922,15 +921,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 }
                 activePipeThemeLayer = PipeThemeLayer.LAYERS.values()[comboPipeThemes.getSelectedIndex()].getTheme();
                 activePipeThemeLayer.initializeTheme(mapViewer, control);
-                mapViewer.recalculateShapes();
-                mapViewer.repaint();
-            }
-        });
-        comboSurfaceShow.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                paintManager.setSurfaceShow((PaintManager.SURFACESHOW) comboSurfaceShow.getSelectedItem());
-                comboSurfaceShow.setSelectedItem(paintManager.getSurfaceShow());
                 mapViewer.recalculateShapes();
                 mapViewer.repaint();
             }
@@ -1013,6 +1003,43 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         synchronized (updatethreadBarrier) {
             updatethreadBarrier.notifyAll();
         }
+    }
+
+    private void updatePanelShapes() {
+        panelShapesSurface.removeAll();
+        int number = paintManager.getSurfaceShows().size();
+        panelShapesSurface.setLayout(new GridLayout(number + 2, 1, 3, 3));
+        for (int i = 0; i <= number; i++) {
+            PaintManager.SURFACESHOW s = null;
+            if (i < paintManager.getSurfaceShows().size()) {
+                s = paintManager.getSurfaceShows().get(i);
+            }
+            JComboBox<PaintManager.SURFACESHOW> combo = new JComboBox<>(PaintManager.SURFACESHOW.values());
+            if (s == null) {
+                combo.setSelectedItem(PaintManager.SURFACESHOW.NONE);
+            } else {
+                combo.setSelectedItem(s);
+            }
+            final PaintManager.SURFACESHOW oldvalue = s;
+            combo.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ae) {
+                    if (combo.getSelectedItem() == PaintManager.SURFACESHOW.NONE) {
+                        paintManager.removeSurfaceShow(oldvalue);
+                    } else {
+                        paintManager.removeSurfaceShow(oldvalue);
+                        paintManager.addSurfaceShow((PaintManager.SURFACESHOW) combo.getSelectedItem());
+                    }
+                    mapViewer.recalculateShapes();
+                    mapViewer.repaint();
+                    updatePanelShapes();
+                }
+            });
+            panelShapesSurface.add(combo);
+        }
+        panelShapesSurface.add(checkTrianglesNodes);
+        panelShapesSurface.revalidate();
+        panelShapesSurface.repaint();
     }
 
     private void initTransferHandlerFile(JPanel panelFile) {

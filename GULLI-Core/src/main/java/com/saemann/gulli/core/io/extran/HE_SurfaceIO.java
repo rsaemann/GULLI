@@ -959,7 +959,7 @@ public class HE_SurfaceIO {
                         max = Math.max(max, particles);
                         buffer.append(";").append(df2.format(particles));
                     }
-                    if (max >0) {//Only write cell information, if there is content
+                    if (max > 0) {//Only write cell information, if there is content
                         bw.write(mID + ";");
                         Coordinate coord = raster.getCenterOfCell(mID);
                         bw.write("[" + df2.format(coord.x) + "," + df2.format(coord.y) + "," + df2.format(coord.z) + "]");
@@ -1814,6 +1814,63 @@ public class HE_SurfaceIO {
         }
         GeometryFactory gf = new GeometryFactory();
         return gf.createPolygon(list.toArray(new Coordinate[list.size()]));
+    }
+
+    public static File find_HYSTEM_DAT(File rootFile) {
+        if (rootFile.getName().endsWith(".dat")) {
+            rootFile = rootFile.getParentFile();
+        }
+        return new File(rootFile, "hystem.dat");
+    }
+
+    /**
+     * Check with small letters for containing area names in the file and return
+     * all triangle ids that's area contains the string.
+     *
+     * @param contained a String that should be contained in the name of the
+     * subarea
+     * @param hystem_dat The file containing the mapping SUbareaname -> CellIDs
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static long[] getTriangleIDsOnAreas(String contained, File hystem_dat) throws FileNotFoundException, IOException {
+        contained = contained.toLowerCase();
+        LinkedList<Long> triangleIDs = new LinkedList<>();
+        try (FileReader in = new FileReader(hystem_dat); BufferedReader br = new BufferedReader(in)) {
+            String line;
+            String check;
+            String[] values;
+            while (br.ready()) {
+                line = br.readLine();
+                if (line.length() < 3) {
+                    continue;
+                }
+                try {
+                    int pos = line.indexOf(" ");
+                    if (pos < 1) {
+                        continue;
+                    }
+                    check = line.substring(0, pos).toLowerCase();
+                    if (check.contains(contained)) {
+                        values = line.split(" ");
+                        for (int i = 1; i < values.length; i++) {
+                            triangleIDs.add(Long.parseLong(values[i]));
+                        }
+                    }
+                } catch (Exception exception) {
+                    System.err.println("'" + line + "'");
+                    exception.printStackTrace();
+                }
+            }
+        }
+        long[] array = new long[triangleIDs.size()];
+        int index = 0;
+        for (Long triangleID : triangleIDs) {
+            array[index] = triangleID;
+            index++;
+        }
+        return array;
     }
 
 }

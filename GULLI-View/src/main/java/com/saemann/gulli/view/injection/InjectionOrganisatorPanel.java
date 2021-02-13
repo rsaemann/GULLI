@@ -32,6 +32,7 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformati
 import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionSubArealInformation;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Network;
@@ -69,6 +70,7 @@ public class InjectionOrganisatorPanel extends JPanel {
     protected JButton buttonNewMaterial;
     private JButton buttonNewInjectionPoint;
     private JButton buttonNewInjectionArea;
+    private JButton buttonNewInjectionSubArea;
     private JButton buttonNewInjectionInflow;
 
     protected Controller control;
@@ -104,7 +106,7 @@ public class InjectionOrganisatorPanel extends JPanel {
 //        scrollInjection.setPreferredSize(new Dimension(100, 900));
         panelInjectionSurrounding.add(scrollInjection, BorderLayout.CENTER);
         this.add(panelInjectionSurrounding, BorderLayout.CENTER);
-        panelInjectionButtons = new JPanel(new GridLayout(1, 3,3,5));
+        panelInjectionButtons = new JPanel(new GridLayout(2, 2, 3, 5));
         panelInjectionSurrounding.add(panelInjectionButtons, BorderLayout.NORTH);
 
         control.addActioListener(new LoadingActionListener() {
@@ -164,23 +166,6 @@ public class InjectionOrganisatorPanel extends JPanel {
             }
         });
 
-        buttonNewInjectionArea = new JButton("2D Diffusive Injection");
-        panelInjectionButtons.add(buttonNewInjectionArea, BorderLayout.EAST);
-        buttonNewInjectionArea.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                Material m = new Material("AFS63", 1000, true);
-                m.travellengthToMeasure = 50;
-                InjectionArealInformation ininfo = InjectionArealInformation.LOAD(m, control.getSurface(), 0.001, 50000);
-//                InjectionInformation ininfo = new InjectionInformation(control.getSurface(), 0, 500, 10000, m, 0, 0);
-//                ininfo.spilldistributed = true;
-//                ininfo.spillOnSurface = true;
-//                ininfo.setTriangleID(0);
-                control.getLoadingCoordinator().addManualInjection(ininfo);
-                control.recalculateInjections();
-            }
-        });
         buttonNewInjectionInflow = new JButton("Inflow Concentration");
         panelInjectionButtons.add(buttonNewInjectionInflow, BorderLayout.EAST);
         buttonNewInjectionInflow.addActionListener(new ActionListener() {
@@ -192,12 +177,41 @@ public class InjectionOrganisatorPanel extends JPanel {
                 InjectionInflowInformation ininfo = new InjectionInflowInformation(m, control.getNetwork(), 0.1, 50000);
                 if (control.getNetwork() != null && control.getNetwork().getInflowArea() > 0) {
                     //Create a default value of 10 kg/ha 
-                    ininfo.setMass(control.getNetwork().getInflowArea()*0.001);
-                } 
+                    ininfo.setMass(control.getNetwork().getInflowArea() * 0.001);
+                }
                 control.getLoadingCoordinator().addManualInjection(ininfo);
                 control.recalculateInjections();
             }
         });
+
+        buttonNewInjectionArea = new JButton("2D Diffusive Injection");
+        panelInjectionButtons.add(buttonNewInjectionArea, BorderLayout.EAST);
+        buttonNewInjectionArea.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                Material m = new Material("AFS63", 1000, true);
+                m.travellengthToMeasure = 100;
+                InjectionArealInformation ininfo = InjectionArealInformation.LOAD(m, control.getSurface(), 0.001, 50000);
+                control.getLoadingCoordinator().addManualInjection(ininfo);
+                control.recalculateInjections();
+            }
+        });
+
+        buttonNewInjectionSubArea = new JButton("2D Subarea");
+        panelInjectionButtons.add(buttonNewInjectionSubArea, BorderLayout.EAST);
+        buttonNewInjectionSubArea.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                Material m = new Material("AFS63", 1000, true);
+                m.travellengthToMeasure = 100;
+                InjectionSubArealInformation ininfo = InjectionSubArealInformation.LOAD(m, control.getSurface(), "Str", 0.001, 50000);
+                control.getLoadingCoordinator().addManualInjection(ininfo);
+                control.recalculateInjections();
+            }
+        });
+
 //
 //        panelTabLoading.add(panelInjection, BorderLayout.CENTER);
     }
@@ -255,6 +269,11 @@ public class InjectionOrganisatorPanel extends JPanel {
             JPanel panel = null;
             if (inj instanceof InjectionArealInformation) {
                 InjectionPanelAreal ia = new InjectionPanelAreal((InjectionArealInformation) inj, paintManager);
+                panel = ia;
+                panelInjections.add(ia);
+
+            } else if (inj instanceof InjectionSubArealInformation) {
+                InjectionPanelSubArea ia = new InjectionPanelSubArea((InjectionSubArealInformation) inj);
                 panel = ia;
                 panelInjections.add(ia);
 

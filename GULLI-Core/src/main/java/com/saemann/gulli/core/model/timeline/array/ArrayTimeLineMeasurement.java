@@ -40,7 +40,7 @@ public class ArrayTimeLineMeasurement {
      * Number of particles which were affecting the gathering in this timestep.
      * Reset after every writing of measurements
      */
-    private int numberOfParticlesInTimestep;
+    private double numberOfParticlesInTimestep;
     /**
      * Total mass of particles which passed in the current timestep. Reset after
      * every writing of measurements
@@ -98,7 +98,7 @@ public class ArrayTimeLineMeasurement {
     public float getConcentrationOfType(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
 
-        return (float) (container.mass_type[index][materialIndex] / (container.volumes[index]));
+        return (float) (container.mass_type[index][materialIndex] * container.counts[index] / (container.volumes[index] * container.getSamplesInTimeInterval(temporalIndex)));
     }
 
     /**
@@ -244,7 +244,7 @@ public class ArrayTimeLineMeasurement {
         return ptcount;
     }
 
-    public int getNumberOfParticles() {
+    public double getNumberOfParticles() {
         return numberOfParticlesInTimestep;
     }
 
@@ -293,7 +293,7 @@ public class ArrayTimeLineMeasurement {
                         particles.add(particleToCount);
                         synchronized (this) {
                             this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
-                            this.numberOfParticlesInTimestep++;
+                            this.numberOfParticlesInTimestep += dtfactor;
                             addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
                         }
                     }
@@ -303,7 +303,7 @@ public class ArrayTimeLineMeasurement {
                 lock.lock();
                 try {
                     this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
-                    this.numberOfParticlesInTimestep++;
+                    this.numberOfParticlesInTimestep += dtfactor;
                     addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
                 } finally {
                     lock.unlock();
@@ -319,7 +319,7 @@ public class ArrayTimeLineMeasurement {
                 }
             }
             this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
-            this.numberOfParticlesInTimestep++;
+            this.numberOfParticlesInTimestep += dtfactor;
             addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
         }
     }

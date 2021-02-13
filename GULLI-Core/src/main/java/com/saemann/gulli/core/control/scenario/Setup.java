@@ -25,8 +25,8 @@ package com.saemann.gulli.core.control.scenario;
 
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
-import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.FileContainer;
+import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import java.util.Collection;
 
@@ -44,11 +44,13 @@ public class Setup {
     public Scenario scenario;
 
     public Collection<InjectionInfo> injections;
+    public Collection<Material> materials;
+    
     private boolean loadResultInjections = true;
 
     protected double timestepTransport = 1;
     protected Dispersion2D_Constant diffusion;
-    protected double networkdispersion = 2;
+//    protected double networkdispersion = 2;
     protected boolean routingSurfaceEnterDryCells = true;
     protected double routingSurfaceDryflowVelocity = 0.005;
 
@@ -94,6 +96,12 @@ public class Setup {
     public void setInjections(Collection<InjectionInfo> injections) {
         this.injections = injections;
     }
+
+    public void setMaterials(Collection<Material> materials) {
+        this.materials = materials;
+    }
+    
+    
 
     public double getTimestepTransport() {
         return timestepTransport;
@@ -183,13 +191,13 @@ public class Setup {
         this.diffusion = diffusion;
     }
 
-    public double getNetworkdispersion() {
-        return networkdispersion;
-    }
+//    public double getNetworkdispersion() {
+//        return networkdispersion;
+//    }
 
-    public void setNetworkdispersion(double networkdispersion) {
-        this.networkdispersion = networkdispersion;
-    }
+//    public void setNetworkdispersion(double networkdispersion) {
+//        this.networkdispersion = networkdispersion;
+//    }
 
     public SurfaceMeasurementRaster getSurfaceMeasurementRasterClass() {
         return surfaceMeasurementRasterClass;

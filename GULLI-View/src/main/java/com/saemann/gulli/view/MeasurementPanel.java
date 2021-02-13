@@ -59,8 +59,11 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 /**
  * Panel to display parameters of the measurements for pipe and surface domain
@@ -83,6 +86,9 @@ public class MeasurementPanel extends JPanel {
     private JCheckBox checkMeasureSpatialConsistentSurface;
     private JCheckBox checkMeasureSynchronisedSurface;
     private JCheckBox checkMeasureSynchronisedPipe;
+
+    private JCheckBox checkHistoryParticles;
+    private JFormattedTextField textHistoricIth, textHistoricPercent;
 
     private enum GridType {
         NONE, TRIANGLE, RECTANGLE, OTHER
@@ -119,7 +125,7 @@ public class MeasurementPanel extends JPanel {
         borderSurface.setBorder(new LineBorder(Color.GREEN.darker(), 2, true));
         panelSurfaceSurrounding.setBorder(borderSurface);
         this.add(panelSurfaceSurrounding);
-        this.add(new JPanel());
+
         //Panel Measurement/Sampling options
         JPanel panelMeasurementsPipe = panelPipeSurrounding;
         panelMeasurementsPipe.setBorder(borderPipe);
@@ -128,6 +134,7 @@ public class MeasurementPanel extends JPanel {
         panelMsec.add(new JLabel("Measure interval: "), BorderLayout.WEST);
         panelMsec.add(new JLabel("sec."), BorderLayout.EAST);
         textMeasurementSecondsPipe = new JFormattedTextField(dfSeconds);
+        textMeasurementSecondsPipe.setHorizontalAlignment(SwingConstants.RIGHT);
         textMeasurementSecondsPipe.setToolTipText("Length of measurement interval in seconds.");
 
         panelMsec.add(textMeasurementSecondsPipe, BorderLayout.CENTER);
@@ -141,7 +148,6 @@ public class MeasurementPanel extends JPanel {
 
         checkMeasureSynchronisedPipe = new JCheckBox("Synchronize", ArrayTimeLineMeasurement.synchronizeMeasures);
         checkMeasureSynchronisedPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
-
         panelMcheck.add(checkMeasureContinouslyPipe);
         panelMcheck.add(checkMeasureResidenceTimePipe);
         panelMcheck.add(checkMeasureSynchronisedPipe);
@@ -166,6 +172,7 @@ public class MeasurementPanel extends JPanel {
         panelMsecS.add(new JLabel("Measure interval: "), BorderLayout.WEST);
         panelMsecS.add(new JLabel("sec."), BorderLayout.EAST);
         textMeasurementSecondsSurface = new JFormattedTextField(dfSeconds);
+        textMeasurementSecondsSurface.setHorizontalAlignment(SwingConstants.RIGHT);
         textMeasurementSecondsSurface.setToolTipText("Length of measurement interval in seconds.");
 
         panelMsecS.add(textMeasurementSecondsSurface, BorderLayout.CENTER);
@@ -186,6 +193,22 @@ public class MeasurementPanel extends JPanel {
         comboSurfaceGrid = new JComboBox<>(GridType.values());
         comboSurfaceGrid.setToolTipText("Type of Raster for surface measurements");
         textGridSize.setEnabled(false);
+
+        JPanel panelHistoryParticles = new JPanel();
+        panelHistoryParticles.setMaximumSize(new Dimension(500, 50));
+        panelHistoryParticles.setToolTipText("Select surface view 'PARTICLETRACE' after simulation to show trace on the map. Actual: "+control.getNumberTracerParticles());
+        panelHistoryParticles.setBorder(new TitledBorder(new LineBorder(Color.orange, 2), "Particle trace"));
+        panelHistoryParticles.setLayout(new BoxLayout(panelHistoryParticles, BoxLayout.X_AXIS));
+        checkHistoryParticles = new JCheckBox("Trace", control.isTraceParticles());
+        textHistoricIth = new JFormattedTextField(DecimalFormat.getIntegerInstance(StartParameters.formatLocale));
+        textHistoricIth.setValue(control.intervallHistoryParticles);
+        textHistoricIth.setMinimumSize(new Dimension(50, 20));
+        textHistoricIth.setHorizontalAlignment(SwingConstants.RIGHT);
+        panelHistoryParticles.add(checkHistoryParticles);
+        panelHistoryParticles.add(textHistoricIth);
+        panelHistoryParticles.add(new JLabel("th particle"));
+
+        this.add(panelHistoryParticles);
 
         this.add(new JSeparator());
         //Outputs
@@ -323,7 +346,7 @@ public class MeasurementPanel extends JPanel {
                 if (textMeasurementSecondsSurface == null || textMeasurementSecondsSurface.getValue() == null) {
                     return;
                 }
-                double seconds = ((Number)textMeasurementSecondsSurface.getValue()).doubleValue();//((Number) textMeasurementSecondsSurface.getValue()).doubleValue();
+                double seconds = ((Number) textMeasurementSecondsSurface.getValue()).doubleValue();//((Number) textMeasurementSecondsSurface.getValue()).doubleValue();
                 if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsSurface() != null) {
                     if (seconds == control.getScenario().getMeasurementsSurface().getIndexContainer().getDeltaTimeMS() / 1000.) {
                         return;
@@ -365,10 +388,10 @@ public class MeasurementPanel extends JPanel {
                 if (selfChange) {
                     return;
                 }
-                if(control.getSurface()==null){
-                    selfChange=true;
+                if (control.getSurface() == null) {
+                    selfChange = true;
                     comboSurfaceGrid.setSelectedItem(GridType.NONE);
-                    selfChange=false;
+                    selfChange = false;
                     return;
                 }
                 if (comboSurfaceGrid.getSelectedItem() == GridType.NONE) {
@@ -406,6 +429,28 @@ public class MeasurementPanel extends JPanel {
             }
         });
 
+        checkHistoryParticles.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    control.intervallHistoryParticles = ((Number) textHistoricIth.getValue()).intValue();
+
+                } catch (Exception ex) {
+                    textHistoricIth.setValue(control.intervallHistoryParticles);
+                    ex.printStackTrace();
+                }
+                control.setTraceParticles(checkHistoryParticles.isSelected());
+            }
+        });
+
+        textHistoricIth.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+               control.intervallHistoryParticles=((Number)textHistoricIth.getValue()).intValue();
+               
+            }
+        });
+
         buttonNewOutput.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -424,12 +469,12 @@ public class MeasurementPanel extends JPanel {
                 } else {
                     checkMeasureContinouslyPipe.setSelected(true);
                 }
-                
+
                 textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
             }
             checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
             checkMeasureSynchronisedPipe.setSelected(ArrayTimeLineMeasurement.synchronizeMeasures);
-            
+
             if (control.getScenario().getMeasurementsSurface() != null) {
                 SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();
                 if (mpc.continousMeasurements) {
@@ -445,7 +490,7 @@ public class MeasurementPanel extends JPanel {
                 checkMeasureSynchronisedSurface.setSelected(mpc.synchronizeMeasures);
                 textMeasurementSecondsSurface.setValue(mpc.getIndexContainer().getDeltaTimeMS() / 1000.);
             }
-            
+
         }
         panelOutputs.removeAll();
         if (control != null && control.getStoringCoordinator() != null) {
@@ -489,6 +534,7 @@ public class MeasurementPanel extends JPanel {
             }
             selfChange = false;
         }
+
     }
 
     public void setEditable(boolean editable) {
@@ -501,6 +547,9 @@ public class MeasurementPanel extends JPanel {
         checkMeasureContinouslyPipe.setEnabled(editable);
         checkMeasureSynchronisedSurface.setEnabled(editable);
         checkMeasureSynchronisedPipe.setEnabled(editable);
+
+        checkHistoryParticles.setEnabled(editable);
+        textHistoricIth.setEnabled(editable);
 
         textGridSize.setEnabled(editable);
         selfChange = true;

@@ -30,7 +30,6 @@ import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.view.PaintManager;
 import com.saemann.rgis.view.MapViewer;
 import java.text.DecimalFormatSymbols;
-import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 
 /**
@@ -65,7 +64,7 @@ public class InjectionPanelPointlocation extends JPanel {
     protected MapViewer map;
     protected PaintManager paintManager;
     protected JButton buttonSetPosition;
-    
+
     protected JPopupMenu popup;
 
     protected InjectionPanelPointlocation() {
@@ -74,7 +73,10 @@ public class InjectionPanelPointlocation extends JPanel {
 
     protected InjectionPanelPointlocation(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super(new GridLayout(6, 2));
-        this.setBorder(new LineBorder(Color.darkGray, 1, true));
+        this.setBorder(new TitledBorder(new LineBorder((info.spillOnSurface ? Color.GREEN.darker() : Color.BLUE.darker()), 1, true), "Point"));
+        this.setPreferredSize(new Dimension(160, 135));
+        this.setMinimumSize(new Dimension(160, 120));
+
         df.getDecimalFormatSymbols().setGroupingSeparator(' ');
         this.info = info;
         this.map = map;
@@ -170,8 +172,6 @@ public class InjectionPanelPointlocation extends JPanel {
                 buttonSetPosition.setForeground(Color.darkGray);
             }
         }
-        
-
 
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
             @Override

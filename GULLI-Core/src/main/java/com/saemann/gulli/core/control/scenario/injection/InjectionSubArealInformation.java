@@ -23,19 +23,24 @@
  */
 package com.saemann.gulli.core.control.scenario.injection;
 
+import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
 import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Capacity;
-import com.saemann.gulli.core.model.topology.Manhole;
-import com.saemann.gulli.core.model.topology.Network;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Relative concentration of diffusive pollutant per area (kg/m^2) information
- * will be calculated to total mass for injection
+ * Relative load of diffusive pollutant per area (kg/m^2) information will be
+ * calculated to total mass for injection
  *
  * @author saemann
  */
-public class InjectionInflowInformation implements InjectionInfo {
+public class InjectionSubArealInformation implements InjectionInfo {
 
     protected Material material;
 
@@ -44,37 +49,30 @@ public class InjectionInflowInformation implements InjectionInfo {
     protected int id = -1;
 
     /**
+     * Shuffle IDs in array to make the injection uniform distributed.
+     */
+    protected boolean shuffleArray = true;
+
+    /**
      * kg
      */
     protected double totalMass;
-
-    /**
-     * m^3
-     */
-    protected double totalvolume;
-
-    /**
-     * m^2
-     */
-    protected double totalArea;
-    /**
-     * kg/m^3
-     */
-    protected double concentration;
 
     /**
      * kg/m^2
      */
     protected double load;
 
-    protected Network network;
-
-    protected Manhole[] manholes;
-
     /**
-     * inflow volume {m^3] per manhole
+     * m^2
      */
-    protected float[] volume;
+    protected double area;
+
+    protected long[] cellIDs;
+
+    protected String subareNameContaining = null;
+
+    protected Surface surf;
 
     protected int numberOfParticles;
 
@@ -82,66 +80,97 @@ public class InjectionInflowInformation implements InjectionInfo {
 
     protected boolean changed = true;
 
-    /**
-     * seconds after simulation start
-     */
     protected double startSeconds = 0;
 
-    /**
-     * duration in seconds
-     */
     protected double durationSeconds = 0;
 
     /**
      *
      * @param material
-     * @param network
-     * @param concentration kg/m^3
+     * @param surface
+     * @param namecontains
+     * @param totalmass kg
      * @param numberOfParticles
      */
-    public InjectionInflowInformation(Material material, Network network, double concentration, int numberOfParticles) {
+    public InjectionSubArealInformation(Material material, Surface surface, String namecontains, double totalmass, int numberOfParticles) {
         this.material = material;
-        this.concentration = concentration;
-//        this.concentration = concentration;
-        this.network = network;
-
+        this.totalMass = totalmass;
+//        this.load = load;
+        this.surf = surface;
         this.numberOfParticles = numberOfParticles;
-        findAndLoadManholes();
+        subareNameContaining = namecontains;
+        recalculate();
+    }
+    
+        /**
+     *
+     * @param material
+     * @param surface
+     * @param namecontains
+     * @param totalmass kg
+     * @param numberOfParticles
+     */
+    public InjectionSubArealInformation(Material material, Surface surface, String namecontains, double totalmass, int numberOfParticles, boolean shuffleIDs) {
+        this.material = material;
+        this.totalMass = totalmass;
+//        this.load = load;
+        this.surf = surface;
+        this.numberOfParticles = numberOfParticles;
+        subareNameContaining = namecontains;
+        this.shuffleArray=shuffleIDs;
+        recalculate();
     }
 
-    private void findAndLoadManholes() {
-        if (network == null) {
-            manholes = null;
-            return;
-        }
-        manholes = network.getManholes().toArray(new Manhole[network.getManholes().size()]);
-        volume = new float[manholes.length];
-        totalvolume = 0;
-        try {
-            totalArea = network.getInflowArea();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        for (int m = 0; m < manholes.length; m++) {
-            Manhole manhole = manholes[m];
-//            long start=System.currentTimeMillis();
-            for (int i = 0; i < manhole.getStatusTimeLine().getNumberOfTimes(); i++) {
-                double v = manhole.getStatusTimeLine().getInflow(i);
-                totalvolume += v;
-                volume[m] += v;
+    public static InjectionSubArealInformation LOAD(Material mat, Surface surf, String namecontains, double arealLoad, int numberOfParticles) {
+        InjectionSubArealInformation iai = new InjectionSubArealInformation(mat, surf, namecontains, 0, numberOfParticles);
+        iai.setLoad(arealLoad);
+        return iai;
+    }
+
+    public static InjectionSubArealInformation TOTALMASS(Material mat, Surface surf, String namecontains, double totalMass, int numberOfParticles) {
+        InjectionSubArealInformation iai = new InjectionSubArealInformation(mat, surf, namecontains, totalMass, numberOfParticles);
+        return iai;
+    }
+
+    private void recalculate() {
+
+        if (cellIDs == null) {
+            if (surf != null && surf.fileTriangles != null && subareNameContaining != null) {
+                File hystemFile = HE_SurfaceIO.find_HYSTEM_DAT(surf.fileTriangles);
+                if (hystemFile.exists()) {
+                    try {
+                        cellIDs = HE_SurfaceIO.getTriangleIDsOnAreas(subareNameContaining, hystemFile);
+                        if(shuffleArray){
+                            shuffleArray(cellIDs,0);
+                        }
+                        area = surf.calcSubArea(cellIDs);
+                    } catch (IOException ex) {
+                        Logger.getLogger(InjectionSubArealInformation.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
             }
-//            System.out.println("complete sumup "+manhole+"  "+((System.currentTimeMillis()-start)));
         }
-        if (concentration > 0) {
-            totalMass = totalvolume * concentration;
-        } else if (totalMass > 0) {
-            concentration = totalMass / totalvolume;
+        if (load == 0 && area > 0) {
+            load = totalMass / area;
+            totalMass = load * area;
         }
 
-        if (totalArea > 0) {
-            load = totalMass / totalArea;
+        if (totalMass == 0) {
+            totalMass = load * area;
         }
-        changed = true;
+
+    }
+
+    private static void shuffleArray(long[] array, long seed) {
+        int index;
+        long temp;
+        Random random = new Random(seed);
+        for (int i = array.length - 1; i > 0; i--) {
+            index = random.nextInt(i + 1);
+            temp = array[index];
+            array[index] = array[i];
+            array[i] = temp;
+        }
     }
 
     /**
@@ -149,24 +178,8 @@ public class InjectionInflowInformation implements InjectionInfo {
      *
      * @return
      */
-    public double getConcentration() {
-        return concentration;
-    }
-
-    /**
-     *
-     * @param concentration kg/m^3
-     */
-    public void setConcentration(double concentration) {
-        if (this.concentration == concentration) {
-            return;
-        }
-        this.concentration = concentration;
-        totalMass = totalvolume * concentration;
-        if (totalArea > 0) {
-            load = totalMass / totalArea;
-        }
-        changed = true;
+    public double getLoad() {
+        return load;
     }
 
     /**
@@ -178,16 +191,11 @@ public class InjectionInflowInformation implements InjectionInfo {
             return;
         }
         this.load = load;
-        if (totalArea > 0) {
-            totalMass = totalArea * load;
-        }
-        if (totalvolume > 0) {
-            concentration = totalMass / totalvolume;
+        if (surf != null) {
+            this.totalMass = load * area;
         }
         changed = true;
     }
-    
-  
 
     @Override
     public double getStarttimeSimulationsAfterSimulationStart() {
@@ -196,16 +204,12 @@ public class InjectionInflowInformation implements InjectionInfo {
 
     @Override
     public double getDurationSeconds() {
-        return durationSeconds;
+        return 0;
     }
 
     @Override
     public double getMass() {
         return totalMass;
-    }
-
-    public double getLoad() {
-        return load;
     }
 
     @Override
@@ -225,15 +229,15 @@ public class InjectionInflowInformation implements InjectionInfo {
 
     @Override
     public GeoPosition2D getPosition() {
-        if (network == null) {
+        if (surf == null) {
             return null;
         }
-        return network.getLeaves().iterator().next().getPosition3D(0);
+        return surf.getPosition3D(0);
     }
 
     @Override
     public Capacity getCapacity() {
-        return null;
+        return surf;
     }
 
     @Override
@@ -273,7 +277,15 @@ public class InjectionInflowInformation implements InjectionInfo {
 
     @Override
     public void setCapacity(Capacity capacity) {
-
+        if (capacity == surf) {
+            return;
+        }
+        if (capacity instanceof Surface) {
+            surf = ((Surface) capacity);
+            cellIDs = null;
+            recalculate();
+            changed = true;
+        }
     }
 
     @Override
@@ -373,40 +385,37 @@ public class InjectionInflowInformation implements InjectionInfo {
             return;
         }
         this.totalMass = mass;
-        if (totalvolume > 0) {
-            this.concentration = totalMass / totalvolume;
+        if (surf != null) {
+            load = totalMass / area;
         }
-        if (totalArea > 0) {
-            load = totalMass / totalArea;
-        }
-
         changed = true;
     }
 
-    public void setNetwork(Network nw) {
-        this.network = nw;
-        findAndLoadManholes();
+    public Surface getSurface() {
+        return surf;
+    }
+
+    public String getNameFilter() {
+        return subareNameContaining;
+    }
+
+    public void setNameFilter(String mustcontain) {
+
+        if (this.subareNameContaining != null && this.subareNameContaining.equals(mustcontain)) {
+            return;
+        }
+        this.subareNameContaining = mustcontain;
+        cellIDs = null;
+        recalculate();
         changed = true;
     }
 
-    public Manhole[] getManholes() {
-        return manholes;
+    public double getArea() {
+        return area;
     }
 
-    public float[] getVolumePerManhole() {
-        return volume;
-    }
-
-    public double getTotalvolume() {
-        return totalvolume;
-    }
-
-    public Network getNetwork() {
-        return network;
-    }
-
-    public double getTotalArea() {
-        return totalArea;
+    public long[] getCellIDs() {
+        return cellIDs;
     }
 
 }

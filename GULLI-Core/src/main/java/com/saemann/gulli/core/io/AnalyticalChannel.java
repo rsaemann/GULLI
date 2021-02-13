@@ -85,7 +85,7 @@ public class AnalyticalChannel {
 
     public float massPerParticle = 1;
 
-    Material material;
+    public Material material;
 
     public AnalyticalChannel() {
         material = new Material("Analytical solution", 1000, true, 0);

@@ -31,6 +31,7 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformati
 import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
+import com.saemann.gulli.core.control.scenario.injection.InjectionSubArealInformation;
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calculator;
@@ -245,6 +246,14 @@ public class Setup_IO {
                 bw.newLine();
                 bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
                 bw.newLine();
+            } else if (inj instanceof InjectionSubArealInformation) {
+                InjectionSubArealInformation ai = (InjectionSubArealInformation) inj;
+                bw.write("\t\t<Diffusive>true</>");
+                bw.newLine();
+                bw.write("\t\t<Filter>" + ai.getNameFilter() + "</>");
+                bw.newLine();
+                bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
+                bw.newLine();
             } else if (inj instanceof InjectionInflowInformation) {
                 InjectionInflowInformation ai = (InjectionInflowInformation) inj;
                 bw.write("\t\t<Diffusive>false</>");
@@ -312,13 +321,14 @@ public class Setup_IO {
         boolean injectionDiffusive = false;
         int injectionCapacityID = -1;
         String injectionCapacityName = null;
+        String injectionFilterString = null;
         int injection_materialID = 0;
         double injectionStart = 0;
         double injectionDuration = 0;
         double injectionMass = 1000;
         double injectionConcentration = 1;
         int injectionParticles = 10000;
-        boolean injectionActive=true;
+        boolean injectionActive = true;
 
         String line = "";
         while (br.ready()) {
@@ -383,6 +393,7 @@ public class Setup_IO {
                 } else if (state == 4) {
                     //Materials
                     if (line.contains("/Materials")) {
+                        setup.setMaterials(materials.values());
                         state = -1;
                         continue;
                     }
@@ -490,6 +501,10 @@ public class Setup_IO {
                                         InjectionArealInformation ainj = new InjectionArealInformation(mat, null, injectionMass, injectionParticles);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
+                                    } else if (injectionType.equals(InjectionSubArealInformation.class.getSimpleName())) {
+                                        InjectionSubArealInformation ainj = new InjectionSubArealInformation(mat, null, injectionFilterString, injectionMass, injectionParticles);
+                                        ainj.setMass(injectionMass);
+                                        inj = ainj;
                                     } else if (injectionType.equals(InjectionInflowInformation.class.getSimpleName())) {
                                         InjectionInflowInformation ainj = new InjectionInflowInformation(mat, null, injectionConcentration, injectionParticles);
                                         ainj.setMass(injectionMass);
@@ -550,6 +565,8 @@ public class Setup_IO {
                                 injectionConcentration = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Particles")) {
                                 injectionParticles = Integer.parseInt(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Filter")) {
+                                injectionFilterString = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                             } else if (line.contains("Materi")) {
                                 injection_materialID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
                             } else if (line.contains("Capacity")) {

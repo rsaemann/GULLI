@@ -495,6 +495,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         return triangleArea;
     }
 
+    /**
+     * Calculate the area per cell. Stored in triangleArea (float[])
+     */
     public void calcTriangleAreas() {
         triangleArea = new float[triangleNodes.length];
         for (int i = 0; i < triangleNodes.length; i++) {
@@ -502,9 +505,32 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
     }
 
+    /**
+     * Area [m^2] of cell id.
+     *
+     * @param id
+     * @return
+     */
     public double calcTriangleArea(int id) {
         double a = 0.5 * (vertices[triangleNodes[id][0]][0] * (vertices[triangleNodes[id][1]][1] - vertices[triangleNodes[id][2]][1]) + vertices[triangleNodes[id][1]][0] * (vertices[triangleNodes[id][2]][1] - vertices[triangleNodes[id][0]][1]) + vertices[triangleNodes[id][2]][0] * (vertices[triangleNodes[id][0]][1] - vertices[triangleNodes[id][1]][1]));
         return a;
+    }
+
+    /**
+     * Area (m^2) of a subset of cells.
+     *
+     * @param cellIDs
+     * @return m^2 area of subset of cells.
+     */
+    public double calcSubArea(long[] cellIDs) {
+        double area = 0;
+        if (triangleArea == null) {
+            calcTriangleAreas();
+        }
+        for (int i = 0; i < cellIDs.length; i++) {
+            area += triangleArea[(int)cellIDs[i]];
+        }
+        return area;
     }
 
     /**

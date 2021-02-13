@@ -162,6 +162,7 @@ public class Pipe extends Capacity {
         return length;
     }
 
+    @Override
     public String getName() {
         return name;
     }

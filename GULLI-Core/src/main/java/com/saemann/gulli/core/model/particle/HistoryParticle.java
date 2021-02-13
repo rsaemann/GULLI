@@ -10,6 +10,7 @@ import com.saemann.gulli.core.control.particlecontrol.injection.ParticleInjectio
 import com.saemann.gulli.core.model.GeoPosition2D;
 import java.util.LinkedList;
 import com.saemann.gulli.core.model.topology.Capacity;
+import com.saemann.gulli.core.model.topology.Position3D;
 import org.locationtech.jts.geom.Coordinate;
 
 /**
@@ -39,7 +40,8 @@ public class HistoryParticle extends Particle {
         if (!history.isEmpty() && history.getLast().equals(cap)) {
             return;
         }
-        this.addToHistory(cap.getPosition3D(0),cap.getPosition3D(0).getX(),cap.getPosition3D(0).getY());
+        Position3D pos = cap.getPosition3D(position1d_actual);
+        this.addToHistory(pos,pos.getX(),pos.getY());
         this.history.add(cap);
     }
 
@@ -86,6 +88,15 @@ public class HistoryParticle extends Particle {
 
     public double getLastUTMy() {
         return lastUTMy;
+    }
+
+    @Override
+    public void resetMovementLengths() {
+        super.resetMovementLengths();
+        history.clear();
+        positions.clear();
+        lastUTMX=-1;
+        lastUTMy=-1;
     }
     
     

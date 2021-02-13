@@ -40,6 +40,7 @@ public class RunMainView {
         //Der Controller koordiniert alle einzelnen Module und startet die Benutzeroberfläche.
         //Control links all model and io components and stores the mesh and all simulation-related information
         final Controller control = new Controller();
+        control.intervallHistoryParticles=10;
         //ViewController links the Controller to the GUI
         final ViewController vcontroller = new ViewController(control);
         //The Main Frame containing the Map.

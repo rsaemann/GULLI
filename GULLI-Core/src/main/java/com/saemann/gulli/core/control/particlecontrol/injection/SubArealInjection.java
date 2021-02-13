@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2020 B1.
+ * Copyright 2020 Sämann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,42 +26,45 @@ package com.saemann.gulli.core.control.particlecontrol.injection;
 import com.saemann.gulli.core.model.surface.Surface;
 
 /**
- * Stores the injection position of multiple particles. e.g. for diffusive pollution on the whole area (containing all surface cell IDs)
+ * Stores the injection position of multiple particles. e.g. for diffusive
+ * pollution on a subset of the whole area (on a subset of surface cell IDs)
+ *
  * @author saemann
  */
-public class ArealInjection extends SurfaceInjection {
-    
-    protected int firstID=-1,lastID=-1;
-    
-    public ArealInjection(Surface surface) {
-        super(surface, 0);
+public class SubArealInjection extends SurfaceInjection {
+
+    protected int firstID = -1, lastID = -1;
+    protected long[] cellIDs;
+
+    public SubArealInjection(Surface surface, long[] cellIDs) {
+        super(surface, cellIDs[0]);
+        this.cellIDs = cellIDs;
     }
-    
-    public void setParticleIDs(int firstID, int lastID){
-        this.firstID=firstID;
-        this.lastID=lastID;
+
+    /**
+     * Particles assigned to this Injection must have a continuous id increment
+     *
+     * @param firstID (inclusive)
+     * @param lastID (inclusive)
+     */
+    public void setParticleIDs(int firstID, int lastID) {
+        this.firstID = firstID;
+        this.lastID = lastID;
     }
-    
+
     @Override
     public double[] getInjectionPosition(int particleID) {
-        return surface.getTriangleMids()[(int)getInjectionCellID(particleID)];
+        return surface.getTriangleMids()[(int) getInjectionCellID(particleID)];
     }
 
     @Override
     public long getInjectionCellID(int particleID) {
-//        System.out.println("Request Particle "+particleID+"'s Cell iD. first: "+firstID);
         try {
-            return (long) ((surface.getTriangleMids().length-1) * ((particleID - firstID) / (double) (lastID - firstID)));
+            return (long) cellIDs[(int) ((cellIDs.length - 1) * ((particleID - firstID) / (double) (lastID - firstID)))];
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
-    
-    
 
-   
-    
-    
-    
 }
