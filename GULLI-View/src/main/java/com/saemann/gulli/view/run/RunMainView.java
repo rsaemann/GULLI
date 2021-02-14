@@ -111,7 +111,7 @@ public class RunMainView {
         }
 
         //Start loading the set files. 
-        if (lc.getFileNetwork() != null || lc.getFilePipeResultIDBF() != null || lc.getFileSurfaceTriangleIndicesDAT() != null) {
+        if (lc.getFileNetwork() != null || lc.getFilePipeFlowfield() != null || lc.getFileSurfaceTriangleIndicesDAT() != null) {
             if (StartParameters.isAutoLoadatStartup()) {
                 lc.startLoadingRequestedFiles(true);
             }

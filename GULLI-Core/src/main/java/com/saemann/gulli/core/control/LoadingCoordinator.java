@@ -91,6 +91,15 @@ public class LoadingCoordinator {
     private Scenario scenario;
     private boolean changedSurface;
 
+    /**
+     * Types of input files, than can be handled.
+     */
+    public enum FILETYPE {
+        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1
+    };
+
+    protected FILETYPE filetype;
+
     public enum LOADINGSTATUS {
 
         NOT_REQUESTED, REQUESTED, LOADING, LOADED, ERROR
@@ -435,8 +444,16 @@ public class LoadingCoordinator {
                     System.err.println("No CRS information found. Use " + crsCode + " as CRS for Network geometry.");
                 }
                 nw = modelDatabase.loadNetwork(CRS.decode(crsCode));//HE_Database.loadNetwork(fileNetwork);
+
+                if (fileNetwork.getName().toLowerCase().endsWith("idbf")) {
+                    this.filetype = FILETYPE.HYSTEM_EXTRAN_7;
+                } else {
+                    this.filetype = FILETYPE.HYSTEM_EXTRAN_8;
+                }
+
             } else if (fileNetwork.getName().endsWith(".inp")) {
                 nw = SWMM_IO.readNetwork(fileNetwork);
+                this.filetype = FILETYPE.SWMM_5_1;
             } else {
                 loadingpipeNetwork = LOADINGSTATUS.ERROR;
                 throw new Exception("File extension not known for '" + fileNetwork.getName() + "'");
@@ -516,8 +533,11 @@ public class LoadingCoordinator {
                     resultName = resultDatabase.readResultname();
                     scenarioName = resultName;
                     action.description = "Load spill events";
-                    if (this.loadResultInjections) {
+                    System.out.println("load file injections? " + loadResultInjections);
+                    totalInjections.clear();
+                    if (this.loadResultInjections) {                       
                         he_injection = resultDatabase.readInjectionInformation(startAtZeroTime);
+                        System.out.println("loaded " + he_injection.size() + " injections from file. totalinjections are: " + totalInjections.size());
                     } else {
                         he_injection = new ArrayList<>(0);
                     }
@@ -680,6 +700,10 @@ public class LoadingCoordinator {
                     Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(network, reader, new ArrayList(0), new ArrayList(0), zeroTimeStart);
                     timeContainerPipe = cs.first;
                     timeContainerManholes = cs.second;
+                    if (loadResultInjections) {
+                        //Not implemented
+                    }
+
                     loaded = true;
                 }
 
@@ -1119,7 +1143,7 @@ public class LoadingCoordinator {
         this.scenario = null;
         this.surface = null;
         this.network = null;
-        this.totalInjections.clear();
+//        this.totalInjections.clear();
         this.startLoadingRequestedFiles(asThread);
     }
 
@@ -1152,6 +1176,14 @@ public class LoadingCoordinator {
             control.getScenario().getInjections().add(inj);
         }
         return manualInjections.add(inj);
+    }
+
+    public void removeInjection(InjectionInfo info) {
+        manualInjections.remove(info);
+        totalInjections.remove(info);
+        if (scenario != null && scenario.getInjections() != null) {
+            scenario.getInjections().remove(info);
+        }
     }
 
     public ArrayList<InjectionInfo> getInjections() {
@@ -1320,7 +1352,7 @@ public class LoadingCoordinator {
         return fileNetwork;
     }
 
-    public File getFilePipeResultIDBF() {
+    public File getFilePipeFlowfield() {
         return fileMainPipeResult;
     }
 
@@ -1722,10 +1754,13 @@ public class LoadingCoordinator {
             Setup setup = Setup_IO.load(file);
             if (setup != null) {
                 this.applySetup(setup);
-
+                if (scenario != null && scenario.getName() == null) {
+                    scenario.setName(file.getName());
+                }
                 for (LoadingActionListener lal : listener) {
                     lal.actionFired(new Action("Setup load", null, false), this);
                 }
+
                 return true;
             }
         } catch (Exception ex) {
@@ -1742,21 +1777,22 @@ public class LoadingCoordinator {
      * @param setup
      */
     public void applySetup(Setup setup) throws SQLException, FileNotFoundException, IOException {
-        this.setPipeResultsFile(setup.files.pipeResult, true);
+//        this.setPipeResultsFile(setup.files.pipeResult, true);
+        this.setFilesToLoad(setup.getFiles());
+//        this.requestDependentFiles(setup.files.pipeResult, setup.useSurface, true);
 
-        this.requestDependentFiles(setup.files.pipeResult, setup.useSurface, true);
-        if (setup.files.pipeNetwork != null && setup.files.pipeNetwork.exists()) {
-            if (!setup.files.pipeNetwork.equals(this.fileNetwork)) {
-                this.setPipeNetworkFile(setup.files.pipeNetwork);
-            }
-        }
-        if (setup.files.surfaceDirectory != null && setup.files.surfaceDirectory.exists()) {
-            this.setSurfaceTopologyDirectory(setup.files.surfaceDirectory);
-        }
-        if (setup.files.surfaceResult != null && setup.files.surfaceResult.exists()) {
-            this.setSurfaceFlowfieldFile(setup.files.surfaceResult);
-        }
-
+//        if (setup.files.pipeNetwork != null && setup.files.pipeNetwork.exists()) {
+//            if (!setup.files.pipeNetwork.equals(this.fileNetwork)) {
+//                this.setPipeNetworkFile(setup.files.pipeNetwork);
+//                loadingpipeNetwork=LOADINGSTATUS.REQUESTED;
+//            }
+//        }
+//        if (setup.files.surfaceDirectory != null && setup.files.surfaceDirectory.exists()) {
+//            this.setSurfaceTopologyDirectory(setup.files.surfaceDirectory);
+//        }
+//        if (setup.files.surfaceResult != null && setup.files.surfaceResult.exists()) {
+//            this.setSurfaceFlowfieldFile(setup.files.surfaceResult);
+//        }
         this.manualInjections.clear();
         if (setup.injections != null && setup.injections.size() > 0) {
             for (InjectionInfo in : setup.injections) {
@@ -1792,6 +1828,13 @@ public class LoadingCoordinator {
         }
 
         control.getThreadController().setDeltaTime(setup.getTimestepTransport());
+
+        if (setup.getIntervalTraceParticles() > 0) {
+            control.setTraceParticles(true);
+            control.intervallHistoryParticles = setup.getIntervalTraceParticles();
+        } else {
+            control.setTraceParticles(false);
+        }
     }
 
     /**
@@ -1837,6 +1880,12 @@ public class LoadingCoordinator {
 
         setup.setTimestepTransport(ThreadController.getDeltaTime());
 
+        if (control.isTraceParticles()) {
+            setup.setIntervalTraceParticles(control.intervallHistoryParticles);
+        } else {
+            setup.setIntervalTraceParticles(0);
+        }
+
         if (control.getScenario() != null) {
             ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
             if (mp != null) {
@@ -1858,4 +1907,14 @@ public class LoadingCoordinator {
         return Setup_IO.saveScenario(file, setup);
 
     }
+
+    /**
+     * The Software, that generated the flow field.
+     *
+     * @return enum FILETYPE
+     */
+    public FILETYPE getFiletype() {
+        return filetype;
+    }
+
 }

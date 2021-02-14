@@ -49,7 +49,7 @@ public class Setup {
     private boolean loadResultInjections = true;
 
     protected double timestepTransport = 1;
-    protected Dispersion2D_Constant diffusion;
+//    protected Dispersion2D_Constant diffusion;
 //    protected double networkdispersion = 2;
     protected boolean routingSurfaceEnterDryCells = true;
     protected double routingSurfaceDryflowVelocity = 0.005;
@@ -64,6 +64,8 @@ public class Setup {
     protected boolean surfaceMeasurementTimeContinuous = true;
     protected boolean surfaceMeasurementSpatialConsistent = true;
     protected SurfaceMeasurementRaster surfaceMeasurementRasterClass;
+    
+    protected int intervalTraceParticles=0;
 
     public FileContainer getFiles() {
         return files;
@@ -183,13 +185,13 @@ public class Setup {
         this.loadResultInjections = loadResultInjections;
     }
 
-    public Dispersion2D_Constant getSurfaceDiffusion() {
-        return diffusion;
-    }
-
-    public void setSurfaceDiffusion(Dispersion2D_Constant diffusion) {
-        this.diffusion = diffusion;
-    }
+//    public Dispersion2D_Constant getSurfaceDiffusion() {
+//        return diffusion;
+//    }
+//
+//    public void setSurfaceDiffusion(Dispersion2D_Constant diffusion) {
+//        this.diffusion = diffusion;
+//    }
 
 //    public double getNetworkdispersion() {
 //        return networkdispersion;
@@ -222,5 +224,15 @@ public class Setup {
     public void setRoutingSurfaceDryflowVelocity(double routingSurfaceDryflowVelocity) {
         this.routingSurfaceDryflowVelocity = routingSurfaceDryflowVelocity;
     }
+
+    public int getIntervalTraceParticles() {
+        return intervalTraceParticles;
+    }
+
+    public void setIntervalTraceParticles(int intervalTraceParticles) {
+        this.intervalTraceParticles = intervalTraceParticles;
+    }
+    
+    
 
 }

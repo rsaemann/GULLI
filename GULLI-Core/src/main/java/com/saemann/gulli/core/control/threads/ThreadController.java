@@ -251,7 +251,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             for (int i = 0; i < randomNumberGenerators.length; i++) {
                 RandomGenerator newGen = new RandomGenerator(r.nextLong());// newField = new RandomArray(r.nextLong(), (int) (treatblocksize * 10 + 19));
 //                RandomArray newGen=new RandomArray(r.nextLong(), 100007);
-                
+
                 randomNumberGenerators[i] = newGen;
             }
         }
@@ -495,8 +495,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 recalculateRandomNumberGenerators();
                 setSeed(seed);
             }
-            for (RandomGenerator rng : randomNumberGenerators) {
-                rng.reset();
+            if (randomNumberGenerators != null) {
+                for (RandomGenerator rng : randomNumberGenerators) {
+                    rng.reset();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -984,7 +986,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                             }
                                         }
                                     } catch (Exception exception) {
-                                        System.err.println("Exception "+exception.getLocalizedMessage());
+                                        System.err.println("Exception " + exception.getLocalizedMessage());
                                     }
 
                                 }

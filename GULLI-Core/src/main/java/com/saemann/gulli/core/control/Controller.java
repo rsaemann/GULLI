@@ -24,7 +24,6 @@
 package com.saemann.gulli.core.control;
 
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
-import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
@@ -228,7 +227,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //    public void setDispersionCoefficientPipe(double K) {
 //        ParticlePipeComputing.setDispersionCoefficient(K);
 //    }
-
     /**
      * Sets the dispersion coefficient to all particlesurfce computing objects
      * in their directD calculation array. The number and order of parameters

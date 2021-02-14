@@ -1,0 +1,167 @@
+<Scenario>
+<Name></>
+<InputFiles>
+	<Network>
+		<NetworkTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\Pipelanes DN500\NumDiff1km_setup.inp</>
+		<RelativeNetworkTopology>NumDiff1km_setup.inp</>
+		<NetworkFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\Pipelanes DN500\NumDiff1km_setup.out</>
+		<RelativeNetworkFlowField>NumDiff1km_setup.out</>
+	</Network>
+	<Surface>
+		<SurfaceTopology>null</>
+		<SurfaceFlowField>null</>
+	</Surface>
+</InputFiles>
+<SimulationParameters>
+	<Timestep unit='s'>1.0</>
+</SimulationParameters>
+<Measuring>
+		<Network>
+			<Interval unit='s'>60.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>true</>
+		</Network>
+		<Surface>
+			<Interval unit='s'>300.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>false</>
+		</Surface>
+		<Trace>
+			<Interval>0</>
+		</Trace>
+</Measuring>
+<Materials>
+	<Material id=0>
+		<Name>neu</>
+		<Density unit='kg/m^3'>1000.0</>
+		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
+		<Network>
+			<Dispersion>
+				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
+				<DispersionCoefficient unit='m^2/s'>0.0</>
+			</Dispersion>
+		</Network>
+		<Surface>
+			<Dispersion>
+				<Type Parameters=2>com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant</>
+				<Dx unit='m^2/s'>0.1</>
+				<Dy unit='m^2/s'>0.1</>
+			</Dispersion>
+			<DryFlow unit='m/s'>0.005</>
+			<EnterDry>true</>
+		</Surface>
+	</Material>
+</Materials>
+<Injections>
+	<FromNetworkResult>true</>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=185>null</>
+		<Position>
+			<Latitude>52.3277878580629</>
+			<Longitude>9.733619838953018</>
+		</Position>
+		<Start unit='s'>86400.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=142>null</>
+		<Position>
+			<Latitude>52.32734035040776</>
+			<Longitude>9.733613133430481</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=268>null</>
+		<Position>
+			<Latitude>52.32688955973153</>
+			<Longitude>9.733599722385406</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=336>null</>
+		<Position>
+			<Latitude>52.32643548593403</>
+			<Longitude>9.733570218086243</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=26>null</>
+		<Position>
+			<Latitude>52.3259928824403</>
+			<Longitude>9.733559489250183</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=74>null</>
+		<Position>
+			<Latitude>52.325543717330916</>
+			<Longitude>9.733548760414124</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=-1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=296>null</>
+		<Position>
+			<Latitude>52.32509126903394</>
+			<Longitude>9.733554124832153</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>600.0</>
+		<Particles>1000</>
+		<Active>true</>
+	</Injection>
+</Injections>
+<Outputs>
+</Outputs>
+</Scenario>

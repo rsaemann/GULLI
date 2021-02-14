@@ -1199,6 +1199,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelSetup.add(buttonSetupLoad, BorderLayout.WEST);
         panelSetup.add(buttonSetupSave, BorderLayout.EAST);
         labelSetupName = new JLabel();
+        if (control != null && control.getScenario() != null) {
+            labelSetupName.setText(control.getScenario().getName());
+        }
         panelSetup.add(labelSetupName, BorderLayout.CENTER);
 
         //Pipe Network 
@@ -1300,21 +1303,33 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 PrecipitationTimelinePanel timelinePanel = new PrecipitationTimelinePanel("Precipitation", control);
                 timelinePanel.startAtZero = true;
                 frame.add(timelinePanel, BorderLayout.CENTER);
-                File file = control.getLoadingCoordinator().getFilePipeResultIDBF();
-                if (file != null) {
-                    try {
+                if (control.getLoadingCoordinator().getFiletype() == LoadingCoordinator.FILETYPE.HYSTEM_EXTRAN_7 || control.getLoadingCoordinator().getFiletype() == LoadingCoordinator.FILETYPE.HYSTEM_EXTRAN_8) {
+                    File file = control.getLoadingCoordinator().getFilePipeFlowfield();
+                    if (file != null) {
                         try {
-                            frame.setTitle("Raingauge of Piperesults '" + HE_Database.readResultname(file) + "'");
-                        } catch (Exception exception) {
-                            frame.setTitle("Exception reading file: " + exception.getLocalizedMessage());
-                        }
-                        Raingauge_Firebird raingauge = HE_Database.readRegenreihe(file);
-                        TimeSeries ts = timelinePanel.createRainGaugeIntervalTimeSeries(raingauge);
-                        ((SeriesKey) ts.getKey()).renderAsBar = true;
-                        timelinePanel.getCollection().addSeries(ts);
+                            try {
+                                frame.setTitle("Raingauge of Piperesults '" + HE_Database.readResultname(file) + "'");
+                            } catch (Exception exception) {
+                                frame.setTitle("Exception reading file: " + exception.getLocalizedMessage());
+                            }
+                            Raingauge_Firebird raingauge = HE_Database.readRegenreihe(file);
+                            TimeSeries ts = timelinePanel.createRainGaugeIntervalTimeSeries(raingauge);
+                            ((SeriesKey) ts.getKey()).renderAsBar = true;
+                            timelinePanel.getCollection().addSeries(ts);
 
-                    } catch (Exception ex) {
-                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        } catch (Exception ex) {
+                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                } else if (control.getLoadingCoordinator().getFiletype() == LoadingCoordinator.FILETYPE.SWMM_5_1) {
+                    File file = control.getLoadingCoordinator().getFilePipeFlowfield();
+                    if (file != null) {
+                        try {
+                            frame.setTitle("Cannot read Raingauge from " + file.getName());
+                            timelinePanel.collection.removeAllSeries();
+                        } catch (Exception ex) {
+                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        }
                     }
                 }
                 timelinePanel.showCheckBoxPanel(false);
@@ -1420,6 +1435,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         updateSimulationRunInformation();
 
         updateScenarioLabel();
+        if (control != null && control.getScenario() != null) {
+            labelSetupName.setText(control.getScenario().getName());
+        }
     }
 
     public void updateLoadingState() {
@@ -1435,8 +1453,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         buttonFilePipeResult.setBackground(getLoadingColor(lc.getLoadingPipeResult()));
         buttonFilePipeResult.setIcon(getLoadingIcon(lc.getLoadingPipeResult()));
-        if (lc.getFilePipeResultIDBF() != null) {
-            buttonFilePipeResult.setToolTipText(lc.getLoadingPipeResult() + ": " + lc.getFilePipeResultIDBF().getAbsolutePath());
+        if (lc.getFilePipeFlowfield() != null) {
+            buttonFilePipeResult.setToolTipText(lc.getLoadingPipeResult() + ": " + lc.getFilePipeFlowfield().getAbsolutePath());
             if (lc.getLoadingPipeResult() == LoadingCoordinator.LOADINGSTATUS.LOADED) {
             }
         } else {

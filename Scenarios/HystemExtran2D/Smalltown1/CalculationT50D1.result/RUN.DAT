@@ -1,0 +1,396 @@
+jobname = Bl50D1
+uses model: model2D_Tutorial
+hdry = 0.00
+hlim = 0.01
+model2D_Tutorial.model/TRIMOD1.dat
+model2D_Tutorial.model/TRIMOD2.dat
+model2D_Tutorial.model/Ztriang.dat
+model2D_Tutorial.model/X.dat
+model2D_Tutorial.model/boundary.xy
+model2D_Tutorial.model/table.xml
+model2D_Tutorial.model/hystem.dat
+model2D_Tutorial.model/TRIBOUNDARY.dat
+
+some statistics of the model:
+number of triangles: 14788
+size of total area: 286559.5158727467060089
+average size of triangles: 19.3778412140077556
+size of smallest triangle: 0.1698122322559357
+Very small triangles found: 
+2947
+Triangles with narrow inner angles found: 
+2404, 2946, 2947, 2987
+
+
+number of triangles assigned to ground types:
+  class   0 assigned to        0 triangles, corresponding to 0.00     qkm
+  class   1 assigned to    14788 triangles, corresponding to 0.29     qkm
+--> use 2D-mass balancing solver (Rusanov)
+
+
+
+    gross and net rain by ground class:
+    [1 ]:    0.0,    0.0
+
+############
+at: 10/18/19 15:18:53
+RisoSurf (job Bl50D1)::time [min.] 0.0000
+   :: exchange with sewer, to:  0.0000 , from:  0.0000  [m^3]
+                                   difference            0.0000 [m^3] +
+   :: total rain volume,   fallen:  0.0000 , effective:  0.0000 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:                   0.0000 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   0.0000 [m] = (at cell 0)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                         0.0000 [m^3] ||
+   :: total volume inside area, computed:                0.0000 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:31511.3,30036.2
+
+############
+at: 10/18/19 15:21:06
+RisoSurf (job Bl50D1)::time [min.] 10.0108
+   :: exchange with sewer, to: 1164.6587 , from: 6164.5913  [m^3]
+                                   difference         4999.9326 [m^3] +
+   :: total rain volume,   fallen: 31511.3359 , effective: 30036.1836 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:               26468.5098 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   0.6666 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                      8567.6064 [m^3] ||
+   :: total volume inside area, computed:             8567.6070 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:60158.0,57977.6
+
+############
+at: 10/18/19 15:23:31
+RisoSurf (job Bl50D1)::time [min.] 20.0108
+   :: exchange with sewer, to: 2345.3597 , from: 13668.5716  [m^3]
+                                   difference        11323.2119 [m^3] +
+   :: total rain volume,   fallen: 60158.0039 , effective: 57977.5664 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:               59289.7476 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   0.8972 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     10011.0307 [m^3] ||
+   :: total volume inside area, computed:            10011.0330 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:88804.7,85987.1
+
+############
+at: 10/18/19 15:25:58
+RisoSurf (job Bl50D1)::time [min.] 30.0108
+   :: exchange with sewer, to: 3526.1979 , from: 21174.0132  [m^3]
+                                   difference        17647.8153 [m^3] +
+   :: total rain volume,   fallen: 88804.6719 , effective: 85987.1094 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:               92002.6368 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.1027 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     11632.2878 [m^3] ||
+   :: total volume inside area, computed:            11632.3623 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:117451.3,114019.6
+
+############
+at: 10/18/19 15:28:24
+RisoSurf (job Bl50D1)::time [min.] 40.0108
+   :: exchange with sewer, to: 4707.0725 , from: 28679.5174  [m^3]
+                                   difference        23972.4449 [m^3] +
+   :: total rain volume,   fallen: 117451.3438 , effective: 114019.6172 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              124284.3549 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.3064 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     13707.7072 [m^3] ||
+   :: total volume inside area, computed:            13707.8028 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:146098.0,142060.1
+
+############
+at: 10/18/19 15:30:48
+RisoSurf (job Bl50D1)::time [min.] 50.0108
+   :: exchange with sewer, to: 5887.9600 , from: 36185.0207  [m^3]
+                                   difference        30297.0607 [m^3] +
+   :: total rain volume,   fallen: 146098.0156 , effective: 142060.1250 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              156320.7100 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.4977 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     16036.4757 [m^3] ||
+   :: total volume inside area, computed:            16036.3625 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:32:58
+RisoSurf (job Bl50D1)::time [min.] 60.0108
+   :: exchange with sewer, to: 7052.8804 , from: 43488.9968  [m^3]
+                                   difference        36436.1164 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              187148.4052 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6462 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     16586.8674 [m^3] ||
+   :: total volume inside area, computed:            16586.6425 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:33:53
+RisoSurf (job Bl50D1)::time [min.] 70.0108
+   :: exchange with sewer, to: 7510.5210 , from: 43824.8381  [m^3]
+                                   difference        36314.3171 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190446.0589 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     13167.4144 [m^3] ||
+   :: total volume inside area, computed:            13167.0240 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:34:30
+RisoSurf (job Bl50D1)::time [min.] 80.0108
+   :: exchange with sewer, to: 7581.0385 , from: 43824.8381  [m^3]
+                                   difference        36243.7995 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190647.5505 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6543 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12895.4053 [m^3] ||
+   :: total volume inside area, computed:            12894.4182 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:35:07
+RisoSurf (job Bl50D1)::time [min.] 90.0108
+   :: exchange with sewer, to: 7606.6956 , from: 43824.8381  [m^3]
+                                   difference        36218.1424 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190709.3898 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6541 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12807.9089 [m^3] ||
+   :: total volume inside area, computed:            12806.4148 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:35:44
+RisoSurf (job Bl50D1)::time [min.] 100.0108
+   :: exchange with sewer, to: 7624.8270 , from: 43824.8381  [m^3]
+                                   difference        36200.0111 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190744.4323 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12754.7350 [m^3] ||
+   :: total volume inside area, computed:            12752.0568 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:36:20
+RisoSurf (job Bl50D1)::time [min.] 110.0108
+   :: exchange with sewer, to: 7640.9442 , from: 43824.8381  [m^3]
+                                   difference        36183.8938 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190766.6923 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12716.3577 [m^3] ||
+   :: total volume inside area, computed:            12712.6132 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:36:55
+RisoSurf (job Bl50D1)::time [min.] 120.0108
+   :: exchange with sewer, to: 7652.2956 , from: 43824.8381  [m^3]
+                                   difference        36172.5424 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190781.1917 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12690.5070 [m^3] ||
+   :: total volume inside area, computed:            12685.7595 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:37:30
+RisoSurf (job Bl50D1)::time [min.] 130.0108
+   :: exchange with sewer, to: 7658.5242 , from: 43824.8381  [m^3]
+                                   difference        36166.3139 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190791.6130 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12673.8571 [m^3] ||
+   :: total volume inside area, computed:            12668.1975 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:38:12
+RisoSurf (job Bl50D1)::time [min.] 140.0108
+   :: exchange with sewer, to: 7661.6412 , from: 43824.8381  [m^3]
+                                   difference        36163.1969 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190799.4516 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12662.9016 [m^3] ||
+   :: total volume inside area, computed:            12656.4557 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:38:52
+RisoSurf (job Bl50D1)::time [min.] 150.0108
+   :: exchange with sewer, to: 7661.6629 , from: 43824.8381  [m^3]
+                                   difference        36163.1752 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190808.7029 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12653.6285 [m^3] ||
+   :: total volume inside area, computed:            12646.3507 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:39:32
+RisoSurf (job Bl50D1)::time [min.] 160.0108
+   :: exchange with sewer, to: 7661.6629 , from: 43824.8381  [m^3]
+                                   difference        36163.1752 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190816.0179 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12646.3135 [m^3] ||
+   :: total volume inside area, computed:            12638.2655 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:40:12
+RisoSurf (job Bl50D1)::time [min.] 170.0108
+   :: exchange with sewer, to: 7661.6629 , from: 43824.8381  [m^3]
+                                   difference        36163.1752 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190820.1953 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12642.1361 [m^3] ||
+   :: total volume inside area, computed:            12633.3071 [m^3]
+
+total volume feed at hydrograph positions:
+    gross and net rain by ground class:
+    [1 ]:171880.0,167299.2
+
+############
+at: 10/18/19 15:40:52
+RisoSurf (job Bl50D1)::time [min.] 180.0000
+   :: exchange with sewer, to: 7661.6629 , from: 43824.8381  [m^3]
+                                   difference        36163.1752 [m^3] +
+   :: total rain volume,   fallen: 171880.0156 , effective: 167299.1563 [m^3] +
+   :: additional percolation:          0.0000 [m^3/s] 
+   :: total volume input from hydrographs:               0.0000 [m^3] -
+   :: total volume that has left area:              190824.5156 [m^3] =
+   :: minimum water level:                   0.0000 [m] =
+   :: maximum water level:                   1.6540 [m] = (at cell 2355)
+   :: total depression loss:                   0.0000 [m^3] =
+                                                     12637.8159 [m^3] ||
+   :: total volume inside area, computed:            12628.1777 [m^3]
+
+total volume feed at hydrograph positions:
+
+total volume feed at hydrograph positions:
+total number of integration steps in boundary: 0 : 116260
+ _terminate successfully finished

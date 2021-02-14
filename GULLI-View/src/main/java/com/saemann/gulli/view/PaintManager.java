@@ -1816,7 +1816,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         this.mapViewer.clearLayer(layerkey);
                     }
                 }
-                layersHistoryPathToOutlets.clear();
                 for (Particle p : control.getThreadController().getParticles()) {
                     if (p == null) {
                         continue;
@@ -1842,27 +1841,30 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         }
 
                         ColorHolder ch = chTravelPath;
-                        String layer = layerHistoryPath;
+                        String key = layerHistoryPath;
 
                         if (hp.getHistory().size() > 0) {
                             if (hp.getHistory().getLast().isSetAsOutlet()) {
                                 String name = hp.getHistory().getLast().getName();
                                 if (colorMap.containsKey(name)) {
                                     ch = colorMap.get(name);
-                                    layer = ch.getDescription();
+                                    key = ch.getDescription();
+
                                 } else {
-                                    layer = "TraceTo_" + name;
-                                    layersHistoryPathToOutlets.add(layer);
-                                    ch = new ColorHolder(new Color(rand.nextInt(255), rand.nextInt(255), rand.nextInt(255), 70), layer);
+                                    key = "Trace to " + name;
+                                    ch = new ColorHolder(new Color(rand.nextInt(255), rand.nextInt(255), rand.nextInt(255), 50), key);
                                     ch.setStroke(chTravelPath.getStroke());
                                     colorMap.put(name, ch);
 //                                System.out.println("new color for "+ch.getDescription());
+                                }
+                                if (!layersHistoryPathToOutlets.contains(key)) {
+                                    layersHistoryPathToOutlets.add(key);
                                 }
                             }
                         }
 
                         ArrowPainting ap = new ArrowPainting(p.getId(), hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]), ch);
-                        mapViewer.addPaintInfoToLayer(layer, ap);
+                        mapViewer.addPaintInfoToLayer(key, ap);
                     }
                     mapViewer.recalculateShapes();
                 } catch (Exception e) {

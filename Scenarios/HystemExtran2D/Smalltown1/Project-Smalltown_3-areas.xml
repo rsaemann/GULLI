@@ -1,0 +1,139 @@
+<Scenario>
+<Name>Bl50D1</>
+<InputFiles>
+	<Network>
+		<NetworkTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\HystemExtran2D\Smalltown1\CalculationT50D1.result\Ergebnis.idbr</>
+		<RelativeNetworkTopology>CalculationT50D1.result\Ergebnis.idbr</>
+		<NetworkFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\HystemExtran2D\Smalltown1\CalculationT50D1.result\Ergebnis.idbr</>
+		<RelativeNetworkFlowField>CalculationT50D1.result\Ergebnis.idbr</>
+	</Network>
+	<Surface>
+		<SurfaceTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\HystemExtran2D\Smalltown1\model2D_Tutorial.model</>
+		<RelativeSurfaceTopology>model2D_Tutorial.model</>
+		<SurfaceFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\HystemExtran2D\Smalltown1\CalculationT50D1.result\Result2D.gdb</>
+		<RelativeSurfaceFlowField>CalculationT50D1.result\Result2D.gdb</>
+	</Surface>
+</InputFiles>
+<SimulationParameters>
+	<Timestep unit='s'>1.0</>
+</SimulationParameters>
+<Measuring>
+		<Network>
+			<Interval unit='s'>300.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>true</>
+		</Network>
+		<Surface>
+			<Interval unit='s'>600.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>false</>
+		</Surface>
+		<Trace>
+			<Interval>10</>
+		</Trace>
+</Measuring>
+<Materials>
+	<Material id=0>
+		<Name>Street</>
+		<Density unit='kg/m^3'>1000.0</>
+		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
+		<Network>
+			<Dispersion>
+				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
+				<DispersionCoefficient unit='m^2/s'>2.0</>
+			</Dispersion>
+		</Network>
+		<Surface>
+			<Dispersion>
+				<Type Parameters=2>com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant</>
+				<Dx unit='m^2/s'>0.1</>
+				<Dy unit='m^2/s'>0.1</>
+			</Dispersion>
+			<DryFlow unit='m/s'>0.005</>
+			<EnterDry>true</>
+		</Surface>
+	</Material>
+	<Material id=1>
+		<Name>Green</>
+		<Density unit='kg/m^3'>1000.0</>
+		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
+		<Network>
+			<Dispersion>
+				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
+				<DispersionCoefficient unit='m^2/s'>2.0</>
+			</Dispersion>
+		</Network>
+		<Surface>
+			<Dispersion>
+				<Type Parameters=2>com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant</>
+				<Dx unit='m^2/s'>0.1</>
+				<Dy unit='m^2/s'>0.1</>
+			</Dispersion>
+			<DryFlow unit='m/s'>0.005</>
+			<EnterDry>true</>
+		</Surface>
+	</Material>
+	<Material id=2>
+		<Name>Roof</>
+		<Density unit='kg/m^3'>1000.0</>
+		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
+		<Network>
+			<Dispersion>
+				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
+				<DispersionCoefficient unit='m^2/s'>2.0</>
+			</Dispersion>
+		</Network>
+		<Surface>
+			<Dispersion>
+				<Type Parameters=2>com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant</>
+				<Dx unit='m^2/s'>0.1</>
+				<Dy unit='m^2/s'>0.1</>
+			</Dispersion>
+			<DryFlow unit='m/s'>0.005</>
+			<EnterDry>true</>
+		</Surface>
+	</Material>
+</Materials>
+<Injections>
+	<FromNetworkResult>true</>
+	<Injection id=0>
+		<Type>InjectionSubArealInformation</>
+		<Diffusive>true</>
+		<Filter>Str</>
+		<Load unit='kg/m^2'>0.001</>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>0.0</>
+		<Material id=0>Street</>
+		<Mass unit='kg'>1337.0558747037053</>
+		<Particles>50000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=1>
+		<Type>InjectionSubArealInformation</>
+		<Diffusive>true</>
+		<Filter>Green</>
+		<Load unit='kg/m^2'>5.786822468984633E-4</>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>0.0</>
+		<Material id=1>Green</>
+		<Mass unit='kg'>1337.0558747037053</>
+		<Particles>50000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=2>
+		<Type>InjectionInflowInformation</>
+		<Diffusive>false</>
+		<Concentration unit='kg/m^3'>18.186393674622067</>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>900.0</>
+		<Material id=2>Roof</>
+		<Mass unit='kg'>3149.2795981485283</>
+		<Particles>50000</>
+		<Active>true</>
+	</Injection>
+</Injections>
+<Outputs>
+</Outputs>
+</Scenario>

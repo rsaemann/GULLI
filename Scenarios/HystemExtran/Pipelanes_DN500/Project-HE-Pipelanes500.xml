@@ -1,0 +1,167 @@
+<Scenario>
+<Name>10minPollution 1sec</>
+<InputFiles>
+	<Network>
+		<NetworkTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\HystemExtran\Pipelanes_DN500\NumDiff1km.idbm</>
+		<RelativeNetworkTopology>NumDiff1km.idbm</>
+		<NetworkFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\HystemExtran\Pipelanes_DN500\NumDiff1km-10minPollution 1sec_EXT.idbr</>
+		<RelativeNetworkFlowField>NumDiff1km-10minPollution 1sec_EXT.idbr</>
+	</Network>
+	<Surface>
+		<SurfaceTopology>null</>
+		<SurfaceFlowField>null</>
+	</Surface>
+</InputFiles>
+<SimulationParameters>
+	<Timestep unit='s'>1.0</>
+</SimulationParameters>
+<Measuring>
+		<Network>
+			<Interval unit='s'>60.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>true</>
+		</Network>
+		<Surface>
+			<Interval unit='s'>300.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>false</>
+		</Surface>
+		<Trace>
+			<Interval>0</>
+		</Trace>
+</Measuring>
+<Materials>
+	<Material id=0>
+		<Name>AFS63</>
+		<Density unit='kg/m^3'>1000.0</>
+		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
+		<Network>
+			<Dispersion>
+				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
+				<DispersionCoefficient unit='m^2/s'>0.0</>
+			</Dispersion>
+		</Network>
+		<Surface>
+			<Dispersion>
+				<Type Parameters=2>com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant</>
+				<Dx unit='m^2/s'>0.1</>
+				<Dy unit='m^2/s'>0.1</>
+			</Dispersion>
+			<DryFlow unit='m/s'>0.005</>
+			<EnterDry>true</>
+		</Surface>
+	</Material>
+</Materials>
+<Injections>
+	<FromNetworkResult>true</>
+	<Injection id=0>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=1607>null</>
+		<Position>
+			<Latitude>52.32778549194336</>
+			<Longitude>9.73362922668457</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=1>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=1809>null</>
+		<Position>
+			<Latitude>52.32733917236328</>
+			<Longitude>9.733621597290039</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=2>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=1911>null</>
+		<Position>
+			<Latitude>52.32688903808594</>
+			<Longitude>9.733613967895508</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=3>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=1963>null</>
+		<Position>
+			<Latitude>52.326438903808594</>
+			<Longitude>9.733606338500977</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=4>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=1985>null</>
+		<Position>
+			<Latitude>52.32598876953125</>
+			<Longitude>9.733599662780762</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=5>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=1997>null</>
+		<Position>
+			<Latitude>52.325538635253906</>
+			<Longitude>9.73359203338623</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+	<Injection id=6>
+		<Type>InjectionInformation</>
+		<OnSurface>false</>
+		<Capacity id=2004>null</>
+		<Position>
+			<Latitude>52.32508850097656</>
+			<Longitude>9.7335844039917</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>600.0</>
+		<Material id=0>AFS63</>
+		<Mass unit='kg'>600.0</>
+		<Particles>10000</>
+		<Active>true</>
+	</Injection>
+</Injections>
+<Outputs>
+</Outputs>
+</Scenario>

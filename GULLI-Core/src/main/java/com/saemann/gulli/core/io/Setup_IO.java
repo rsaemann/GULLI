@@ -35,6 +35,8 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionSubArealInform
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calculator;
+import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -73,7 +75,11 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t\t<NetworkTopology>" + files.getPipeNetwork() + "</>");
             bw.newLine();
+            bw.write("\t\t<RelativeNetworkTopology>" + file.getParentFile().toPath().relativize(files.getPipeNetwork().toPath()) + "</>");
+            bw.newLine();
             bw.write("\t\t<NetworkFlowField>" + files.getPipeResult() + "</>");
+            bw.newLine();
+            bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
             bw.newLine();
             bw.write("\t</Network>");
             bw.newLine();
@@ -81,8 +87,17 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t\t<SurfaceTopology>" + files.getSurfaceDirectory() + "</>");
             bw.newLine();
+            if (files.getSurfaceDirectory() != null) {
+                bw.write("\t\t<RelativeSurfaceTopology>" + file.getParentFile().toPath().relativize(files.getSurfaceDirectory().toPath()) + "</>");
+                bw.newLine();
+            }
+
             bw.write("\t\t<SurfaceFlowField>" + files.getSurfaceResult() + "</>");
             bw.newLine();
+            if (files.getSurfaceResult() != null) {
+                bw.write("\t\t<RelativeSurfaceFlowField>" + file.getParentFile().toPath().relativize(files.getSurfaceResult().toPath()) + "</>");
+                bw.newLine();
+            }
             bw.write("\t</Surface>");
             bw.newLine();
         }
@@ -127,6 +142,12 @@ public class Setup_IO {
         bw.write("\t\t\t<Synchronize Writing>" + setup.isSurfaceMeasurementSynchronize() + "</>");
         bw.newLine();
         bw.write("\t\t</Surface>");
+        bw.newLine();
+        bw.write("\t\t<Trace>");
+        bw.newLine();
+        bw.write("\t\t\t<Interval>" + setup.getIntervalTraceParticles() + "</>");
+        bw.newLine();
+        bw.write("\t\t</Trace>");
         bw.newLine();
         bw.write("</Measuring>");
         bw.newLine();
@@ -300,7 +321,7 @@ public class Setup_IO {
         int state = -1;
         FileReader fr = new FileReader(file);
         BufferedReader br = new BufferedReader(fr);
-        boolean networkRelation = false, surfaceRelation = false;
+        boolean networkRelation = false, surfaceRelation = false, trace = false;
 
         //Material temperary storage
         HashMap<Integer, Material> materials = new HashMap<>();
@@ -362,18 +383,54 @@ public class Setup_IO {
                         String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                         File f = new File(pathNetworkTopology);
                         setup.files.pipeNetwork = f;
+                    } else if (line.contains("<RelativeNetworkTopology>")) {
+                        String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        File f = new File(file.getParentFile(), pathNetworkTopology);
+                        if (f.exists()) {
+                            setup.files.pipeNetwork = f;
+                        }
                     } else if (line.contains("<NetworkFlowField>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                         File f = new File(path);
                         setup.files.pipeResult = f;
+                    } else if (line.contains("<RelativeNetworkFlowField>")) {
+                        String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        File f = new File(file.getParentFile(), path);
+                        if (f.exists()) {
+                            setup.files.pipeResult = f;
+                        }
                     } else if (line.contains("<SurfaceTopology>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                        File f = new File(path);
-                        setup.files.surfaceDirectory = f;
+                        if (path.isEmpty() || path.equals("null")) {
+                            setup.files.surfaceDirectory = null;
+                        } else {
+                            File f = new File(path);
+                            setup.files.surfaceDirectory = f;
+                        }
+                    } else if (line.contains("<RelativeSurfaceTopology>")) {
+                        String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        if (!path.isEmpty() && (!path.equals("null"))) {
+                            File f = new File(file.getParentFile(), path);
+                            if (f.exists()) {
+                                setup.files.surfaceDirectory = f;
+                            }
+                        }
                     } else if (line.contains("<SurfaceFlowField>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                        File f = new File(path);
-                        setup.files.surfaceResult = f;
+                        if (path.isEmpty() || path.equals("null")) {
+                            setup.files.surfaceResult = null;
+                        } else {
+                            File f = new File(path);
+                            setup.files.surfaceResult = f;
+                        }
+                    } else if (line.contains("<RelativeSurfaceFlowField>")) {
+                        String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        if (!path.isEmpty() && (!path.equals("null"))) {
+                            File f = new File(file.getParentFile(), path);
+                            if (f.exists()) {
+                                setup.files.surfaceResult = f;
+                            }
+                        }
                     }
                     if (line.contains("/InputFiles")) {
                         state = -1;
@@ -401,6 +458,12 @@ public class Setup_IO {
                         if (materialFlowCalculator == null) {
                             materialFlowCalculator = new Routing_Homogene();
 //                            System.err.println("Created default " + materialFlowCalculator.getClass().getSimpleName() + " for material " + materialName + " (" + materialID + ")");
+                        }
+                        if (materialDispersionCalculatorPipe == null) {
+                            materialDispersionCalculatorPipe = new Dispersion1D_Constant();
+                        }
+                        if (materialDispersionCalculatorSurface == null) {
+                            materialDispersionCalculatorSurface = new Dispersion2D_Constant();
                         }
 
                         Material mat = new Material(materialName, 1000, materialID, materialFlowCalculator, materialDispersionCalculatorPipe, materialDispersionCalculatorSurface);
@@ -481,7 +544,7 @@ public class Setup_IO {
                                 if (mat == null) {
                                     System.err.println("No material found for injection " + injectionID + ": " + injectionCapacityName + "   materials:" + materials.size());
                                 } else {
-                                    if (injectionType.equals(InjectionInformation.class.getSimpleName())) {
+                                    if (injectionType != null && injectionType.equals(InjectionInformation.class.getSimpleName())) {
                                         if (injectionOnSurface) {
 
                                             inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), false, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
@@ -497,15 +560,15 @@ public class Setup_IO {
                                                 System.err.println("No information about the Manhole to inject");
                                             }
                                         }
-                                    } else if (injectionType.equals(InjectionArealInformation.class.getSimpleName())) {
+                                    } else if (injectionType != null && injectionType.equals(InjectionArealInformation.class.getSimpleName())) {
                                         InjectionArealInformation ainj = new InjectionArealInformation(mat, null, injectionMass, injectionParticles);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
-                                    } else if (injectionType.equals(InjectionSubArealInformation.class.getSimpleName())) {
+                                    } else if (injectionType != null && injectionType.equals(InjectionSubArealInformation.class.getSimpleName())) {
                                         InjectionSubArealInformation ainj = new InjectionSubArealInformation(mat, null, injectionFilterString, injectionMass, injectionParticles);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
-                                    } else if (injectionType.equals(InjectionInflowInformation.class.getSimpleName())) {
+                                    } else if (injectionType != null && injectionType.equals(InjectionInflowInformation.class.getSimpleName())) {
                                         InjectionInflowInformation ainj = new InjectionInflowInformation(mat, null, injectionConcentration, injectionParticles);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
@@ -570,7 +633,11 @@ public class Setup_IO {
                             } else if (line.contains("Materi")) {
                                 injection_materialID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
                             } else if (line.contains("Capacity")) {
-                                injectionCapacityID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
+                                if (line.contains("id=")) {
+                                    injectionCapacityID = Integer.parseInt(line.substring(line.indexOf("=") + 1, line.indexOf(">")));
+                                } else {
+                                    injectionCapacityID = -1;
+                                }
                                 injectionCapacityName = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                                 if (injectionCapacityName != null && (injectionCapacityName.equals("null") || injectionCapacityName.isEmpty())) {
                                     injectionCapacityName = null;
@@ -591,13 +658,21 @@ public class Setup_IO {
                     if (line.contains("<Surface")) {
                         surfaceRelation = true;
                         networkRelation = false;
+                        trace = false;
                     } else if (line.contains("</Surface")) {
                         surfaceRelation = false;
                     } else if (line.contains("<Network")) {
                         surfaceRelation = false;
                         networkRelation = true;
+                        trace = false;
                     } else if (line.contains("</Network")) {
                         networkRelation = false;
+                    } else if (line.contains("<Trace")) {
+                        trace = true;
+                        networkRelation = false;
+                        surfaceRelation = false;
+                    } else if (line.contains("</Trace")) {
+                        trace = false;
                     }
                     /*<Interval unit='s'>60.0</>
 			<Timecontinuous>true</>
@@ -610,6 +685,9 @@ public class Setup_IO {
                         }
                         if (networkRelation) {
                             setup.setPipeMeasurementtimestep(seconds);
+                        }
+                        if (trace) {
+                            setup.setIntervalTraceParticles(Integer.parseInt(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
                         }
                     } else if (line.contains("Timecontinuous")) {
                         boolean timeconti = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));

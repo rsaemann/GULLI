@@ -372,8 +372,13 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
                 p.setDrySurfaceMovement(false);
                 //Optimized version already gives the squarerooted values. (To avoid squareroot operations [very slow]
-                p.getMaterial().getDispersionCalculatorSurface().calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);//D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
-
+                try {
+                    p.getMaterial().getDispersionCalculatorSurface().calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);//D.calculateDiffusionSQRT(particlevelocity[0], particlevelocity[1], surface, p.surfaceCellID, tempDiff);
+                } catch (Exception e) {
+                    System.out.println("Particle: "+p);
+                    System.out.println("Material: "+p.getMaterial());
+                    System.out.println("Dispersion:"+p.getMaterial().getDispersionCalculatorSurface());
+                }
                 sqrt2dtDx = sqrt2dt * tempDiff[0];
                 sqrt2dtDy = sqrt2dt * tempDiff[1];
 

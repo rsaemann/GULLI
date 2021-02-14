@@ -395,14 +395,21 @@ public class InjectionInformation implements InjectionInfo {
         if (!Arrays.equals(this.spillMass, other.spillMass)) {
             return false;
         }
-        if (!Objects.equals(this.material, other.material)) {
-            return false;
+        if (this.material != null && other.material != null) {
+            if (!Objects.equals(this.material, other.material)) {
+                return false;
+            }
         }
-        if (!Objects.equals(this.capacityName, other.capacityName)) {
-            return false;
+
+        if (this.capacityName != null && other.capacityName != null) {
+            if (!Objects.equals(this.capacityName, other.capacityName)) {
+                return false;
+            }
         }
-        if (!Objects.equals(this.position, other.position)) {
-            return false;
+        if (this.position != null && other.position != null) {
+            if (!Objects.equals(this.position, other.position)) {
+                return false;
+            }
         }
         return this.cellID == other.cellID;
     }

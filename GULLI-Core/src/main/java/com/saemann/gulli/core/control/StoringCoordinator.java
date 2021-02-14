@@ -76,9 +76,9 @@ public class StoringCoordinator implements SimulationActionListener {
         if (writing) {
             System.err.println("New Simulation started, but not all values of the old simulation are written to the filesystem. This might cause corrupt files.");
         }
-        if (control != null && control.getLoadingCoordinator().getFilePipeResultIDBF() != null) {
-            if (!control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile().equals(fileRoot)) {
-                fileRoot = control.getLoadingCoordinator().getFilePipeResultIDBF().getParentFile();
+        if (control != null && control.getLoadingCoordinator().getFilePipeFlowfield() != null) {
+            if (!control.getLoadingCoordinator().getFilePipeFlowfield().getParentFile().equals(fileRoot)) {
+                fileRoot = control.getLoadingCoordinator().getFilePipeFlowfield().getParentFile();
                 System.out.println("set output directory to " + fileRoot.getAbsolutePath());
             }
         }
