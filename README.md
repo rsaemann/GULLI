@@ -34,6 +34,12 @@ This repository is designed for working with Maven in the Java IDE NetBeans
 
 [Guide for installation with Netbeans Maven](readme/installation/MavenInstall.md)
 
+Alternatively, for a quick insight, you can download the [pre-release demonstrator](https://github.com/rsaemann/GULLI/releases/tag/Demo) ([Jar File](https://github.com/rsaemann/GULLI/releases/download/Demo/GULLI-view-1.0-SNAPSHOT-shaded.jar) )
+
+Both will show up the graphical user interface where you can run simulations with the provided Scenarios.
+
+<img src="readme/GUI.png" width=500px>
+
 ------
 ## Scientific reference
 
@@ -49,4 +55,5 @@ Please cite
 Find it on [Researchgate](https://www.researchgate.net/publication/328486209_Modeling_of_contaminant_transport_during_an_urban_pluvial_flood_event_-_The_importance_of_surface_flow).
 
 For more information, please contact Robert Sämann (https://www.hydromech.uni-hannover.de/saemann/)
+
 You can also find me on Researchgate (https://www.researchgate.net/profile/Robert_Saemann)
