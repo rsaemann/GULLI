@@ -23,6 +23,10 @@ Output:
 This transport model is a product of the research project "Real-Time Prediction of Pluvial Floods and Induced Water Contamination in Urban Areas (EVUS)" (https://www.pluvialfloods.uni-hannover.de/pluvialfloods.html).
 Goal of the transport model is providing very fast forecast of contamination areas in case that a spill event was reported. Therefore the focus lies on computational speed.
 
+See, what it is designed for: Fast prediction of contaminant transport to warn residents and inform firefighters to embank before the actual spread.
+
+<img src="readme/Pos2Refklein.gif">
+
 ---------------
 ## Installation
 
