@@ -251,15 +251,19 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.panelVideo.setBorder(new TitledBorder("Video GIF"));
 
         //Simulation Control buttons        
-        panelButtons = new JPanel(new GridLayout(2, 2, 5, 5));
+        panelButtons = new JPanel(new GridLayout(3, 1, 5, 5));
         panelButtons.setBorder(new TitledBorder("Control"));
 
-        panelButtons.add(buttonRun, 0);
-        panelButtons.add(buttonStep, 1);
+        JPanel panelFirstRow = new JPanel(new GridLayout(1, 2, 5, 5));
+        panelButtons.add(panelFirstRow);
+        panelFirstRow.add(buttonRun);
+        panelFirstRow.add(buttonStep);
         buttonStep.setEnabled(false);
 
-        panelButtons.add(buttonPause, 2);
-        panelButtons.add(buttonReset, 3);
+        JPanel panelSecondRow = new JPanel(new GridLayout(1, 2, 5, 5));
+        panelSecondRow.add(buttonPause);
+        panelSecondRow.add(buttonReset);
+        panelButtons.add(panelSecondRow);
         this.add(panelButtons, BorderLayout.NORTH);
 
         this.add(tabs, BorderLayout.CENTER);
@@ -312,11 +316,19 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.panelTimeSlide = new JPanel(new GridLayout(3, 1));
         panelTimeSlide.setMaximumSize(new Dimension(500, 100));
         this.panelTimeSlide.setBorder(new TitledBorder("Simulation time"));
+        JPanel panelTimeLabels = new JPanel(new BorderLayout());
+        panelTimeLabels.add(new JLabel("Start"), BorderLayout.WEST);
+        JLabel lact=new JLabel("Actual");
+        lact.setHorizontalAlignment(SwingConstants.CENTER);
+        panelTimeLabels.add(lact, BorderLayout.CENTER);
+        panelTimeLabels.add(new JLabel("End"), BorderLayout.EAST);
+
         this.labelStarttime = new JLabel("Start");
         this.labelEndtime = new JLabel("End");
         this.labelEndtime.setHorizontalAlignment(SwingConstants.RIGHT);
         this.labelactualTime = new JLabel("slider");
         this.labelactualTime.setHorizontalAlignment(SwingConstants.CENTER);
+
         this.progressSimulation = new JProgressBar();
         this.progressSimulation.setMaximum(100);
         this.progressSimulation.setMinimum(0);
@@ -324,7 +336,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         JPanel panelTimes = new JPanel(new GridLayout(1, 3));
         this.progressSimulation.setStringPainted(true);
         this.labelSimulationTime = new JLabel();
-        this.panelTimeSlide.add(progressSimulation, BorderLayout.NORTH);
+//        this.panelTimeSlide.add(progressSimulation, BorderLayout.NORTH);
+        this.panelTimeSlide.add(panelTimeLabels, BorderLayout.NORTH);
+        panelButtons.add(progressSimulation);
         panelTimes.add(labelStarttime, BorderLayout.WEST);
         panelTimes.add(labelactualTime, BorderLayout.CENTER);
         panelTimes.add(labelEndtime, BorderLayout.EAST);

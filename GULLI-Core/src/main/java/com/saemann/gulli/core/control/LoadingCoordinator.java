@@ -313,6 +313,10 @@ public class LoadingCoordinator {
                             }
                         }
                     }
+                    if (isInterrupted()) {
+                        System.out.println("   LoadingThread is interrupted -> break");
+                        break;
+                    }
                     if (changedSurface) {
                         for (InjectionInfo inj : manualInjections) {
                             if (inj.spillOnSurface()) {
@@ -341,6 +345,43 @@ public class LoadingCoordinator {
 
                         }
                     }
+                    if (surface.waterlevelLoader == null) {
+                        System.out.println("Waterlevelloader is null try to use gradient calculation filetype: " + filetype);
+                        if (filetype == FILETYPE.SWMM_5_1) {
+                            if (surface.triangle_downhilldirection == null) {
+                                surface.calculateDownhillSlopes();
+                            }
+                            surface.setTimeContainer(new TimeIndexContainer(new long[]{0, Long.MAX_VALUE}));
+                            surface.waterlevelLoader = new SurfaceWaterlevelLoader() {
+                                @Override
+                                public float[] loadWaterlevlvalues(int triangleID) {
+                                    return new float[]{0.1f, 0.1f};
+                                }
+
+                                @Override
+                                public float loadZElevation(int triangleID) {
+                                    return 0;
+                                }
+                            };
+                            surface.velocityLoader = new SurfaceVelocityLoader() {
+                                @Override
+                                public float[][] loadVelocity(int triangleID) {
+                                    float[] v = new float[2];
+                                    v[0] = surface.triangle_downhilldirection[triangleID][0] *surface.triangle_downhillIntensity[triangleID]*10f;
+                                    v[1] = surface.triangle_downhilldirection[triangleID][1] *surface.triangle_downhillIntensity[triangleID]*10f;
+                                    float[][] tl = new float[2][2];
+                                    tl[0] = v;
+                                    tl[1] = v;
+                                    return tl;
+                                }
+                            };
+                            surface.initSparseTriangleVelocityLoading(surface.velocityLoader, true, false);
+                            System.out.println("Created a constant downstream flow velocity loader");
+                            fileSurfaceWaterlevels = fileSurfaceCoordsDAT;
+                            loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
+                        }
+                    }
+
                     if (loadingSurfaceVelocity == LOADINGSTATUS.LOADED) {
                         ParticlePipeComputing.spillOutToSurface = true;
                     } else {
@@ -535,7 +576,7 @@ public class LoadingCoordinator {
                     action.description = "Load spill events";
                     System.out.println("load file injections? " + loadResultInjections);
                     totalInjections.clear();
-                    if (this.loadResultInjections) {                       
+                    if (this.loadResultInjections) {
                         he_injection = resultDatabase.readInjectionInformation(startAtZeroTime);
                         System.out.println("loaded " + he_injection.size() + " injections from file. totalinjections are: " + totalInjections.size());
                     } else {
@@ -697,6 +738,7 @@ public class LoadingCoordinator {
                     //SWMM 5 output file
                     action.description = "Open out file";
                     SWMM_Out_Reader reader = new SWMM_Out_Reader(fileMainPipeResult);
+                    
                     Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(network, reader, new ArrayList(0), new ArrayList(0), zeroTimeStart);
                     timeContainerPipe = cs.first;
                     timeContainerManholes = cs.second;
@@ -975,8 +1017,13 @@ public class LoadingCoordinator {
                     }
                 }
                 if (scenario != null) {
-                    surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps()));
-                    scenario.setStatusTimesSurface(surface);
+                    if (surface.getNumberOfTimestamps() < 2) {
+                        surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), 2));
+                        scenario.setStatusTimesSurface(surface);
+                    } else {
+                        surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps()));
+                        scenario.setStatusTimesSurface(surface);
+                    }
                 } else {
                     System.err.println("No Scenario loaded, can not calculate timeintervalls for surface waterheight and velocities.");
                 }
@@ -1734,20 +1781,20 @@ public class LoadingCoordinator {
         this.loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
     }
 
-    /**
-     * Dataprovider for reading information about the current network elements.
-     *
-     * @return
-     */
-    public SparseTimeLineDataProvider getSparsePipeDataProvider() {
-        if (!sparsePipeLoading) {
-            return null;
-        }
-        if (resultDatabase != null) {
-            return resultDatabase;
-        }
-        return tempFBDB;
-    }
+//    /**
+//     * Dataprovider for reading information about the current network elements.
+//     *
+//     * @return
+//     */
+//    public SparseTimeLineDataProvider getSparsePipeDataProvider() {
+//        if (!sparsePipeLoading) {
+//            return null;
+//        }
+//        if (resultDatabase != null) {
+//            return resultDatabase;
+//        }
+//        return tempFBDB;
+//    }
 
     public boolean loadSetup(File file) {
         try {

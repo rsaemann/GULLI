@@ -737,6 +737,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     }
 
                 } else {
+                    if(cellIDnew==-2){
+                        // goes over a trespassable boundary
+                        p.setInactive();
+//                        System.out.println("Particle "+p.getId()+" moved across the domain boundary and became inactive. from cell "+cellID);
+                        return;
+                    }
                     //PArticle tries to move over the edge into an undefined area
                     if (slidealongEdges && !isprojecting) {
                         double f;

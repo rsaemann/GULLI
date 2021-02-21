@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2020 B1.
+ * Copyright 2020 Robert Sämann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -62,8 +62,6 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 /**
  * Panel to display parameters of the measurements for pipe and surface domain
@@ -196,7 +194,7 @@ public class MeasurementPanel extends JPanel {
 
         JPanel panelHistoryParticles = new JPanel();
         panelHistoryParticles.setMaximumSize(new Dimension(500, 50));
-        panelHistoryParticles.setToolTipText("Select surface view 'PARTICLETRACE' after simulation to show trace on the map. Actual: "+control.getNumberTracerParticles());
+        panelHistoryParticles.setToolTipText("Select surface view 'PARTICLETRACE' after simulation to show trace on the map. Actual: " + control.getNumberTracerParticles());
         panelHistoryParticles.setBorder(new TitledBorder(new LineBorder(Color.orange, 2), "Particle trace"));
         panelHistoryParticles.setLayout(new BoxLayout(panelHistoryParticles, BoxLayout.X_AXIS));
         checkHistoryParticles = new JCheckBox("Trace", control.isTraceParticles());
@@ -446,8 +444,8 @@ public class MeasurementPanel extends JPanel {
         textHistoricIth.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-               control.intervallHistoryParticles=((Number)textHistoricIth.getValue()).intValue();
-               
+                control.intervallHistoryParticles = ((Number) textHistoricIth.getValue()).intValue();
+
             }
         });
 
@@ -461,6 +459,7 @@ public class MeasurementPanel extends JPanel {
     }
 
     public void updateParameters() {
+        selfChange = true;
         if (control != null && control.getScenario() != null) {
             if (control.getScenario().getMeasurementsPipe() != null) {
                 ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
@@ -515,7 +514,7 @@ public class MeasurementPanel extends JPanel {
         }
 
         if (control != null && control.getSurface() != null) {
-            selfChange = true;
+
             if (control.getSurface().getMeasurementRaster() == null) {
                 comboSurfaceGrid.setSelectedItem(GridType.NONE);
             } else {
@@ -532,12 +531,17 @@ public class MeasurementPanel extends JPanel {
                     textGridSize.setToolTipText("Unknown type of Raster");
                 }
             }
-            selfChange = false;
+
         }
+        if (control != null) {
+            checkHistoryParticles.setSelected(control.isTraceParticles());
+        }
+        selfChange = false;
 
     }
 
     public void setEditable(boolean editable) {
+        selfChange = true;
         textMeasurementSecondsPipe.setEditable(editable);
         textMeasurementSecondsSurface.setEditable(editable);
         checkMeasureContinouslyPipe.setEnabled(editable);
@@ -552,7 +556,7 @@ public class MeasurementPanel extends JPanel {
         textHistoricIth.setEnabled(editable);
 
         textGridSize.setEnabled(editable);
-        selfChange = true;
+        
         comboSurfaceGrid.setEnabled(editable);
         selfChange = false;
     }

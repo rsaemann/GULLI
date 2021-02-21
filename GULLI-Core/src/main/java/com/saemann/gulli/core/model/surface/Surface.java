@@ -68,6 +68,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public double[][] weight;
 
     public float[][] triangle_downhilldirection;
+    public float[] triangle_downhillIntensity;
 
     public boolean spatialInterpolationVelocity = false;
     public boolean timeInterpolatedValues = true;
@@ -376,6 +377,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     float distance = (float) Math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
                     neighbourDistances[i][j] = distance;
                 } catch (Exception ex) {
+                    System.out.println("cannot get neighbour " + neumannNeighbours[i][j] + "   index: " + i + "  nr: " + j);
                     ex.printStackTrace();
                 }
             }
@@ -463,7 +465,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     public void calculateDownhillSlopes() {
         triangle_downhilldirection = new float[triangleNodes.length][2];
+        triangle_downhillIntensity = new float[triangle_downhilldirection.length];
         double[] v0, v1, v2, a = new double[2], b = new double[2];
+        double sumlength = 0;
         for (int i = 0; i < triangleNodes.length; i++) {
             try {
                 v0 = vertices[triangleNodes[i][0]];
@@ -471,7 +475,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 v2 = vertices[triangleNodes[i][2]];
 
                 a[0] = v2[0] - v0[0];
-                a[1] = v1[1] - v0[1];
+                a[1] = v2[1] - v0[1];
                 b[0] = v1[0] - v0[0];
                 b[1] = v1[1] - v0[1];
 
@@ -482,13 +486,17 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 double y = (0.5) * (((v2[2] - v0[2]) * a[1] / asquare) + (v1[2] - v0[2]) * b[1] / bsquare);
 
                 double length = Math.sqrt((x * x) + (y * y));
-
+                sumlength += length;
                 triangle_downhilldirection[i][0] = (float) (-x / length);
                 triangle_downhilldirection[i][1] = (float) (-y / length);
+                triangle_downhillIntensity[i] = (float) length;
+
+//                System.out.println(i+": asquare:"+asquare+" b^2:"+bsquare);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+//        System.out.println("Mean slope intensity="+sumlength/(double)triangle_downhillIntensity.length);
     }
 
     public float[] getTraingleAreas() {
@@ -528,7 +536,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             calcTriangleAreas();
         }
         for (int i = 0; i < cellIDs.length; i++) {
-            area += triangleArea[(int)cellIDs[i]];
+            area += triangleArea[(int) cellIDs[i]];
         }
         return area;
     }
@@ -3259,6 +3267,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public void setTimeContainer(TimeIndexContainer times) {
 //        System.err.println("Surface.setTimeContainer: "+times);
         this.times = times;
+        this.numberOfTimestamps = times.getNumberOfTimes();
         if (this.measurementRaster != null) {
             this.measurementRaster.setTimeContainer(times);
         }

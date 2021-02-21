@@ -434,13 +434,15 @@ public class HE_SurfaceIO {
 //        start = System.currentTimeMillis();
         fr = new FileReader(fileNeighbours);
         br = new BufferedReader(fr);
+//        System.out.println("Number of triangles: "+numberofTriangles);
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
+        integerParts=new int[9];
         try {
             nc.setReader(br);
             while (br.ready()) {
 //                line = br.readLine();
-//                lines++;
+                lines++;
 //                values = splitter.split(line);//line.split(seperator);
 //                parts += values.length;
 //                int first = Integer.parseInt(values[0]);
@@ -450,11 +452,29 @@ public class HE_SurfaceIO {
                     neighbours[index][0] = integerParts[0];
                     neighbours[index][1] = integerParts[1];
                     neighbours[index][2] = integerParts[2];
-
+                    
+                    // -1 = House no flow boundary
+                    // -2 = outflow boundary / trespassable
+                    if(integerParts[0]<0){
+                        if(integerParts[6]==1){
+                            neighbours[index][0]=-2;
+                        }
+                    }
+                    if(integerParts[1]<0){
+                        if(integerParts[7]==1){
+                            neighbours[index][1]=-2;
+                        }
+                    }
+                    if(integerParts[2]<0){
+                        if(integerParts[8]==1){
+                            neighbours[index][2]=-2;
+                        }
+                    }
                     index++;
                 }
             }
         } catch (Exception ex) {
+            System.err.println("Problem in line "+lines+" of "+fileNeighbours);
             ex.printStackTrace();
         }
         br.close();
@@ -1424,10 +1444,15 @@ public class HE_SurfaceIO {
             while (br.ready()) {
                 line = br.readLine();
                 String[] seperated = line.split("%");
-                String[] values = seperated[2].replaceAll("  ", " ").split(" ");
-
+                String[] values = null;
+                try {
+                    values = seperated[2].replaceAll("  ", " ").split(" ");
+                
                 Pair<String, Integer> pair = new Pair<>(seperated[0].split(" ")[0], Integer.parseInt(values[2]));
                 manhole2Triangle.add(pair);
+                } catch (Exception e) {
+                    System.out.println(" problem with line '"+line+"'");
+                }
             }
         }
         return manhole2Triangle;

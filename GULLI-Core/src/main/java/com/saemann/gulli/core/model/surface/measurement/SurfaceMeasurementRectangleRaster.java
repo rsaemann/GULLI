@@ -61,7 +61,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
         mass = new double[numberXIntervals][][][];
         particlecounter = new long[numberXIntervals][][][];
-        measurementsInTimeinterval = new int[times.getNumberOfTimes()];
+        measurementsInTimeinterval = new int[times==null?2:times.getNumberOfTimes()];
         measurementTimestamp = new long[measurementsInTimeinterval.length];
         durationInTimeinterval=new double[measurementsInTimeinterval.length];
     }

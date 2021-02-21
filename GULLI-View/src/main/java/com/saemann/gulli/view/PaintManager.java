@@ -12,6 +12,7 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
+import com.saemann.gulli.core.io.swmm.SWMM_Out_Reader;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -933,22 +934,67 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 //                    System.out.println("Painted " + counter + " spill source shapes.");
 //                }
             } else if (pipeShow == PIPESHOW.MANHOLEOVERSPILL) {
-                SparseTimeLineDataProvider dataloader = control.getLoadingCoordinator().getSparsePipeDataProvider();
-                if (dataloader != null) {
-                    if (dataloader instanceof HE_Database) {
-                        HE_Database fb = (HE_Database) dataloader;
-                        String[] names = fb.getOverspillingManholes(0.01);
-                        System.out.println("Found " + names.length + " overspilling manholes.");
-                        for (String name : names) {
-                            Manhole mh = network.getManholeByName(name);
-                            if (mh != null) {
-                                NodePainting np = new NodePainting(mh.getAutoID(), mh.getPosition().lonLatCoordinate(), chSpillover);
+                int times = control.getScenario().getStatusTimesManhole().getNumberOfTimes();
+                for (Manhole manhole : network.getManholes()) {
+                    if (manhole.getStatusTimeLine() != null) {
+                        for (int t = 0; t < times; t++) {
+                            if (manhole.getStatusTimeLine().getFlowToSurface(t) > 0) {
+                                NodePainting np = new NodePainting(manhole.getAutoID(), manhole.getPosition().lonLatCoordinate(), chSpillover);
                                 np.setShapeRound(true);
                                 np.setRadius(4);
                                 mapViewer.addPaintInfoToLayer(layerManholesOverspilling, np);
+                                break;
                             }
                         }
                     }
+//                SparseTimeLineDataProvider dataloader = control.getNetwork().getManholes().iterator().next()..getLoadingCoordinator().getSparsePipeDataProvider();
+//                System.out.println("Dataloader is "+dataloader);
+//                if (dataloader != null) {
+//                    if (dataloader instanceof HE_Database) {
+//                        HE_Database fb = (HE_Database) dataloader;
+//                        String[] names = fb.getOverspillingManholes(0.01);
+//                        System.out.println("Found " + names.length + " overspilling manholes.");
+//                        for (String name : names) {
+//                            Manhole mh = network.getManholeByName(name);
+//                            if (mh != null) {
+//                                NodePainting np = new NodePainting(mh.getAutoID(), mh.getPosition().lonLatCoordinate(), chSpillover);
+//                                np.setShapeRound(true);
+//                                np.setRadius(4);
+//                                mapViewer.addPaintInfoToLayer(layerManholesOverspilling, np);
+//                            }
+//                        }
+//                    } else if (dataloader instanceof SWMM_Out_Reader) {
+//                        
+//                        //There is no simple call. have to go through all elements
+//                        SWMM_Out_Reader spr = (SWMM_Out_Reader) dataloader;
+//                        int times = control.getScenario().getStatusTimesManhole().getNumberOfTimes();
+//                        for (Manhole manhole : network.getManholes()) {
+//                            if (manhole.getStatusTimeLine() != null) {
+//                                for (int t = 0; t < times; t++) {
+//                                    if (manhole.getStatusTimeLine().getFlowToSurface(t) > 0) {
+//                                        NodePainting np = new NodePainting(manhole.getAutoID(), manhole.getPosition().lonLatCoordinate(), chSpillover);
+//                                        np.setShapeRound(true);
+//                                        np.setRadius(4);
+//                                        mapViewer.addPaintInfoToLayer(layerManholesOverspilling, np);
+//                                        break;
+//                                    }
+//                                }
+//                            } else {
+//                                //Load information from file
+//                                float[] floods = spr.getNodeValues((int) manhole.getManualID(), 5);
+//                                for (int i = 0; i < floods.length; i++) {
+//                                    if (floods[i] > 0) {
+//                                        NodePainting np = new NodePainting(manhole.getAutoID(), manhole.getPosition().lonLatCoordinate(), chSpillover);
+//                                        np.setShapeRound(true);
+//                                        np.setRadius(4);
+//                                        mapViewer.addPaintInfoToLayer(layerManholesOverspilling, np);
+//                                        break;
+//                                    }
+//                                }
+//                            }
+//
+//                        }
+//                    }
                 }
 
             } else {

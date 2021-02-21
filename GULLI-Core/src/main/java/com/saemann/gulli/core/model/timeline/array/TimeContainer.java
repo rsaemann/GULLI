@@ -19,7 +19,11 @@ public class TimeContainer {
 
     public TimeContainer(long[] times) {
         this.times = times;
-        this.duration=(int) (times[times.length - 1] - times[0]);
+        if (times == null || times.length < 2) {
+            this.duration = Integer.MAX_VALUE;
+        } else {
+            this.duration = (int) (times[times.length - 1] - times[0]);
+        }
     }
 
     /**
@@ -36,7 +40,7 @@ public class TimeContainer {
     }
 
     public int getTimeIndex(long time) {
-        int i = (int) (((time - times[0]) * (times.length-1)) / duration);
+        int i = (int) (((time - times[0]) * (times.length - 1)) / duration);
         if (i < 0) {
             return 0;
         }
@@ -55,7 +59,7 @@ public class TimeContainer {
      * @return
      */
     public double getTimeIndexDouble(long time) {
-        double i = (((time - times[0]) * (times.length-1)) / (double) (duration));
+        double i = (((time - times[0]) * (times.length - 1)) / (double) (duration));
         if (i < 0) {
 //            System.out.println("time index <0 : "+i+"    time: "+time+"   starttime:"+times[0]+"  maxtime="+times[times.length - 1]);
             return 0.000000001;
