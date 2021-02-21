@@ -1,0 +1,78 @@
+<Scenario>
+<Name></>
+<InputFiles>
+	<Network>
+		<NetworkTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\artificial_SWMM_model.inp</>
+		<RelativeNetworkTopology>artificial_SWMM_model.inp</>
+		<NetworkFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\Result-T50\artificial_SWMM_model.out</>
+		<RelativeNetworkFlowField>Result-T50\artificial_SWMM_model.out</>
+	</Network>
+	<Surface>
+		<SurfaceTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\Surfacegrid-Smalltown2</>
+		<RelativeSurfaceTopology>Surfacegrid-Smalltown2</>
+		<SurfaceFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\Surfacegrid-Smalltown2\X.dat</>
+		<RelativeSurfaceFlowField>Surfacegrid-Smalltown2\X.dat</>
+	</Surface>
+</InputFiles>
+<SimulationParameters>
+	<Timestep unit='s'>1.0</>
+</SimulationParameters>
+<Measuring>
+		<Network>
+			<Interval unit='s'>60.0</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>true</>
+		</Network>
+		<Surface>
+			<Interval unit='s'>9.223372036854776E15</>
+			<Timecontinuous>true</>
+			<Spatialconsistent>true</>
+			<Synchronize Writing>false</>
+		</Surface>
+		<Trace>
+			<Interval>10</>
+		</Trace>
+</Measuring>
+<Materials>
+	<Material id=0>
+		<Name>neu</>
+		<Density unit='kg/m^3'>1000.0</>
+		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
+		<Network>
+			<Dispersion>
+				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
+				<DispersionCoefficient unit='m^2/s'>2.0</>
+			</Dispersion>
+		</Network>
+		<Surface>
+			<Dispersion>
+				<Type Parameters=2>com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant</>
+				<Dx unit='m^2/s'>0.1</>
+				<Dy unit='m^2/s'>0.1</>
+			</Dispersion>
+			<DryFlow unit='m/s'>0.005</>
+			<EnterDry>true</>
+		</Surface>
+	</Material>
+</Materials>
+<Injections>
+	<FromNetworkResult>true</>
+	<Injection id=0>
+		<Type>InjectionInformation</>
+		<OnSurface>true</>
+		<Position>
+			<Latitude>48.94326400756836</>
+			<Longitude>8.481230735778809</>
+		</Position>
+		<Start unit='s'>0.0</>
+		<Duration unit='s'>1201.02</>
+		<Material id=0>neu</>
+		<Mass unit='kg'>1.0</>
+		<Particles>16000</>
+		<Active>true</>
+	</Injection>
+</Injections>
+<Outputs>
+</Outputs>
+</Scenario>

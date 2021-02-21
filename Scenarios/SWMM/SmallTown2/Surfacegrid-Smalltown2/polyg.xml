@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RISURSIM>
+  <spatial_reference_name>EPSG:31468</spatial_reference_name>
+  <spatial_reference_code>31468</spatial_reference_code>
+  <RisoDGMInputCombination>
+    <file>polygons.xml</file>
+  </RisoDGMInputCombination>
+</RISURSIM>
