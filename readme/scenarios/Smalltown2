@@ -1,0 +1,6 @@
+## Small town 2 Scenario
+
+Location in directory (Scenarios/SWMM/Smalltown2)
+
+This Scenario was created using SWMM 5.1 for the hydrailic part.
+The drainage pipe network was created using [Anneke SchönfeldUrbanDrain](https://github.com/DoeringA/urbandrain) model.
