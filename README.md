@@ -40,6 +40,16 @@ Both will show up the graphical user interface where you can run simulations wit
 
 <img src="readme/GUI.png" width=500px>
 
+------------
+## Scenarios
+
+To find out how the GULLI software works, you can open projects located in the [GULLI/Scenario](Scenarios) directory.
+
+Possible project scenarios:
+
+[Small Town 2 - Car accident](readme/scenarios/Smalltown2.md)
+
+
 ------
 ## Scientific reference
 
