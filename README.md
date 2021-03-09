@@ -40,6 +40,16 @@ Both will show up the graphical user interface where you can run simulations wit
 
 <img src="readme/GUI.png" width=500px>
 
+------------
+## Scenarios
+
+To find out how the GULLI software works, you can open projects located in the [GULLI/Scenario](Scenarios) directory.
+
+Possible project scenarios:
+
+[Small Town 2 - Car accident](readme/scenarios/Smalltown2.md)
+
+
 ------
 ## Scientific reference
 
@@ -54,6 +64,6 @@ Please cite
 
 Find it on [Researchgate](https://www.researchgate.net/publication/328486209_Modeling_of_contaminant_transport_during_an_urban_pluvial_flood_event_-_The_importance_of_surface_flow).
 
-For more information, please contact Robert Sämann (https://www.hydromech.uni-hannover.de/saemann/)
+For more information, please contact Robert Sämann.
 
 You can also find me on Researchgate (https://www.researchgate.net/profile/Robert_Saemann)
