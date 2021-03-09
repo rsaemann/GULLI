@@ -41,17 +41,63 @@ import com.saemann.gulli.core.model.topology.Pipe;
 public class OutletMinimizer {
 
     Pipe pipe;
-    double maximumVolume;
+//    double maximumVolume;
     PollutionDischargeInterval[] ordered;
     ArrayList<PollutionDischargeInterval> intervals;
     boolean[] maximumIntervals;
 
-    double maximumMass, containedMass;
+    double maximumMass, maximumConcentration;
 
-    public OutletMinimizer(Pipe pipe, double maximumVolume) {
+    double containedMass;
+    double emittedMass;
+
+    /**
+     * Volume [m^3] of hold back (included in the intervals) discharge
+     */
+    double containedVolume;
+
+    double containedConcentrationMaximum;
+
+    /**
+     * Maximum concentration [kg/m^3] that is outside of the intervals (will be
+     * emitted downstream)
+     */
+    double emittedConcentrationMaximum;
+
+    public OutletMinimizer(Pipe pipe) {
         this.pipe = pipe;
-        this.maximumVolume = maximumVolume;
+//        this.maximumVolume = maximumVolume;
         analyseIntervals();
+    }
+
+    public static double totalVolumeDischarge(TimeLinePipe tlp) {
+        double volumeSum = 0;
+        double q = 0;
+        for (int i = 1; i < tlp.getNumberOfTimes(); i++) {
+            q = (tlp.getDischarge(i - 1) + tlp.getDischarge(i)) * 0.5;
+            volumeSum += q * (tlp.getTimeContainer().getTimeMilliseconds(i) - tlp.getTimeContainer().getTimeMilliseconds(i - 1)) / 1000.;
+        }
+        return volumeSum;
+    }
+
+    public static double totalMassDischarge(TimeLinePipe tlp, ArrayTimeLineMeasurement tlm) {
+        double massSum = 0;
+        double m = 0;
+        for (int i = 1; i < tlp.getNumberOfTimes(); i++) {
+            double q0 = tlp.getDischarge(i - 1);
+            double q1 = tlp.getDischarge(i);
+            double c0 = tlm.getConcentration(tlm.getContainer().getIndexForTime(tlp.getTimeContainer().getTimeMilliseconds(i - 1)));
+            double c1 = tlm.getConcentration(tlm.getContainer().getIndexForTime(tlp.getTimeContainer().getTimeMilliseconds(i)));
+
+            m = (c0 * q0 + c1 * q1) * 0.5;
+            if (!Double.isFinite(m)) {
+//                System.out.println("Something is not finit in mass calculation index["+i+"]: q0=" + q0 + "\tq1=" + q1+",  c0="+c0+", c1="+c1);
+            } else {
+                massSum += m * (tlp.getTimeContainer().getTimeMilliseconds(i) - tlp.getTimeContainer().getTimeMilliseconds(i - 1)) / 1000.;
+            }
+        }
+//        System.out.println("TotalMass: "+massSum+" kg");
+        return massSum;
     }
 
     public void setPipe(Pipe pipe) {
@@ -61,6 +107,9 @@ public class OutletMinimizer {
         maximumIntervals = null;
         maximumMass = 0;
         containedMass = 0;
+        emittedMass=0;
+        containedVolume = 0;
+        maximumConcentration = 0;
     }
 
     public void analyseIntervals() {
@@ -83,6 +132,7 @@ public class OutletMinimizer {
         ArrayTimeLineMeasurementContainer c = tm.getContainer();
         ordered = new PollutionDischargeInterval[c.getNumberOfTimes() - 1];
         maximumMass = 0;
+        maximumConcentration = 0;
         for (int i = 1; i < c.getNumberOfTimes(); i++) {
             long start = c.getMeasurementTimestampAtTimeIndex(i - 1);
             long ende = c.getMeasurementTimestampAtTimeIndex(i);
@@ -97,6 +147,7 @@ public class OutletMinimizer {
             if (Double.isNaN(concentrationE)) {
                 concentrationE = 0;
             }
+            maximumConcentration = Math.max(maximumConcentration, concentrationS);
 
             int tlIndexStart = tl.getTimeContainer().getTimeIndex(start);
             int tlIndexEnd = tl.getTimeContainer().getTimeIndex(ende - 1);
@@ -104,7 +155,11 @@ public class OutletMinimizer {
             double dischargeE = tl.getDischarge(tlIndexEnd);
 
             double volume = (dischargeE + dischargeS) * 0.5 * durationS;
-            double mass = (concentrationS + concentrationE) * 0.5 * volume;
+            double mass = (concentrationS * dischargeS + concentrationE * dischargeE) * 0.5 * durationS;
+            if (!Double.isFinite(mass)) {
+                System.out.println("something is not finite: c:" + concentrationS + "/" + concentrationE + ",   discharge: " + dischargeS + "/" + dischargeE);
+                mass = 0;
+            }
             maximumMass += mass;
             PollutionDischargeInterval pdi = new PollutionDischargeInterval();
             pdi.max_concentration = Math.max(concentrationS, concentrationE);
@@ -118,7 +173,7 @@ public class OutletMinimizer {
             ordered[i - 1] = pdi;
             intervals.add(pdi);
         }
-        System.out.println("Analysed intervals of Pipe " + pipe.getName());
+//        System.out.println("Analysed intervals of Pipe " + pipe.getName());
     }
 
     public void orderByConcentration() {
@@ -161,15 +216,22 @@ public class OutletMinimizer {
         double sumvolume = 0;
         boolean[] InSet = new boolean[intervals.size()];
         containedMass = 0;
-        DecimalFormat df4=new DecimalFormat("0.####");
+        emittedMass=0;
+        containedVolume = 0;
+        containedConcentrationMaximum = 0;
+        emittedConcentrationMaximum = 0;
+//        DecimalFormat df4 = new DecimalFormat("0.####");
         for (PollutionDischargeInterval interval : intervals) {
             sumvolume += interval.volume;
-            System.out.println(df4.format(interval.volume) + " m³ \t c: " + df4.format(interval.max_concentration)+"  mass: "+df4.format(interval.pollutionMass) + " kg in interval " + interval.intervalIndex + "    " + sumvolume + "  < " + maximumVolume);
+//            System.out.println(df4.format(interval.volume) + " m³ \t c: " + df4.format(interval.max_concentration) + "  mass: " + df4.format(interval.pollutionMass) + " kg in interval " + interval.intervalIndex + "    " + sumvolume + "  < " + maximumVolume);
             if (sumvolume <= maximumVolume) {
                 InSet[interval.intervalIndex] = true;
                 containedMass += ordered[interval.intervalIndex].pollutionMass;
+                containedVolume += interval.volume;
+                containedConcentrationMaximum = Math.max(containedConcentrationMaximum, interval.max_concentration);
             } else {
-                break;
+                emittedMass += ordered[interval.intervalIndex].pollutionMass;                
+                emittedConcentrationMaximum = Math.max(emittedConcentrationMaximum, interval.max_concentration);
             }
         }
         maximumIntervals = InSet;
@@ -220,7 +282,7 @@ public class OutletMinimizer {
             }
         }
         if (active != null) {
-            System.out.println("Very last element is also in interval with start " + ordered[ordered.length - 1].start + " and end: " + ordered[ordered.length - 1].end);
+//            System.out.println("Very last element is also in interval with start " + ordered[ordered.length - 1].start + " and end: " + ordered[ordered.length - 1].end);
             //Previous was the last n line. close this information and add it to the list
             //add this to the current active interval
             if (ordered[ordered.length - 1].duration > 0) {
@@ -259,5 +321,40 @@ public class OutletMinimizer {
         public double discharge, volume;
         public double pollutionMass;
     }
+
+    /**
+     * Total volume in the intervals until the target value
+     *
+     * @return
+     */
+    public double getContainedVolume() {
+        return containedVolume;
+    }
+
+    /**
+     * Maximum Concentration [kg/m^3] in the intervals below target volume.
+     *
+     * @return
+     */
+    public double getContainedConcentrationMaximum() {
+        return containedConcentrationMaximum;
+    }
+
+    /**
+     * Maximum Concentration [kg/m^3] outside of the intervals below target
+     * volume.
+     *
+     * @return
+     */
+    public double getEmittedConcentrationMaximum() {
+        return emittedConcentrationMaximum;
+    }
+
+    public double getEmittedMass() {
+        return emittedMass;
+    }
+    
+    
+    
 
 }

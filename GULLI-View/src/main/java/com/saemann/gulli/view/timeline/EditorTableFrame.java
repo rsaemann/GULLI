@@ -35,6 +35,7 @@ import com.saemann.gulli.core.model.topology.Capacity;
 import org.jfree.data.time.TimeSeries;
 import com.saemann.gulli.view.ViewController;
 import com.saemann.gulli.view.timeline.customCell.StrokeEditor;
+import javax.swing.JTabbedPane;
 
 /**
  * A frem to display the measured and hydraulic timelines of pipes and manholes
@@ -46,9 +47,12 @@ public class EditorTableFrame extends JFrame {
 
     TimeSeriesEditorTablePanel tablePanel;
     CapacityTimelinePanel timelinePanel;
+    JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
     JPanel panelSouth;
     JSplitPane splitpane;
     OutflowMinimizerPanel panelMinimizer;
+    OutflowPlotPanel plotOutflowMinimizer;
+
     ViewController viewController;
 
     public EditorTableFrame() {
@@ -69,7 +73,8 @@ public class EditorTableFrame extends JFrame {
 
         panelSouth = new JPanel(new BorderLayout());
         panelSouth.add(tablePanel, BorderLayout.CENTER);
-        splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, timelinePanel, panelSouth);
+        tabbedPane.add(timelinePanel);
+        splitpane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, tabbedPane, panelSouth);
         this.setBounds(200, 200, (int) StartParameters.getTimelinepanelWidth(), (int) StartParameters.getTimelinepanelHeight());
         this.add(splitpane, BorderLayout.CENTER);
         this.setVisible(true);
@@ -269,6 +274,9 @@ public class EditorTableFrame extends JFrame {
                                 }
                             });
                         }
+                        if(plotOutflowMinimizer!=null){
+                            panelMinimizer.plotPanel=plotOutflowMinimizer;
+                        }
                     }
                     panelSouth.add(panelMinimizer, BorderLayout.EAST);
                     panelMinimizer.panel = timelinePanel;
@@ -277,6 +285,37 @@ public class EditorTableFrame extends JFrame {
                     panelSouth.remove(panelMinimizer);
                 }
                 panelSouth.revalidate();
+            }
+        });
+
+        final JCheckBoxMenuItem checkPlot = new JCheckBoxMenuItem("Plot", false);
+        menu_minimizer.add(checkPlot);
+        checkPlot.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (checkPlot.isSelected()) {
+                    if (plotOutflowMinimizer == null) {
+                        plotOutflowMinimizer = new OutflowPlotPanel("", control);
+                        if (viewController != null) {
+                            viewController.getPaintManager().addCapacitySelectionListener(new CapacitySelectionListener() {
+                                @Override
+                                public void selectCapacity(Capacity c, Object caller) {
+                                    plotOutflowMinimizer.setCapacity(c);
+                                }
+                            });
+                        }
+                        tabbedPane.add("Outflow", plotOutflowMinimizer);
+                        
+                    }
+                    if(panelMinimizer!=null){
+                        panelMinimizer.plotPanel=plotOutflowMinimizer;
+                    }
+                    tablePanel.revalidate();
+                    tabbedPane.setSelectedIndex(1);
+                    plotOutflowMinimizer.setCapacity(timelinePanel.actualShown);
+                } else {
+                    tabbedPane.setSelectedIndex(0);
+                }
             }
         });
         menu.revalidate();

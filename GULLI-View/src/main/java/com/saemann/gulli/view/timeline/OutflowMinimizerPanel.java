@@ -62,6 +62,7 @@ public class OutflowMinimizerPanel extends JPanel {
 
     public OutletMinimizer minimizer;
     CapacityTimelinePanel panel;
+    public OutflowPlotPanel plotPanel;
     protected Pipe pipe;
     protected double maxVolume, targetVolume;
     public Color paint;
@@ -74,7 +75,7 @@ public class OutflowMinimizerPanel extends JPanel {
     ButtonGroup groupTarget;
 
     JLabel labelPollution;
-    DecimalFormat df=new DecimalFormat("0.#", DecimalFormatSymbols.getInstance(StartParameters.formatLocale));
+    DecimalFormat df = new DecimalFormat("0.#", DecimalFormatSymbols.getInstance(StartParameters.formatLocale));
 
     public OutflowMinimizerPanel() {
         super(new BorderLayout());
@@ -89,7 +90,7 @@ public class OutflowMinimizerPanel extends JPanel {
         groupTarget.add(radioConcentration);
         panelTargetValue.add(radioConcentration);
         panelTargetValue.add(radioMass);
-        paint = new Color(255, 200, 20, 140);
+        paint = new Color(255, 200, 20, 80);
 
         this.add(panelTargetValue, BorderLayout.NORTH);
 
@@ -105,7 +106,7 @@ public class OutflowMinimizerPanel extends JPanel {
             @Override
             public void stateChanged(ChangeEvent e) {
 
-                textMaxVolume.setText(slider.getValue() + "   ("+df.format(slider.getValue()*100./slider.getMaximum())+"%)");
+                textMaxVolume.setText(slider.getValue() + "   (" + df.format(slider.getValue() * 100. / slider.getMaximum()) + "%)");
             }
         });
 
@@ -122,8 +123,15 @@ public class OutflowMinimizerPanel extends JPanel {
             @Override
             public void mouseReleased(MouseEvent e) {
                 targetVolume = slider.getValue();
-                textMaxVolume.setText(targetVolume + "   ("+df.format(slider.getValue()*100./slider.getMaximum())+"%)");
+                textMaxVolume.setText(targetVolume + "   (" + df.format(slider.getValue() * 100. / slider.getMaximum()) + "%)");
                 updateOutput();
+                if (plotPanel != null) {
+                    if (targetVolume < 1) {
+                        plotPanel.removeMarker();
+                    } else {
+                        plotPanel.markValue(targetVolume);
+                    }
+                }
             }
         });
     }
@@ -152,7 +160,7 @@ public class OutflowMinimizerPanel extends JPanel {
         this.slider.setMaximum((int) maxVolume);
 
         if (minimizer == null) {
-            minimizer = new OutletMinimizer(pipe, targetVolume);
+            minimizer = new OutletMinimizer(pipe);
         }
         minimizer.setPipe(pipe);
         minimizer.analyseIntervals();
@@ -183,7 +191,7 @@ public class OutflowMinimizerPanel extends JPanel {
                 plot.addDomainMarker(marker);
             }
 
-            labelPollution.setText(df.format(minimizer.getContainedMass()) + " / " + df.format(minimizer.getMaximumMass()) + " kg (" + (int)((minimizer.getContainedMass() * 100) / minimizer.getMaximumMass()) + "%)");
+            labelPollution.setText(df.format(minimizer.getContainedMass()) + " / " + df.format(minimizer.getMaximumMass()) + " kg (" + (int) ((minimizer.getContainedMass() * 100) / minimizer.getMaximumMass()) + "%)");
         }
     }
 
