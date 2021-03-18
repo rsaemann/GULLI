@@ -58,6 +58,12 @@ public class ContaminationMass implements OutputIntention {
 
     private File outputFile = null;
 
+    public ContaminationMass(int materialIndex) {
+        this.materialIndex=materialIndex;
+    }
+    
+    
+
     @Override
     public File writeOutput(StoringCoordinator sc) {
         String materialName;
@@ -146,6 +152,11 @@ public class ContaminationMass implements OutputIntention {
 
     @Override
     public void setFileFormat(StoringCoordinator.FileFormat ff) {
+    }
+
+    @Override
+    public StoringCoordinator.FileFormat[] getSupportedFileFormat() {
+        return new StoringCoordinator.FileFormat[]{StoringCoordinator.FileFormat.CSV};
     }
     
     

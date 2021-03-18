@@ -133,6 +133,11 @@ public class ContaminationParticles implements OutputIntention {
     @Override
     public void setFileFormat(StoringCoordinator.FileFormat ff) {
     }
+    
+     @Override
+    public StoringCoordinator.FileFormat[] getSupportedFileFormat() {
+        return new StoringCoordinator.FileFormat[]{StoringCoordinator.FileFormat.CSV};
+    }
 
     @Override
     public String toString() {

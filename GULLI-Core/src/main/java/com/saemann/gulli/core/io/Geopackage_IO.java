@@ -298,6 +298,12 @@ public class Geopackage_IO {
         }
     }
 
+    public static boolean writeWGS84LineString(Collection<LineString> collection, String filePathName, String layername, boolean switchCoordinates) {
+        Collection<Geometry> geoms = new ArrayList<>(collection.size());
+        geoms.addAll(collection);
+        return writeWGS84(geoms, filePathName, layername, switchCoordinates);
+    }
+
     /**
      * Writes out Geometries to a gpkg file
      *

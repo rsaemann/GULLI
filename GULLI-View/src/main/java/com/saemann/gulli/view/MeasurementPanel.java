@@ -26,8 +26,11 @@ package com.saemann.gulli.view;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.StoringCoordinator;
+import com.saemann.gulli.core.control.output.ContaminationMass;
 import com.saemann.gulli.core.control.output.ContaminationShape;
 import com.saemann.gulli.core.control.output.OutputIntention;
+import com.saemann.gulli.core.control.output.Save_TravelAccumulationRegions;
+import com.saemann.gulli.core.control.output.Save_Travelpath;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
@@ -96,7 +99,7 @@ public class MeasurementPanel extends JPanel {
     private JTextField textGridSize = new JTextField();
 
     protected DecimalFormat dfSeconds = new DecimalFormat("#,##0.###", new DecimalFormatSymbols(StartParameters.formatLocale));
-    protected JButton buttonNewOutput;
+    protected JButton buttonNewContaminationOutput, buttonNewContaminationShapeOutput, buttonNewTraceOutput, buttonNewTraceArea;
 
     public MeasurementPanel(Controller c) {
         super(new BorderLayout());
@@ -210,11 +213,22 @@ public class MeasurementPanel extends JPanel {
 
         this.add(new JSeparator());
         //Outputs
-        buttonNewOutput = new JButton("new Output");
+        JPanel panelButtonsNewOutputs = new JPanel(new GridLayout(2, 2, 4, 4));
+        buttonNewContaminationOutput = new JButton("+ Contamination");
+        panelButtonsNewOutputs.add(buttonNewContaminationOutput);
+        buttonNewContaminationShapeOutput = new JButton("+ Shape");
+        panelButtonsNewOutputs.add(buttonNewContaminationShapeOutput);
+
+        buttonNewTraceOutput = new JButton("+ TraceLines");
+        panelButtonsNewOutputs.add(buttonNewTraceOutput);
+
+        buttonNewTraceArea = new JButton("+ TraceAreas");
+        panelButtonsNewOutputs.add(buttonNewTraceArea);
+
         panelOutputsSurrounding = new JPanel(new BorderLayout());
         borderOutputs = new TitledBorder("0 Outputs");
         panelOutputsSurrounding.setBorder(borderOutputs);
-        panelOutputsSurrounding.add(buttonNewOutput, BorderLayout.NORTH);
+        panelOutputsSurrounding.add(panelButtonsNewOutputs, BorderLayout.NORTH);
 
         panelOutputs = new JPanel();
         panelOutputs.setLayout(new BoxLayout(panelOutputs, BoxLayout.Y_AXIS));
@@ -449,10 +463,34 @@ public class MeasurementPanel extends JPanel {
             }
         });
 
-        buttonNewOutput.addActionListener(new ActionListener() {
+        buttonNewContaminationOutput.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                control.getStoringCoordinator().addFinalOuput(new ContaminationMass(-1));
+                updateParameters();
+            }
+        });
+
+        buttonNewContaminationShapeOutput.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 control.getStoringCoordinator().addFinalOuput(new ContaminationShape(StoringCoordinator.FileFormat.GeoPKG, -1, true));
+                updateParameters();
+            }
+        });
+
+        buttonNewTraceOutput.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                control.getStoringCoordinator().addFinalOuput(new Save_Travelpath(StoringCoordinator.FileFormat.GeoPKG, -1));
+                updateParameters();
+            }
+        });
+
+        buttonNewTraceArea.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                control.getStoringCoordinator().addFinalOuput(new Save_TravelAccumulationRegions(StoringCoordinator.FileFormat.GeoPKG, -1));
                 updateParameters();
             }
         });
@@ -496,7 +534,7 @@ public class MeasurementPanel extends JPanel {
             StoringCoordinator sc = control.getStoringCoordinator();
             int counter = 0;
             for (OutputIntention fout : sc.getFinalOutputs()) {
-                panelOutputs.add(new OutputPanel(fout, counter++));
+                panelOutputs.add(new OutputPanel(fout, counter++, control.getStoringCoordinator()));
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem itemdelete = new JMenuItem("Remove");
                 popup.add(itemdelete);
@@ -530,12 +568,18 @@ public class MeasurementPanel extends JPanel {
                     textGridSize.setText(control.getSurface().getMeasurementRaster().getClass().getSimpleName());
                     textGridSize.setToolTipText("Unknown type of Raster");
                 }
+                checkMeasureContinouslySurface.setSelected(control.getSurface().getMeasurementRaster().continousMeasurements);
+                checkMeasureSpatialConsistentSurface.setSelected(control.getSurface().getMeasurementRaster().spatialConsistency);
             }
 
         }
         if (control != null) {
             checkHistoryParticles.setSelected(control.isTraceParticles());
+            textHistoricIth.setText(control.intervallHistoryParticles+"");
+            checkHistoryParticles.setSelected(control.isTraceParticles());
         }
+        panelOutputs.revalidate();
+        panelOutputs.repaint();
         selfChange = false;
 
     }
@@ -556,7 +600,7 @@ public class MeasurementPanel extends JPanel {
         textHistoricIth.setEnabled(editable);
 
         textGridSize.setEnabled(editable);
-        
+
         comboSurfaceGrid.setEnabled(editable);
         selfChange = false;
     }

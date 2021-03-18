@@ -93,8 +93,10 @@ public class SHP_IO_GULLI {
 
             //Manhole Schema
             final SimpleFeatureType MANHOLE = DataUtilities.createType("Manhole",
-                    "the_geom:Point:srid=4326," + // <- the geometry attribute: Point type
-                    "name:String," + //+  <- a String attribute
+                    "the_geom:Point:srid=4326,"
+                    + // <- the geometry attribute: Point type
+                    "name:String,"
+                    + //+  <- a String attribute
                     "he_id:int,"
                     + "sohle:float,"
                     + "surface:float"
@@ -156,8 +158,10 @@ public class SHP_IO_GULLI {
 
             //Manhole Schema
             final SimpleFeatureType PIPE = DataUtilities.createType("Pipe",
-                    "the_geom:LineString:srid=4326," + // <- the geometry attribute: Point type
-                    "name:String," + //+  <- a String attribute
+                    "the_geom:LineString:srid=4326,"
+                    + // <- the geometry attribute: Point type
+                    "name:String,"
+                    + //+  <- a String attribute
                     "he_id:int,"
                     + "gefaellle%:double,"
                     + "zSohle_st:double,"
@@ -693,6 +697,12 @@ public class SHP_IO_GULLI {
         writeWGS84(collection, filePathName, layername, switchCoordinates);
     }
 
+    public static void writeWGS84Linestring(Collection<LineString> collection, String filePathName, String layername, boolean switchCoordinates) {
+        Collection<Geometry> geom = new ArrayList<>(collection.size());
+        geom.addAll(collection);
+        writeWGS84(geom, filePathName, layername, switchCoordinates);
+    }
+
     /**
      * Writes out Polygons to a shp file
      *
@@ -1067,7 +1077,8 @@ public class SHP_IO_GULLI {
 
             //Manhole Schema
             final SimpleFeatureType SCHEMETYPE = DataUtilities.createType("Geometry",
-                    "the_geom:Polygon:srid=" + srid + "," + // <- the geometry attribute
+                    "the_geom:Polygon:srid=" + srid + ","
+                    + // <- the geometry attribute
                     "locmin_id:int,"
                     + "area:float"
             );

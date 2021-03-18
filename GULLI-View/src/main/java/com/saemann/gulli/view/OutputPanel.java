@@ -33,6 +33,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -53,6 +54,7 @@ public class OutputPanel extends JPanel {
     protected OutputIntention output;
 
     protected TitledBorder border;
+    protected JButton buttonSave;
 
 //    protected JTextField textname;
     protected JLabel labelIndex;
@@ -66,7 +68,7 @@ public class OutputPanel extends JPanel {
 
     protected boolean selfSelection = false;
 
-    protected OutputPanel(OutputIntention mat, int number) {
+    protected OutputPanel(OutputIntention mat, int number, StoringCoordinator sc) {
         super();
         this.setMinimumSize(new Dimension(100, 150));
         this.setPreferredSize(this.getMinimumSize());
@@ -86,6 +88,9 @@ public class OutputPanel extends JPanel {
         labelIndex = new JLabel(output.toString());
         JPanel panelName = new JPanel(new BorderLayout());
         panelName.add(labelIndex, BorderLayout.WEST);
+        buttonSave = new JButton("Save");
+        buttonSave.setToolTipText("Save now");
+        panelName.add(buttonSave, BorderLayout.EAST);
 //        panelName.add(textname, BorderLayout.CENTER);
         this.add(panelName);
         this.add(new JSeparator(JSeparator.HORIZONTAL));
@@ -114,6 +119,16 @@ public class OutputPanel extends JPanel {
                 updateValues();
             }
         });
+
+        buttonSave.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                output.writeOutput(sc);
+            }
+        });
+
+        this.setPreferredSize(new Dimension(300, 100));
+        this.revalidate();
     }
 
     public void updateValues() {
@@ -163,7 +178,9 @@ public class OutputPanel extends JPanel {
             panelDoubleParameters.setLayout(new GridLayout(parameters.length, 2));
             String[] names = output.getParameterNamesDouble();
             for (int i = 0; i < parameters.length; i++) {
-                JFormattedTextField editParameter = new JFormattedTextField(DecimalFormat.getNumberInstance(StartParameters.formatLocale));
+                DecimalFormat df4 = new DecimalFormat("0.#####", new DecimalFormatSymbols(StartParameters.formatLocale));
+                JFormattedTextField editParameter = new JFormattedTextField(df4);
+
                 editParameter.setValue(parameters[i]);
                 JLabel labelName = null;
                 if (names != null && names.length > i) {
@@ -196,4 +213,5 @@ public class OutputPanel extends JPanel {
         selfSelection = false;
 
     }
+
 }

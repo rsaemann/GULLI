@@ -245,28 +245,39 @@ public class InjectionPanelPointlocation extends JPanel {
         checkSurface.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent ae) {
-                info.setSpillPipesystem(!checkSurface.isSelected());
-                if (info.spillOnSurface())//Switch form capacity to surface position.
-                {
-                    if (info.getCapacity() != null) {
-                        if (info.getCapacity() instanceof Manhole) {
-                            Manhole mh = (Manhole) info.getCapacity();
-                            info.setPosition(mh.getPosition());
+                try {
+                    info.setSpillPipesystem(!checkSurface.isSelected());
+                    if (info.spillOnSurface())//Switch form capacity to surface position.
+                    {
+                        if (info.getCapacity() != null) {
+                            if (info.getCapacity() instanceof Manhole) {
+                                Manhole mh = (Manhole) info.getCapacity();
+                                info.setPosition(mh.getPosition());
+                            } else {
+                                info.setCapacity(null);
+                                try {
+                                    info.setPosition(info.getCapacity().getPosition3D(info.getPosition1D()));
+                                } catch (Exception e) {
+                                }
+                            }
                         } else {
-                            info.setCapacity(null);
-                            info.setPosition(info.getCapacity().getPosition3D(info.getPosition1D()));
+                            info.setTriangleID(-1);
                         }
                     } else {
-                        info.setTriangleID(-1);
+                        //Find corresponding Manhole to position
+                        if (info.getPosition() != null) {
+                            //No reference to network yet.
+                            //Need to search for manhole at reset
+                            info.setCapacity(null);
+                            info.setCapacityName(null);
+                            info.setTriangleID(-1);
+                        }
                     }
-                } else {
-                    //Find corresponding Manhole to position
-                    if (info.getPosition() != null) {
-                        //No reference to network yet.
+                    if (info.isChanged()) {
+                        setBorder(new TitledBorder("changed"));
                     }
-                }
-                if (info.isChanged()) {
-                    setBorder(new TitledBorder("changed"));
+                } catch (Exception e) {
+                    setBorder(new TitledBorder("Error: "+e.getLocalizedMessage()));
                 }
             }
         });

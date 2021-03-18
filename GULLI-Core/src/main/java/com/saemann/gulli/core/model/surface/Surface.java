@@ -1775,10 +1775,14 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
         manholes = new Manhole[triangleNodes.length];
         for (Pair<String, Integer> mr : manhRefs) {
-            Manhole mh = (Manhole) capacityNames.get(mr.first);//network.getManholeByName(mr.first);
-            if (mh != null) {
-                manholes[mr.second] = mh;
-                mh.setSurfaceTriangle(mr.second);
+            try {
+                Manhole mh = (Manhole) capacityNames.get(mr.first);//network.getManholeByName(mr.first);
+                if (mh != null) {
+                    manholes[mr.second] = mh;
+                    mh.setSurfaceTriangle(mr.second);
+                }
+            } catch (Exception e) {
+                System.err.println("Manhole "+mr.first+" can not be applied to cell "+mr.second+" (out of bounds)");
             }
         }
     }

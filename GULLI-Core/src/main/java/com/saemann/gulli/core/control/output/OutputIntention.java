@@ -63,5 +63,11 @@ public interface OutputIntention {
     public void setFileFormat(StoringCoordinator.FileFormat ff);
 
     public StoringCoordinator.FileFormat getFileFormat();
-
+     
+    /**
+     * The file format that can be used by this type of saving.
+     * @return 
+     */
+    public StoringCoordinator.FileFormat[] getSupportedFileFormat();
+    
 }

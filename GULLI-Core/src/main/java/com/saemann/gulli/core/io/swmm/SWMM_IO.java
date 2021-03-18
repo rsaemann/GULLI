@@ -280,7 +280,12 @@ public class SWMM_IO {
         }
 
         HashMap<String, Manhole> nodes = new HashMap<>(junctions.size() + storages.size());
-        HashMap<String, Pipe> pipes = new HashMap<>(conduits.size());
+        HashMap<String, Pipe> pipes;
+        if (conduits == null) {
+            pipes = new HashMap<>();
+        } else {
+            pipes = new HashMap<>(conduits.size());
+        }
         CRSAuthorityFactory af = CRS.getAuthorityFactory(StartParameters.JTS_WGS84_LONGITUDE_FIRST);
         CoordinateReferenceSystem wgs84CRS = null;
         CoordinateReferenceSystem utmCRS = null, utm4CRS = null;

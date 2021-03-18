@@ -241,6 +241,11 @@ public class ContaminationShape implements OutputIntention {
     public void setFileFormat(StoringCoordinator.FileFormat ff) {
         this.fileformat=ff;
     }
+    
+     @Override
+    public StoringCoordinator.FileFormat[] getSupportedFileFormat() {
+        return new StoringCoordinator.FileFormat[]{StoringCoordinator.FileFormat.CSV,StoringCoordinator.FileFormat.SHP,StoringCoordinator.FileFormat.GeoPKG,StoringCoordinator.FileFormat.GeoJSON};
+    }
 
     @Override
     public String toString() {

@@ -126,6 +126,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private ButtonGroup group_timestep;
     private JRadioButton radioExplicit, radioStepsplicit, radioCrankNicolson;
+    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles;
+//    private JRadioButton radioEnterdry, radioStopDry, radioProjectDry;
 //    private boolean wasrunning = false;
     private final JCheckBox checkDrawUpdateIntervall;
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
@@ -285,6 +287,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelParameter.add(panelParameterTimestep);
         //TimestepCalculation Explicit/CrankNicolson
         JPanel panelTimestepCalculation = new JPanel(new GridLayout(1, 3, 2, 2));
+        panelTimestepCalculation.setBorder(new TitledBorder("Time Integration Scheme"));
         panelTimestepCalculation.setMaximumSize(new Dimension(500, 50));
         group_timestep = new ButtonGroup();
         radioExplicit = new JRadioButton("Explicit", ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.EXPLICIT);
@@ -300,6 +303,18 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelTimestepCalculation.add(radioStepsplicit);
         panelTimestepCalculation.add(radioCrankNicolson);
         panelTabSimulation.add(panelTimestepCalculation);
+        //SurfaceMovement
+        checkParticleDryMovement=new JCheckBox("Dry movement",ParticleSurfaceComputing2D.gradientFlowForDryCells);
+        checkEnterdry=new JCheckBox("Enter dry cells",!ParticleSurfaceComputing2D.preventEnteringDryCell);
+        checkProjectAtObstacles=new JCheckBox("Slide at edges",ParticleSurfaceComputing2D.slidealongEdges);
+        JPanel panelMovementAlgorithm=new JPanel(new GridLayout(2, 2,5,5));
+        panelMovementAlgorithm.setMaximumSize(new Dimension(500,70));
+        panelMovementAlgorithm.setBorder(new TitledBorder("Particle Movement"));
+        panelMovementAlgorithm.add(checkEnterdry);
+        panelMovementAlgorithm.add(checkProjectAtObstacles);
+        panelMovementAlgorithm.add(checkParticleDryMovement);
+        panelTabSimulation.add(panelMovementAlgorithm);
+        
         // Velocity Function instead of Dispersion
         checkVelocityFunction = new JCheckBox("Velocity function", ParticlePipeComputing.useStreamlineVelocity);
         checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
@@ -736,6 +751,25 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                 }.start();
 
+            }
+        });
+        
+        checkEnterdry.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ParticleSurfaceComputing2D.preventEnteringDryCell=!checkEnterdry.isSelected();
+            }
+        });
+        checkProjectAtObstacles.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ParticleSurfaceComputing2D.slidealongEdges=checkProjectAtObstacles.isSelected();
+            }
+        });
+        checkParticleDryMovement.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ParticleSurfaceComputing2D.gradientFlowForDryCells=checkParticleDryMovement.isSelected();
             }
         });
 
@@ -1577,6 +1611,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         textTimeStep.setText(ThreadController.getDeltaTime() + "");
         checkDrawUpdateIntervall.setSelected(controler.paintOnMap);
+        checkEnterdry.setSelected(!ParticleSurfaceComputing2D.preventEnteringDryCell);
+        checkProjectAtObstacles.setSelected(ParticleSurfaceComputing2D.slidealongEdges);
+        checkParticleDryMovement.setSelected(ParticleSurfaceComputing2D.gradientFlowForDryCells);
 
         labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
 //        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");

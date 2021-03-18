@@ -23,6 +23,8 @@
  */
 package com.saemann.gulli.core.control;
 
+import com.saemann.gulli.core.model.particle.HistoryParticle;
+import com.saemann.gulli.core.model.particle.Particle;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -31,11 +33,15 @@ import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriang
 import com.saemann.gulli.core.model.surface.SurfaceTriangle;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectangleRaster;
 import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
+import com.saemann.gulli.core.model.topology.Manhole;
+import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
+import java.util.HashMap;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.operation.union.CascadedPolygonUnion;
@@ -504,6 +510,48 @@ public class ShapeTools {
 
         System.out.println("->" + union);
         return union;
+    }
+
+    /**
+     * Travel paths ordered by the name of the outlet capacity.
+     * all Traces that are still inside the boundary have the key "inside".
+     * @param surf
+     * @param nw
+     * @param particles
+     * @return 
+     */
+    public static HashMap<String, ArrayList<LineString>> createTravelPathsToOutlet(Surface surf, Network nw, Particle[] particles) {
+        HashMap<String, ArrayList<LineString>> map = new HashMap<>(nw.getLeaves().size());
+        GeometryFactory gf = new GeometryFactory();
+        /**
+         * The key for all traces that have not yet left the model boundary.
+         */
+        String keyActive="inside";
+        for (Particle p : particles) {
+            if (!p.tracing()) {
+                continue;
+            }
+            HistoryParticle hp = (HistoryParticle) p;
+            Coordinate[] coords = hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]);
+            if(coords.length<4)continue;
+            LineString line = gf.createLineString(coords);
+
+            String key =null;
+            if(hp.getHistory().size()<3)continue;
+            if(hp.getHistory().getLast().isSetAsOutlet()){
+                key= hp.getHistory().getLast().getName();
+            }else{
+                key=keyActive;
+            }
+            
+            ArrayList<LineString> linelist = map.get(key);
+            if (linelist == null) {
+                linelist = new ArrayList<>();
+                map.put(key, linelist);
+            }
+            linelist.add(line);
+        }
+        return map;
     }
 
 }

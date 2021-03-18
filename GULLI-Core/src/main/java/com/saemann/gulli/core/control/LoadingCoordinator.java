@@ -345,7 +345,7 @@ public class LoadingCoordinator {
 
                         }
                     }
-                    if (surface.waterlevelLoader == null) {
+                    if (surface!=null&&surface.waterlevelLoader == null) {
                         System.out.println("Waterlevelloader is null try to use gradient calculation filetype: " + filetype);
                         if (filetype == FILETYPE.SWMM_5_1) {
                             if (surface.triangle_downhilldirection == null) {
@@ -882,6 +882,7 @@ public class LoadingCoordinator {
             return surf;
         } catch (Exception ex) {
             loadingSurface = LOADINGSTATUS.ERROR;
+            action.description = ex.getLocalizedMessage();
             Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
 //        System.gc();

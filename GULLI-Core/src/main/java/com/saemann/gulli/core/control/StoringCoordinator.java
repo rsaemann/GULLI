@@ -26,7 +26,9 @@ package com.saemann.gulli.core.control;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.output.OutputIntention;
 import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
+import com.saemann.gulli.core.model.topology.Network;
 import java.io.File;
 import java.util.ArrayList;
 
@@ -121,11 +123,19 @@ public class StoringCoordinator implements SimulationActionListener {
         return control.getSurface();
     }
 
+    public Network getNetwork() {
+        return control.getNetwork();
+    }
+    
+    public Particle[] getParticles(){
+        return control.getThreadController().getParticles();
+    }
+
     private void writeFinalOutputs() {
         writing = true;
         for (OutputIntention fo : finalOutputs) {
             try {
-                final Thread th =new Thread("Write " + fo.toString()) {
+                final Thread th = new Thread("Write " + fo.toString()) {
                     @Override
                     public void run() {
                         File f = fo.writeOutput(StoringCoordinator.this);
@@ -134,11 +144,11 @@ public class StoringCoordinator implements SimulationActionListener {
                         }
 //                        StoringCoordinator.this.writerThreads.remove(th);
                     }
-                    
+
                 };
                 th.start();
                 writerThreads.add(th);
-               
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
