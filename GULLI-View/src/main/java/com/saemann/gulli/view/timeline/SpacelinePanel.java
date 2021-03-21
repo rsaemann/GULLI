@@ -47,6 +47,7 @@ import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipe;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
@@ -107,7 +108,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
     protected XYDataset datasetConcentration, datasetVelocity, dataSetLvl;
     protected int numberUsedDataSetSlots = 0;
     protected ArrayTimeLinePipeContainer referenceContainer;
-    protected ArrayTimeLineMeasurementContainer measurementContainer;
+    protected MeasurementContainer measurementContainer;
     XYSeriesEditorTablePanel editorpanel;
 
     protected static String directoryPDFsave = ".";
@@ -209,14 +210,14 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 //                SpacelinePanel.this.title = title;
                 SpacelinePanel.this.updateChart("Preparing... " + new Date(time));
 
-                SpacelinePanel.this.buildPipeSpaceline(referenceContainer, time);
+                SpacelinePanel.this.buildPipeSpaceline(referenceContainer,measurementContainer, time);
 
                 SpacelinePanel.this.updateCheckboxPanel();
 
                 boolean showWholeDate = false;
                 if (referenceContainer != null && referenceContainer.getEndTime() > 24L * 3600L * 1000L) {
                     showWholeDate = true;
-                } else if (measurementContainer != null && measurementContainer.getEndTime() > 24L * 3600L * 1000L) {
+                } else if (measurementContainer != null && measurementContainer.getTimes().getLastTime() > 24L * 3600L * 1000L) {
                     showWholeDate = true;
                 }
                 if (showWholeDate) {
@@ -284,7 +285,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         }
     }
 
-    private void buildPipeSpaceline(ArrayTimeLinePipeContainer instance, long time) {
+    private void buildPipeSpaceline(ArrayTimeLinePipeContainer instance,MeasurementContainer mc, long time) {
         this.referenceContainer = instance;
 
         double dtm = 1;
@@ -317,7 +318,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 
 //        this.collection.removeAllSeries();
         int indexTimePipe = instance.getTimeIndex(time);
-        int indexTimeMeasure = ArrayTimeLineMeasurementContainer.instance.getIndexForTime(time);
+        int indexTimeMeasure = mc.getIndexForTime(time);
         int ind = indexTimePipe;
         float[] vs = instance.getVelocityForTimeIndex(ind);
         float[] hs = instance.getWaterlevelsForTimeIndex(ind);
@@ -360,8 +361,8 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             System.out.println("no reference value container");
         }
 
-        if (ArrayTimeLineMeasurementContainer.instance != null) {
-            ArrayTimeLineMeasurementContainer container = ArrayTimeLineMeasurementContainer.instance;
+        if (mc != null) {
+            ArrayTimeLineMeasurementContainer container = (ArrayTimeLineMeasurementContainer)mc;
             ind = container.getIndexForTime(time);
             float[] mass = container.getMassForTimeIndex(ind);
             float[] ps = container.getNumberOfParticlesForTimeIndex(ind);
@@ -1250,7 +1251,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                 this.measurementContainer = p.getMeasurementTimeLine().getContainer();
                 if (p.getStatusTimeLine() instanceof ArrayTimeLinePipe) {
                     this.referenceContainer = ((ArrayTimeLinePipe) p.getStatusTimeLine()).container;
-                    buildPipeSpaceline(referenceContainer, 0);
+                    buildPipeSpaceline(referenceContainer,p.getMeasurementTimeLine().getContainer(), 0);
                 }
             }
         }

@@ -98,7 +98,7 @@ public class TestRun {
 
         try {
             if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() == null) {
-                control.initMeasurementTimelines(control.getScenario());
+                control.initMeasurementTimelines(control.getScenario(),true);
             }
             if (control.getNetwork() == null) {
                 System.err.println("There is no Pipe network for the simulation.");

@@ -1,6 +1,6 @@
 package com.saemann.gulli.core.model.surface;
 
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Connection_Manhole_Pipe;
 import com.saemann.gulli.core.model.topology.Manhole;
@@ -93,12 +93,12 @@ public class SurfaceTriangle extends Capacity {
     }
 
     @Override
-    public void setMeasurementTimeLine(ArrayTimeLineMeasurement tl) {
+    public void setMeasurementTimeLine(MeasurementTimeline tl) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public ArrayTimeLineMeasurement getMeasurementTimeLine() {
+    public MeasurementTimeline getMeasurementTimeLine() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

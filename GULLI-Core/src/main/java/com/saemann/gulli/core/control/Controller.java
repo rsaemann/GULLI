@@ -55,6 +55,8 @@ import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
+import com.saemann.gulli.core.model.timeline.sparse.SparseMeasurementContainer;
+import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLinePipeContainer;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Manhole;
@@ -267,7 +269,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         if (sce.getStatusTimesPipe() != null && network != null) {
             currentAction.description = "load scenario: init measurement timelines";
-            initMeasurementTimelines(sce);
+            initMeasurementTimelines(sce,loadingCoordinator.sparsePipeMeasurements);
         }
         currentAction.description = "load scenario";
         currentAction.progress = 1;
@@ -491,7 +493,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      *
      * @param scenario
      */
-    public void initMeasurementTimelines(Scenario scenario) {
+    public void initMeasurementTimelines(Scenario scenario,boolean sparse) {
         if (scenario.getStatusTimesPipe() != null) {
             if (scenario.getStatusTimesPipe() instanceof TimeContainer) {
                 TimeContainer tc = (TimeContainer) scenario.getStatusTimesPipe();
@@ -499,31 +501,48 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 int numberIntervals = (int) (duration / tc.getDeltaTimeMS());
 
                 if (numberIntervals > 0) {
-                    initMeasurementTimelines(scenario.getStartTime(), numberIntervals, tc.getDeltaTimeMS() / 1000.);
+                    initMeasurementTimelines(scenario.getStartTime(), numberIntervals, tc.getDeltaTimeMS() / 1000.,sparse);
                 } else {
                     System.err.println("Time container Pipe not correctly initialised.");
                     System.err.println("   duration: " + duration + " / " + tc.getDeltaTimeMS() + " = " + numberIntervals);
                 }
             } else {
-                initMeasurementTimelines(scenario, scenario.getStatusTimesPipe().getNumberOfTimes() - 1);
+                initMeasurementTimelines(scenario, scenario.getStatusTimesPipe().getNumberOfTimes() - 1,sparse);
             }
+        } else {
+            System.out.println("No reference times to use");
         }
 
     }
 
-    public void initMeasurementTimelines(Scenario scenario, TimeIndexContainer times, int numberOfContaminants) {
-        ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
-        scenario.setMeasurementsPipe(container_m);
-        ArrayTimeLineMeasurementContainer.instance = container_m;
-        container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
-        if (verbose) {
-            System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
-        }
+    public void initMeasurementTimelines(Scenario scenario, TimeIndexContainer times, int numberOfContaminants, boolean sparse) {
 
-        int number = 0;
-        for (Pipe p : network.getPipes()) {
-            p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
-            number++;
+        if (sparse) {
+            SparseMeasurementContainer container_m = new SparseMeasurementContainer(times, numberOfContaminants);
+            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+            ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
+            for (Pipe pipe : network.getPipes()) {
+                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m);
+                pipe.setMeasurementTimeLine(tlm);
+                list.add(tlm);
+            }
+            container_m.setTimelines(list);
+            scenario.setMeasurementsPipe(container_m);
+
+        } else {
+            ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
+            scenario.setMeasurementsPipe(container_m);
+//        ArrayTimeLineMeasurementContainer.instance = container_m;
+            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+            if (verbose) {
+                System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + container_m.samplesPerTimeinterval + " samples per interval");
+            }
+
+            int number = 0;
+            for (Pipe p : network.getPipes()) {
+                p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
+                number++;
+            }
         }
 
         if (surface != null && surface.getMeasurementRaster() != null) {
@@ -531,21 +550,35 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
     }
 
-    public void initMeasurementTimelines(Scenario scenario, long[] times, int numberOfContaminants) {
-        ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
-        scenario.setMeasurementsPipe(container_m);
-        ArrayTimeLineMeasurementContainer.instance = container_m;
-        container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
-        if (verbose) {
-            System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval + " samples per interval");
-        }
+    public void initMeasurementTimelines(Scenario scenario, long[] times, int numberOfContaminants, boolean sparse) {
 
-        int number = 0;
-        for (Pipe p : network.getPipes()) {
-            p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
-            number++;
-        }
+        if (sparse) {
+            SparseMeasurementContainer container_m = new SparseMeasurementContainer(new TimeContainer(times), numberOfContaminants);
+            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+            ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
+            for (Pipe pipe : network.getPipes()) {
+                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m);
+                pipe.setMeasurementTimeLine(tlm);
+                list.add(tlm);
+            }
+            container_m.setTimelines(list);
+            scenario.setMeasurementsPipe(container_m);
 
+        } else {
+            ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
+            scenario.setMeasurementsPipe(container_m);
+//        ArrayTimeLineMeasurementContainer.instance = container_m;
+            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+            if (verbose) {
+                System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + container_m.samplesPerTimeinterval + " samples per interval");
+            }
+
+            int number = 0;
+            for (Pipe p : network.getPipes()) {
+                p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
+                number++;
+            }
+        }
         if (surface != null && surface.getMeasurementRaster() != null) {
             scenario.setMeasurementsSurface(surface.getMeasurementRaster());
         }
@@ -559,9 +592,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param secondsPerInterval duration of an interval in seconds
      * @return the number of intervals
      */
-    public int initMeasurementsTimelinesBySeconds(Scenario scenario, double secondsPerInterval) {
+    public int initMeasurementsTimelinesBySeconds(Scenario scenario, double secondsPerInterval, boolean sparse) {
         int numberIntervals = (int) ((scenario.getEndTime() - scenario.getStartTime()) / (1000 * secondsPerInterval));
-        initMeasurementTimelines(scenario, numberIntervals);
+        initMeasurementTimelines(scenario, numberIntervals, sparse);
         return numberIntervals;
     }
 
@@ -573,7 +606,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param numberOfIntervalls
      * @return seconds per interval
      */
-    public double initMeasurementTimelines(Scenario scenario, int numberOfIntervalls) {
+    public double initMeasurementTimelines(Scenario scenario, int numberOfIntervalls, boolean sparse) {
 
         int n = numberOfIntervalls;
         double dt = (scenario.getEndTime() - scenario.getStartTime()) / ((n));
@@ -595,7 +628,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             e.printStackTrace();
         }
 
-        initMeasurementTimelines(scenario, times, numberContaminantTypes);
+        initMeasurementTimelines(scenario, times, numberContaminantTypes, sparse);
         return dt;
     }
 
@@ -608,7 +641,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param numberOfIntervalls
      * @return seconds per interval
      */
-    public double initMeasurementTimelines(long scenarioStarttime, int numberOfIntervalls, double deltatimeSeconds) {
+    public double initMeasurementTimelines(long scenarioStarttime, int numberOfIntervalls, double deltatimeSeconds,boolean sparse) {
 
         int n = numberOfIntervalls;
         double dt = deltatimeSeconds * 1000; //in MS
@@ -627,7 +660,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             e.printStackTrace();
         }
 
-        initMeasurementTimelines(scenario, times, numberContaminantTypes);
+        initMeasurementTimelines(scenario, times, numberContaminantTypes,sparse);
         return dt;
     }
 
@@ -642,13 +675,22 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         if (network != null && scenario.getMeasurementsPipe() == null) {
             System.out.println("Initialize sampling intervals with input interval length as no user defined sampling was set.");
-            initMeasurementTimelines(scenario);
+            initMeasurementTimelines(scenario,loadingCoordinator.sparsePipeMeasurements);
         }
 
         if (requestRecalculationOfInjections) {
             recalculateInjections();
         }
         threadController.start();
+    }
+
+    /**
+     * Before the next start, the injections must be recalculated. this can be
+     * called when further editing of the injections is planned and performing
+     * the real re-calculation call takes too much time.
+     */
+    public void requestRecalculationOfInjectionsBeforeNextStart() {
+        requestRecalculationOfInjections = true;
     }
 
     /**
@@ -888,6 +930,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     if (c == null) {
                         System.err.println("Cannot find Capacity for injection " + injection);
                         continue;
+                    } else {
+                        injection.setCapacityName(c.getName());
                     }
                 }
                 ///////////////////////////////////////////////////////////////

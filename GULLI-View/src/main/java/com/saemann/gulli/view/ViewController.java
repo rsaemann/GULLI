@@ -358,8 +358,25 @@ public class ViewController {
             }
         });
         mapFrame.getMenu_View().add(itemFrameReset);
+        
+        //Search menu
+        JMenu menuSearch =new JMenu("Search");
+        JMenuItem itemSearch=new JMenuItem("Object Name...");
+        menuSearch.add(itemSearch);
+        itemSearch.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFrame frame=new JFrame("Search");
+                frame.add(new SearchPanel(control, paintManager));
+                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                frame.setBounds(itemSearch.getX(), itemSearch.getY(),200, 150);
+                frame.setVisible(true);
+            }
+        });
+        mapFrame.getJMenuBar().add(menuSearch);
+        
 
-        JMenu menuHelp = new JMenu("?");
+        JMenu menuHelp = new JMenu("About");
 
         mapFrame.getJMenuBar().add(menuHelp);
         JMenuItem itemGULLI = new JMenuItem("GULLI urban pollution transport");

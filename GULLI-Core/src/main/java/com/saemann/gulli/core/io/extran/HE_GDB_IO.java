@@ -23,6 +23,10 @@
  */
 package com.saemann.gulli.core.io.extran;
 
+import static com.saemann.gulli.core.io.extran.HE_Database.sqlRequestCount;
+import static com.saemann.gulli.core.io.extran.HE_Database.sqlRequestTime;
+import static com.saemann.gulli.core.io.extran.HE_Database.waitingForRequestCount;
+import static com.saemann.gulli.core.io.extran.HE_Database.waitingForRequestTime;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -92,6 +96,12 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
     private GeoDB db;
 
     public static int counterGetFeature = 0;
+
+    public static long sqlRequestTime = 0;
+    public static int sqlRequestCount = 0;
+
+    public static long waitingForRequestTime = 0;
+    public static int waitingForRequestCount = 0;
 
     private String spatialReferenceProjection = null;
 
@@ -702,265 +712,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
     }
 
-    /**
-     *
-     * @param layer
-     * @param IDindex column index of the feature where the id can be found
-     * @param id
-     * @return
-     */
-    public GeoFeature getFeatureOld(GeoLayer layer, int IDindex, int id) throws IDnotFoundException {
-
-        if (id < 0) {
-            //Quatsch, nonsense
-            throw new IDnotFoundException(id);
-        }
-        if (id > maxTriangleID) {
-            // requested id can not be in this database.
-            throw new IDnotFoundException(id);
-        }
-        counterGetFeature = 0;
-//        GeoFeature gf = null;
-        GeoFieldValue gv = null;
-        GeoTable table = (GeoTable) layer;
-
-        long upperID = maxTriangleID;
-        int lowerBound = 0;
-        long lowerID = 0;
-        int requestedFeatureID = 0;
-        int gfID = -1;
-        try {
-            synchronized (layer) {
-                int upperBound = layer.getFeatureCount() + 1;
-                if (id > layer.getFeatureCount()) {
-
-                    requestedFeatureID = layer.getFeatureCount();
-                    upperBound = requestedFeatureID;
-//                gf = layer.getFeature(requestedFeatureID);
-                    gv = table.readFeatureValue(requestedFeatureID, IDindex);
-
-                } else {
-
-                    requestedFeatureID = (int) (id * (layer.getFeatureCount() / (float) maxTriangleID));
-                    if (requestedFeatureID < 1) {
-                        requestedFeatureID = 1;
-                    }
-                    try {
-//                        gf = layer.getFeature(requestedFeatureID);
-                        gv = table.readFeatureValue(requestedFeatureID, IDindex);
-                    } catch (Exception e) {
-                        System.err.println("Requested feature ID: " + requestedFeatureID);
-                        e.printStackTrace();
-                    }
-                }
-//                gfID = gf.getValue(IDindex).intValue();
-                gfID = gv.intValue();
-                while (gfID != id) {
-                    if (gfID > id) {
-                        //requested Geofeature lies somewhere BEFORE the current one.
-                        upperBound = requestedFeatureID;
-                        upperID = gfID;
-
-                        if (upperBound - lowerBound < 1) {// WAS 2!
-                            // Bounds touched without finding the right value.GF was not found in this table.
-                            throw new IDnotFoundException(id);
-                        }
-
-                        // -> pointer go back 
-                        int idgap = id - gfID;
-                        if (idgap < 200) {
-                            requestedFeatureID = (int) (requestedFeatureID + idgap * ((upperBound - lowerBound) / (double) (upperID - lowerID)));
-                        } else {
-                            requestedFeatureID = (requestedFeatureID + idgap);
-                        }
-                        if (requestedFeatureID <= lowerBound) {
-                            //Seems to be near to the requested id. go in low steps
-                            requestedFeatureID = (int) (lowerBound + (upperBound - lowerBound) * 0.3) + 1;
-                            if (upperBound - lowerBound < 10) {
-                                requestedFeatureID = (int) (lowerBound + 1);
-                            }
-
-                        }
-
-                    } else {
-                        //requested Geofeature lies somewhere HIGHER/AFTER the current one.
-                        lowerBound = requestedFeatureID;
-                        lowerID = gfID;
-                        if (upperBound - lowerBound < 1) { // WAS 2!
-                            // Bounds touched without finding the right value.GF was not found in this table.
-                            throw new IDnotFoundException(id);
-                        }
-
-                        int idgap = id - gfID;
-                        if (idgap > 100) {
-                            double add = idgap * ((upperBound - lowerBound) / (double) (upperID - lowerID));
-                            requestedFeatureID = (int) (requestedFeatureID + add);
-                        } else {
-                            requestedFeatureID = (requestedFeatureID + idgap);
-                        }
-                        if (requestedFeatureID >= upperBound) {
-                            //Seems to be near to the requested id. go in low steps
-                            requestedFeatureID = (int) (upperBound - (upperBound - lowerBound) * 0.7) - 1;
-                            if (upperBound - lowerBound < 10) {
-                                requestedFeatureID = (int) (upperBound - 1);
-                            }
-
-                        }
-                    }
-                    if (counterGetFeature >= maxTryFindCount) {
-                        //Break if it is too timeconsuming
-                        break;
-                    }
-
-                    //Request the calculated feature for testing it next loop.
-//                    gf = layer.getFeature(requestedFeatureID);
-                    gv = table.readFeatureValue(requestedFeatureID, IDindex);
-                    if (gv == null) {
-                        throw new IDnotFoundException(id);
-                    }
-//                    gfID = gf.getValue(IDindex).intValue();
-                    gfID = gv.intValue();
-                    counterGetFeature++;
-                }
-//                if (gf.getValue(IDindex).intValue() != id) {
-//                    throw new IDnotFoundException(id);
-//                }
-//                if (gf == null) {
-//                    throw new IDnotFoundException(id);
-//                }
-                if (gv == null || gv.intValue() != id) {
-                    throw new IDnotFoundException(id);
-                }
-                return table.getFeature(requestedFeatureID);
-            }
-        } catch (IOException ex) {
-            throw new IDnotFoundException(id);
-        }
-
-    }
-
-    /**
-     *
-     * @param layer
-     * @param IDindex column index of the feature where the id can be found
-     * @param id
-     * @return
-     */
-    public GeoFeature getFeatureOld2(GeoLayer layer, int IDindex, int id) throws IDnotFoundException {
-
-        if (id < 0) {
-            //Quatsch, nonsense
-            throw new IDnotFoundException(id);
-        }
-        if (id > maxTriangleID) {
-            // requested id can not be in this database.
-            throw new IDnotFoundException(id);
-        }
-        counterGetFeature = 0;
-        GeoFeature gf = null;
-
-        long upperID = maxTriangleID;
-        int lowerBound = 0;
-        long lowerID = 0;
-        int requestedFeatureID = 0;
-        int gfID = -1;
-        synchronized (layer) {
-            int upperBound = layer.getFeatureCount() + 1;
-            if (id > layer.getFeatureCount()) {
-                requestedFeatureID = layer.getFeatureCount();
-                upperBound = requestedFeatureID;
-                gf = layer.getFeature(requestedFeatureID);
-            } else {
-
-                requestedFeatureID = (int) (id * (layer.getFeatureCount() / (float) maxTriangleID));
-                if (requestedFeatureID < 1) {
-                    requestedFeatureID = 1;
-                }
-                try {
-                    gf = layer.getFeature(requestedFeatureID);
-                } catch (Exception e) {
-                    System.err.println("Requested feature ID: " + requestedFeatureID);
-                    e.printStackTrace();
-                }
-            }
-            gfID = gf.getValue(IDindex).intValue();
-            while (gfID != id) {
-                if (gfID > id) {
-                    //requested Geofeature lies somewhere BEFORE the current one.
-                    upperBound = requestedFeatureID;
-                    upperID = gfID;
-
-                    if (upperBound - lowerBound < 1) {// WAS 2!
-                        // Bounds touched without finding the right value.GF was not found in this table.
-                        throw new IDnotFoundException(id);
-                    }
-
-                    // -> pointer go back 
-                    int idgap = id - gfID;
-                    if (idgap < 200) {
-                        requestedFeatureID = (int) (requestedFeatureID + idgap * ((upperBound - lowerBound) / (double) (upperID - lowerID)));
-                    } else {
-                        requestedFeatureID = (requestedFeatureID + idgap);
-                    }
-                    if (requestedFeatureID <= lowerBound) {
-                        //Seems to be near to the requested id. go in low steps
-                        requestedFeatureID = (int) (lowerBound + (upperBound - lowerBound) * 0.3) + 1;
-                        if (upperBound - lowerBound < 10) {
-                            requestedFeatureID = (int) (lowerBound + 1);
-                        }
-
-                    }
-
-                } else {
-                    //requested Geofeature lies somewhere HIGHER/AFTER the current one.
-                    lowerBound = requestedFeatureID;
-                    lowerID = gfID;
-                    if (upperBound - lowerBound < 1) { // WAS 2!
-                        // Bounds touched without finding the right value.GF was not found in this table.
-                        throw new IDnotFoundException(id);
-                    }
-
-                    int idgap = id - gfID;
-                    if (idgap > 100) {
-                        double add = idgap * ((upperBound - lowerBound) / (double) (upperID - lowerID));
-                        requestedFeatureID = (int) (requestedFeatureID + add);
-                    } else {
-                        requestedFeatureID = (requestedFeatureID + idgap);
-                    }
-                    if (requestedFeatureID >= upperBound) {
-                        //Seems to be near to the requested id. go in low steps
-                        requestedFeatureID = (int) (upperBound - (upperBound - lowerBound) * 0.7) - 1;
-                        if (upperBound - lowerBound < 10) {
-                            requestedFeatureID = (int) (upperBound - 1);
-                        }
-
-                    }
-                }
-                if (counterGetFeature >= maxTryFindCount) {
-                    //Break if it is too timeconsuming
-                    break;
-                }
-
-                //Request the calculated feature for testing it next loop.
-                gf = layer.getFeature(requestedFeatureID);
-                if (gf == null) {
-                    throw new IDnotFoundException(id);
-                }
-                gfID = gf.getValue(IDindex).intValue();
-                counterGetFeature++;
-            }
-            if (gf.getValue(IDindex).intValue() != id) {
-                throw new IDnotFoundException(id);
-            }
-            if (gf == null) {
-                throw new IDnotFoundException(id);
-            }
-            return gf;
-        }
-    }
-
     public static void main0(String[] args) {
-        File file = new File("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Result2D.gdb");
+        File file = new File(".\\2D_Model\\Extr2D_E2D1T50_mBK.result\\Result2D.gdb");
         HE_GDB_IO.verbose = true;
         HE_GDB_IO db = new HE_GDB_IO(file);
         System.out.println("has velocities=" + db.hasVelocities());
@@ -1177,6 +930,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
     @Override
     public float[] loadWaterlevlvalues(int triangleID) {
         GDBHandle handle = null;
+        long starttime = System.currentTimeMillis();
         //Search for free handles on this file.
         synchronized (waterlevelHandles) {
             for (GDBHandle h : waterlevelHandles) {
@@ -1211,7 +965,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
             for (int i = 0; i < wl.length; i++) {
                 wl[i] = (float) feature.getValue(indexWL0 + i).doubleValue();
             }
-
+            sqlRequestCount++;
+            sqlRequestTime += System.currentTimeMillis() - starttime;
             return wl;
         } catch (NullPointerException e) {
             handle.busy = false;
@@ -1252,7 +1007,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
     @Override
     public float[][] loadVelocity(int triangleID) throws IDnotFoundException {
-
+        long starttime = System.currentTimeMillis();
         GDBHandle handle = null;
         //Search for free handles on this file.
         synchronized (velocityHandles) {
@@ -1282,7 +1037,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         }
 
         try {
-           
+
             GeoFeature feature = getFeature(handle.table, indexVid, triangleID);
             handle.busy = false;
             float[][] v = new float[velocityTimeSteps][2];
@@ -1290,7 +1045,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 v[i][0] = (float) feature.getValue(indexVX0 + i * 4).doubleValue();
                 v[i][1] = (float) feature.getValue(indexVX0 + i * 4 + 1).doubleValue();
             }
-
+            sqlRequestCount++;
+            sqlRequestTime += System.currentTimeMillis() - starttime;
             return v;
         } catch (IDnotFoundException iDnotFoundException) {
             handle.busy = false;
@@ -1361,6 +1117,17 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
     public File getDirectory() {
         return directory;
+    }
+
+    public static void resetRequestBenchmark() {
+        sqlRequestCount = 0;
+        sqlRequestTime = 0;
+        waitingForRequestCount = 0;
+        waitingForRequestTime = 0;
+    }
+
+    public static String getRequestbenchmarkString() {
+        return "HE GDB Benchmark: GDB Requests: " + sqlRequestCount + " with total " + sqlRequestTime + "ms (" + (sqlRequestTime / sqlRequestCount) + "ms/query) these can be parallel requests.";//\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime + "ms";
     }
 
 }

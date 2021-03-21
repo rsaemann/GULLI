@@ -1,5 +1,6 @@
 package com.saemann.gulli.core.model.topology;
 
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.topology.profile.Medium;
 import com.saemann.gulli.core.model.topology.profile.Profile;
@@ -71,7 +72,7 @@ public abstract class Capacity {
     public abstract double getFluidVolume();
 
 //    public abstract void setStatusTimeLine(TimeLine<? extends SimpleStorageStamp> tl);
-    public abstract void setMeasurementTimeLine(ArrayTimeLineMeasurement tl);
+    public abstract void setMeasurementTimeLine(MeasurementTimeline tl);
 
     /**
      *
@@ -79,7 +80,7 @@ public abstract class Capacity {
      */
 //    public abstract TimeLine<? extends SimpleStorageStamp> getStatusTimeLine();
 //    
-    public abstract ArrayTimeLineMeasurement getMeasurementTimeLine();
+    public abstract MeasurementTimeline getMeasurementTimeLine();
 
     /**
      * [m] Water height from sole of this capacity

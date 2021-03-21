@@ -5,6 +5,8 @@
  */
 package com.saemann.gulli.view;
 
+import com.saemann.gulli.core.control.Controller;
+import com.saemann.gulli.core.model.topology.Manhole;
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,6 +15,11 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
+import java.awt.Point;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.locationtech.jts.geom.Coordinate;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  *
@@ -23,14 +30,16 @@ public class SearchPanel extends JPanel {
     private JTextField text;
 
     private JButton buttonSearch;
+    
+    private JButton buttonSearchCellID;
 
-    private final Network network;
+    private Controller c;
 
     PaintManager paintManager;
 
-    public SearchPanel(Network network, PaintManager manager) {
+    public SearchPanel(Controller c, PaintManager manager) {
         super(new BorderLayout());
-        this.network = network;
+        this.c=c;
         this.paintManager = manager;
         initLayout();
     }
@@ -38,8 +47,10 @@ public class SearchPanel extends JPanel {
     private void initLayout() {
         text = new JTextField();
         this.add(text, BorderLayout.NORTH);
-        buttonSearch = new JButton("Search");
+        buttonSearch = new JButton("Search Network Element");
+        buttonSearchCellID = new JButton("Search Surface Cell");
         this.add(buttonSearch, BorderLayout.CENTER);
+        this.add(buttonSearchCellID,BorderLayout.SOUTH);
 
         buttonSearch.addActionListener(new ActionListener() {
             @Override
@@ -49,10 +60,18 @@ public class SearchPanel extends JPanel {
                     return;
                 }
 
-                for (Pipe manholesDrain : network.getPipes()) {
+                for (Pipe manholesDrain : c.getNetwork().getPipes()) {
                     if (manholesDrain.getName().contains(str) || (manholesDrain.getAutoID() + "").contains(str)) {
                         System.out.println("Found a pipe " + manholesDrain.getName() + " (" + manholesDrain.getAutoID() + ")");
                         paintManager.setSelectedPipe(manholesDrain.getAutoID());
+                        return;
+                    }
+                }
+                
+                 for (Manhole manholesDrain : c.getNetwork().getManholes()) {
+                    if (manholesDrain.getName().contains(str) || (manholesDrain.getAutoID() + "").contains(str)) {
+                        System.out.println("Found a Manhole " + manholesDrain.getName() + " (" + manholesDrain.getAutoID() + ")");
+                        paintManager.setSelectedManhole(manholesDrain.getAutoID());
                         return;
                     }
                 }
@@ -64,6 +83,26 @@ public class SearchPanel extends JPanel {
 //                        return;
 //                    }
 //                }
+            }
+        });
+        
+        buttonSearchCellID.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                String str = text.getText();
+                if (str == null || str.isEmpty()) {
+                    return;
+                }
+                long cellID=Long.parseLong(str);
+                paintManager.selectLocationID(this, paintManager.layerSurfaceGrid, cellID);
+                double[] mid = c.getSurface().getTriangleMids()[(int)cellID];
+                try {
+                    Coordinate longlat = c.getSurface().getGeotools().toGlobal(new Coordinate(mid[0], mid[1]),true);
+                     paintManager.getMapViewer().setDisplayPositionByLatLon(longlat.y,longlat.x,22);
+                } catch (TransformException ex) {
+                    Logger.getLogger(SearchPanel.class.getName()).log(Level.SEVERE, null, ex);
+                }
+               
             }
         });
     }

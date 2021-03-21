@@ -654,7 +654,7 @@ public class ParticlePipeComputing {
                     position1d = neuePosition;
                     p.setPosition1d_actual(position1d);
                     p.setSurrounding_actual(c);
-                    pipe.getMeasurementTimeLine().addParticle(p);
+                    pipe.getMeasurementTimeLine().addParticle(p,1);
 //                    pipe.getMeasurementTimeLine().addParticle();
 //                    System.out.println("  after preparing1 now in " + c + " ds=" + ds + "   pos1d=" + position1d);
                     return;
@@ -693,7 +693,7 @@ public class ParticlePipeComputing {
 //                    ds = 0;
                     p.setPosition1d_actual(position1d);
                     p.setSurrounding_actual(c);
-                    pipe.getMeasurementTimeLine().addParticle(p);
+                    pipe.getMeasurementTimeLine().addParticle(p,1);
 //                    if(pipe.getAutoID()==1514){
 //                        System.out.println("particle set to position \t"+position1d);
 //                    }
@@ -961,7 +961,7 @@ public class ParticlePipeComputing {
         p.setPosition1d_actual(position1d);
         if (c.getClass().equals(Pipe.class)) {
 //            System.out.println("letzte is Pipe loops="+loops);
-            ((Pipe) c).getMeasurementTimeLine().addParticle(p);
+            ((Pipe) c).getMeasurementTimeLine().addParticle(p,1);
         }
     }
 
@@ -1392,7 +1392,7 @@ public class ParticlePipeComputing {
             Pipe pipe = (Pipe) c;
 //            status = 52;
 
-            pipe.getMeasurementTimeLine().addParticle(p);
+            pipe.getMeasurementTimeLine().addParticle(p,1);
 
 //            p.setVelocity1d(pipe.getVelocity());
         }

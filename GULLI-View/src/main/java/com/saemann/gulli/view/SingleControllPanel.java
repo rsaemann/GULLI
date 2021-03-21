@@ -126,7 +126,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private ButtonGroup group_timestep;
     private JRadioButton radioExplicit, radioStepsplicit, radioCrankNicolson;
-    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles;
+    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles,checkBlockSlow;
 //    private JRadioButton radioEnterdry, radioStopDry, radioProjectDry;
 //    private boolean wasrunning = false;
     private final JCheckBox checkDrawUpdateIntervall;
@@ -159,9 +159,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     protected Action currentAction;
 
-    protected final String updatethreadBarrier = new String("UPDATETHREADBARRIERSINGLECONTROLPANEL");
+//    protected final String updatethreadBarrier = new String("UPDATETHREADBARRIERSINGLECONTROLPANEL");
     protected long updateThreadUpdateIntervalMS = 1000;
     protected Thread updateGUIThread, updateSimulationThread;
+    protected final String lockGUIThread = new String("GUI"), lockSimulationThread = new String("SIM");
+
     StringBuilder timeelapsed = new StringBuilder(30);
 
     protected PipeThemeLayer activePipeThemeLayer;
@@ -304,17 +306,23 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelTimestepCalculation.add(radioCrankNicolson);
         panelTabSimulation.add(panelTimestepCalculation);
         //SurfaceMovement
-        checkParticleDryMovement=new JCheckBox("Dry movement",ParticleSurfaceComputing2D.gradientFlowForDryCells);
-        checkEnterdry=new JCheckBox("Enter dry cells",!ParticleSurfaceComputing2D.preventEnteringDryCell);
-        checkProjectAtObstacles=new JCheckBox("Slide at edges",ParticleSurfaceComputing2D.slidealongEdges);
-        JPanel panelMovementAlgorithm=new JPanel(new GridLayout(2, 2,5,5));
-        panelMovementAlgorithm.setMaximumSize(new Dimension(500,70));
+        checkParticleDryMovement = new JCheckBox("Dry movement", ParticleSurfaceComputing2D.gradientFlowForDryCells);
+        checkParticleDryMovement.setToolTipText("Follow surface slope if velocity is below 5cm/s");
+        checkEnterdry = new JCheckBox("Enter dry cells", !ParticleSurfaceComputing2D.preventEnteringDryCell);
+        checkEnterdry.setToolTipText("Allow movement into cells with dry and very slow velocity");
+        checkProjectAtObstacles = new JCheckBox("Slide at edges", ParticleSurfaceComputing2D.slidealongEdges);
+        checkProjectAtObstacles.setToolTipText("Projection of movement vectors along edges to boundaries");
+        checkBlockSlow = new JCheckBox("StopSlow", ParticleSurfaceComputing2D.blockVerySlow);
+        checkBlockSlow.setToolTipText("Stop and disable movement, if movement is stuck");
+        JPanel panelMovementAlgorithm = new JPanel(new GridLayout(2, 2, 5, 5));
+        panelMovementAlgorithm.setMaximumSize(new Dimension(500, 70));
         panelMovementAlgorithm.setBorder(new TitledBorder("Particle Movement"));
         panelMovementAlgorithm.add(checkEnterdry);
         panelMovementAlgorithm.add(checkProjectAtObstacles);
         panelMovementAlgorithm.add(checkParticleDryMovement);
+        panelMovementAlgorithm.add(checkBlockSlow);
         panelTabSimulation.add(panelMovementAlgorithm);
-        
+
         // Velocity Function instead of Dispersion
         checkVelocityFunction = new JCheckBox("Velocity function", ParticlePipeComputing.useStreamlineVelocity);
         checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
@@ -333,7 +341,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.panelTimeSlide.setBorder(new TitledBorder("Simulation time"));
         JPanel panelTimeLabels = new JPanel(new BorderLayout());
         panelTimeLabels.add(new JLabel("Start"), BorderLayout.WEST);
-        JLabel lact=new JLabel("Actual");
+        JLabel lact = new JLabel("Actual");
         lact.setHorizontalAlignment(SwingConstants.CENTER);
         panelTimeLabels.add(lact, BorderLayout.CENTER);
         panelTimeLabels.add(new JLabel("End"), BorderLayout.EAST);
@@ -753,23 +761,29 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
             }
         });
-        
+
         checkEnterdry.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ParticleSurfaceComputing2D.preventEnteringDryCell=!checkEnterdry.isSelected();
+                ParticleSurfaceComputing2D.preventEnteringDryCell = !checkEnterdry.isSelected();
             }
         });
         checkProjectAtObstacles.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ParticleSurfaceComputing2D.slidealongEdges=checkProjectAtObstacles.isSelected();
+                ParticleSurfaceComputing2D.slidealongEdges = checkProjectAtObstacles.isSelected();
             }
         });
         checkParticleDryMovement.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ParticleSurfaceComputing2D.gradientFlowForDryCells=checkParticleDryMovement.isSelected();
+                ParticleSurfaceComputing2D.gradientFlowForDryCells = checkParticleDryMovement.isSelected();
+            }
+        });
+        checkBlockSlow.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ParticleSurfaceComputing2D.blockVerySlow = checkBlockSlow.isSelected();
             }
         });
 
@@ -1001,9 +1015,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 if (control.getScenario() != null) {
                     control.getScenario().setActualTime(time);
                 }
-                if (ArrayTimeLineMeasurementContainer.instance != null) {
-                    ArrayTimeLineMeasurementContainer.instance.setActualTime(time);
-                }
                 double seconds = ((time - controller.getSimulationStartTime()) / 1000L);
                 double minutes = seconds / 60.;
                 double hours = minutes / 60.;
@@ -1048,8 +1059,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     public void updateGUI() {
 //        System.out.println(getClass() + " updateGUI");
-        synchronized (updatethreadBarrier) {
-            updatethreadBarrier.notifyAll();
+        synchronized (lockGUIThread) {
+            lockGUIThread.notifyAll();
         }
     }
 
@@ -1414,40 +1425,44 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         labelScenarioInformation.setText(str.toString());
     }
 
-    public void startUpdateThread() {
-        if (control.getLoadingCoordinator().action != null) {
-            final Action action = control.getLoadingCoordinator().action;
-            if (action.hasProgress) {
-                Thread update = new Thread("UpdateProgress_" + action.description) {
-                    int loops = 0;
-                    int lastprogress = -1;
-
-                    @Override
-                    public void run() {
-                        while (loops++ < 100) {
-                            //Only update if this is the current working 
-                            if (action == control.getLoadingCoordinator().action) {
-                                if ((int) (action.progress * 100) > lastprogress) {
-                                    loops = 0;
-                                    lastprogress = (int) (action.progress * 100);
-                                    progressLoading.setIndeterminate(false);
-                                    progressLoading.setValue(lastprogress);
-                                }
-                            } else {
-                                break;
-                            }
-                        }
-                        System.out.println("Died update thread for " + action.description);
-                    }
-
-                };
-                update.start();
-            } else {
-                progressLoading.setIndeterminate(true);
-            }
-        }
-    }
-
+//    public void startUpdateThread() {
+//        if (control.getLoadingCoordinator().action != null) {
+//            final Action action = control.getLoadingCoordinator().action;
+//            if (action.hasProgress) {
+//                Thread update = new Thread("UpdateProgress_" + action.description) {
+//                    int loops = 0;
+//                    int lastprogress = -1;
+//
+//                    @Override
+//                    public void run() {
+//                        while (loops++ < 100) {
+//                            //Only update if this is the current working 
+//                            if (action == control.getLoadingCoordinator().action) {
+//                                if ((int) (action.progress * 100) > lastprogress) {
+//                                    loops = 0;
+//                                    lastprogress = (int) (action.progress * 100);
+//                                    progressLoading.setIndeterminate(false);
+//                                    progressLoading.setValue(lastprogress);
+//                                    try {
+//                                        Thread.sleep(200);
+//                                    } catch (InterruptedException ex) {
+//                                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+//                                    }
+//                                }
+//                            } else {
+//                                break;
+//                            }
+//                        }
+//                        System.out.println("Died update thread for " + action.description);
+//                    }
+//
+//                };
+//                update.start();
+//            } else {
+//                progressLoading.setIndeterminate(true);
+//            }
+//        }
+//    }
     @Override
     public void actionFired(Action action, Object source) {
         this.currentAction = action;
@@ -1614,7 +1629,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkEnterdry.setSelected(!ParticleSurfaceComputing2D.preventEnteringDryCell);
         checkProjectAtObstacles.setSelected(ParticleSurfaceComputing2D.slidealongEdges);
         checkParticleDryMovement.setSelected(ParticleSurfaceComputing2D.gradientFlowForDryCells);
-
+        checkBlockSlow.setSelected(ParticleSurfaceComputing2D.blockVerySlow);
         labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
 //        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
 //        try {
@@ -1709,8 +1724,12 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private void startGUIUpdateThread() {
         if (updateGUIThread != null) {
-            updateGUIThread.interrupt();
-            updateGUIThread = null;
+            if (updateGUIThread.isAlive()) {
+                lockGUIThread.notifyAll();
+            } else {
+                updateGUIThread.interrupt();
+                updateGUIThread = null;
+            }
         }
         if (updateGUIThread == null) {
             updateGUIThread = new Thread("GUI Repaint SinglecontrolPanel") {
@@ -1735,8 +1754,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 }
 
                             }
-                            synchronized (updatethreadBarrier) {
-                                updatethreadBarrier.wait();
+                            synchronized (lockGUIThread) {
+                                lockGUIThread.wait();
 
                             }
 
@@ -1835,23 +1854,40 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     }
 
     private void startUpdateSimulationThread() {
-        if (updateSimulationThread != null && !updateSimulationThread.isAlive()) {
-            try {
-                updateSimulationThread.interrupt();
-            } catch (Exception e) {
+        if (updateSimulationThread != null && updateSimulationThread.isAlive()) {
+            synchronized (lockSimulationThread) {
+//                System.out.println("Revoke Simulationstate update Thread");
+                lockSimulationThread.notifyAll();
             }
-            updateSimulationThread = null;
+//            try {
+//                updateSimulationThread.interrupt();
+//            } catch (Exception e) {
+//            }
+//            updateSimulationThread = null;
         }
         if (updateSimulationThread == null || !updateSimulationThread.isAlive()) {
+//            System.out.println("Create new SimStateUpdate Thread");
             updateSimulationThread = new Thread("Update Simulation GUI") {
                 @Override
                 public void run() {
-                    while (!isInterrupted() && controler.isSimulating()) {
+                    while (!isInterrupted()) {
                         updateSimulationRunInformation();
+                        if (!controler.isSimulating()) {
+                            try {
+                                synchronized (lockSimulationThread) {
+                                    lockSimulationThread.wait();
+                                }
+                            } catch (InterruptedException ex) {
+                                Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        }
                         try {
                             sleep(500);
                         } catch (InterruptedException ex) {
 //                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                        if (updateSimulationThread != this) {
+                            this.interrupt();
                         }
                     }
                 }

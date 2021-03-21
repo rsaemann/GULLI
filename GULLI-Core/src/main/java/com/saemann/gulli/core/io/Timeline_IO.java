@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.io;
 
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -75,7 +76,7 @@ public class Timeline_IO {
             throw new NullPointerException("Pipe " + pipe.getName() + " has no timeline.");
         }
         TimeLinePipe tls = pipe.getStatusTimeLine();
-        ArrayTimeLineMeasurement tlm = pipe.getMeasurementTimeLine();
+        MeasurementTimeline tlm = pipe.getMeasurementTimeLine();
         try {
             FileWriter fw = new FileWriter(outputfile);
             BufferedWriter bw = new BufferedWriter(fw);
@@ -117,7 +118,7 @@ public class Timeline_IO {
         if (pipe.getMeasurementTimeLine() == null) {
             throw new NullPointerException("Pipe " + pipe.getName() + " has no timeline.");
         }
-        ArrayTimeLineMeasurement tlm = pipe.getMeasurementTimeLine();
+        MeasurementTimeline tlm = pipe.getMeasurementTimeLine();
         try {
             FileWriter fw = new FileWriter(outputfile);
             BufferedWriter bw = new BufferedWriter(fw);

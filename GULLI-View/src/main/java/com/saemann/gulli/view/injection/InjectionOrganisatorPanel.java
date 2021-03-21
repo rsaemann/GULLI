@@ -304,7 +304,8 @@ public class InjectionOrganisatorPanel extends JPanel {
                     public void actionPerformed(ActionEvent e) {
                         control.getLoadingCoordinator().removeInjection(inj);
                         control.getScenario().getInjections().remove(inj);
-                        control.recalculateInjections();
+                        control.requestRecalculationOfInjectionsBeforeNextStart();
+//                        control.recalculateInjections();
                         popup.setVisible(false);
                         recreatePanels();
                     }

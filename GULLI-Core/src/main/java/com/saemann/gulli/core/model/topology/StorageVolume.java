@@ -5,6 +5,7 @@
  */
 package com.saemann.gulli.core.model.topology;
 
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.TimeLineManhole;
 import com.saemann.gulli.core.model.topology.profile.Profile;
@@ -158,12 +159,12 @@ public class StorageVolume extends Capacity {
 
 
     @Override
-    public void setMeasurementTimeLine(ArrayTimeLineMeasurement tl) {
+    public void setMeasurementTimeLine(MeasurementTimeline tl) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public ArrayTimeLineMeasurement getMeasurementTimeLine() {
+    public MeasurementTimeline getMeasurementTimeLine() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     

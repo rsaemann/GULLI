@@ -31,6 +31,7 @@ import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexCalculator;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 
 /**
  * Information about the time of Simulation. Scenarios handle the input
@@ -61,7 +62,7 @@ public abstract class Scenario {
      */
     protected TimeIndexCalculator timesSoil;
 
-    protected ArrayTimeLineMeasurementContainer measurementsPipe;
+    protected MeasurementContainer measurementsPipe;
 
     protected SurfaceMeasurementRaster measurementsSurface;
 
@@ -189,11 +190,11 @@ public abstract class Scenario {
         return endtime;
     }
 
-    public ArrayTimeLineMeasurementContainer getMeasurementsPipe() {
+    public MeasurementContainer getMeasurementsPipe() {
         return measurementsPipe;
     }
 
-    public void setMeasurementsPipe(ArrayTimeLineMeasurementContainer measurementsPipe) {
+    public void setMeasurementsPipe(MeasurementContainer measurementsPipe) {
         this.measurementsPipe = measurementsPipe;
     }
 

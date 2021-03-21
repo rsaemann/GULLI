@@ -116,6 +116,8 @@ public class Particle {
      * If particle stays on this cell, do not count it again.
      */
     public int lastSurfaceCellID = -1;
+    public boolean blocked=false;
+//    public double blockXdir=0;
 
 //    public final ArrayList<Shortcut> usedShortcuts=new ArrayList<>(0);
 //    public float ds=0;
@@ -414,6 +416,7 @@ public class Particle {
     public void resetMovementLengths() {
 //        this.moveLengthAbsolute = 0;
         this.moveLengthCummulative = 0;
+        blocked=false;
     }
 
     public void setPosition3D(Coordinate c) {

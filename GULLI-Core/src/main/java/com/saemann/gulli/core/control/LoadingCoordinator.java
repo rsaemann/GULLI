@@ -64,12 +64,12 @@ import com.saemann.gulli.core.model.surface.SurfaceVelocityLoader;
 import com.saemann.gulli.core.model.surface.SurfaceWaterlevelLoader;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManholeContainer;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLinePipeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelineManhole;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -137,6 +137,12 @@ public class LoadingCoordinator {
     public boolean sparseSurfaceLoading = true;
 
     /**
+     * Save measurements in a sparse timeline (SparseTimeLineMeasurement) Else
+     * save in an always-fully initialized ArrayTimelineMeasurement.
+     */
+    public boolean sparsePipeMeasurements = true;
+
+    /**
      * Use weights from NODE2TRIANGLe.dat for weighting the nodes' velocities
      * from triangle velocities.
      */
@@ -157,7 +163,7 @@ public class LoadingCoordinator {
     private boolean requestLoading = false;
     private LinkedList<Pair<File, Boolean>> list_loadingPipeResults = new LinkedList<>();
     private File fileMainPipeResult = null;
-    private boolean loadOnlyMainFile = true;
+//    private boolean loadOnlyMainFile = true;
 
     private boolean loadGDBVelocity = true;
     private boolean changedPipeNetwork = false;
@@ -345,7 +351,7 @@ public class LoadingCoordinator {
 
                         }
                     }
-                    if (surface!=null&&surface.waterlevelLoader == null) {
+                    if (surface != null && surface.waterlevelLoader == null) {
                         System.out.println("Waterlevelloader is null try to use gradient calculation filetype: " + filetype);
                         if (filetype == FILETYPE.SWMM_5_1) {
                             if (surface.triangle_downhilldirection == null) {
@@ -367,8 +373,8 @@ public class LoadingCoordinator {
                                 @Override
                                 public float[][] loadVelocity(int triangleID) {
                                     float[] v = new float[2];
-                                    v[0] = surface.triangle_downhilldirection[triangleID][0] *surface.triangle_downhillIntensity[triangleID]*10f;
-                                    v[1] = surface.triangle_downhilldirection[triangleID][1] *surface.triangle_downhillIntensity[triangleID]*10f;
+                                    v[0] = surface.triangle_downhilldirection[triangleID][0] * surface.triangle_downhillIntensity[triangleID] * 10f;
+                                    v[1] = surface.triangle_downhilldirection[triangleID][1] * surface.triangle_downhillIntensity[triangleID] * 10f;
                                     float[][] tl = new float[2][2];
                                     tl[0] = v;
                                     tl[1] = v;
@@ -574,11 +580,11 @@ public class LoadingCoordinator {
                     resultName = resultDatabase.readResultname();
                     scenarioName = resultName;
                     action.description = "Load spill events";
-                    System.out.println("load file injections? " + loadResultInjections);
+//                    System.out.println("load file injections? " + loadResultInjections);
                     totalInjections.clear();
                     if (this.loadResultInjections) {
                         he_injection = resultDatabase.readInjectionInformation(startAtZeroTime);
-                        System.out.println("loaded " + he_injection.size() + " injections from file. totalinjections are: " + totalInjections.size());
+                        System.out.println("loaded " + he_injection.size() + " injections from HE Result DB file.");
                     } else {
                         he_injection = new ArrayList<>(0);
                     }
@@ -738,7 +744,7 @@ public class LoadingCoordinator {
                     //SWMM 5 output file
                     action.description = "Open out file";
                     SWMM_Out_Reader reader = new SWMM_Out_Reader(fileMainPipeResult);
-                    
+
                     Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(network, reader, new ArrayList(0), new ArrayList(0), zeroTimeStart);
                     timeContainerPipe = cs.first;
                     timeContainerManholes = cs.second;
@@ -1256,7 +1262,7 @@ public class LoadingCoordinator {
         this.loadingPipeResult = LOADINGSTATUS.REQUESTED;
         if (pipeResultFile != null) {
             this.clearOtherResults = clearOtherFiles;
-            this.loadOnlyMainFile = true;
+//            this.loadOnlyMainFile = true;
         } else {
             loadingPipeResult = LOADINGSTATUS.NOT_REQUESTED;
         }
@@ -1268,7 +1274,7 @@ public class LoadingCoordinator {
             list_loadingPipeResults.add(new Pair<>(pipeResultFile, asMainFile));
             this.clearOtherResults = false;
             this.loadingPipeResult = LOADINGSTATUS.REQUESTED;
-            this.loadOnlyMainFile = false;
+//            this.loadOnlyMainFile = false;
         }
     }
 
@@ -1796,7 +1802,6 @@ public class LoadingCoordinator {
 //        }
 //        return tempFBDB;
 //    }
-
     public boolean loadSetup(File file) {
         try {
             Setup setup = Setup_IO.load(file);
@@ -1823,24 +1828,14 @@ public class LoadingCoordinator {
      * manualInjections.
      *
      * @param setup
+     * @throws java.sql.SQLException
+     * @throws java.io.FileNotFoundException
+     * @throws java.io.IOException
      */
     public void applySetup(Setup setup) throws SQLException, FileNotFoundException, IOException {
-//        this.setPipeResultsFile(setup.files.pipeResult, true);
-        this.setFilesToLoad(setup.getFiles());
-//        this.requestDependentFiles(setup.files.pipeResult, setup.useSurface, true);
 
-//        if (setup.files.pipeNetwork != null && setup.files.pipeNetwork.exists()) {
-//            if (!setup.files.pipeNetwork.equals(this.fileNetwork)) {
-//                this.setPipeNetworkFile(setup.files.pipeNetwork);
-//                loadingpipeNetwork=LOADINGSTATUS.REQUESTED;
-//            }
-//        }
-//        if (setup.files.surfaceDirectory != null && setup.files.surfaceDirectory.exists()) {
-//            this.setSurfaceTopologyDirectory(setup.files.surfaceDirectory);
-//        }
-//        if (setup.files.surfaceResult != null && setup.files.surfaceResult.exists()) {
-//            this.setSurfaceFlowfieldFile(setup.files.surfaceResult);
-//        }
+        this.setFilesToLoad(setup.getFiles());
+
         this.manualInjections.clear();
         if (setup.injections != null && setup.injections.size() > 0) {
             for (InjectionInfo in : setup.injections) {
@@ -1865,12 +1860,19 @@ public class LoadingCoordinator {
         SurfaceMeasurementRaster.synchronizeMeasures = setup.isSurfaceMeasurementSynchronize();
 
         ParticlePipeComputing.measureOnlyFinalCapacity = !setup.isPipeMeasurementSpatialConsistent();
-        ArrayTimeLineMeasurement.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
-        try {
-            scenario.getMeasurementsPipe().setIntervalSeconds(setup.getPipeMeasurementtimestep(), scenario.getStartTime(), scenario.getEndTime());
+        MeasurementContainer.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
 
+        try {
+            if (scenario != null && scenario.getMeasurementsPipe() != null) {
+                if (scenario.getMeasurementsPipe() instanceof ArrayTimeLineMeasurementContainer) {
+                    ((ArrayTimeLineMeasurementContainer) scenario.getMeasurementsPipe()).setIntervalSeconds(setup.getPipeMeasurementtimestep(), scenario.getStartTime(), scenario.getEndTime());
+                } else {
+                    System.out.println("LoadingCoordinator cannot set a new Timeinterval width to MeasurmentContainer " + scenario.getMeasurementsPipe());
+                }
+            }
         } catch (Exception e) {
         }
+
         if (scenario != null && setup.materials != null) {
             scenario.setMaterials(new ArrayList<Material>(setup.materials));
         }
@@ -1883,6 +1885,8 @@ public class LoadingCoordinator {
         } else {
             control.setTraceParticles(false);
         }
+
+        fireLoadingActionUpdate();
     }
 
     /**
@@ -1935,13 +1939,13 @@ public class LoadingCoordinator {
         }
 
         if (control.getScenario() != null) {
-            ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
+            MeasurementContainer mp =  control.getScenario().getMeasurementsPipe();
             if (mp != null) {
-                setup.setPipeMeasurementtimestep(mp.getDeltaTimeS());
+                setup.setPipeMeasurementtimestep(mp.getTimes().getDeltaTimeMS()/1000.);
                 setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
             }
             setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
-            setup.setPipeMeasurementSynchronize(ArrayTimeLineMeasurement.synchronizeMeasures);
+            setup.setPipeMeasurementSynchronize(MeasurementContainer.synchronizeMeasures);
 
             SurfaceMeasurementRaster sr = control.getScenario().getMeasurementsSurface();
             if (sr != null) {

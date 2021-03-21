@@ -32,6 +32,8 @@ import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
+import com.saemann.gulli.core.io.extran.HE_Database;
+import com.saemann.gulli.core.io.extran.HE_GDB_IO;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -203,9 +205,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         barrier_sync.setStepEndTime(simulationNextTimeMS);
         barrier_particle.setStepStartTime(simulationTimeMS);
         barrier_particle.setStepEndTime(simulationNextTimeMS);
-        if (ArrayTimeLineMeasurementContainer.instance != null) {
-            ArrayTimeLineMeasurementContainer.instance.setActualTime(simulationTimeMS);
-        }
+       
         if (control.getScenario() != null) {
             control.getScenario().setActualTime(simulationTimeMS);
         }
@@ -330,8 +330,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         }
         ThreadController.deltaTime = deltaTimeSeconds;
         ThreadController.deltatimeMS = (int) (deltaTimeSeconds * 1000);
-        if (ArrayTimeLineMeasurementContainer.isInitialized()) {
-            ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval = ArrayTimeLineMeasurementContainer.instance.getDeltaTimeS() / ThreadController.getDeltaTime();
+//        if (ArrayTimeLineMeasurementContainer.isInitialized()) {
+//            ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval = ArrayTimeLineMeasurementContainer.instance.getDeltaTimeS() / ThreadController.getDeltaTime();
+//        }
+        if(control.getScenario()!=null&&control.getScenario().getMeasurementsPipe()!=null){
+            control.getScenario().getMeasurementsPipe().samplesPerTimeinterval=control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000./deltaTimeSeconds;
+            
         }
         for (ParticleThread thread : barrier_particle.getThreads()) {
             thread.setDeltaTime(deltaTimeSeconds);
@@ -521,6 +525,9 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 e.printStackTrace();
             }
         }
+        
+        HE_Database.resetRequestBenchmark();
+        HE_GDB_IO.resetRequestBenchmark();
     }
 
     /**
@@ -811,9 +818,6 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //                    status = 24;
                     //Send new Timeinformation to all timelines pipe/manhole/surface/soil
                     control.getScenario().setActualTime(simulationTimeMS);
-                    if (ArrayTimeLineMeasurementContainer.instance != null) {
-                        ArrayTimeLineMeasurementContainer.instance.setActualTime(simulationTimeMS);
-                    }
 //                    status = 28;
                 case POSITION:
 //                    status = 30;
@@ -836,6 +840,12 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
+                        }
+                        if(HE_Database.sqlRequestCount>0){
+                            System.out.println(HE_Database.getRequestbenchmarkString());
+                        }
+                        if(HE_GDB_IO.sqlRequestCount>0){
+                            System.out.println(HE_GDB_IO.getRequestbenchmarkString());
                         }
                         return;
                     }

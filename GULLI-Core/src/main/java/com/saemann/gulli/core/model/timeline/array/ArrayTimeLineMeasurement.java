@@ -4,12 +4,14 @@ import java.util.HashSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import com.saemann.gulli.core.model.particle.Particle;
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 
 /**
  *
  * @author saemann
  */
-public class ArrayTimeLineMeasurement {
+public class ArrayTimeLineMeasurement implements MeasurementTimeline{
 
     protected ArrayTimeLineMeasurementContainer container;
 
@@ -20,12 +22,12 @@ public class ArrayTimeLineMeasurement {
      */
     public static boolean useIDsharpParticleCounting = false;
 
-    /**
-     * Using synchronized measurements is slower because Particle threas writing
-     * on this list have to wait on each other. Enabling this results in a more
-     * accurate counting because adding a value is not threadsave.
-     */
-    public static boolean synchronizeMeasures = true;
+//    /**
+//     * Using synchronized measurements is slower because Particle threas writing
+//     * on this list have to wait on each other. Enabling this results in a more
+//     * accurate counting because adding a value is not threadsave.
+//     */
+//    public static boolean synchronizeMeasures = true;
     private Lock lock = new ReentrantLock();
 
     private double maxMass = 0;
@@ -80,6 +82,7 @@ public class ArrayTimeLineMeasurement {
      * @param temporalIndex
      * @return [kg/m^3]
      */
+    @Override
     public float getConcentration(int temporalIndex) {
         int index = getIndex(temporalIndex);
         //mass and volume are both sums of the interval samples and therefore do not have to be divided by the number of samples
@@ -95,6 +98,7 @@ public class ArrayTimeLineMeasurement {
      * @param materialIndex
      * @return [kg/m^3]
      */
+    @Override
     public float getConcentrationOfType(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
 
@@ -107,6 +111,7 @@ public class ArrayTimeLineMeasurement {
      * @param temporalIndex
      * @return [kg]
      */
+    @Override
     public float getMass(int temporalIndex) {
         int index = getIndex(temporalIndex);
         return (float) (container.mass_total[index] / (container.samplesInTimeInterval[temporalIndex]));
@@ -122,6 +127,7 @@ public class ArrayTimeLineMeasurement {
      * @param materialIndex
      * @return mass [kg] of this material
      */
+    @Override
     public float getMass(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
         float mass = (float) (container.mass_type[index][materialIndex] / (container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
@@ -138,6 +144,7 @@ public class ArrayTimeLineMeasurement {
      * @param pipeLength in meter
      * @return kg of passed mass during the whole simulation.
      */
+    @Override
     public float getTotalMass(TimeLinePipe tl, float pipeLength) {
         float massSum = 0;
         for (int i = 1; i < container.getNumberOfTimes(); i++) {
@@ -160,6 +167,7 @@ public class ArrayTimeLineMeasurement {
      * @param temporalIndex
      * @return
      */
+    @Override
     public float getParticles(int temporalIndex) {
         int index = getIndex(temporalIndex);
         return (float) (container.particles[index] / (float) container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/);
@@ -171,6 +179,7 @@ public class ArrayTimeLineMeasurement {
      * @param temporalIndex
      * @return m^3
      */
+    @Override
     public float getVolume(int temporalIndex) {
         int index = getIndex(temporalIndex);
         try {
@@ -181,6 +190,7 @@ public class ArrayTimeLineMeasurement {
         return 0;
     }
 
+    @Override
     public boolean hasValues(int timeIndex) {
         return container.counts[getIndex(timeIndex)] > 0;
     }
@@ -192,6 +202,7 @@ public class ArrayTimeLineMeasurement {
      * @param timeindex
      * @param volume in the Pipe at current
      */
+    @Override
     public void addMeasurement(int timeindex, double volume) {
         int index = getIndex(timeindex);
 
@@ -235,6 +246,7 @@ public class ArrayTimeLineMeasurement {
         }
     }
 
+    @Override
     public int getNumberOfParticlesUntil(int timeindex) {
         int ptcount = 0;
         for (int i = 0; i < timeindex; i++) {
@@ -244,7 +256,7 @@ public class ArrayTimeLineMeasurement {
         return ptcount;
     }
 
-    public double getNumberOfParticles() {
+    public double getNumberOfParticlesInTimestep() {
         return numberOfParticlesInTimestep;
     }
 
@@ -281,12 +293,13 @@ public class ArrayTimeLineMeasurement {
      * @param dtfactor fraction of time spend on this capacity in relation to
      * the whole timestep.
      */
+    @Override
     public void addParticle(Particle particleToCount, float dtfactor) {
         if (!container.measurementsActive && container.isTimespotmeasurement()) {
             //Skip if the paticles should only be sampled at the end of an interval and the sampling is not enabled for that last step.
             return;
         }
-        if (synchronizeMeasures) {
+        if (MeasurementContainer.synchronizeMeasures) {
             if (useIDsharpParticleCounting) {
                 synchronized (particles) {
                     if (!particles.contains(particleToCount)) {
@@ -327,6 +340,7 @@ public class ArrayTimeLineMeasurement {
     /**
      * Clears all counters to start a new sampling action.
      */
+    @Override
     public void resetNumberOfParticles() {
         this.numberOfParticlesInTimestep = 0;
         this.particleMassInTimestep = 0.;
@@ -380,6 +394,11 @@ public class ArrayTimeLineMeasurement {
 
     public ArrayTimeLineMeasurementContainer getContainer() {
         return container;
+    }
+
+    @Override
+    public TimeContainer getTimes() {
+        return container.getTimes();
     }
 
 }

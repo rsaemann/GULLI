@@ -27,6 +27,7 @@ import com.saemann.gulli.core.control.Controller;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurement;
 
@@ -62,7 +63,7 @@ public class SynchronizationThreadPipe extends Thread {
 
 //    private long lastVelocityFreez, nextVelocityDefreez;
 
-    private ArrayTimeLineMeasurementContainer mcp;
+    private MeasurementContainer mcp;
     private SurfaceMeasurementRaster smr;
 
     public SynchronizationThreadPipe(String string, ThreadBarrier barrier, Controller control) {
@@ -113,7 +114,7 @@ public class SynchronizationThreadPipe extends Thread {
 //                            System.out.println("Measure pipes index "+writeindex+" at "+barrier.getStepEndTime() +" in step "+control.getThreadController().getSteps());
                             for (Pipe pipe : pipes) {
                                 if (pipe.getMeasurementTimeLine() != null) {
-                                    if (pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
+                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesInTimestep()> 0) {
                                         pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getFluidVolume());
                                     }
                                     pipe.getMeasurementTimeLine().resetNumberOfParticles();
@@ -188,7 +189,7 @@ public class SynchronizationThreadPipe extends Thread {
         //Pipe
         boolean changed = false;
         if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-            ArrayTimeLineMeasurementContainer mp = control.getScenario().getMeasurementsPipe();
+            MeasurementContainer mp =  control.getScenario().getMeasurementsPipe();
             if (mp.isTimespotmeasurement()) {
                 //SAmple only at timespots
                 int actual = mp.getIndexForTime(barrier.stepStartTime);

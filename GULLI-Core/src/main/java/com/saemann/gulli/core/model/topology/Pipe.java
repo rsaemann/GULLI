@@ -1,9 +1,9 @@
 package com.saemann.gulli.core.model.topology;
 
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.TimeLinePipe;
 import com.saemann.gulli.core.model.topology.profile.Medium;
 import com.saemann.gulli.core.model.topology.profile.Profile;
@@ -65,7 +65,7 @@ public class Pipe extends Capacity {
     private boolean isHorizontal = false;
 
     private TimeLinePipe timelineStatus;
-    private ArrayTimeLineMeasurement timelineMeasurement;
+    private MeasurementTimeline timelineMeasurement;
 
     public Pipe(Connection_Manhole_Pipe inletConnection, Connection_Manhole_Pipe outletConnection, Profile profile) {
         super(profile);
@@ -385,12 +385,12 @@ public class Pipe extends Capacity {
     }
 
     @Override
-    public void setMeasurementTimeLine(ArrayTimeLineMeasurement tl) {
+    public void setMeasurementTimeLine(MeasurementTimeline tl) {
         this.timelineMeasurement = tl;
     }
 
     @Override
-    public ArrayTimeLineMeasurement getMeasurementTimeLine() {
+    public MeasurementTimeline getMeasurementTimeLine() {
         return this.timelineMeasurement;
     }
 

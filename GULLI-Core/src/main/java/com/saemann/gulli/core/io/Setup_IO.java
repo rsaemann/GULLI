@@ -337,7 +337,7 @@ public class Setup_IO {
         int injectionID;
         String injectionType = null;
         GeoPosition injectionPosition = null;
-        double injectionLatitude = -1, injectionLongitude = -1;
+        double injectionLatitude = Double.NaN, injectionLongitude = Double.NaN;
         boolean injectionOnSurface = false;
         boolean injectionDiffusive = false;
         int injectionCapacityID = -1;
@@ -556,8 +556,10 @@ public class Setup_IO {
                                                 inj = new InjectionInformation(injectionCapacityName, 0, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
                                             } else if (injectionCapacityID >= 0) {
                                                 inj = new InjectionInformation(injectionCapacityID, true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
+                                            } else if (!Double.isNaN(injectionLatitude)) {
+                                                inj = new InjectionInformation(new GeoPosition(injectionLatitude, injectionLongitude), true, injectionMass, injectionParticles, mat, injectionStart, injectionDuration);
                                             } else {
-                                                System.err.println("No information about the Manhole to inject");
+                                                System.err.println("No information about the Manhole to inject position:" + inj);
                                             }
                                         }
                                     } else if (injectionType != null && injectionType.equals(InjectionArealInformation.class.getSimpleName())) {
@@ -595,6 +597,7 @@ public class Setup_IO {
                                     if (inj != null) {
                                         inj.setActive(injectionActive);
                                         injections.add(inj);
+//                                        System.out.println("Add "+inj);
                                     } else {
                                         System.err.println("Could not create Injection for " + injectionID + ": " + injectionCapacityName);
                                     }
@@ -605,6 +608,8 @@ public class Setup_IO {
                                 injectionDuration = 0;
                                 injectionPosition = null;
                                 injectionDiffusive = false;
+                                injectionLatitude=Double.NaN;
+                                injectionLongitude=Double.NaN;
                                 break;
                             }
 

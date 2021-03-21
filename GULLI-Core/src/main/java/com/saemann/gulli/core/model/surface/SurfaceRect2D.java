@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.particle.Particle;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexCalculator;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -1521,12 +1521,12 @@ public class SurfaceRect2D extends Capacity implements TimeIndexCalculator {
     }
 
     @Override
-    public void setMeasurementTimeLine(ArrayTimeLineMeasurement tl) {
+    public void setMeasurementTimeLine(MeasurementTimeline tl) {
 
     }
 
     @Override
-    public ArrayTimeLineMeasurement getMeasurementTimeLine() {
+    public MeasurementTimeline getMeasurementTimeLine() {
         return null;
     }
 

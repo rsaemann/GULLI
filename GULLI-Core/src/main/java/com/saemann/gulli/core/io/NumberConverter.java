@@ -32,7 +32,7 @@ import java.io.Reader;
  * Class for number decoding from tetfiles without creation of STring-Objects.
  * This class can decode numbers from a filereader without mass creation of
  * char[] through split() operation.
- * 
+ *
  * @author saemann
  */
 public class NumberConverter {
@@ -43,23 +43,24 @@ public class NumberConverter {
 
     private char splitter = ' ';
 
-//    private int[] starts, ends;
+    private char c;
+    private int index, laststart;
+    private boolean lastWasSplitter;
+    private boolean searchForNumbers;
+    
+    public static boolean verbose=false;
+
     public NumberConverter(Reader in) {
         this.reader = in;
     }
 
     public boolean readNextLineDoubles(double[] toFill) throws IOException {
 
-        char c;
-        boolean lastWasSplitter = true;
-//        int linelength = -1;
-//        if (starts == null || starts.length != toFill.length) {
-//            starts = new int[toFill.length];
-//            ends = new int[toFill.length];
-//        }
-        int index = 0;
-        int laststart = 0;
-        boolean searchForNumbers = true;
+        lastWasSplitter = true;
+
+        index = 0;
+        laststart = 0;
+        searchForNumbers = true;
         for (int i = 0; i < buffer.length; i++) {
             if (reader.ready()) {
                 c = (char) reader.read();
@@ -73,7 +74,6 @@ public class NumberConverter {
                         toFill[index] = parseDoubleFromToInclude(buffer, laststart, i - 1);
                         index++;
                     }
-//                    linelength = i;
                     break;//\n & \r
                 }
                 buffer[i] = c;
@@ -87,13 +87,15 @@ public class NumberConverter {
                             if (index >= toFill.length) {
                                 searchForNumbers = false;
                             }
+                            lastWasSplitter = true;
                         }
-                        lastWasSplitter = true;
+                        
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
+                            lastWasSplitter = false;
                         }
-                        lastWasSplitter = false;
+                        
                     }
                 }
             }
@@ -104,14 +106,6 @@ public class NumberConverter {
             }
             return false;
         }
-//        System.out.print(" only " + (index + 1) + " elements '");
-//        for (int i = 0; i < linelength; i++) {
-//            System.out.print(buffer[i]);
-//        }
-//        System.out.println("'");
-//        for (int i = 0; i < index; i++) {
-//            toFill[i] = parseDoubleFromToExluded(buffer, starts[i], ends[i]);
-//        }
         //fill all the non read values with zero
         for (int i = index; i < toFill.length; i++) {
             toFill[i] = 0;
@@ -121,16 +115,10 @@ public class NumberConverter {
 
     public boolean readNextLineInteger(int[] toFill) throws IOException {
 
-        char c;
-        boolean lastWasSplitter = true;
-//        int linelength = -1;
-//        if (starts == null || starts.length != toFill.length) {
-//            starts = new int[toFill.length];
-//            ends = new int[toFill.length];
-//        }
-        int index = 0;
-        boolean searchForNumbers = true;
-        int laststart = 0;
+        lastWasSplitter = true;
+        index = 0;
+        searchForNumbers = true;
+        laststart = 0;
         for (int i = 0; i < buffer.length; i++) {
             if (reader.ready()) {
                 c = (char) reader.read();
@@ -141,11 +129,9 @@ public class NumberConverter {
                         continue;
                     }
                     if (searchForNumbers) {
-//                        ends[index] = i;
                         toFill[index] = parseIntegerFromToInclude(buffer, laststart, i - 1);
                         index++;
                     }
-//                    linelength = i;
                     break;//\n & \r
                 }
                 buffer[i] = c;
@@ -156,20 +142,20 @@ public class NumberConverter {
                         //found position to split the string
                         if (lastWasSplitter == false) {
                             //end a pattern here
-//                            ends[index] = i;
                             toFill[index] = parseIntegerFromToInclude(buffer, laststart, i - 1);
                             index++;
                             if (index >= toFill.length) {
                                 searchForNumbers = false;
                             }
+                            lastWasSplitter = true;
                         }
-                        lastWasSplitter = true;
+                        
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
-//                            starts[index] = i;
+                            lastWasSplitter = false;
                         }
-                        lastWasSplitter = false;
+                        
                     }
                 }
             }
@@ -179,27 +165,22 @@ public class NumberConverter {
                 toFill[i] = 0;
             }
             return false;
+        } else {
+            //fill all the non read values with zero
+            for (int i = index; i < toFill.length; i++) {
+                toFill[i] = 0;
+            }
+            return true;
         }
-//        System.out.print(" only " + (index + 1) + " elements '");
-//        for (int i = 0; i < linelength; i++) {
-//            System.out.print(buffer[i]);
-//        }
-//        System.out.println("'");
-//        for (int i = 0; i < index; i++) {
-//            toFill[i] = parseIntegerFromToInclude(buffer, starts[i], ends[i] - 1);
-//        }
-        //fill all the non read values with zero
-        for (int i = index; i < toFill.length; i++) {
-            toFill[i] = 0;
-        }
-        return true;
     }
 
     /**
-     * Read and decode indices for mooreNeighbours when loading surface information
+     * Read and decode indices for mooreNeighbours when loading surface
+     * information
+     *
      * @param toFill
      * @return
-     * @throws IOException 
+     * @throws IOException
      */
     public int[][] fillMooreNeighbours(int[][] toFill) throws IOException {
         char c;
@@ -357,35 +338,37 @@ public class NumberConverter {
 
         long sum = 0;
         long index = 1;
-        long digitindex = 0;
-        boolean negative=false;
+        long digitindex = -1;
+        boolean negative = false;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
             if (c == 46/*'.'*/) {
                 digitindex = index;
+                if(verbose)System.err.println("Integer String to parse has '.' character.");
                 continue;
             }
 
             int d = c - 48;//Character.digit(c, 10);
             if (d < 0 || d > 9) {
-                if(d==-3){
-                    negative=true;
+                if (d == -3) {
+                    negative = true;
                 }
                 continue;
             }
             sum += index * d;
             index *= 10;
         }
-        if (digitindex == 0) {
+        if (digitindex <1) {
             //is an integer without .
-            if(negative){
+            if (negative) {
                 return (int) -sum;
             }
             return (int) sum;
         }
+       
         int result = (int) (sum / digitindex);
-        if(negative){
+        if (negative) {
             return -result;
         }
         return result;

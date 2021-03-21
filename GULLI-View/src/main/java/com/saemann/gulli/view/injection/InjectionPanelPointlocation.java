@@ -149,12 +149,14 @@ public class InjectionPanelPointlocation extends JPanel {
 
             if (info.spillInManhole()) {
                 if (info.getCapacity() != null) {
-                    buttonSetPosition.setText(info.getCapacity().toString());
+                    buttonSetPosition.setText(info.getCapacity().getClass().getSimpleName()+" '"+info.getCapacity().getName()+"'");
                     buttonSetPosition.setToolTipText(info.getCapacity().toString() + " found; Click here to select position on map.");
                 } else {
                     if (info.getCapacityName() != null) {
                         buttonSetPosition.setText("?>" + info.getCapacityName());
                         buttonSetPosition.setToolTipText("search for " + info.getCapacityName() + "; Click here to select position on map.");
+                    }else if(info.getPosition()!=null){
+                         buttonSetPosition.setText("MH near "+df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
                     }
                 }
             } else {
@@ -290,6 +292,7 @@ public class InjectionPanelPointlocation extends JPanel {
                     GeoPosition p = new GeoPosition(latlon.x, latlon.y);
                     info.setPosition(p);
                     info.setCapacity(null);
+                    info.setCapacityName(null);
                     info.setTriangleID(-1);
                     info.spillOnSurface = checkSurface.isSelected();
 //                    System.out.println("clicked on " + latlon);

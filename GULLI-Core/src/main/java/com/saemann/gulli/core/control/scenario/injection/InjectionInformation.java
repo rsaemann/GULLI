@@ -441,6 +441,7 @@ public class InjectionInformation implements InjectionInfo {
         return this.capacity;
     }
 
+    @Override
     public void setCapacity(Capacity capacity) {
         this.capacity = capacity;
         this.changed = true;
@@ -511,6 +512,7 @@ public class InjectionInformation implements InjectionInfo {
         return number_particles[interval];
     }
 
+    @Override
     public int getNumberOfParticles() {
         int counter = 0;
         for (int i = 0; i < number_particles.length; i++) {
@@ -519,6 +521,7 @@ public class InjectionInformation implements InjectionInfo {
         return counter;
     }
 
+    @Override
     public void setNumberOfParticles(int numberOfParticles) {
         calculateNumberOfIntervalParticles(numberOfParticles);
         changed = true;
@@ -595,6 +598,7 @@ public class InjectionInformation implements InjectionInfo {
         return changed;
     }
 
+    @Override
     public void resetChanged() {
         this.changed = false;
     }
@@ -606,13 +610,15 @@ public class InjectionInformation implements InjectionInfo {
 
     @Override
     public String toString() {
-        return "InjectionInformation{" + id + ", OnSurface=" + spillOnSurface + ", #particles=" + totalNumberParticles + ", totalmass=" + totalmass + ", totalVolume=" + totalVolume + ", material=" + material + (spillOnSurface ? ", SurfaceTriangle=" + cellID : ", capacityName=" + capacityName) + '}';
+        return "InjectionInformation{" + id + ", OnSurface=" + spillOnSurface + ", #particles=" + totalNumberParticles + ", totalmass=" + totalmass + ", totalVolume=" + totalVolume + ", material=" + material + (spillOnSurface ? ", SurfaceTriangle=" + cellID : ", capacityName=" + capacityName+", pos="+position) + '}';
     }
 
+    @Override
     public void setId(int id) {
         this.id = id;
     }
 
+    @Override
     public int getId() {
         return id;
     }
@@ -622,6 +628,7 @@ public class InjectionInformation implements InjectionInfo {
         return intensity[intervalIndex];
     }
 
+    @Override
     public void setActive(boolean active) {
         if (this.active == active) {
             return;
@@ -630,6 +637,7 @@ public class InjectionInformation implements InjectionInfo {
         this.active = active;
     }
 
+    @Override
     public boolean isActive() {
         return active;
     }

@@ -55,7 +55,9 @@ import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.SurfaceTriangle;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
+import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipe;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
@@ -586,7 +588,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
     }
 
-    private void buildPipeTimeline(TimeLinePipe tl, ArrayTimeLineMeasurement tlm, double pipeLength) {
+    private void buildPipeTimeline(TimeLinePipe tl, MeasurementTimeline tlm, double pipeLength) {
 
 //        System.out.println("go through timeseries: " + collection.getSeriesCount());
 //        for (Iterator it = collection.getSeries().iterator(); it.hasNext();) {
@@ -801,7 +803,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             double offset = 0;
             double offset2 = 0;
 
-            for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
+            for (int j = 0; j < tlm.getContainer().getNumberOfMaterials(); j++) {
                 String name;
                 Material m = controller.getScenario().getMaterialByIndex(j);
                 if (m != null) {
@@ -825,18 +827,18 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 //Calculate moment in time (only for benchmark output. Should be disabled in regular calculation
                 //0. Moment
                 double m0 = 0;//[kg/s]
-                for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
+                for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
                     m0 += tlm.getMass(i, 0);
                 }
                 //1. moment
                 double m1 = 0; //[kg]
-                for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
+                for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
                     m1 += tlm.getMass(i, 0) * tlm.getContainer().getTimeMillisecondsAtIndex(i) / 1000.;
                 }
                 m1 = m1 / m0; //->[s] arrival time of centre of mass
                 //2. momentum (breakthrough curve width)
                 double m2 = 0; //[kg*s]
-                for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
+                for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
                     double tterm = tlm.getContainer().getTimeMillisecondsAtIndex(i) / 1000. - m1;
                     m2 += tlm.getMass(i, 0) * tterm * tterm;
                 }
@@ -846,10 +848,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
             long moveVisiblePointToIntervalMid = 0;
             if (!tlm.getContainer().isTimespotmeasurement()) {
-                moveVisiblePointToIntervalMid = (long) (-tlm.getContainer().getDeltaTimeS() * 500);
+                moveVisiblePointToIntervalMid = (long) (-tlm.getTimes().getDeltaTimeMS() / 2);
             }
 
-            for (int i = 0; i < tlm.getContainer().getNumberOfTimes(); i++) {
+            for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
                 Date d;
                 long timeMeasurement = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i);
                 if (timeMeasurement == 0) {
@@ -870,54 +872,56 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 RegularTimePeriod time = new Second(d);
 
-                if (tlm.getContainer().distance != null && tl instanceof ArrayTimeLinePipe) {
-                    ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
+                if (tlm.getContainer() instanceof ArrayTimeLineMeasurementContainer) {
+                    ArrayTimeLineMeasurementContainer tlmC=(ArrayTimeLineMeasurementContainer)tlm.getContainer();
+                    if (tlmC.distance != null && tl instanceof ArrayTimeLinePipe) {                        
+                        ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
+                        //Moment 0 = Total mass
+                        double mass = 0.0;
+                        for (int j = 0; j < cont.distance.length; j++) {
+                            int ti = j * tlmC.getNumberOfTimes() + i;
+                            double m = tlmC.mass_total[ti];
+                            mass += m;
+                        }
+                        mass /= tlm.getContainer().samplesInTimeInterval[i];
+                        moment0_particleMass.addOrUpdate(time, mass);
 
-                    //Moment 0 = Total mass
-                    double mass = 0.0;
-                    for (int j = 0; j < cont.distance.length; j++) {
-                        int ti = j * tlm.getContainer().getNumberOfTimes() + i;
-                        double m = tlm.getContainer().mass_total[ti];
-                        mass += m;
-                    }
-                    mass /= tlm.getContainer().samplesInTimeInterval[i];
-                    moment0_particleMass.addOrUpdate(time, mass);
+                        double m1 = tlmC.getMomentum1_xm(i);
+                        if (!Double.isNaN(m1) && m1 > 0) {
+                            moment1_messung.addOrUpdate(time, m1);
+                            if (cont.moment1 != null) {
+                                //Get reference Momentum index to calculate difference and statistics
+                                double refTimeIndex = tl.getTimeContainer().getTimeIndexDouble(timeMeasurement);// i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / (double) tlm.getContainer().getNumberOfTimes();
+                                int refTimeIndexInt = (int) refTimeIndex;
 
-                    double m1 = tlm.getContainer().getMomentum1_xm(i);
-                    if (!Double.isNaN(m1) && m1 > 0) {
-                        moment1_messung.addOrUpdate(time, m1);
-                        if (cont.moment1 != null) {
-                            //Get reference Momentum index to calculate difference and statistics
-                            double refTimeIndex = tl.getTimeContainer().getTimeIndexDouble(timeMeasurement);// i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / (double) tlm.getContainer().getNumberOfTimes();
-                            int refTimeIndexInt = (int) refTimeIndex;
+                                double refFrac = refTimeIndex % 1;
+                                if (refTimeIndex >= cont.moment1.length - 0.5) {
+                                    //out of bounds
+                                    continue;
+                                }
+                                double mref;
+                                double m2ref;
+                                if (refTimeIndexInt >= cont.moment1.length - 1) {
+                                    mref = cont.moment1[cont.moment1.length - 1];
+                                    m2ref = cont.moment2[cont.moment2.length - 1];
+                                } else {
+                                    mref = cont.moment1[refTimeIndexInt] * (1 - refFrac) + cont.moment1[refTimeIndexInt + 1] * (refFrac);
+                                    m2ref = cont.moment2[refTimeIndexInt] * (1 - refFrac) + cont.moment2[refTimeIndexInt + 1] * (refFrac);
+                                }
+                                if (i > -1 && mref > 0 && !Double.isNaN(mref)) {
+                                    moment1_delta.addOrUpdate(time, m1 - mref);
+                                    moment1_delta_relative.addOrUpdate(time, (m1 - mref) / mref);
 
-                            double refFrac = refTimeIndex % 1;
-                            if (refTimeIndex >= cont.moment1.length - 0.5) {
-                                //out of bounds
-                                continue;
-                            }
-                            double mref;
-                            double m2ref;
-                            if (refTimeIndexInt >= cont.moment1.length - 1) {
-                                mref = cont.moment1[cont.moment1.length - 1];
-                                m2ref = cont.moment2[cont.moment2.length - 1];
-                            } else {
-                                mref = cont.moment1[refTimeIndexInt] * (1 - refFrac) + cont.moment1[refTimeIndexInt + 1] * (refFrac);
-                                m2ref = cont.moment2[refTimeIndexInt] * (1 - refFrac) + cont.moment2[refTimeIndexInt + 1] * (refFrac);
-                            }
-                            if (i > -1 && mref > 0 && !Double.isNaN(mref)) {
-                                moment1_delta.addOrUpdate(time, m1 - mref);
-                                moment1_delta_relative.addOrUpdate(time, (m1 - mref) / mref);
+                                    double m2 = tlmC.getMomentum2_xm(i, m1);
+                                    moment2_mess.addOrUpdate(time, m2);
 
-                                double m2 = tlm.getContainer().getMomentum2_xm(i, m1);
-                                moment2_mess.addOrUpdate(time, m2);
+                                    moment2_ref.addOrUpdate(time, m2ref);
+                                    double delta2 = m2 - m2ref;
 
-                                moment2_ref.addOrUpdate(time, m2ref);
-                                double delta2 = m2 - m2ref;
-
-                                moment2_delta.addOrUpdate(time, delta2);
-                                if (i >= 0 && m2ref != 0) {
-                                    moment2_delta_relative.addOrUpdate(time, delta2 / m2ref);
+                                    moment2_delta.addOrUpdate(time, delta2);
+                                    if (i >= 0 && m2ref != 0) {
+                                        moment2_delta_relative.addOrUpdate(time, delta2 / m2ref);
+                                    }
                                 }
                             }
                         }
@@ -943,7 +947,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 if (i > 0) {
                     dt = (tlm.getContainer().getTimeMillisecondsAtIndex(i) - tlm.getContainer().getTimeMillisecondsAtIndex(i - 1)) / 1000.;
                 }
-                for (int j = 0; j < tlm.getContainer().getNumberOfContaminants(); j++) {
+                for (int j = 0; j < tlm.getContainer().getNumberOfMaterials(); j++) {
                     double c = tlm.getConcentrationOfType(i, j);
                     if (Double.isNaN(c)) {
                         c = 0;
@@ -2340,7 +2344,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
     @Override
     public void selectCapacity(Capacity c, Object caller) {
-        this.setStorage(c, c.toString());
+
+        if (c == null) {
+            this.setStorage(c, null);
+        } else {
+            this.setStorage(c, c.getClass().getSimpleName() + "  " + c.getName() );
+        }
     }
 
 }

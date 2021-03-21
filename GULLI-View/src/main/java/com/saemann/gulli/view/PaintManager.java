@@ -138,7 +138,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private final HashMap<String, ColorHolder> colorMap = new HashMap<>();
 
     private final ColorHolder chParticles = new ColorHolder(Color.blue, "Particle");
-    private final ColorHolder chParticlesSurface = new ColorHolder(Color.green, "Surface Particle");
+    private final DoubleColorHolder chParticlesSurface = new DoubleColorHolder(Color.green,Color.GREEN.darker(), "Surface Particle");
     private final ColorHolder chParticlesNetwork = new ColorHolder(Color.blue, "Network Particle");
     private ColorHolder[] chConcentration;
     private boolean paintConcentrationColor = true;
@@ -282,7 +282,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         particlePaintings = new ParticleNodePainting[Math.max(0, numberofParticles)];
         mapViewer.addListener(this);
 
-        initMenuCheckboxes(frame);
+//        initMenuCheckboxes(frame);
         try {
 
             MouseAdapter ma = new MouseAdapter() {
@@ -555,15 +555,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
-                            if (ArrayTimeLineMeasurementContainer.instance.getActualTimeIndex() > 1) {
+                            if (control.getScenario().getMeasurementsPipe().getActualTimeIndex() > 1) {
                                 double c = 0;
-                                if (pipe.getMeasurementTimeLine().hasValues(ArrayTimeLineMeasurementContainer.instance.getActualTimeIndex())) {
-                                    c = pipe.getMeasurementTimeLine().getConcentration(ArrayTimeLineMeasurementContainer.instance.getActualTimeIndex());
+                                if (pipe.getMeasurementTimeLine().hasValues(control.getScenario().getMeasurementsPipe().getActualTimeIndex())) {
+                                    c = pipe.getMeasurementTimeLine().getConcentration(control.getScenario().getMeasurementsPipe().getActualTimeIndex());
                                 } else {
-                                    c = pipe.getMeasurementTimeLine().getConcentration(ArrayTimeLineMeasurementContainer.instance.getActualTimeIndex() - 1);
+                                    c = pipe.getMeasurementTimeLine().getConcentration(control.getScenario().getMeasurementsPipe().getActualTimeIndex() - 1);
                                 }
                                 if (c > 0) {
-                                    Color co = getColorHolderConcentrationRelative(c * 100. / pipe.getMeasurementTimeLine().getMaxConcentration_global()).getColor();
+                                    Color co = getColorHolderConcentrationRelative(c * 100. / 10).getColor();
                                     g2.setColor(co);
                                 } else {
                                     g2.setColor(chPipes.getColor());
@@ -591,7 +591,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             public boolean paint(Graphics2D g2) {
 
                                 try {
-                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesUntil(pipe.getMeasurementTimeLine().getContainer().getActualTimeIndex()) + pipe.getMeasurementTimeLine().getNumberOfParticles() > 0) {
+                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesUntil(pipe.getMeasurementTimeLine().getContainer().getActualTimeIndex()) + pipe.getMeasurementTimeLine().getNumberOfParticlesInTimestep()> 0) {
                                         g2.setColor(ch.getColor());
                                         g2.setStroke(stroke3pRound);
                                         super.paint(g2); //To change body of generated methods, choose Tools | Templates.
@@ -626,7 +626,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                     m = pipe.getMeasurementTimeLine().getMass(index - 1);
                                 }
                                 if (m > 0) {
-                                    Color co = getColorHolderConcentrationRelative(m * 100. / pipe.getMeasurementTimeLine().getMaxMass()).getColor();
+                                    Color co = getColorHolderConcentrationRelative(m * 100. / 1).getColor();
                                     g2.setColor(co);
                                 } else {
                                     g2.setColor(chPipes.getColor());
@@ -2662,6 +2662,22 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         }
     }
 
+    public void setSelectedManhole(long id) {
+        for (Manhole mh : network.getManholes()) {
+            if (mh.getAutoID() == id) {
+                ColorHolder ch = new ColorHolder(Color.red, "Selected");
+                ch.setStroke(new BasicStroke(2));
+
+                NodePainting np = new NodePainting(id, mh.getPosition().getLongitude(), mh.getPosition().getLatitude(), ch);
+                mapViewer.addPaintInfoToLayer("SELECT", np);
+                mapViewer.setSelectedObject(np);
+                mapViewer.recalculateShapes();
+                mapViewer.repaint();
+                return;
+            }
+        }
+    }
+
     public void showPipeFillRate(int timeIndex) {
         if (chFillrate == null) {
             initColoHolderFillrate(Color.white, Color.BLUE);
@@ -3407,34 +3423,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         public ParticleNodePainting(Particle p, long id, Coordinate position, ColorHolder color) {
             super(id, position, color);
             this.p = p;
-////            this.longLat = position;
-//            this.positionWGS84 = new com.saemann.rgis.model.GeoPosition2D() {
-//
-//                @Override
-//                public double getLatitude() {
-//                    return refLatitude;
-//                }
-//
-//                @Override
-//                public double getLongitude() {
-//                    return refLongitude;
-//                }
-//            };
         }
 
-//        @Override
-//        public double getRefLatitude() {
-//            return refLatitude;
-//        }
-//
-//        @Override
-//        public double getRefLongitude() {
-//            return refLongitude;
-//        }
-//        @Override
-//        public com.saemann.rgis.model.GeoPosition2D getPosition() {
-//            return positionWGS84;
-//        }
         @Override
         public boolean paint(Graphics2D g2) {
             if (p.isInactive()) {
@@ -3444,11 +3434,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 return false;
             }
             if (p.isOnSurface()) {
-                if (p.isDrySurfaceMovement()) {
-                    g2.setColor(Color.orange);
-                } else {
-                    g2.setColor(chParticlesSurface.getColor());
-                }
+//                if (p.blocked) {
+//                    g2.setColor(Color.red);
+//                } else {
+                    if (p.isDrySurfaceMovement()) {
+                        g2.setColor(chParticlesSurface.getFillColor());
+                    } else {
+                        g2.setColor(chParticlesSurface.getColor());
+                    }
+//                }
             } else {
                 g2.setColor(chParticlesNetwork.getColor());
             }

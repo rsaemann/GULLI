@@ -38,6 +38,7 @@ import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectan
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -147,7 +148,7 @@ public class MeasurementPanel extends JPanel {
         checkMeasureResidenceTimePipe = new JCheckBox("Spatial consistency", false);
         checkMeasureResidenceTimePipe.setToolTipText("<html><b>true</b>: Sample all visited capacities, weighted by the residence time. <br><b>false</b>: Sample Only in final capacity at end of simulation step</html>");
 
-        checkMeasureSynchronisedPipe = new JCheckBox("Synchronize", ArrayTimeLineMeasurement.synchronizeMeasures);
+        checkMeasureSynchronisedPipe = new JCheckBox("Synchronize", MeasurementContainer.synchronizeMeasures);
         checkMeasureSynchronisedPipe.setToolTipText("<html><b>true</b>: slow, accurate measurement for every sampling<br><b>false</b>: fast sampling can override parallel results!</html>");
         panelMcheck.add(checkMeasureContinouslyPipe);
         panelMcheck.add(checkMeasureResidenceTimePipe);
@@ -157,14 +158,15 @@ public class MeasurementPanel extends JPanel {
 
         if (control != null && control.getScenario() != null) {
             if (control.getScenario().getMeasurementsPipe() != null) {
-                ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
+                
+                MeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
                 if (mpc.isTimespotmeasurement()) {
                     checkMeasureContinouslyPipe.setSelected(false);
                 } else {
                     checkMeasureContinouslyPipe.setSelected(true);
                 }
                 checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-                textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
+                textMeasurementSecondsPipe.setValue(mpc.getTimes().getDeltaTimeMS()/1000);
             }
         }
         panelSurfaceSurrounding.setBorder(borderSurface);
@@ -286,7 +288,7 @@ public class MeasurementPanel extends JPanel {
         checkMeasureSynchronisedPipe.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ArrayTimeLineMeasurement.synchronizeMeasures = checkMeasureSynchronisedPipe.isSelected();
+                MeasurementContainer.synchronizeMeasures = checkMeasureSynchronisedPipe.isSelected();
 
             }
         });
@@ -295,7 +297,7 @@ public class MeasurementPanel extends JPanel {
             @Override
             public void focusLost(FocusEvent fe) {
                 try {
-                    textMeasurementSecondsPipe.setValue(control.getScenario().getMeasurementsPipe().getDeltaTimeS());
+                    textMeasurementSecondsPipe.setValue(control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000);
                 } catch (Exception e) {
                 }
             }
@@ -310,7 +312,7 @@ public class MeasurementPanel extends JPanel {
                         double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
                         System.out.println("New timestep for MesaurementPipe: " + seconds + " s. (Enter)");
                         if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-                            if (seconds == control.getScenario().getMeasurementsPipe().getDeltaTimeS()) {
+                            if (seconds == control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000) {
                                 return; //DO not change, as the values correspond
                             }
                         }
@@ -500,17 +502,17 @@ public class MeasurementPanel extends JPanel {
         selfChange = true;
         if (control != null && control.getScenario() != null) {
             if (control.getScenario().getMeasurementsPipe() != null) {
-                ArrayTimeLineMeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
+                MeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
                 if (mpc.isTimespotmeasurement()) {
                     checkMeasureContinouslyPipe.setSelected(false);
                 } else {
                     checkMeasureContinouslyPipe.setSelected(true);
                 }
 
-                textMeasurementSecondsPipe.setValue(mpc.getDeltaTimeS());
+                textMeasurementSecondsPipe.setValue(mpc.getTimes().getDeltaTimeMS()/1000);
             }
             checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-            checkMeasureSynchronisedPipe.setSelected(ArrayTimeLineMeasurement.synchronizeMeasures);
+            checkMeasureSynchronisedPipe.setSelected(MeasurementContainer.synchronizeMeasures);
 
             if (control.getScenario().getMeasurementsSurface() != null) {
                 SurfaceMeasurementRaster mpc = control.getScenario().getMeasurementsSurface();

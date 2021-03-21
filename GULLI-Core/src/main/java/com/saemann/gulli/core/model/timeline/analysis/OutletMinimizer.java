@@ -23,12 +23,12 @@
  */
 package com.saemann.gulli.core.model.timeline.analysis;
 
-import java.text.DecimalFormat;
+import com.saemann.gulli.core.model.timeline.MeasurementContainer;
+import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeLinePipe;
 import com.saemann.gulli.core.model.topology.Pipe;
 
@@ -80,7 +80,7 @@ public class OutletMinimizer {
         return volumeSum;
     }
 
-    public static double totalMassDischarge(TimeLinePipe tlp, ArrayTimeLineMeasurement tlm) {
+    public static double totalMassDischarge(TimeLinePipe tlp, MeasurementTimeline tlm) {
         double massSum = 0;
         double m = 0;
         for (int i = 1; i < tlp.getNumberOfTimes(); i++) {
@@ -125,15 +125,15 @@ public class OutletMinimizer {
         if (pipe.getMeasurementTimeLine() == null) {
             throw new NullPointerException("No Measurement Timeline in Pipe " + pipe.getName() + ". Cannot analyse discharge.");
         }
-        intervals = new ArrayList<>(pipe.getMeasurementTimeLine().getContainer().getNumberOfTimes());
+        intervals = new ArrayList<>(pipe.getMeasurementTimeLine().getTimes().getNumberOfTimes());
 
-        ArrayTimeLineMeasurement tm = pipe.getMeasurementTimeLine();
+        MeasurementTimeline tm = pipe.getMeasurementTimeLine();
         TimeLinePipe tl = pipe.getStatusTimeLine();
-        ArrayTimeLineMeasurementContainer c = tm.getContainer();
-        ordered = new PollutionDischargeInterval[c.getNumberOfTimes() - 1];
+        MeasurementContainer c = tm.getContainer();
+        ordered = new PollutionDischargeInterval[c.getTimes().getNumberOfTimes() - 1];
         maximumMass = 0;
         maximumConcentration = 0;
-        for (int i = 1; i < c.getNumberOfTimes(); i++) {
+        for (int i = 1; i < c.getTimes().getNumberOfTimes(); i++) {
             long start = c.getMeasurementTimestampAtTimeIndex(i - 1);
             long ende = c.getMeasurementTimestampAtTimeIndex(i);
 
