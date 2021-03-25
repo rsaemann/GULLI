@@ -1127,7 +1127,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
     }
 
     public static String getRequestbenchmarkString() {
-        return "HE GDB Benchmark: GDB Requests: " + sqlRequestCount + " with total " + sqlRequestTime + "ms (" + (sqlRequestTime / sqlRequestCount) + "ms/query) these can be parallel requests.";//\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime + "ms";
+        return "HE GDB Benchmark: GDB Requests: " + sqlRequestCount + " with total " + sqlRequestTime/1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query) these can be parallel requests.";//\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime + "ms";
     }
 
 }

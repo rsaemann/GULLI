@@ -484,7 +484,7 @@ public class MeasurementPanel extends JPanel {
         buttonNewTraceOutput.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                control.getStoringCoordinator().addFinalOuput(new Save_Travelpath(StoringCoordinator.FileFormat.GeoPKG, -1));
+                control.getStoringCoordinator().addFinalOuput(new Save_Travelpath(StoringCoordinator.FileFormat.SHP, -1));
                 updateParameters();
             }
         });
@@ -492,7 +492,7 @@ public class MeasurementPanel extends JPanel {
         buttonNewTraceArea.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                control.getStoringCoordinator().addFinalOuput(new Save_TravelAccumulationRegions(StoringCoordinator.FileFormat.GeoPKG, -1));
+                control.getStoringCoordinator().addFinalOuput(new Save_TravelAccumulationRegions(StoringCoordinator.FileFormat.SHP, -1));
                 updateParameters();
             }
         });
@@ -536,7 +536,9 @@ public class MeasurementPanel extends JPanel {
             StoringCoordinator sc = control.getStoringCoordinator();
             int counter = 0;
             for (OutputIntention fout : sc.getFinalOutputs()) {
-                panelOutputs.add(new OutputPanel(fout, counter++, control.getStoringCoordinator()));
+                OutputPanel op = new OutputPanel(fout, counter++, control.getStoringCoordinator());
+                
+                panelOutputs.add(op);
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem itemdelete = new JMenuItem("Remove");
                 popup.add(itemdelete);
@@ -548,7 +550,7 @@ public class MeasurementPanel extends JPanel {
                         updateParameters();
                     }
                 });
-                panelOutputs.add(popup);
+                op.setComponentPopupMenu(popup);
             }
             borderOutputs.setTitle(sc.getFinalOutputs().size() + " Outputs");
         }

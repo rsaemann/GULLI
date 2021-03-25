@@ -45,6 +45,7 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -241,15 +242,31 @@ public class InjectionOrganisatorPanel extends JPanel {
             borderMaterials.setTitle("No Materials: No Scenario");
             return;
         }
-        if (control.getScenario().getMaterials() == null) {
-            borderMaterials.setTitle("No Materials");
-            return;
-        }
-        borderMaterials.setTitle((control.getScenario().getMaterials().size()) + " Materials");
-        for (Material mat : control.getScenario().getMaterials()) {
-            MaterialPanel mp = new MaterialPanel(mat);
-            panelMaterials.add(mp);
-            panelMaterials.add(Box.createRigidArea(new Dimension(20, 5)));
+
+        if (control.getScenario() != null) {
+            ArrayList<Material> list = new ArrayList(3);
+            if (control.getScenario().getMaterials() != null) {
+                for (Material mat : control.getScenario().getMaterials()) {
+                    MaterialPanel mp = new MaterialPanel(mat);
+                    panelMaterials.add(mp);
+                    panelMaterials.add(Box.createRigidArea(new Dimension(20, 5)));
+                    list.add(mat);
+                }
+            }
+            if (control.getScenario().getInjections() != null) {
+                for (InjectionInfo injection : control.getScenario().getInjections()) {
+                    if (injection.getMaterial() != null && !list.contains(injection.getMaterial())) {
+                        Material mat = injection.getMaterial();
+                        MaterialPanel mp = new MaterialPanel(mat);
+                        panelMaterials.add(mp);
+                        panelMaterials.add(Box.createRigidArea(new Dimension(20, 5)));
+                        list.add(mat);
+                    }
+                }
+            }
+            borderMaterials.setTitle(list.size() + " Materials");
+        } else {
+            borderMaterials.setTitle("No Scenario");
         }
         panelMaterials.revalidate();
         panelMaterials.repaint();

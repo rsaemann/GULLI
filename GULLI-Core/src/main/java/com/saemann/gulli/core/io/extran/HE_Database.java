@@ -3916,6 +3916,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
     public static String getRequestbenchmarkString() {
         if(sqlRequestCount==0)sqlRequestCount=1;
-        return "HE SQL Benchmark: SQL Requests Pipes: " + sqlRequestCount + " with total " + sqlRequestTime + "ms (" + (sqlRequestTime / sqlRequestCount) + "ms/query)\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime + "ms  Manholes: " + sqlMHRequestCount + " with total " + sqlMHRequestTime + "ms (" + (sqlMHRequestTime / sqlMHRequestCount) + "ms/query)\tWaiting threads: " + waitingForMHRequestCount + " with total pausing time:" + waitingForMHRequestTime + "ms";
+        if(sqlMHRequestCount==0)sqlMHRequestCount=1;
+        return "HE SQL Benchmark: SQL Requests Pipes: " + sqlRequestCount + " with total " + sqlRequestTime/1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query)\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime/1000 + " s  Manholes: " + sqlMHRequestCount + " with total " + sqlMHRequestTime/1000 + " s (" + (sqlMHRequestTime / sqlMHRequestCount) + "ms/query)\tWaiting threads: " + waitingForMHRequestCount + " with total pausing time:" + waitingForMHRequestTime + "ms";
     }
 }

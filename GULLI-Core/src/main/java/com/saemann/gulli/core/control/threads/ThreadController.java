@@ -493,7 +493,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 p.setWaiting();
             }
         }
-//        setSeed(seed);
+//        for (ParticleThread thread : barrier_particle.getThreads()) {
+//            thread.timePipe=0;
+//            thread.timeSurface=0;
+//        }
         try {
             if (randomNumberGenerators == null) {
                 recalculateRandomNumberGenerators();
@@ -847,6 +850,17 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         if(HE_GDB_IO.sqlRequestCount>0){
                             System.out.println(HE_GDB_IO.getRequestbenchmarkString());
                         }
+//                        long totalPipeTime=0,totalSurfaceTime=0;
+//                        for (ParticleThread thread : barrier_particle.getThreads()) {
+//                            totalPipeTime+=thread.timePipe;
+//                            totalSurfaceTime+=thread.timeSurface;
+//                        }
+//                        if(totalPipeTime>0){
+//                            System.out.println("CPU time for pipe transport: "+totalPipeTime/1000+" s.");
+//                        }
+//                        if(totalSurfaceTime>0){
+//                            System.out.println("CPU time for surf transport: "+totalSurfaceTime/1000+" s.");
+//                        }
                         return;
                     }
 //                    status = 32;

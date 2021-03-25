@@ -456,7 +456,7 @@ public class Particle {
     /**
      * Set x & y component of 3D position. [UTM Coordinates]
      *
-     * @param position[0:x,1:y]
+     * @param xy
      */
     public void setPosition3D(double[] xy) {
         this.position3d.x = xy[0];

@@ -103,11 +103,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * minimum velocity [m/s] if particles are in cells with slower velocity,
      * the slope direction is used with this speed.
      */
-    public static double dryFlowVelocity = 0.005;
+    public static double dryFlowVelocity = 0.01;
 
     public static double dryWaterlevel = 0.005;
 
-    public static int maxNumberOfIterationLoops = 1000;
+    public static int maxNumberOfIterationLoops = 100;
 
     /**
      * When active particles can go to the pipe system through inlets and
@@ -119,18 +119,21 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * If true, the particle will not enter cells, where the absolute velocity
      * (in x) is 0.
      */
-    public static boolean preventEnteringDryCell = true;
+    public static boolean preventEnteringDryCell = false;
 
     /**
      * If no velocity is set, the hill slope is used for direction and 0.01 m/s
      * are applied.
      */
-    public static boolean gradientFlowForDryCells = false;
+    public static boolean gradientFlowForDryCells = true;
 
     /**
      * BLock very slow dry flow particles.
      */
     public static boolean blockVerySlow = true;
+
+    public static float minimumDistanceBeforeBlock = (float) (dryFlowVelocity * 1 * 0.005);
+
     /**
      * if true, the particle is moving with gradient flow and can enter dry
      * cells.
@@ -142,7 +145,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * particle. Otherwise, the movement stops abrupt at the edge which causes
      * particles to be trapped when very close to an edge.
      */
-    public static boolean slidealongEdges = false;
+    public static boolean slidealongEdges = true;
 //    /**
 //     * if false(default), the random variable for the random walk is only
 //     * generated at the begin of the particle step and is kept if multiple cells
@@ -199,6 +202,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double surfaceTimeIndexDoubleEnd = 0;
     private double surfaceActualFrac = 0;
     private int surfaceActualIndexInt = 0;
+    private boolean wasInFreeflow = false; //Indicate if a particle has been outside dry condition during its simulation step
 
     private boolean shouldReRandomize = true;
 
@@ -690,10 +694,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         if (lengthfactor < 0.0001) {
                             if (shortLengthCounter > 3) {
 
-                                if (verbose) {
-                                    System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew + " target v=" + tempVelocity[0] + "," + tempVelocity[1] + " iteration:" + loopcounter + " actual v:" + totalvelocity + " status:" + status + "  length");
-                                }
-//                                status = 25;
+//                                if (verbose) {
+//                                    System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew + " target v=" + tempVelocity[0] + "," + tempVelocity[1] + " iteration:" + loopcounter + " actual v:" + totalvelocity + " status:" + status + "  length");
+//                                }
                                 break;
                             }
                             shortLengthCounter++;
@@ -838,7 +841,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         posyalt = p.getPosition3d().y;
 
         timeLeft = dt;
-
+        wasInFreeflow = false;
         loopcounter = 0;
 //        status = 0;
         calculateVelocityPosition = true;
@@ -850,6 +853,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 if (verbose) {
                     System.out.println("exceeded max loops (" + loopcounter + ") for particle " + p.getId() + " in cell " + cellID + " V=" + totalvelocity + "\t time left:" + timeLeft + "\t status=" + status + "  lengthfactor=" + lengthfactor + " \tvstatus:" + vstatus + "  projecting?" + isprojecting);
                 }
+                p.blocked=true;
                 break;
             }
 
@@ -867,13 +871,19 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     return;
                 }
             }
-            if (p.blocked == true) {
-                if (gradientFlowstateActual/*p.blockXdir == particlevelocity[0]*/) {
+            if (blockVerySlow) {
+                if (p.blocked == true) {
+                    if (gradientFlowstateActual/*p.blockXdir == particlevelocity[0]*/) {
 //                    System.out.println("Particle " + p.getId() + " is blocked here");
-                    return;
-                } else {
-                    p.blocked = false;
+                        return;
+                    } else {
+                        p.blocked = false;
 //                    System.out.println("PArticle" + p.getId() + " released for changing velocity  "+p.getVelocity1d()+" / "+totalvelocity);
+                    }
+                }else{
+                    if(!wasInFreeflow&&!gradientFlowstateActual){
+                        wasInFreeflow=true;
+                    }
                 }
             }
             calculateVelocityPosition = true;
@@ -944,7 +954,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 GeometryTools.fillBarycentricWeighing(temp_barycentricWeightsOld, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
                 if (temp_barycentricWeightsOld[0] < 0 || temp_barycentricWeightsOld[1] < 0 || temp_barycentricWeightsOld[2] < 0) {
                     if (verbose) {
-                        System.out.println("reset to cell center of " + cellID + " in loop " + loopcounter + "  BWs were:" + temp_barycentricWeights[0] + ", " + temp_barycentricWeights[1] + ", " + temp_barycentricWeights[2] + " \t ST:" + st12[0] + ", " + st20[0] + ", " + st01[0] + ", ");
+                        System.out.println("0reset to cell center of " + cellID + " in loop " + loopcounter + "  BWs were:" + temp_barycentricWeights[0] + ", " + temp_barycentricWeights[1] + ", " + temp_barycentricWeights[2] + " \t ST:" + st12[0] + ", " + st20[0] + ", " + st01[0] + ", ");
                     }
                     //Particle is somewhere far away from its cell. reset the position to cell center.
                     posxneu = surface.getTriangleMids()[cellID][0];
@@ -1086,10 +1096,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                                     p.surfaceCellID = cellID;
                                     surface.getMeasurementRaster().measureParticle(simulationtime, p, lengthfactor * timeLeft, threadindex);
                                 }
-                                if (blockVerySlow && gradientFlowstateActual) {
-                                    p.blocked = true;
-//                                        p.blockXdir = particlevelocity[0];//
-                                }
+//                                if (blockVerySlow && gradientFlowstateActual) {
+//                                    p.blocked = true;
+////                                        p.blockXdir = particlevelocity[0];//
+//                                }
                                 timeLeft -= (1. - lengthfactor);
                                 break;
                             }
@@ -1131,9 +1141,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         if (lengthfactor < 0.0001) {
                             if (shortLengthCounter > 3) {
 
-                                if (verbose) {
-                                    System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew + " target v=" + tempVelocity[0] + "," + tempVelocity[1] + " iteration:" + loopcounter + " actual v:" + totalvelocity + " status:" + status + "  length");
-                                }
+//                                if (verbose) {
+//                                    System.out.println(">>>" + p.getId() + " very short length moved. leftover time: " + timeLeft + "s to new Cell " + cellIDnew + " target v=" + tempVelocity[0] + "," + tempVelocity[1] + " iteration:" + loopcounter + " actual v:" + totalvelocity + " status:" + status + "  length");
+//                                }
+//                                p.blocked=true;
 //                                status = 25;
                                 break;
                             }
@@ -1278,16 +1289,18 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         if (Double.isNaN(posxneu)) {
             System.out.println("0Set Position to NaN");
         }
+        if (blockVerySlow && gradientFlowstateActual) {
+            if (!wasInFreeflow) {//If the particle is almost immobile, skip the continuous calculation and park it in blocking state
+                if (Math.abs(posxneu - posxalt) + Math.abs(posyalt - posyneu) < minimumDistanceBeforeBlock) {
+                    p.blocked = true;
+                }
+            }
+        }
         p.surfaceCellID = cellID;
         if (surface.getMeasurementRaster().spatialConsistency) {
             surface.getMeasurementRaster().measureParticle(simulationtime, p, timeLeft, threadindex);
         }
-        if (blockVerySlow && gradientFlowstateActual) {
-            //If the particle is almost immobile, skip the continuous calculation and park it in blocking state
-            if (Math.abs(posxneu - posxalt) + Math.abs(posyalt - posyneu) < dryFlowVelocity * dt * 0.01) {
-                p.blocked = true;
-            }
-        }
+
     }
 
     public void moveToSurroundingCell(double[] vertex0, double[] vertex1, double[] vertex2) {
@@ -1463,6 +1476,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 //            this.sqrt2dt = (float) Math.sqrt(2 * randomizeAfterSeconds);
 //        } else {
         this.sqrt2dt = (float) Math.sqrt(2 * dt);
+        minimumDistanceBeforeBlock = (float) (dryFlowVelocity * 1 * 0.005);
 //        }
     }
 

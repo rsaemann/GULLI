@@ -74,7 +74,7 @@ public class InjectionPanelPointlocation extends JPanel {
     protected InjectionPanelPointlocation(final InjectionInformation info, final MapViewer map, PaintManager paintManager) {
         super(new GridLayout(6, 2));
         this.setBorder(new TitledBorder(new LineBorder((info.spillOnSurface ? Color.GREEN.darker() : Color.BLUE.darker()), 1, true), "Point"));
-        this.setPreferredSize(new Dimension(160, 135));
+        this.setPreferredSize(new Dimension(160, 145));
         this.setMinimumSize(new Dimension(160, 120));
 
         df.getDecimalFormatSymbols().setGroupingSeparator(' ');
@@ -309,8 +309,6 @@ public class InjectionPanelPointlocation extends JPanel {
                 buttonSetPosition.setText("Click Map Position");
             }
         });
-        this.setPreferredSize(new Dimension(160, 95));
-        this.setMinimumSize(new Dimension(160, 90));
 
         if (this.paintManager != null) {
             initLocationSelector();

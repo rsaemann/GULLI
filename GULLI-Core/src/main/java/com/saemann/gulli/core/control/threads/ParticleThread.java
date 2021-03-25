@@ -44,6 +44,9 @@ public class ParticleThread extends Thread {
     private int from;
     private int toExcld;
     private RandomGenerator random;
+    
+//    private long starttime;
+//    public long timeSurface,timePipe;
 
     public ParticleThread(String string, int index, ThreadBarrier<ParticleThread> barrier) {
         super(string);
@@ -174,10 +177,13 @@ public class ParticleThread extends Thread {
                         }
                         //check if it has been initialized from waiting list yet
                         if (p.isActive()) {
+//                            starttime=System.currentTimeMillis();
                             if (p.isInPipeNetwork()) {
                                 pc.moveParticle(p);
+//                                timePipe+=System.currentTimeMillis()-starttime;
                             } else if (p.isOnSurface()) {
                                 surfcomp.moveParticle(p);
+//                                timeSurface+=System.currentTimeMillis()-starttime;
                             } else {
                                 System.out.println(getClass() + ":: undefined status (" + p.status + ") of particle (" + p.getId() + "). Surrounding=" + p.getSurrounding_actual());
                             }
