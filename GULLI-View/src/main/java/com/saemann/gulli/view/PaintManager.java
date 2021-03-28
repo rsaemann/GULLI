@@ -10,9 +10,6 @@ import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
-import com.saemann.gulli.core.io.extran.HE_Database;
-import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
-import com.saemann.gulli.core.io.swmm.SWMM_Out_Reader;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -47,7 +44,6 @@ import com.saemann.gulli.core.model.surface.SurfaceTriangle;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectangleRaster;
 import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipe;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
@@ -480,7 +476,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
 //                System.out.println("added " + counter + " inlet shapes to view");
             } else {
-                System.out.println(getClass() + " surface has no triangles mapped inlets yet.");
+//                System.out.println(getClass() + " surface has no triangles mapped inlets yet.");
             }
         } catch (Exception e) {
             e.printStackTrace();

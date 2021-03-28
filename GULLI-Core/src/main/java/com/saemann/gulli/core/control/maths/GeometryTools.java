@@ -465,7 +465,7 @@ public class GeometryTools {
      * @param px
      * @param py
      */
-    public static void fillBarycentricWeighing(double[] tofill, double x1, double x2, double x3, double y1, double y2, double y3, double px, double py) {
+    public static void fillBarycentricWeighting(double[] tofill, double x1, double x2, double x3, double y1, double y2, double y3, double px, double py) {
         // barycentric koordinate weighing for velocity calculation
         // x, y = triangle coordinates, p = searched point
 //        double[] w = tofill;
@@ -473,6 +473,11 @@ public class GeometryTools {
         tofill[0] = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
         tofill[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
         tofill[2] = 1 - tofill[0] - tofill[1];
+    }
+    
+    public static void calcPositionFromBarycentric(double[] toFillPosition,double x1, double x2, double x3, double y1, double y2, double y3, double bw1, double bw2, double bw3){
+        toFillPosition[0]=x1*bw1+x2*bw2+x3*bw3;
+        toFillPosition[1]=y1*bw1+y2*bw2+y3*bw3;
     }
 
     /**

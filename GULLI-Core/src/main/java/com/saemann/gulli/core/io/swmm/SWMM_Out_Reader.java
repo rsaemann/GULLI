@@ -125,7 +125,6 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
         bb = ByteBuffer.wrap(doubleBuffer);
         bb.order(ByteOrder.LITTLE_ENDIAN);
         startDate = bb.getDouble();
-        System.out.println(System.currentTimeMillis());
         if (verbose) {
             System.out.println("Time: long:" + startDate + " *86400 = " + (startDate * 86400) + "  " + new Date((long) (startDate * 86400) * 1000));
         }

@@ -1443,6 +1443,7 @@ public class HE_SurfaceIO {
             manhole2Triangle = new ArrayList<>(numberOfManholes);
             while (br.ready()) {
                 line = br.readLine();
+                if(line.length()<20)continue;
                 String[] seperated = line.split("%");
                 String[] values = null;
                 try {

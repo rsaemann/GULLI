@@ -117,6 +117,7 @@ public class Particle {
      */
     public int lastSurfaceCellID = -1;
     public boolean blocked=false;
+    public double blockVelocity=-1;
 //    public double blockXdir=0;
 
 //    public final ArrayList<Shortcut> usedShortcuts=new ArrayList<>(0);

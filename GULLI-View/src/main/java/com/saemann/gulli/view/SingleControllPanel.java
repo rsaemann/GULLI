@@ -126,7 +126,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private ButtonGroup group_timestep;
     private JRadioButton radioExplicit, radioStepsplicit, radioCrankNicolson;
-    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles,checkBlockSlow;
+    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles,checkBlockSlow,checkMeanZigzagVelocity;
 //    private JRadioButton radioEnterdry, radioStopDry, radioProjectDry;
 //    private boolean wasrunning = false;
     private final JCheckBox checkDrawUpdateIntervall;
@@ -314,13 +314,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkProjectAtObstacles.setToolTipText("Projection of movement vectors along edges to boundaries");
         checkBlockSlow = new JCheckBox("StopSlow", ParticleSurfaceComputing2D.blockVerySlow);
         checkBlockSlow.setToolTipText("Stop and disable movement, if movement is stuck");
-        JPanel panelMovementAlgorithm = new JPanel(new GridLayout(2, 2, 5, 5));
-        panelMovementAlgorithm.setMaximumSize(new Dimension(500, 70));
+        checkMeanZigzagVelocity=new JCheckBox("Smooth ZigZag", ParticleSurfaceComputing2D.meanVelocityAtEdgeConflicts);
+        checkMeanZigzagVelocity.setToolTipText("Use mean velocity if particles is trapped between two cells");
+        JPanel panelMovementAlgorithm = new JPanel(new GridLayout(3, 2, 5, 5));
+        panelMovementAlgorithm.setMaximumSize(new Dimension(500, 80));
         panelMovementAlgorithm.setBorder(new TitledBorder("Particle Movement"));
         panelMovementAlgorithm.add(checkEnterdry);
         panelMovementAlgorithm.add(checkProjectAtObstacles);
         panelMovementAlgorithm.add(checkParticleDryMovement);
         panelMovementAlgorithm.add(checkBlockSlow);
+        panelMovementAlgorithm.add(checkMeanZigzagVelocity);
         panelTabSimulation.add(panelMovementAlgorithm);
 
         // Velocity Function instead of Dispersion
@@ -784,6 +787,12 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             @Override
             public void actionPerformed(ActionEvent e) {
                 ParticleSurfaceComputing2D.blockVerySlow = checkBlockSlow.isSelected();
+            }
+        });
+        checkMeanZigzagVelocity.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ParticleSurfaceComputing2D.meanVelocityAtEdgeConflicts = checkMeanZigzagVelocity.isSelected();
             }
         });
 
@@ -1630,6 +1639,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkProjectAtObstacles.setSelected(ParticleSurfaceComputing2D.slidealongEdges);
         checkParticleDryMovement.setSelected(ParticleSurfaceComputing2D.gradientFlowForDryCells);
         checkBlockSlow.setSelected(ParticleSurfaceComputing2D.blockVerySlow);
+        checkMeanZigzagVelocity.setSelected(ParticleSurfaceComputing2D.meanVelocityAtEdgeConflicts);
         labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
 //        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
 //        try {

@@ -352,7 +352,7 @@ public class LoadingCoordinator {
                         }
                     }
                     if (surface != null && surface.waterlevelLoader == null) {
-                        System.out.println("Waterlevelloader is null try to use gradient calculation filetype: " + filetype);
+//                        System.out.println("Waterlevelloader is null try to use gradient calculation filetype: " + filetype);
                         if (filetype == FILETYPE.SWMM_5_1) {
                             if (surface.triangle_downhilldirection == null) {
                                 surface.calculateDownhillSlopes();
@@ -382,7 +382,7 @@ public class LoadingCoordinator {
                                 }
                             };
                             surface.initSparseTriangleVelocityLoading(surface.velocityLoader, true, false);
-                            System.out.println("Created a constant downstream flow velocity loader");
+                            if(verbose)System.out.println("Created a constant downstream flow velocity loader");
                             fileSurfaceWaterlevels = fileSurfaceCoordsDAT;
                             loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
                         }
@@ -993,9 +993,12 @@ public class LoadingCoordinator {
                         System.err.println(action.description);
                     }
                 } else {
+                   
                     loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
                     action.description = "Unknown file format of water-levels-file '" + fileSurfaceWaterlevels + "'.";
-                    System.err.println(action.description);
+                     if(filetype==FILETYPE.HYSTEM_EXTRAN_7||filetype==FILETYPE.HYSTEM_EXTRAN_8){
+                         System.err.println(action.description);
+                    }
                 }
                 if (cancelLoading) {
                     System.out.println("   LoadingThread is interrupted -> break");
@@ -1329,7 +1332,7 @@ public class LoadingCoordinator {
 
         File mooreFile = new File(surfaceTopologyDirectory, "MOORE.dat");
         if (!mooreFile.exists()) {
-            System.err.println("File for triangles' neumann neighbours could not be found: " + mooreFile.getAbsolutePath());
+            if(verbose)System.err.println("File for triangles' neumann neighbours could not be found: " + mooreFile.getAbsolutePath());
             this.fileTriangleMooreNeighbours = null;
         } else {
             this.fileTriangleMooreNeighbours = mooreFile;
@@ -1338,7 +1341,7 @@ public class LoadingCoordinator {
         //Files for merging Surface and Pipenetwork out-/inlets ******
         File fileStreetInlets = new File(surfaceTopologyDirectory, "SURF-SEWER_NODES.dat");
         if (!fileStreetInlets.exists()) {
-            System.err.println("File for Streetinlets could not be found: " + fileStreetInlets.getAbsolutePath());
+            if(verbose)System.err.println("File for Streetinlets could not be found: " + fileStreetInlets.getAbsolutePath());
         } else {
             this.fileSurfaceInlets = fileStreetInlets;
         }

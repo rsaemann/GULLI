@@ -63,6 +63,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     public int[][] mooreNeighbours;
     /**
+     * is usually not used any more. Velocities are now calculated as
+     * cell-constant 
      * [nodeindex][Neighbour number] : triangleIndex
      */
     private int[][] NodeNeighbours;
@@ -1683,7 +1685,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     public void applyStreetInlets(Network network, ArrayList<HE_InletReference> inletRefs) throws TransformException {
 //        inlets = new ConcurrentHashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
-
+        if(capacityNames==null||capacityNames.isEmpty()){
+            capacityNames=buildNamedCapacityMap(network);
+        }
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
         manholes = new Manhole[triangleNodes.length];
         inletArray = new Inlet[manholes.length];
@@ -1783,7 +1787,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     mh.setSurfaceTriangle(mr.second);
                 }
             } catch (Exception e) {
-                System.err.println("Manhole "+mr.first+" can not be applied to cell "+mr.second+" (out of bounds)");
+                System.err.println("Manhole " + mr.first + " can not be applied to cell " + mr.second + " (out of bounds)");
             }
         }
     }
