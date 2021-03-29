@@ -27,6 +27,29 @@ public class TimeContainer {
     }
 
     /**
+     *
+     * @param starttime long milliseconds since 1.1.1970
+     * @param endtime long milliseconds since 1.1.1970
+     * @param timespots number of entries of the time array
+     */
+    public TimeContainer(long starttime, long endtime, int timespots) {
+        this.times = new long[timespots];
+        for (int i = 0; i < times.length; i++) {
+            times[i] = (long) (starttime + (endtime - starttime) * (double) (i / timespots));
+        }
+        this.duration = (int) (endtime - starttime);
+    }
+
+    public static TimeContainer byIntervallMilliseconds(long starttime, long endtime, long intervallMS) {
+        int numberOfEntries = (int) ((endtime - starttime) / intervallMS + 1);
+        long[] times = new long[numberOfEntries];
+        for (int i = 0; i < times.length; i++) {
+            times[i] = (long) (starttime + i * intervallMS);
+        }
+        return new TimeContainer(times);
+    }
+
+    /**
      * Copyconstructor copies the long[] timearray.
      *
      * @param cont

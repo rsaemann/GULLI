@@ -322,12 +322,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         if (p.tracing() && p.isOnSurface()) {
             if (posxalt != posxneu) {
                 if (Math.abs(posxneu - ((HistoryParticle) p).getLastUTMX()) > minTraceDistance || Math.abs(posyneu - ((HistoryParticle) p).getLastUTMy()) > minTraceDistance) {
-                    tempPosLow[0] = posxneu;
-                    tempPosLow[1] = posyneu;
+                    tempProjection[0] = posxneu;
+                    tempProjection[1] = posyneu;
 
                     try {
-                        surface.getGeotools().toGlobal(tempPosLow, tempPosUp, true);
-                        ((HistoryParticle) p).addToHistory(new Coordinate(tempPosUp[0], tempPosUp[1]), posxneu, posyneu);
+                        surface.getGeotools().toGlobal(tempProjection, tempProjection, true);
+                        ((HistoryParticle) p).addToHistory(new Coordinate(tempProjection[0], tempProjection[1]), posxneu, posyneu);
                     } catch (TransformException ex) {
                         Logger.getLogger(ParticleSurfaceComputing2D.class.getName()).log(Level.SEVERE, null, ex);
                     }

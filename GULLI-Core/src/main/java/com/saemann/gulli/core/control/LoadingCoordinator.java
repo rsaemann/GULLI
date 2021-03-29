@@ -64,6 +64,7 @@ import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.SurfaceVelocityLoader;
 import com.saemann.gulli.core.model.surface.SurfaceWaterlevelLoader;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
+import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipeContainer;
@@ -71,6 +72,7 @@ import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLinePipeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
+import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelineManhole;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -358,7 +360,13 @@ public class LoadingCoordinator {
                             if (surface.triangle_downhilldirection == null) {
                                 surface.calculateDownhillSlopes();
                             }
-                            surface.setTimeContainer(new TimeIndexContainer(new long[]{0, Long.MAX_VALUE}));
+                            if (scenario != null && scenario.getEndTime() != 0) {
+                                //Use a copy of the exisiting pipe 
+                                surface.setTimeContainer(new TimeIndexContainer(new long[]{scenario.getStartTime(), scenario.getEndTime()}));
+                            } else {
+                                surface.setTimeContainer(new TimeIndexContainer(new long[]{0, Long.MAX_VALUE}));
+
+                            }
                             surface.waterlevelLoader = new SurfaceWaterlevelLoader() {
                                 @Override
                                 public float[] loadWaterlevlvalues(int triangleID) {
@@ -383,7 +391,14 @@ public class LoadingCoordinator {
                                 }
                             };
                             surface.initSparseTriangleVelocityLoading(surface.velocityLoader, true, false);
-                            if(verbose)System.out.println("Created a constant downstream flow velocity loader");
+                            try {
+                                surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 1, new TimeIndexContainer(TimeContainer.byIntervallMilliseconds(surface.getStartTime(), surface.getEndTime(), 900000)), control.getThreadController().getParticleThreads().length));
+
+                            } catch (Exception e) {
+                            }
+                            if (verbose) {
+                                System.out.println("Created a constant downstream flow velocity loader");
+                            }
                             fileSurfaceWaterlevels = fileSurfaceCoordsDAT;
                             loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
                         }
@@ -994,11 +1009,11 @@ public class LoadingCoordinator {
                         System.err.println(action.description);
                     }
                 } else {
-                   
+
                     loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
                     action.description = "Unknown file format of water-levels-file '" + fileSurfaceWaterlevels + "'.";
-                     if(filetype==FILETYPE.HYSTEM_EXTRAN_7||filetype==FILETYPE.HYSTEM_EXTRAN_8){
-                         System.err.println(action.description);
+                    if (filetype == FILETYPE.HYSTEM_EXTRAN_7 || filetype == FILETYPE.HYSTEM_EXTRAN_8) {
+                        System.err.println(action.description);
                     }
                 }
                 if (cancelLoading) {
@@ -1333,7 +1348,9 @@ public class LoadingCoordinator {
 
         File mooreFile = new File(surfaceTopologyDirectory, "MOORE.dat");
         if (!mooreFile.exists()) {
-            if(verbose)System.err.println("File for triangles' neumann neighbours could not be found: " + mooreFile.getAbsolutePath());
+            if (verbose) {
+                System.err.println("File for triangles' neumann neighbours could not be found: " + mooreFile.getAbsolutePath());
+            }
             this.fileTriangleMooreNeighbours = null;
         } else {
             this.fileTriangleMooreNeighbours = mooreFile;
@@ -1342,7 +1359,9 @@ public class LoadingCoordinator {
         //Files for merging Surface and Pipenetwork out-/inlets ******
         File fileStreetInlets = new File(surfaceTopologyDirectory, "SURF-SEWER_NODES.dat");
         if (!fileStreetInlets.exists()) {
-            if(verbose)System.err.println("File for Streetinlets could not be found: " + fileStreetInlets.getAbsolutePath());
+            if (verbose) {
+                System.err.println("File for Streetinlets could not be found: " + fileStreetInlets.getAbsolutePath());
+            }
         } else {
             this.fileSurfaceInlets = fileStreetInlets;
         }
@@ -1861,13 +1880,12 @@ public class LoadingCoordinator {
             }
         }
         SurfaceMeasurementRaster.synchronizeMeasures = setup.isSurfaceMeasurementSynchronize();
-        SurfaceMeasurementRaster.continousMeasurements=setup.isSurfaceMeasurementTimeContinuous();
-        SurfaceMeasurementRaster.spatialConsistency=setup.isSurfaceMeasurementSpatialConsistent();
-        
+        SurfaceMeasurementRaster.continousMeasurements = setup.isSurfaceMeasurementTimeContinuous();
+        SurfaceMeasurementRaster.spatialConsistency = setup.isSurfaceMeasurementSpatialConsistent();
+
         ParticlePipeComputing.measureOnlyFinalCapacity = !setup.isPipeMeasurementSpatialConsistent();
         MeasurementContainer.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
-        MeasurementContainer.timecontinuousMeasures=setup.isPipeMeasurementTimeContinuous();
-        
+        MeasurementContainer.timecontinuousMeasures = setup.isPipeMeasurementTimeContinuous();
 
         try {
             if (scenario != null && scenario.getMeasurementsPipe() != null) {
@@ -1946,9 +1964,9 @@ public class LoadingCoordinator {
         }
 
         if (control.getScenario() != null) {
-            MeasurementContainer mp =  control.getScenario().getMeasurementsPipe();
+            MeasurementContainer mp = control.getScenario().getMeasurementsPipe();
             if (mp != null) {
-                setup.setPipeMeasurementtimestep(mp.getTimes().getDeltaTimeMS()/1000.);
+                setup.setPipeMeasurementtimestep(mp.getTimes().getDeltaTimeMS() / 1000.);
                 setup.setPipeMeasurementTimeContinuous(MeasurementContainer.timecontinuousMeasures);//!mp.isTimespotmeasurement());
             }
             setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
