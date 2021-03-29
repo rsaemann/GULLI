@@ -35,6 +35,10 @@ public abstract class MeasurementContainer {
 
     public static boolean synchronizeMeasures = true;
 
+    public static boolean timecontinuousMeasures = true;
+
+    public static boolean spatialConsistentMeasures = true;
+
     /**
      * Samples are only taken if this is true. Can be switched of, to save
      * computation cost. SYnchronisation Thread switches this flag on and off.
@@ -44,8 +48,7 @@ public abstract class MeasurementContainer {
     /**
      * Is it only recorded once per timeindex?
      */
-    protected boolean timespotmeasurement = false;
-
+//    protected boolean timespotmeasurement = false;
     protected int numberOfMaterials = 1;
 
     protected TimeContainer times;
@@ -54,12 +57,11 @@ public abstract class MeasurementContainer {
 
     public long[] measurementTimes;
 
-    /**
-     * Indicates how many samples are taken during one sampling interval. This
-     * variable is only for debugging and is not used for the calculation.
-     */
-    public double samplesPerTimeinterval = 1;
-
+//    /**
+//     * Indicates how many samples are taken during one sampling interval. This
+//     * variable is only for debugging and is not used for the calculation.
+//     */
+//    public double samplesPerTimeinterval = 1;
     /**
      * Number of samples in this timeinterval. Important if the global number
      * does not fit the interval number. E.g in the very first and very last
@@ -99,24 +101,21 @@ public abstract class MeasurementContainer {
         return numberOfMaterials;
     }
 
-    public boolean isTimespotmeasurement() {
-        return timespotmeasurement;
-    }
-
+//    public boolean isTimespotmeasurement() {
+//        return !timecontinuousMeasures;
+//    }
     public void setNumberOfMaterials(int numberOfMaterials) {
         this.numberOfMaterials = numberOfMaterials;
     }
 
-    public void OnlyRecordOncePerTimeindex() {
-        this.timespotmeasurement = true;
-        this.samplesPerTimeinterval = 1;
-    }
-
-    public void setSamplesPerTimeindex(double recordsPerTimeindex) {
-        this.timespotmeasurement = false;
-        this.samplesPerTimeinterval = recordsPerTimeindex;
-    }
-
+//    public void OnlyRecordOncePerTimeindex() {
+//        timecontinuousMeasures = false;
+////        this.samplesPerTimeinterval = 1;
+//    }
+//    public void setSamplesPerTimeindex(double recordsPerTimeindex) {
+//        timecontinuousMeasures= true;
+////        this.samplesPerTimeinterval = recordsPerTimeindex;
+//    }
     /**
      * Measurement timestamps can vary from the time when they should be taken.
      * This returns the simulationtime when the samples were taken.

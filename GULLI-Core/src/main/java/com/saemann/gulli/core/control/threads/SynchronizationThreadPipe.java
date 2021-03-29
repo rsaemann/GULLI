@@ -26,7 +26,6 @@ package com.saemann.gulli.core.control.threads;
 import com.saemann.gulli.core.control.Controller;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurement;
@@ -190,7 +189,14 @@ public class SynchronizationThreadPipe extends Thread {
         boolean changed = false;
         if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
             MeasurementContainer mp =  control.getScenario().getMeasurementsPipe();
-            if (mp.isTimespotmeasurement()) {
+            if (MeasurementContainer.timecontinuousMeasures) {
+                 writeindex = mp.getIndexForTime(barrier.stepEndTime);
+                //Sample all the time
+                if (!mp.measurementsActive) {
+                    mp.measurementsActive = true;
+                    changed = true;
+                }
+            }else{
                 //SAmple only at timespots
                 int actual = mp.getIndexForTime(barrier.stepStartTime);
                 int next = mp.getIndexForTime(barrier.stepEndTime);
@@ -211,13 +217,6 @@ public class SynchronizationThreadPipe extends Thread {
                     }
                 }
 
-            } else {
-                writeindex = mp.getIndexForTime(barrier.stepEndTime);
-                //Sample all the time
-                if (!mp.measurementsActive) {
-                    mp.measurementsActive = true;
-                    changed = true;
-                }
             }
         }
 

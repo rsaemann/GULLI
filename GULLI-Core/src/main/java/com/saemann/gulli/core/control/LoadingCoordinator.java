@@ -27,6 +27,7 @@ import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.multievents.PipeResultData;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
+import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -1851,7 +1852,6 @@ public class LoadingCoordinator {
             }
         }
 
-//        control.setDispersionCoefficientPipe(setup.getNetworkdispersion());
         if (surface != null) {
             if (surface.getMeasurementRaster() != null) {
                 SurfaceMeasurementRaster sr = surface.getMeasurementRaster();
@@ -1861,9 +1861,13 @@ public class LoadingCoordinator {
             }
         }
         SurfaceMeasurementRaster.synchronizeMeasures = setup.isSurfaceMeasurementSynchronize();
-
+        SurfaceMeasurementRaster.continousMeasurements=setup.isSurfaceMeasurementTimeContinuous();
+        SurfaceMeasurementRaster.spatialConsistency=setup.isSurfaceMeasurementSpatialConsistent();
+        
         ParticlePipeComputing.measureOnlyFinalCapacity = !setup.isPipeMeasurementSpatialConsistent();
         MeasurementContainer.synchronizeMeasures = setup.isPipeMeasurementSynchronize();
+        MeasurementContainer.timecontinuousMeasures=setup.isPipeMeasurementTimeContinuous();
+        
 
         try {
             if (scenario != null && scenario.getMeasurementsPipe() != null) {
@@ -1945,7 +1949,7 @@ public class LoadingCoordinator {
             MeasurementContainer mp =  control.getScenario().getMeasurementsPipe();
             if (mp != null) {
                 setup.setPipeMeasurementtimestep(mp.getTimes().getDeltaTimeMS()/1000.);
-                setup.setPipeMeasurementTimeContinuous(!mp.isTimespotmeasurement());
+                setup.setPipeMeasurementTimeContinuous(MeasurementContainer.timecontinuousMeasures);//!mp.isTimespotmeasurement());
             }
             setup.setPipeMeasurementSpatialConsistent(!ParticlePipeComputing.measureOnlyFinalCapacity);
             setup.setPipeMeasurementSynchronize(MeasurementContainer.synchronizeMeasures);

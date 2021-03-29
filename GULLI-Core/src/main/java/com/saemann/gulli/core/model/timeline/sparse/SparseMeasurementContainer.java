@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.model.timeline.sparse;
 
-import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import java.util.ArrayList;
@@ -56,10 +55,6 @@ public class SparseMeasurementContainer extends MeasurementContainer {
 
     @Override
     public void setIntervalSeconds(double seconds, long startTime, long endTime) {
-        if (seconds == this.getTimes().getDeltaTimeMS() / 1000 && startTime == this.getTimes().getFirstTime() && endTime == this.getTimes().getLastTime()) {
-            //Nothing changed
-            return;
-        }
         //Create timecontainer
         double oldduration = (endTime - startTime) / 1000.;
         int numberOfTimes = (int) (oldduration / seconds + 1);
@@ -68,11 +63,12 @@ public class SparseMeasurementContainer extends MeasurementContainer {
             t[i] = (long) (startTime + i * seconds * 1000);
         }
         TimeContainer tc = new TimeContainer(t);
-        samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
         times = tc;
         deltaTimeS = seconds;
         clearValues();
     }
+    
+    
 
     @Override
     public void setNumberOfMaterials(int numberOfMaterials) {
@@ -84,6 +80,7 @@ public class SparseMeasurementContainer extends MeasurementContainer {
     public void clearValues() {
         measurementTimes = new long[times.getNumberOfTimes()];
         samplesInTimeInterval = new int[times.getNumberOfTimes()];
+    
         for (SparseTimeLineMeasurement timeline : timelines) {
             timeline.clearValue();
         }
@@ -97,7 +94,7 @@ public class SparseMeasurementContainer extends MeasurementContainer {
     public void setTimelines(Collection<SparseTimeLineMeasurement> measurementTimelines) {
         clearValues();
         this.timelines.clear();
-        this.timelines.addAll(timelines);
+        this.timelines.addAll(measurementTimelines);
     }
 
     public double getDeltaTimeS() {

@@ -140,7 +140,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
             t[i] = (long) (startTime + i * seconds * 1000);
         }
         TimeContainer tc = new TimeContainer(t);
-        samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
+//        samplesPerTimeinterval = (tc.getDeltaTimeMS() / 1000.) / ThreadController.getDeltaTime();
         times = tc;
         System.out.println("calculate  number of snapshots: " + numberOfTimes);
         initialize(numberOfTimes, numberOfCapacities, numberOfMaterials);
@@ -289,6 +289,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         return times.getTimeMilliseconds(times.getNumberOfTimes() - 1);
     }
 
+    @Override
     public void clearValues() {
 
         this.counts = new int[numberOfCapacities * times.getNumberOfTimes()];
@@ -356,9 +357,9 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         return numberOfCapacities;
     }
 
-    public boolean isTimespotmeasurement() {
-        return timespotmeasurement;
-    }
+//    public boolean isTimespotmeasurement() {
+//        return timespotmeasurement;
+//    }
 
     public int getNumberOfContaminants() {
         return numberOfMaterials;

@@ -333,10 +333,10 @@ public class ThreadController implements ParticleListener, SimulationActionListe
 //        if (ArrayTimeLineMeasurementContainer.isInitialized()) {
 //            ArrayTimeLineMeasurementContainer.instance.samplesPerTimeinterval = ArrayTimeLineMeasurementContainer.instance.getDeltaTimeS() / ThreadController.getDeltaTime();
 //        }
-        if(control.getScenario()!=null&&control.getScenario().getMeasurementsPipe()!=null){
-            control.getScenario().getMeasurementsPipe().samplesPerTimeinterval=control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000./deltaTimeSeconds;
-            
-        }
+//        if(control.getScenario()!=null&&control.getScenario().getMeasurementsPipe()!=null){
+//            control.getScenario().getMeasurementsPipe().samplesPerTimeinterval=control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000./deltaTimeSeconds;
+//            
+//        }
         for (ParticleThread thread : barrier_particle.getThreads()) {
             thread.setDeltaTime(deltaTimeSeconds);
         }

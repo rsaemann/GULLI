@@ -519,7 +519,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         if (sparse) {
             SparseMeasurementContainer container_m = new SparseMeasurementContainer(times, numberOfContaminants);
-            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+//            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
             for (Pipe pipe : network.getPipes()) {
                 SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m);
@@ -533,9 +533,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
             scenario.setMeasurementsPipe(container_m);
 //        ArrayTimeLineMeasurementContainer.instance = container_m;
-            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+//            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             if (verbose) {
-                System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + container_m.samplesPerTimeinterval + " samples per interval");
+                System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS());// + " \t-> " + container_m.samplesPerTimeinterval + " samples per interval");
             }
 
             int number = 0;
@@ -554,7 +554,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         if (sparse) {
             SparseMeasurementContainer container_m = new SparseMeasurementContainer(new TimeContainer(times), numberOfContaminants);
-            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+//            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
             for (Pipe pipe : network.getPipes()) {
                 SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m);
@@ -568,9 +568,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             ArrayTimeLineMeasurementContainer container_m = ArrayTimeLineMeasurementContainer.init(times, network.getPipes().size(), numberOfContaminants);
             scenario.setMeasurementsPipe(container_m);
 //        ArrayTimeLineMeasurementContainer.instance = container_m;
-            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
+//            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             if (verbose) {
-                System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS() + " \t-> " + container_m.samplesPerTimeinterval + " samples per interval");
+                System.out.println("Simulation step: " + ThreadController.getDeltaTime() + "s\t sampleinterval:" + container_m.getDeltaTimeS());// + " \t-> " + container_m.samplesPerTimeinterval + " samples per interval");
             }
 
             int number = 0;

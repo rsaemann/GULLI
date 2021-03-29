@@ -72,13 +72,13 @@ public abstract class SurfaceMeasurementRaster {
      * will have to divide the particle counter by the number of measurements
      * taken in the sample period.
      */
-    public boolean continousMeasurements = true;
+    public static boolean continousMeasurements = true;
 
     /**
      * If enabled, particles will be counted on every cell they visit, Otherwise
      * they are only counted in the final cell.
      */
-    public boolean spatialConsistency = true;
+    public static boolean spatialConsistency = true;
 
     /**
      * Number of samples taken during the Sampling interval. This is usually 1

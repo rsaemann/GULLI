@@ -36,10 +36,9 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author Robert Sämann
  */
-public class SparseTimeLineMeasurement implements MeasurementTimeline{
+public class SparseTimeLineMeasurement implements MeasurementTimeline {
 
-    
-    private boolean initialized=false;
+    private boolean initialized = false;
 
     public float[] particles;
     /**
@@ -52,13 +51,10 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
      * interval
      */
     public float[][] mass_type;
-//    public int[] particles_visited;
     public float[] volumes;
-//    public int[] counts;
-//    public long[] measurementTimes;
 
     protected SparseMeasurementContainer container;
-    
+
 //    /**
 //     * Samples are only taken if this is true. Can be switched of, to save
 //     * computation cost. SYnchronisation Thread switches this flag on and off.
@@ -69,16 +65,13 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
      * does not fit the interval number. E.g in the very first and very last
      * interval;
      */
-    public int[] samplesInTimeInterval;
-
-
+    public int[] samplesInTimeIntervalPipe;
 
 //    /**
 //     * Indicates how many samples are taken during one sampling interval. This
 //     * variable is only for debugging and is not used for the calculation.
 //     */
 //    public float samplesPerTimeinterval = 1;
-
     public static double maxConcentration_global = 0;
 
     /**
@@ -93,14 +86,13 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
     private float particleMassInTimestep = 0;
 
     private float[] particleMassPerTypeinTimestep;
-    
+
     private float[] particleMassPerTypeLastTimestep;
-    
+
     private final Lock lock = new ReentrantLock();
 
-
     public SparseTimeLineMeasurement(SparseMeasurementContainer container) {
-        this.container=container;
+        this.container = container;
     }
 
     private void prepareWritable() {
@@ -111,13 +103,13 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
 
     private void initArrays(int numberOfTimes, int numberOfMaterials) {
         particles = new float[numberOfTimes];
-        samplesInTimeInterval = new int[numberOfTimes];
+        samplesInTimeIntervalPipe = new int[numberOfTimes];
         mass_total = new float[numberOfTimes];
         mass_type = new float[numberOfTimes][numberOfMaterials];
         volumes = new float[numberOfTimes];
-        particleMassPerTypeLastTimestep=new float[numberOfMaterials];
-        particleMassPerTypeinTimestep=new float[numberOfMaterials];
-        initialized=true;
+        particleMassPerTypeLastTimestep = new float[numberOfMaterials];
+        particleMassPerTypeinTimestep = new float[numberOfMaterials];
+        initialized = true;
     }
 
     /**
@@ -164,7 +156,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
         if (mass_total == null) {
             return 0;
         }
-        return (float) (mass_total[temporalIndex] / (samplesInTimeInterval[temporalIndex]));
+        return (float) (mass_total[temporalIndex] / (container.samplesInTimeInterval[temporalIndex]));
 
     }
 
@@ -183,7 +175,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
             return 0;
         }
 
-        float mass = (float) (mass_type[temporalIndex][materialIndex] / (samplesInTimeInterval[temporalIndex]));
+        float mass = (float) (mass_type[temporalIndex][materialIndex] / (container.samplesInTimeInterval[temporalIndex]));
         return mass;
 
     }
@@ -200,10 +192,10 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
     public float getTotalMass(TimeLinePipe tl, float pipeLength) {
         float massSum = 0;
         for (int i = 1; i < container.getTimes().getNumberOfTimes(); i++) {
-            if (samplesInTimeInterval[i] < 1) {
+            if (samplesInTimeIntervalPipe[i] < 1) {
                 continue;
             }
-            float temp_mass = (float) (mass_total[i] / (samplesInTimeInterval[i]));
+            float temp_mass = (float) (mass_total[i] / (container.samplesInTimeInterval[i]));
             float discharge = tl.getVelocity(tl.getTimeContainer().getTimeIndex(container.getTimes().getTimeMilliseconds(i))) / pipeLength;
             float dt = (container.getTimes().getTimeMilliseconds(i) - container.getTimes().getTimeMilliseconds(i - 1)) / 1000.f;
             massSum += temp_mass * discharge * dt;
@@ -223,7 +215,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
         if (particles == null) {
             return 0;
         }
-        return (float) (particles[temporalIndex] / (float) samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/);
+        return (float) (particles[temporalIndex] / (float) container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/);
     }
 
     /**
@@ -238,19 +230,19 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
             return 0;
         }
         try {
-            return volumes[temporalIndex] / samplesInTimeInterval[temporalIndex];
+            return volumes[temporalIndex] / samplesInTimeIntervalPipe[temporalIndex];
         } catch (Exception e) {
-            System.err.println("index= " + temporalIndex + "   volumes.length=" + volumes.length + "\t samples.length=" + samplesInTimeInterval.length);
+            System.err.println("index= " + temporalIndex + "   volumes.length=" + volumes.length + "\t samples.length=" + samplesInTimeIntervalPipe.length);
         }
         return 0;
     }
 
     @Override
     public boolean hasValues(int timeIndex) {
-        if (samplesInTimeInterval == null) {
+        if (samplesInTimeIntervalPipe == null) {
             return false;
         }
-        return samplesInTimeInterval[timeIndex] > 0;
+        return samplesInTimeIntervalPipe[timeIndex] > 0;
     }
 
     /**
@@ -270,13 +262,9 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
         try {
             //Prepare and initialize the Arrays for storing, if they do not exist.
             prepareWritable();
-            
-            
-            particles[timeindex] += numberOfParticlesInTimestep;
 
-//            if (useIDsharpParticleCounting) {
-//                particles_visited[timeindex] = particleIDs.size();
-//            }
+            samplesInTimeIntervalPipe[timeindex]++;
+            particles[timeindex] += numberOfParticlesInTimestep;
             volumes[timeindex] += volume;
             mass_total[timeindex] += particleMassInTimestep;
 
@@ -290,21 +278,8 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
                 }
             }
 
-            samplesInTimeInterval[timeindex]++;
-//            double tempmass = (particleMassInTimestep / (samplesInTimeInterval[timeindex]/*samplesPerTimeinterval*/));
-//            if (tempmass > maxMass) {
-//                maxMass = tempmass;
-//            }
-//            System.out.println("store mass at time "+timeindex +" counts: "+container.counts[index]);
-//            double temp_c = tempmass / volume;//container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
-//            if (!Double.isInfinite(temp_c) && !Double.isNaN(temp_c)) {
-//                if (temp_c > maxConcentration) {
-//                    maxConcentration = temp_c;
-//                }
-//                if (temp_c > container.maxConcentration_global) {
-//                    container.maxConcentration_global = temp_c;
-//                }
-//            }
+            
+
         } catch (Exception e) {
             System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getTimes().getNumberOfTimes() + ")=>" + timeindex + ", particles=" + numberOfParticlesInTimestep + ", volume=" + volume + ")");
             e.printStackTrace();
@@ -328,6 +303,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
         return numberOfParticlesInTimestep;
     }
 
+    @Override
     public double getParticleMassInTimestep() {
         return particleMassInTimestep;
     }
@@ -336,10 +312,10 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
         if (particles == null) {
             return 0;
         }
-        double sum=0;
+        double sum = 0;
         for (int i = 0; i < particles.length; i++) {
-            sum+= particles[i];
-            
+            sum += particles[i];
+
         }
         return sum;
     }
@@ -347,7 +323,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
     private void addParticleMassperMaterial(int materialID, double mass) {
         if (particleMassPerTypeinTimestep == null) {
             particleMassPerTypeinTimestep = new float[container.getNumberOfMaterials()];
-            particleMassPerTypeLastTimestep=new float[particleMassPerTypeinTimestep.length];
+            particleMassPerTypeLastTimestep = new float[particleMassPerTypeinTimestep.length];
         }
         particleMassPerTypeinTimestep[materialID] += mass;
     }
@@ -369,20 +345,20 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
      */
     @Override
     public void addParticle(Particle particleToCount, float dtfactor) {
-        if (!container.measurementsActive && container.isTimespotmeasurement()) {
+        if (!container.measurementsActive/* && !container.timecontinuousMeasures*/) {
             //Skip if the paticles should only be sampled at the end of an interval and the sampling is not enabled for that last step.
             return;
         }
         if (MeasurementContainer.synchronizeMeasures) {
-                lock.lock();
-                try {
-                    
-                    this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
-                    this.numberOfParticlesInTimestep += dtfactor;
-                    addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
-                } finally {
-                    lock.unlock();
-                }
+            lock.lock();
+            try {
+
+                this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
+                this.numberOfParticlesInTimestep += dtfactor;
+                addParticleMassperMaterial(particleToCount.getMaterial().materialIndex, particleToCount.getParticleMass() * dtfactor);
+            } finally {
+                lock.unlock();
+            }
         } else {
             this.particleMassInTimestep += particleToCount.particleMass * dtfactor;
             this.numberOfParticlesInTimestep += dtfactor;
@@ -399,7 +375,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
         this.particleMassInTimestep = 0.f;
         if (particleMassPerTypeinTimestep != null) {
             for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
-                particleMassPerTypeLastTimestep[i]= (float) particleMassPerTypeinTimestep[i];
+                particleMassPerTypeLastTimestep[i] = (float) particleMassPerTypeinTimestep[i];
                 particleMassPerTypeinTimestep[i] = 0;
             }
         }
@@ -420,8 +396,10 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
      * @return
      */
     public boolean hasMeasurements(int timeIndex) {
-        if(samplesInTimeInterval==null)return false;
-        return samplesInTimeInterval[timeIndex] > 0;
+        if (samplesInTimeIntervalPipe == null) {
+            return false;
+        }
+        return samplesInTimeIntervalPipe[timeIndex] > 0;
     }
 
     public double getMaxMass() {
@@ -443,30 +421,34 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
      * @param temporalIndex
      * @return
      */
+    @Override
     public int getParticles_Visited(int temporalIndex) {
 
-        if(particles==null)return 0;
+        if (particles == null) {
+            return 0;
+        }
         return (int) (particles[temporalIndex]);
     }
 
+    @Override
     public MeasurementContainer getContainer() {
         return container;
     }
-    
-    public void clearValue(){
-        initialized=false;
-        mass_total=null;
-        mass_type=null;
+
+    public void clearValue() {
+        initialized = false;
+        mass_total = null;
+        mass_type = null;
 //        measurementTimes=null;
-        particleMassPerTypeinTimestep=null;
-        particleMassPerTypeLastTimestep=null;
+        particleMassPerTypeinTimestep = null;
+        particleMassPerTypeLastTimestep = null;
 //        particles_visited=null;
-        particles=null;
-        samplesInTimeInterval=null;
-        volumes=null;
-        maxConcentration_global=0;
-        numberOfParticlesInTimestep=0;
-        particleMassInTimestep=0;
+        particles = null;
+        samplesInTimeIntervalPipe = null;
+        volumes = null;
+        maxConcentration_global = 0;
+        numberOfParticlesInTimestep = 0;
+        particleMassInTimestep = 0;
 //        samplesPerTimeinterval=0;
     }
 
@@ -479,8 +461,8 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline{
     public double getNumberOfParticlesInTimestep() {
         return numberOfParticlesInTimestep;
     }
-    
-    public double getMassLastTimestep(int materialIndex){
+
+    public double getMassLastTimestep(int materialIndex) {
         return particleMassPerTypeLastTimestep[materialIndex];
     }
 }

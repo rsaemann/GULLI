@@ -110,7 +110,8 @@ public class TestRun {
 
         //Define sampling parameters
         //1) Pipe system sampling
-        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+        control.getScenario().getMeasurementsPipe().spatialConsistentMeasures=true;
+        control.getScenario().getMeasurementsPipe().timecontinuousMeasures=false;
         System.out.println("Changed sampling to simgel sample at end of interval");
         //2) Surface sampling
         ParticleSurfaceComputing2D.gradientFlowForDryCells = false;

@@ -295,7 +295,7 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline{
      */
     @Override
     public void addParticle(Particle particleToCount, float dtfactor) {
-        if (!container.measurementsActive && container.isTimespotmeasurement()) {
+        if (!container.measurementsActive && !container.timecontinuousMeasures) {
             //Skip if the paticles should only be sampled at the end of an interval and the sampling is not enabled for that last step.
             return;
         }

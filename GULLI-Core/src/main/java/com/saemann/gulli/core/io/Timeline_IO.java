@@ -91,7 +91,7 @@ public class Timeline_IO {
             long[] times = pipe.getMeasurementTimeLine().getContainer().measurementTimes;
             bw.write("Times:" + times.length);
             bw.newLine();
-            bw.write("ContinuousSampling:" + !tlm.getContainer().isTimespotmeasurement());
+            bw.write("ContinuousSampling:" + tlm.getContainer().timecontinuousMeasures);
             bw.newLine();
             bw.write("TimeMS;Massflux[kg/s]");
             bw.newLine();
@@ -133,7 +133,7 @@ public class Timeline_IO {
             long[] times = pipe.getMeasurementTimeLine().getContainer().measurementTimes;
             bw.write("Times:" + times.length);
             bw.newLine();
-            bw.write("ContinuousSampling:" + !tlm.getContainer().isTimespotmeasurement());
+            bw.write("ContinuousSampling:" + tlm.getContainer().timecontinuousMeasures);
             bw.newLine();
             bw.write("TimeMS;Concentration[kg/m³]");
             bw.newLine();

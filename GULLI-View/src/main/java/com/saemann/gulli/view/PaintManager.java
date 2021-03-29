@@ -2818,10 +2818,20 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 //            this.surfaceShow = SURFACESHOW.NONE;
 //            return;
 //        }
+        
         if (!surfaceShows.contains(surfaceshow)) {
-            surfaceShows.add(surfaceshow);
+            new Thread("Adding "+surfaceshow+" to map"){
+                @Override
+                public void run() {
+                   surfaceShows.add(surfaceshow);
+                   updateSurfaceShows();
+                   mapViewer.repaint();
+                }
+                
+            }.start();
+            
         }
-        updateSurfaceShows();
+        
 
     }
 

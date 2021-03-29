@@ -847,7 +847,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
 
             long moveVisiblePointToIntervalMid = 0;
-            if (!tlm.getContainer().isTimespotmeasurement()) {
+            if (tlm.getContainer().timecontinuousMeasures) {
                 moveVisiblePointToIntervalMid = (long) (-tlm.getTimes().getDeltaTimeMS() / 2);
             }
 
@@ -857,7 +857,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 if (timeMeasurement == 0) {
                     timeMeasurement = tlm.getContainer().getTimeMillisecondsAtIndex(i);
                 }
-                if (!tlm.getContainer().isTimespotmeasurement() && i != 0) {
+                if (tlm.getContainer().timecontinuousMeasures && i != 0) {
                     timeMeasurement += moveVisiblePointToIntervalMid;
                 }
                 int statusTimeIndex = tl.getTimeContainer().getTimeIndex(timeMeasurement);
@@ -990,7 +990,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
                 }
                 try {
-                    int n = tlm.getParticles_Visited(i);
+                    int n = tlm.getNumberOfParticlesUntil(i);
                     if (n > 0) {
                         m_p_sum.addOrUpdate(time, n);
                     } else {

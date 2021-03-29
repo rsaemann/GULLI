@@ -158,15 +158,11 @@ public class MeasurementPanel extends JPanel {
 
         if (control != null && control.getScenario() != null) {
             if (control.getScenario().getMeasurementsPipe() != null) {
-                
+
                 MeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
-                if (mpc.isTimespotmeasurement()) {
-                    checkMeasureContinouslyPipe.setSelected(false);
-                } else {
-                    checkMeasureContinouslyPipe.setSelected(true);
-                }
+                checkMeasureContinouslyPipe.setSelected(mpc.timecontinuousMeasures);
                 checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
-                textMeasurementSecondsPipe.setValue(mpc.getTimes().getDeltaTimeMS()/1000);
+                textMeasurementSecondsPipe.setValue(mpc.getTimes().getDeltaTimeMS() / 1000);
             }
         }
         panelSurfaceSurrounding.setBorder(borderSurface);
@@ -264,16 +260,17 @@ public class MeasurementPanel extends JPanel {
         checkMeasureContinouslyPipe.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-                    if (checkMeasureContinouslyPipe.isSelected()) {
-                        double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
-
-                        control.getScenario().getMeasurementsPipe().setSamplesPerTimeindex(seconds / ThreadController.getDeltaTime());
-                    } else {
-                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
-                    }
-//                    System.out.println("Sample " + control.getScenario().getMeasurementsPipe().samplesPerTimeinterval + "x per interval");
-                }
+                MeasurementContainer.timecontinuousMeasures=checkMeasureContinouslyPipe.isSelected();
+//                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
+//                    if (checkMeasureContinouslyPipe.isSelected()) {
+//                        double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
+//
+//                        control.getScenario().getMeasurementsPipe().setSamplesPerTimeindex(seconds / ThreadController.getDeltaTime());
+//                    } else {
+//                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
+//                    }
+////                    System.out.println("Sample " + control.getScenario().getMeasurementsPipe().samplesPerTimeinterval + "x per interval");
+//                }
             }
         });
 
@@ -297,7 +294,7 @@ public class MeasurementPanel extends JPanel {
             @Override
             public void focusLost(FocusEvent fe) {
                 try {
-                    textMeasurementSecondsPipe.setValue(control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000);
+                    textMeasurementSecondsPipe.setValue(control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS() / 1000);
                 } catch (Exception e) {
                 }
             }
@@ -312,7 +309,7 @@ public class MeasurementPanel extends JPanel {
                         double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
                         System.out.println("New timestep for MesaurementPipe: " + seconds + " s. (Enter)");
                         if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-                            if (seconds == control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS()/1000) {
+                            if (seconds == control.getScenario().getMeasurementsPipe().getTimes().getDeltaTimeMS() / 1000) {
                                 return; //DO not change, as the values correspond
                             }
                         }
@@ -503,13 +500,9 @@ public class MeasurementPanel extends JPanel {
         if (control != null && control.getScenario() != null) {
             if (control.getScenario().getMeasurementsPipe() != null) {
                 MeasurementContainer mpc = control.getScenario().getMeasurementsPipe();
-                if (mpc.isTimespotmeasurement()) {
-                    checkMeasureContinouslyPipe.setSelected(false);
-                } else {
-                    checkMeasureContinouslyPipe.setSelected(true);
-                }
+                    checkMeasureContinouslyPipe.setSelected(mpc.timecontinuousMeasures);
 
-                textMeasurementSecondsPipe.setValue(mpc.getTimes().getDeltaTimeMS()/1000);
+                textMeasurementSecondsPipe.setValue(mpc.getTimes().getDeltaTimeMS() / 1000);
             }
             checkMeasureResidenceTimePipe.setSelected(!ParticlePipeComputing.measureOnlyFinalCapacity);
             checkMeasureSynchronisedPipe.setSelected(MeasurementContainer.synchronizeMeasures);
@@ -537,7 +530,7 @@ public class MeasurementPanel extends JPanel {
             int counter = 0;
             for (OutputIntention fout : sc.getFinalOutputs()) {
                 OutputPanel op = new OutputPanel(fout, counter++, control.getStoringCoordinator());
-                
+
                 panelOutputs.add(op);
                 JPopupMenu popup = new JPopupMenu();
                 JMenuItem itemdelete = new JMenuItem("Remove");
@@ -579,7 +572,7 @@ public class MeasurementPanel extends JPanel {
         }
         if (control != null) {
             checkHistoryParticles.setSelected(control.isTraceParticles());
-            textHistoricIth.setText(control.intervallHistoryParticles+"");
+            textHistoricIth.setText(control.intervallHistoryParticles + "");
             checkHistoryParticles.setSelected(control.isTraceParticles());
         }
         panelOutputs.revalidate();
