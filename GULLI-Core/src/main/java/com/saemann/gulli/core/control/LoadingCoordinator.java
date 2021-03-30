@@ -1362,6 +1362,7 @@ public class LoadingCoordinator {
             if (verbose) {
                 System.err.println("File for Streetinlets could not be found: " + fileStreetInlets.getAbsolutePath());
             }
+            this.fileSurfaceInlets = null;
         } else {
             this.fileSurfaceInlets = fileStreetInlets;
         }
@@ -1369,6 +1370,7 @@ public class LoadingCoordinator {
         File fileManhole2Surface = new File(surfaceTopologyDirectory, "SEWER-SURF_NODES.dat");
         if (!fileManhole2Surface.exists()) {
             System.err.println("File for Manhole position could not be found: " + fileManhole2Surface.getAbsolutePath());
+            this.fileSurfaceManholes =null;
         } else {
             this.fileSurfaceManholes = fileManhole2Surface;
         }

@@ -103,7 +103,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * minimum velocity [m/s] if particles are in cells with slower velocity,
      * the slope direction is used with this speed.
      */
-    public static double dryFlowVelocity = 0.01;
+    public static double dryFlowVelocity = 0.05;
 
     public static double dryWaterlevel = 0.005;
 

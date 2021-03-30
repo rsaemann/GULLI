@@ -269,7 +269,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         if (sce.getStatusTimesPipe() != null && network != null) {
             currentAction.description = "load scenario: init measurement timelines";
-            initMeasurementTimelines(sce,loadingCoordinator.sparsePipeMeasurements);
+            initMeasurementTimelines(sce, loadingCoordinator.sparsePipeMeasurements);
         }
         currentAction.description = "load scenario";
         currentAction.progress = 1;
@@ -459,7 +459,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (surface != null) {
             currentAction.description = "Reset scenario, Set # Materials";
             fireAction(currentAction);
-            surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
+            if (scenario != null) {
+                surface.setNumberOfMaterials(scenario.getMaxMaterialID() + 1);
+            }
             surface.reset();
         }
 
@@ -493,7 +495,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      *
      * @param scenario
      */
-    public void initMeasurementTimelines(Scenario scenario,boolean sparse) {
+    public void initMeasurementTimelines(Scenario scenario, boolean sparse) {
         if (scenario.getStatusTimesPipe() != null) {
             if (scenario.getStatusTimesPipe() instanceof TimeContainer) {
                 TimeContainer tc = (TimeContainer) scenario.getStatusTimesPipe();
@@ -501,13 +503,13 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 int numberIntervals = (int) (duration / tc.getDeltaTimeMS());
 
                 if (numberIntervals > 0) {
-                    initMeasurementTimelines(scenario.getStartTime(), numberIntervals, tc.getDeltaTimeMS() / 1000.,sparse);
+                    initMeasurementTimelines(scenario.getStartTime(), numberIntervals, tc.getDeltaTimeMS() / 1000., sparse);
                 } else {
                     System.err.println("Time container Pipe not correctly initialised.");
                     System.err.println("   duration: " + duration + " / " + tc.getDeltaTimeMS() + " = " + numberIntervals);
                 }
             } else {
-                initMeasurementTimelines(scenario, scenario.getStatusTimesPipe().getNumberOfTimes() - 1,sparse);
+                initMeasurementTimelines(scenario, scenario.getStatusTimesPipe().getNumberOfTimes() - 1, sparse);
             }
         } else {
             System.out.println("No reference times to use");
@@ -641,7 +643,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
      * @param numberOfIntervalls
      * @return seconds per interval
      */
-    public double initMeasurementTimelines(long scenarioStarttime, int numberOfIntervalls, double deltatimeSeconds,boolean sparse) {
+    public double initMeasurementTimelines(long scenarioStarttime, int numberOfIntervalls, double deltatimeSeconds, boolean sparse) {
 
         int n = numberOfIntervalls;
         double dt = deltatimeSeconds * 1000; //in MS
@@ -660,7 +662,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             e.printStackTrace();
         }
 
-        initMeasurementTimelines(scenario, times, numberContaminantTypes,sparse);
+        initMeasurementTimelines(scenario, times, numberContaminantTypes, sparse);
         return dt;
     }
 
@@ -675,7 +677,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
         if (network != null && scenario.getMeasurementsPipe() == null) {
             System.out.println("Initialize sampling intervals with input interval length as no user defined sampling was set.");
-            initMeasurementTimelines(scenario,loadingCoordinator.sparsePipeMeasurements);
+            initMeasurementTimelines(scenario, loadingCoordinator.sparsePipeMeasurements);
         }
 
         if (requestRecalculationOfInjections) {

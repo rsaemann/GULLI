@@ -264,6 +264,10 @@ public class SWMM_IO {
         }
     }
 
+    public SWMMNetwork finishNetwork() throws FactoryException {
+        return finishNetwork(null);
+    }
+
     /**
      * Create a GULLI Network from previously read in INP SWMM definition
      * (readNetwork(file) method).
@@ -271,7 +275,7 @@ public class SWMM_IO {
      * @return
      * @throws FactoryException
      */
-    public SWMMNetwork finishNetwork() throws FactoryException {
+    public SWMMNetwork finishNetwork(String epsgCodeUTM) throws FactoryException {
         if (junctions == null) {
             junctions = new HashMap<>(0);
         }
@@ -291,21 +295,24 @@ public class SWMM_IO {
         CoordinateReferenceSystem utmCRS = null, utm4CRS = null;
         CRS.cleanupThreadLocals();
         //Find plausible Coordinates
-        if (coordinates != null && !coordinates.isEmpty()) {
-            Coordinate c = coordinates.entrySet().iterator().next().getValue();
-            if (c.x > 1000000) {
-                //Gauss Krüger
-                //Zone
-                int zone = (int) (c.x / 1000000);
-                if (verbose) {
-                    System.out.println("Found input coordinates to be GK Zone " + zone + " -> EPSG:3146" + zone);
+        if (epsgCodeUTM == null || epsgCodeUTM.isEmpty()) {
+            //Try to find a suitable epsg code
+            if (coordinates != null && !coordinates.isEmpty()) {
+                Coordinate c = coordinates.entrySet().iterator().next().getValue();
+                if (c.x > 1000000) {
+                    //Gauss Krüger
+                    //Zone
+                    int zone = (int) (c.x / 1000000);
+                    if (verbose) {
+                        System.out.println("Found input coordinates to be GK Zone " + zone + " -> EPSG:3146" + zone);
+                    }
+                    utmCRS = af.createCoordinateReferenceSystem("EPSG:3146" + zone);
+                } else {
+                    if (verbose) {
+                        System.out.println("Found input coordinates to be UTM WGS84 32N -> EPSG:25832");
+                    }
+                    utmCRS = af.createCoordinateReferenceSystem("EPSG:25832"); //UTM WGS84 32Nord
                 }
-                utmCRS = af.createCoordinateReferenceSystem("EPSG:3146" + zone);
-            } else {
-                if (verbose) {
-                    System.out.println("Found input coordinates to be UTM WGS84 32N -> EPSG:25832");
-                }
-                utmCRS = af.createCoordinateReferenceSystem("EPSG:25832"); //UTM WGS84 32Nord
             }
         }
 
@@ -313,7 +320,7 @@ public class SWMM_IO {
             System.out.print("Creating Geospatial Transformation...");
         }
         try {
-
+            utmCRS = af.createCoordinateReferenceSystem(epsgCodeUTM);
             wgs84CRS = af.createCoordinateReferenceSystem("EPSG:4326");//CRS.decode("EPSG:4326"); //WGS84
 //            utm3CRS = CRS.decode("EPSG:31467");//DHDN / 3-degree Gauss-Kruger zone 3
 //            utm4CRS = CRS.decode("EPSG:31468");//DHDN / 3-degree Gauss-Kruger zone 4
@@ -326,6 +333,7 @@ public class SWMM_IO {
                 System.out.println("error.");
             }
             ex.printStackTrace();
+            return null;
         }
 
         MathTransform utm2wgs = CRS.findMathTransform(utmCRS, wgs84CRS);

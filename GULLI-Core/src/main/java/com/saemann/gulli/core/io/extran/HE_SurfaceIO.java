@@ -1434,6 +1434,7 @@ public class HE_SurfaceIO {
         try (BufferedReader br = new BufferedReader(new FileReader(fileManhole2Surface))) {
             String line;
             line = br.readLine();
+            if(line==null||line.isEmpty())return new ArrayList<>(0);
             String numberOfManholesStr = line.replaceAll("[^0-9.,]+", "").trim();
             int numberOfManholes = 10;
             try {
