@@ -46,11 +46,12 @@ public class TikzPDFGraphics2D extends Graphics2D {
     /**
      * The revision date for this version of JTikZ.
      */
-    public static final String REV_DATE = "2021-01-18";
+    public static final String REV_DATE = "2021-04-18";
 
     Hashtable<Color, String> colors;
     String preamble;
     int colorId;
+    private int internalOpenCounter = 1;
 
 //    AffineTransform transform;
     /**
@@ -62,10 +63,6 @@ public class TikzPDFGraphics2D extends Graphics2D {
 
     public double rotation = 0;
     boolean closed;
-//    Shape currentClip;
-    Color color = Color.BLACK;
-//    Font font;
-//    FontMetrics fontmetrics;
 
     LinkedList<String> commands;
     protected PrintStream out;
@@ -81,14 +78,21 @@ public class TikzPDFGraphics2D extends Graphics2D {
     DecimalFormat df = new DecimalFormat("0.##", new DecimalFormatSymbols(Locale.US));
     DecimalFormat df3 = new DecimalFormat("0.###", new DecimalFormatSymbols(Locale.US));
     Rectangle originalsize;
-    private Color background;
+
+    /**
+     * Text anchor that is used for unrotated text (default 'anchor=center')
+     * Left anchor: anchor=west
+     */
+    public boolean prefereCenterAnchor = true;//"anchor=west";
+
+    private File tikzFile;
 
     /**
      * Creates a new TikzGraphics2D object that will output the code to
      * <code>system.out</code>.
      */
-    public TikzPDFGraphics2D() throws FileNotFoundException {
-        this(null, null, null);
+    public TikzPDFGraphics2D() {
+        System.out.println("create new empty " + getClass().getSimpleName());
     }
 
     /**
@@ -96,14 +100,18 @@ public class TikzPDFGraphics2D extends Graphics2D {
      * given output stream. If <code>os</code> is <code>null</code> then it will
      * default to <code>system.out</code>.
      *
-     * @param os
+     * @param directory the directory to store the main'.tex' file and the drawn
+     * shapes as a PDF file.
+     * @param filename The shapes are drawn to a file named *filename*_bgi.pdf
+     * @param canvassize size of the rectangle that will be drawn
+     * @throws java.io.FileNotFoundException
      */
     public TikzPDFGraphics2D(File directory, String filename, Rectangle canvassize) throws FileNotFoundException {
         preamble = "";
         colorId = 0;
-        colors = new Hashtable<Color, String>();
+        colors = new Hashtable<>();
         this.originalsize = canvassize;
-        File tikzFile = new File(directory, filename);
+        tikzFile = new File(directory, filename);
         PrintStream os = new PrintStream(tikzFile);
         if (os instanceof PrintStream) {
             out = (PrintStream) os;
@@ -117,12 +125,10 @@ public class TikzPDFGraphics2D extends Graphics2D {
 
     @Override
     public Graphics create() {
-        try {
-            return new TikzPDFGraphics2D();
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(TikzPDFGraphics2D.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        throw new NullPointerException("Cannot initialize " + getClass() + " without declaration of outputfile");
+        internalOpenCounter++;
+//        StackTraceElement[] st = new Exception().getStackTrace();
+//        System.out.println("Increase counter to " + internalOpenCounter);//+" by \t  "+st[0]+"\n\t"+st[1]);
+        return this;
     }
 
     private String openPDFWriter(Rectangle size, File directory, String name, boolean override) {
@@ -136,7 +142,7 @@ public class TikzPDFGraphics2D extends Graphics2D {
                 if (!override) {
                     throw new SecurityException("Not allowed to override " + pdfFile);
                 } else {
-                    System.out.println("Override existing fiel " + pdfFile);
+                    System.out.println("Override existing file " + pdfFile);
                 }
             }
 
@@ -147,12 +153,7 @@ public class TikzPDFGraphics2D extends Graphics2D {
             cbPDF = writer.getDirectContent();
             tpPDF = cbPDF.createTemplate((float) size.getWidth(), (float) size.getHeight());
             g2PDF = new PdfGraphics2D(cbPDF, (float) size.getWidth(), (float) size.getHeight());
-//            g2PDF.translate(-surroundingContainer.getX(), 0);// -surroundingContainer.getY());
-//            panelChart.getChart().draw(g2d, rec);
-//            cb.addTemplate(tp, 25, 200);
-//            g2d.dispose();
-//            doc.close();
-//            fos.close();
+
             pdfFileName = fileName;
             return fileName;
         } catch (Exception ex) {
@@ -208,34 +209,12 @@ public class TikzPDFGraphics2D extends Graphics2D {
 
     String handleOptions(String options, boolean isText) {
         StringBuffer o = new StringBuffer(options);
-        if (!color.equals(Color.BLACK)) {
-            addOption(o, (isText ? "text=" : "") + colorToTikz(color));
+        if (!g2PDF.getColor().equals(Color.BLACK)) {
+            addOption(o, (isText ? "text=" : "") + colorToTikz(g2PDF.getColor()));
         }
-        if (color.getAlpha() != 255) {
-            addOption(o, (isText ? "text " : "") + "opacity=" + ((double) color.getAlpha() / 255.0));
+        if (g2PDF.getColor().getAlpha() != 255) {
+            addOption(o, (isText ? "text " : "") + "opacity=" + ((double) g2PDF.getColor().getAlpha() / 255.0));
         }
-//        if (stroke.getDashArray() != null && stroke.getDashArray().length > 1) {
-//            String str = "dash pattern=";
-//
-//            for (int i = 0; i < stroke.getDashArray().length; i++) {
-//                if (i % 2 == 0) {
-//                    str += " on " + Math.max(0.01, stroke.getDashArray()[i]) + "pt";
-//                } else {
-//                    str += " off " + stroke.getDashArray()[i] + "pt";
-//                }
-//            }
-//            if (stroke.getEndCap() == BasicStroke.CAP_ROUND) {
-//                str += ",line cap=round";
-//            } else if (stroke.getEndCap() == BasicStroke.CAP_SQUARE) {
-//                str += ",line cap=rect";
-//            } else if (stroke.getEndCap() == BasicStroke.CAP_BUTT) {
-//                str += ",line cap=butt";
-//            }
-//            addOption(o, str);
-//        }
-//        if (stroke.getLineWidth() != 1.0) {
-//            addOption(o, "line width=" + stroke.getLineWidth() + "pt");
-//        }
         rotation = angleRad(g2PDF.getTransform());
         if (rotation != 0) {
             addOption(o, "rotate=" + df.format(rotation * 180 / Math.PI));
@@ -260,7 +239,8 @@ public class TikzPDFGraphics2D extends Graphics2D {
                 .replaceAll("#", "\\#")
                 .replaceAll("²", "\\$^2\\$")
                 .replaceAll("³", "\\$^3\\$")
-                .replaceAll("_", "\\_");
+                .replaceAll("_", "\\_")
+                .replaceAll("\u00a9", "\\\\textcopyright");
     }
 
     @Override
@@ -291,8 +271,7 @@ public class TikzPDFGraphics2D extends Graphics2D {
     @Override
     public void drawString(String str, float x, float y) {
         Point2D p1 = g2PDF.getTransform().transform(new Point2D.Double(x, y), null);
-//        System.out.println(str+" @"+p1+" <-- "+x+", "+y+"  rotation="+rotation);
-        handleDrawString(str, p1.getX(), p1.getY(), true);
+        handleDrawString(str, p1.getX(), p1.getY());
     }
 
     @Override
@@ -324,7 +303,6 @@ public class TikzPDFGraphics2D extends Graphics2D {
         }
         Rectangle2D bounds = g.getVisualBounds();
         Point2D p1 = g2PDF.getTransform().transform(new Point2D.Double(x + bounds.getWidth() * 0.5, y), null);
-//        System.out.println("Glyph transf.pos: " + p1 + "   x=" + x + ", y=" + y);
         handleGlyphString(content.toString(), p1.getX(), p1.getY());
 
     }
@@ -442,12 +420,11 @@ public class TikzPDFGraphics2D extends Graphics2D {
     @Override
     public void setBackground(Color color) {
         g2PDF.setBackground(color);
-        background = color;
     }
 
     @Override
     public Color getBackground() {
-        return background;
+        return g2PDF.getBackground();
     }
 
     @Override
@@ -472,8 +449,7 @@ public class TikzPDFGraphics2D extends Graphics2D {
 
     @Override
     public void setColor(Color c) {
-        g2PDF.setColor(color);
-        this.color = c;
+        g2PDF.setColor(c);
     }
 
     @Override
@@ -518,7 +494,9 @@ public class TikzPDFGraphics2D extends Graphics2D {
 
     @Override
     public Shape getClip() {
-        if(g2PDF==null)return null;
+        if (g2PDF == null) {
+            return null;
+        }
         return g2PDF.getClip();
     }
 
@@ -624,6 +602,10 @@ public class TikzPDFGraphics2D extends Graphics2D {
 
     @Override
     public void dispose() {
+        internalOpenCounter--;
+        if (internalOpenCounter != 0) {
+            return;
+        }
         try {
             closePDF();
         } catch (IOException ex) {
@@ -639,17 +621,19 @@ public class TikzPDFGraphics2D extends Graphics2D {
         g2PDF.drawRenderableImage(img, xform);
     }
 
-    protected void handleDrawString(String s, double x, double y, boolean center) {
-        rotation = angleRad(g2PDF.getTransform())*180/Math.PI;
+    protected void handleDrawString(String s, double x, double y) {
+        rotation = angleRad(g2PDF.getTransform()) * 180 / Math.PI;
         String layout = "";
-        boolean rotated=false;
-        if (center) {
-            if (Math.abs(rotation)<1) {
-                rotated=true;
+        boolean rotated = false;
+
+        if (prefereCenterAnchor) {
+            if (Math.abs(rotation) < 1) {
+                rotated = true;
                 x += g2PDF.getFontMetrics().stringWidth(s) * 0.5;
             }
             layout = handleOptions("anchor=center", true);
-        } else {
+        }else{
+            y-=g2PDF.getFontMetrics().getHeight()*0.3;
             layout = handleOptions("anchor=west", true);
         }
 
@@ -657,14 +641,14 @@ public class TikzPDFGraphics2D extends Graphics2D {
             if (rotated) {
                 addCommand("\\node" + layout + " at (" + df.format(x) + "pt, " + df.format(y - g2PDF.getFont().getSize2D() * 0.4) + "pt) {" + toTeX(s) + "};");
             } else {
-                addCommand("\\node" + layout + " at (" + df.format(x /*+ g2PDF.getFontMetrics().stringWidth(s) * 0.4/*+ font.getSize2D() * 0.4*/) + "pt, " + df.format(y /*- fontmetrics.stringWidth(s) * 0.5*/) + "pt) {" + toTeX(s) + "};");
+                addCommand("\\node" + layout + " at (" + df.format(x) + "pt, " + df.format(y) + "pt) {" + toTeX(s) + "};");
 
             }
         } else {
             if (rotated) {
                 addCommand("\\node" + layout + " at (" + df.format(x) + "pt, " + df.format(originalsize.height - y + g2PDF.getFont().getSize2D() * 0.4) + "pt) {" + toTeX(s) + "};");
             } else {
-                addCommand("\\node" + layout + " at (" + df.format(x /*+ g2PDF.getFontMetrics().stringWidth(s) * 0.4/*+ font.getSize2D() * 0.4*/) + "pt, " + df.format(originalsize.height - y /*- fontmetrics.stringWidth(s) * 0.5*/) + "pt) {" + toTeX(s) + "};");
+                addCommand("\\node" + layout + " at (" + df.format(x) + "pt, " + df.format(originalsize.height - y ) + "pt) {" + toTeX(s) + "};");
 
             }
         }

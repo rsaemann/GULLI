@@ -39,11 +39,9 @@ import com.saemann.gulli.view.timeline.EditorTableFrame;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Frame;
-import java.awt.Paint;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -57,6 +55,7 @@ import java.util.logging.Logger;
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JMenu;
+import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
@@ -102,6 +101,7 @@ public class ViewController {
 
         paintManager.addCapacitySelectionListener(timelinePanel);
 
+        hideOverlayMenu();
         improveMapFrame();
 
         //Order Frames
@@ -176,13 +176,6 @@ public class ViewController {
             }
 
         });
-//            @Override
-//            public void s(Object caller) {
-//                System.out.println("Network name is "+control.getNetwork().getName());
-//                mapFrame.setTitle(control.getNetwork().getName()+" - GULLI");
-//            }
-//            
-//        });
     }
 
     public Controller getControl() {
@@ -324,13 +317,26 @@ public class ViewController {
                         if (!output.getName().endsWith(".tex")) {
                             output = new File(output.getAbsolutePath() + ".tex");
                         }
-
+                        boolean tempzoomcontrolvisible = mapViewer.getZoomContolsVisible();
+                        mapViewer.setZoomContolsVisible(mapViewer.isShowZoomslidersinExportFile());
+                        boolean tempCopyright = mapViewer.showCopyright;
+                        mapViewer.showCopyright = mapViewer.isShowCopyrightsinExportFile();
+//        int tempLegendWidth = mapViewer.;
+                        boolean tempShowLegend = mapViewer.showLegend;
+                        mapViewer.showLegend = mapViewer.isShowLegendInExportFile();
+                        boolean tempMapscale = mapViewer.showMapScale;
+                        mapViewer.showMapScale = mapViewer.showMapscalesinExportFile;
                         try {
+
+//                            mapViewer.legendWidth += 4; // Vergroeßern, da pdf schrift etwas breiter ist.
+                            //Alle Shapes neu berechnen, da einfaches translatieren oft nicht ausreichend schön aussieht
                             Rectangle rec = new Rectangle(0, 0, mapViewer.getWidth(), mapViewer.getHeight());
 
                             TikzPDFGraphics2D g2d = new TikzPDFGraphics2D(output.getParentFile(), output.getName(), rec);
+                            g2d.prefereCenterAnchor=false;
+                            mapViewer.recalculateShapes(g2d);
+                            mapViewer.recomputeLegend(g2d);
                             mapViewer.paintMapView(g2d);
-
                             g2d.finalize();
                             System.out.println("Created file " + output);
 
@@ -341,7 +347,11 @@ public class ViewController {
                             Logger.getLogger(CapacityTimelinePanel.class
                                     .getName()).log(Level.SEVERE, null, ex);
                         } finally {
-
+                            mapViewer.showCopyright = tempCopyright;
+                            mapViewer.showLegend = tempShowLegend;
+                            mapViewer.setZoomContolsVisible(tempzoomcontrolvisible);
+                            mapViewer.showMapScale = tempMapscale;
+                            mapViewer.recomputeLegend();
                         }
                     }
                 }
@@ -358,23 +368,22 @@ public class ViewController {
             }
         });
         mapFrame.getMenu_View().add(itemFrameReset);
-        
+
         //Search menu
-        JMenu menuSearch =new JMenu("Search");
-        JMenuItem itemSearch=new JMenuItem("Object Name...");
+        JMenu menuSearch = new JMenu("Search");
+        JMenuItem itemSearch = new JMenuItem("Object Name...");
         menuSearch.add(itemSearch);
         itemSearch.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                JFrame frame=new JFrame("Search");
+                JFrame frame = new JFrame("Search");
                 frame.add(new SearchPanel(control, paintManager));
                 frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.setBounds(itemSearch.getX(), itemSearch.getY(),200, 150);
+                frame.setBounds(itemSearch.getX(), itemSearch.getY(), 200, 150);
                 frame.setVisible(true);
             }
         });
         mapFrame.getJMenuBar().add(menuSearch);
-        
 
         JMenu menuHelp = new JMenu("About");
 
@@ -411,6 +420,17 @@ public class ViewController {
         itemCopyright.addActionListener(action);
         itemGithub.addActionListener(action);
 
+    }
+
+    public void hideOverlayMenu() {
+        JMenuBar bar = mapFrame.getJMenuBar();
+        for (int i = 0; i < bar.getMenuCount(); i++) {
+            JMenu menu = bar.getMenu(i);
+            if (menu.getText().equals("Overlay")) {
+                menu.setVisible(false);
+                break;
+            }
+        }
     }
 
 }
