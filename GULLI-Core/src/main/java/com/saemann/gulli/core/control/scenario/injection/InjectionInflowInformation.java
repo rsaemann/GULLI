@@ -23,11 +23,19 @@
  */
 package com.saemann.gulli.core.control.scenario.injection;
 
+import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.model.material.Material;
+import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLineManholeContainer;
+import com.saemann.gulli.core.model.timeline.sparse.SparseTimelineManhole;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.core.model.topology.Network;
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Relative concentration of diffusive pollutant per area (kg/m^2) information
@@ -122,15 +130,49 @@ public class InjectionInflowInformation implements InjectionInfo {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        for (int m = 0; m < manholes.length; m++) {
-            Manhole manhole = manholes[m];
-//            long start=System.currentTimeMillis();
-            for (int i = 0; i < manhole.getStatusTimeLine().getNumberOfTimes(); i++) {
-                double v = manhole.getStatusTimeLine().getInflow(i);
-                totalvolume += v;
-                volume[m] += v;
+
+        boolean needCalculation = true;
+        //Search for a special data provider, that can speed up the process of laoding large files.
+
+        if (manholes[0].getStatusTimeLine() instanceof SparseTimelineManhole) {
+            SparseTimelineManhole tlm = (SparseTimelineManhole) manholes[0].getStatusTimeLine();
+            if (tlm.getTimeContainer() instanceof SparseTimeLineManholeContainer) {
+                SparseTimeLineManholeContainer cont = (SparseTimeLineManholeContainer) tlm.getTimeContainer();
+                if (cont.getDataprovider() instanceof HE_Database) {
+//                    System.out.println("Take inflow from HE ");
+                    HE_Database db = (HE_Database) cont.getDataprovider();
+                    try {
+                        HashMap<Integer, Double> map = db.loadManholeTotalSurfaceInflow();
+                        if (map != null) {
+                            for (int i = 0; i < manholes.length; i++) {
+                                volume[i] = map.get((int) (manholes[i].getManualID())).floatValue();
+                            }
+                            needCalculation = false;
+                            totalvolume=0;
+                            for (int i = 0; i < volume.length; i++) {
+                                totalvolume+=volume[i];                                
+                            }
+                            System.out.println("Total inflow volume is "+totalvolume+" from HE Database");
+                        }
+                    } catch (SQLException ex) {
+                        Logger.getLogger(InjectionInflowInformation.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(InjectionInflowInformation.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
             }
-//            System.out.println("complete sumup "+manhole+"  "+((System.currentTimeMillis()-start)));
+        }
+        if (needCalculation) {
+//            System.out.println("Load unique timelines to calculate total inflow");
+            for (int m = 0; m < manholes.length; m++) {
+                Manhole manhole = manholes[m];
+                for (int i = 0; i < manhole.getStatusTimeLine().getNumberOfTimes(); i++) {
+                    double v = manhole.getStatusTimeLine().getInflow(i);
+                    totalvolume += v;
+                    volume[m] += v;
+                }
+            }
+            System.out.println("Total inflow volume is "+totalvolume+" for Manholes");
         }
         if (concentration > 0) {
             totalMass = totalvolume * concentration;
@@ -186,8 +228,6 @@ public class InjectionInflowInformation implements InjectionInfo {
         }
         changed = true;
     }
-    
-  
 
     @Override
     public double getStarttimeSimulationsAfterSimulationStart() {

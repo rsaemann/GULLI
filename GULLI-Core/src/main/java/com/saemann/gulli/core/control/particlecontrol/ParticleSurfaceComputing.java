@@ -41,7 +41,7 @@ public interface ParticleSurfaceComputing {
     
     public void setActualSimulationTime(long timeMS);
 
-    public void moveParticle(Particle particle);
+    public void moveParticle(Particle particle, double dt);
 
     public void reset();
 

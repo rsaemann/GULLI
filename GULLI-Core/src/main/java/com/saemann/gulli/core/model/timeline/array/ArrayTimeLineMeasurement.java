@@ -11,7 +11,7 @@ import com.saemann.gulli.core.model.timeline.MeasurementContainer;
  *
  * @author saemann
  */
-public class ArrayTimeLineMeasurement implements MeasurementTimeline{
+public class ArrayTimeLineMeasurement implements MeasurementTimeline {
 
     protected ArrayTimeLineMeasurementContainer container;
 
@@ -251,7 +251,9 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline{
         int ptcount = 0;
         for (int i = 0; i < timeindex; i++) {
             int id = getIndex(i);
-            ptcount += container.particles[id];
+            if (container.counts[id] > 0) {
+                ptcount += container.particles[id] / container.counts[id];
+            }
         }
         return ptcount;
     }

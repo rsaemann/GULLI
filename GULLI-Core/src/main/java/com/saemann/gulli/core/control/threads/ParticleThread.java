@@ -26,8 +26,6 @@ public class ParticleThread extends Thread {
     private final ArrayList<ParticleMeasurement> messung = new ArrayList<>(1);
     boolean runendless = true;
 
-//    public int particleID = -1;
-
     private ParticleSurfaceComputing2D surfcomp;
     public int status = -1;
 
@@ -40,13 +38,19 @@ public class ParticleThread extends Thread {
 
     // For inside the simulation loop.
     private Particle p;
+    /**
+     * First and last (exclusive) index of particles to thread. 
+     */
     private int[] fromto = null;
     private int from;
     private int toExcld;
     private RandomGenerator random;
     
-//    private long starttime;
-//    public long timeSurface,timePipe;
+    /**
+     * Simulation time step in seconds
+     */
+    private double deltaTime=1;
+    
 
     public ParticleThread(String string, int index, ThreadBarrier<ParticleThread> barrier) {
         super(string);
@@ -70,6 +74,7 @@ public class ParticleThread extends Thread {
     }
 
     public void setDeltaTime(double seconds) {
+        this.deltaTime=seconds;
         this.pc.setDeltaTime(seconds);
         if (surfcomp != null) {
             surfcomp.setDeltaTimestep(seconds);
@@ -84,7 +89,7 @@ public class ParticleThread extends Thread {
     public void setSurfaceComputing(ParticleSurfaceComputing2D sc) {
         this.surfcomp = sc;
         if (surfcomp != null) {
-            surfcomp.setDeltaTimestep(pc.getDeltaTime());
+            surfcomp.setDeltaTimestep(deltaTime);
         }
     }
 
@@ -105,11 +110,10 @@ public class ParticleThread extends Thread {
         } else {
             barrier.initialized(this);
         }
+        double timestep=deltaTime;
         //if woken up start the normal loop
-
         while (runendless) {
-            try {
-                
+            try {                
                 fromto = threadController.getNextParticlesToTreat(fromto);
                 if (fromto == null || fromto[0] < 0) {
                     //finished loop fot his timestep
@@ -125,7 +129,8 @@ public class ParticleThread extends Thread {
                     random = threadController.randomNumberGenerators[fromto[2]];
                     this.pc.setRandomNumberGenerator(random);
                     this.surfcomp.setRandomNumberGenerator(random);
-
+                    timestep=deltaTime;
+                    
                     for (int i = from; i < toExcld; i++) {
                         try {
                             p = threadController.particles[i];
@@ -138,19 +143,19 @@ public class ParticleThread extends Thread {
                             e.printStackTrace();
                             break;
                         }
-//                        this.particleID = p.getId();
                         if (p.isWaiting()) {
-                            if (p.getInsertionTime() > this.simulationTime) {
+                            if (p.getInsertionTime() > barrier.getStepEndTime()) {
                                 //this particle is still waiting for its initialization.
                                 //All further particles area also waiting. Break the loop here.
-                                break;
+                                
+//                                break;
                             } else {
                                 status=1;
-//                                System.out.println("Injectioninformation:: "+p.getInjectionInformation()+" surface? "+p.getInjectionInformation().spillOnSurface());
+                                timestep=(barrier.stepEndTime-p.getInsertionTime())/1000.;
+                                //System.out.println("insertion timestep: "+timestep+" s ("+p.getInsertionTime()+")  from "+barrier.stepStartTime+"--"+barrier.stepEndTime +" in particles "+p.getId()+" ( "+i+" /"+from+" - "+toExcld+")");
                                 if (p.getInjectionInformation().spillOnSurface()) {
                                     SurfaceInjection si = (SurfaceInjection) p.getInjectionInformation();
                                     p.setSurrounding_actual(si.getInjectionCapacity());
-//                                    System.out.println("Inject Particle on Surface "+si.getInjectionCapacity());
                                     p.surfaceCellID = (int) si.getInjectionCellID(p.getId());
                                     p.setPosition3D(si.getInjectionPosition(p.getId()));
                                     p.setOnSurface();
@@ -174,16 +179,15 @@ public class ParticleThread extends Thread {
                                 }
                                 status=0;
                             }
+                        }else{
+                            timestep=deltaTime;
                         }
                         //check if it has been initialized from waiting list yet
                         if (p.isActive()) {
-//                            starttime=System.currentTimeMillis();
                             if (p.isInPipeNetwork()) {
-                                pc.moveParticle(p);
-//                                timePipe+=System.currentTimeMillis()-starttime;
+                                pc.moveParticle(p,timestep);
                             } else if (p.isOnSurface()) {
-                                surfcomp.moveParticle(p);
-//                                timeSurface+=System.currentTimeMillis()-starttime;
+                                surfcomp.moveParticle(p,timestep);
                             } else {
                                 System.out.println(getClass() + ":: undefined status (" + p.status + ") of particle (" + p.getId() + "). Surrounding=" + p.getSurrounding_actual());
                             }
@@ -224,11 +228,8 @@ public class ParticleThread extends Thread {
      * @return seconds
      */
     public double getDeltatime() {
-        return pc.getDeltaTime();
+        return deltaTime;
     }
-
-//    public void reset() {
-//    }
 
     public void addParticlemeasurement(ParticleMeasurement pm) {
         this.messung.add(pm);
@@ -243,4 +244,12 @@ public class ParticleThread extends Thread {
         return fromto[0];
     }
 
+    /**
+     * Last particle ID (Inclusive) to thread witin this processing interval
+     * @return 
+     */
+    public int getActualParticleBlockLastIndex(){
+        if(fromto==null)return -1;
+        return fromto[1]-1;
+    }
 }

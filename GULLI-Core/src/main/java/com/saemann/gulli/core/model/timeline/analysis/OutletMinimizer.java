@@ -28,7 +28,6 @@ import com.saemann.gulli.core.model.timeline.MeasurementTimeline;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.TimeLinePipe;
 import com.saemann.gulli.core.model.topology.Pipe;
 
@@ -90,10 +89,10 @@ public class OutletMinimizer {
             double c1 = tlm.getConcentration(tlm.getContainer().getIndexForTime(tlp.getTimeContainer().getTimeMilliseconds(i)));
 
             m = (c0 * q0 + c1 * q1) * 0.5;
-            if (!Double.isFinite(m)) {
-//                System.out.println("Something is not finit in mass calculation index["+i+"]: q0=" + q0 + "\tq1=" + q1+",  c0="+c0+", c1="+c1);
-            } else {
+            if (Double.isFinite(m)) {
                 massSum += m * (tlp.getTimeContainer().getTimeMilliseconds(i) - tlp.getTimeContainer().getTimeMilliseconds(i - 1)) / 1000.;
+            } else {
+//                System.out.println("Something is not finit in mass calculation index["+i+"]: q0=" + q0 + "\tq1=" + q1+",  c0="+c0+", c1="+c1);
             }
         }
 //        System.out.println("TotalMass: "+massSum+" kg");
@@ -107,7 +106,7 @@ public class OutletMinimizer {
         maximumIntervals = null;
         maximumMass = 0;
         containedMass = 0;
-        emittedMass=0;
+        emittedMass = 0;
         containedVolume = 0;
         maximumConcentration = 0;
     }
@@ -134,8 +133,11 @@ public class OutletMinimizer {
         maximumMass = 0;
         maximumConcentration = 0;
         for (int i = 1; i < c.getTimes().getNumberOfTimes(); i++) {
-            long start = c.getMeasurementTimestampAtTimeIndex(i - 1);
-            long ende = c.getMeasurementTimestampAtTimeIndex(i);
+            long start = c.getTimeMillisecondsAtIndex(i-1);
+            long ende = c.getTimeMillisecondsAtIndex(i);
+            double statusTimeStartIndex=tl.getTimeContainer().getTimeIndexDouble(start);
+            double statusTimeEndIndex=tl.getTimeContainer().getTimeIndexDouble(ende);
+            
 
             long durationMS = ende - start;
             double durationS = durationMS / 1000.;
@@ -149,18 +151,21 @@ public class OutletMinimizer {
             }
             maximumConcentration = Math.max(maximumConcentration, concentrationS);
 
-            int tlIndexStart = tl.getTimeContainer().getTimeIndex(start);
-            int tlIndexEnd = tl.getTimeContainer().getTimeIndex(ende - 1);
-            double dischargeS = tl.getDischarge(tlIndexStart);
-            double dischargeE = tl.getDischarge(tlIndexEnd);
+//            double tlIndexStart = tl.getTimeContainer().getTimeIndexDouble(start);
+//            double tlIndexEnd = tl.getTimeContainer().getTimeIndexDouble(ende);
+            double dischargeS = tl.getDischarge_DoubleIndex(statusTimeStartIndex);
+            double dischargeE = tl.getDischarge_DoubleIndex(statusTimeEndIndex);
+//            double statusTimeIndexDouble=tl.getTimeContainer().getTimeIndexDouble((long) ((c.getMeasurementTimestampAtTimeIndex(i)+c.getMeasurementTimestampAtTimeIndex(i-1))/2.));
+//            double discharge = tl.getDischarge_DoubleIndex((statusTimeStartIndex+statusTimeEndIndex)/2.);
 
-            double volume = (dischargeE + dischargeS) * 0.5 * durationS;
+            double volume = (dischargeE + dischargeS) * 0.5  *durationS;
             double mass = (concentrationS * dischargeS + concentrationE * dischargeE) * 0.5 * durationS;
             if (!Double.isFinite(mass)) {
                 System.out.println("something is not finite: c:" + concentrationS + "/" + concentrationE + ",   discharge: " + dischargeS + "/" + dischargeE);
                 mass = 0;
             }
             maximumMass += mass;
+//            System.out.println("MINI: "+i+"\t mf:"+mass +" -> total:\t"+maximumMass+" c1:"+concentrationS+"\tcE:"+concentrationE+"\tdischE:"+dischargeE);
             PollutionDischargeInterval pdi = new PollutionDischargeInterval();
             pdi.max_concentration = Math.max(concentrationS, concentrationE);
             pdi.duration = durationMS;
@@ -216,7 +221,7 @@ public class OutletMinimizer {
         double sumvolume = 0;
         boolean[] InSet = new boolean[intervals.size()];
         containedMass = 0;
-        emittedMass=0;
+        emittedMass = 0;
         containedVolume = 0;
         containedConcentrationMaximum = 0;
         emittedConcentrationMaximum = 0;
@@ -230,7 +235,7 @@ public class OutletMinimizer {
                 containedVolume += interval.volume;
                 containedConcentrationMaximum = Math.max(containedConcentrationMaximum, interval.max_concentration);
             } else {
-                emittedMass += ordered[interval.intervalIndex].pollutionMass;                
+                emittedMass += ordered[interval.intervalIndex].pollutionMass;
                 emittedConcentrationMaximum = Math.max(emittedConcentrationMaximum, interval.max_concentration);
             }
         }
@@ -353,8 +358,5 @@ public class OutletMinimizer {
     public double getEmittedMass() {
         return emittedMass;
     }
-    
-    
-    
 
 }

@@ -64,8 +64,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public int[][] mooreNeighbours;
     /**
      * is usually not used any more. Velocities are now calculated as
-     * cell-constant 
-     * [nodeindex][Neighbour number] : triangleIndex
+     * cell-constant [nodeindex][Neighbour number] : triangleIndex
      */
     private int[][] NodeNeighbours;
     public double[][] weight;
@@ -910,15 +909,14 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         return wlsNB;
     }
 
-    /**
-     * von Neumann Neighbours' distances , triangles midpoint
-     *
-     * @return [triangleid][nb index]: midpoint-distance
-     */
-    public float[][] getNeighbourDistances() {
-        return neighbourDistances;
-    }
-
+//    /**
+//     * von Neumann Neighbours' distances , triangles midpoint
+//     *
+//     * @return [triangleid][nb index]: midpoint-distance
+//     */
+//    public float[][] getNeighbourDistances() {
+//        return neighbourDistances;
+//    }
     /**
      * Velocity to neighbour at actual time. [m/s]
      *
@@ -1685,8 +1683,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     public void applyStreetInlets(Network network, ArrayList<HE_InletReference> inletRefs) throws TransformException {
 //        inlets = new ConcurrentHashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
-        if(capacityNames==null||capacityNames.isEmpty()){
-            capacityNames=buildNamedCapacityMap(network);
+        if (capacityNames == null || capacityNames.isEmpty()) {
+            capacityNames = buildNamedCapacityMap(network);
         }
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
         manholes = new Manhole[triangleNodes.length];
@@ -3384,6 +3382,23 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     public float[][] getTriangle_downhilldirection() {
         return triangle_downhilldirection;
+    }
+
+    /**
+     * Free ressources. his can be called before loading a new surface to
+     * prevent the memory from OutOfMemory Exceptions
+     */
+    public void freeMemory() {
+        this.neighbourDistances=null;
+        this.NodeNeighbours=null;
+        this.actualVelocity=null;
+        this.actualVelocitySet=null;
+        this.edgeLength=null;
+        this.maxNeighbourVelocity=null;
+        this.maxTriangleVelocity=null;
+        this.neighbourvelocity=null;
+        this.triangle_downhilldirection=null;
+        this.triangle_downhillIntensity=null;
     }
 
 }

@@ -799,7 +799,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
 
         if (tlm != null && tlm.getContainer() != null) {
-            float mass_sum = 0;
+            float mass_total_sum = 0;
             double offset = 0;
             double offset2 = 0;
 
@@ -853,15 +853,32 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
             for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
                 Date d;
-                long timeMeasurement = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i);
-                if (timeMeasurement == 0) {
+                long timeMeasurement = 0;
+                if (tlm.getContainer().getSamplesInTimeInterval(i) > 0) {
+                    timeMeasurement = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i);
+                } else {
+                    //Use regular time of the planned sample
                     timeMeasurement = tlm.getContainer().getTimeMillisecondsAtIndex(i);
                 }
-                if (tlm.getContainer().timecontinuousMeasures && i != 0) {
-                    timeMeasurement += moveVisiblePointToIntervalMid;
-                }
-                int statusTimeIndex = tl.getTimeContainer().getTimeIndex(timeMeasurement);
-                double statusTimeIndexDouble = tl.getTimeContainer().getTimeIndexDouble(timeMeasurement);
+//                if (timeMeasurement == 0) {
+//                    timeMeasurement = tlm.getContainer().getTimeMillisecondsAtIndex(i);
+//                }
+//                if (tlm.getContainer().timecontinuousMeasures){// && i != 0) {
+//                    //timeMeasurement += moveVisiblePointToIntervalMid;
+//                    if(i==0){
+//                        long sampleduration=tlm.getContainer().getMeasurementTimestampAtTimeIndex(0)-tlm.getContainer().getTimeMillisecondsAtIndex(0);
+//                        timeMeasurement=(long) (sampleduration*0.5);
+////                    }else if(i==tlm.getContainer().getTimes().getNumberOfTimes()-1){
+////                        //Very last element
+////                        timeMeasurement=(long) (tlm.getContainer().getMeasurementTimestampAtTimeIndex(i));
+//                    }else{
+////                        long sampleduration=tlm.getContainer().getMeasurementTimestampAtTimeIndex(i)-tlm.getContainer().getMeasurementTimestampAtTimeIndex(i-1);
+//                        timeMeasurement=(long) ((tlm.getContainer().getMeasurementTimestampAtTimeIndex(i)+tlm.getContainer().getMeasurementTimestampAtTimeIndex(i-1))*0.5+ThreadController.getDeltaTime()*500);
+////                         timeMeasurement=(long) ((tlm.getContainer().getTimeMillisecondsAtIndex(i)+tlm.getContainer().getTimeMillisecondsAtIndex(i+1))*0.5);
+//                    }
+//                }
+//                int statusTimeIndex = tl.getTimeContainer().getTimeIndex(timeMeasurement);
+
                 if (showSimulationTime) {
                     long timefromstart = calcSimulationTime(timeMeasurement, controller.getThreadController().getStartOffset());
                     d = new Date(timefromstart);//calcSimulationTime(tlm.getContainer().getTimeMillisecondsAtIndex(i), controller.getThreadController().getStartOffset()) + (i == 0 ? 0 : moveVisiblePointToIntervalMid));
@@ -873,8 +890,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 RegularTimePeriod time = new Second(d);
 
                 if (tlm.getContainer() instanceof ArrayTimeLineMeasurementContainer) {
-                    ArrayTimeLineMeasurementContainer tlmC=(ArrayTimeLineMeasurementContainer)tlm.getContainer();
-                    if (tlmC.distance != null && tl instanceof ArrayTimeLinePipe) {                        
+                    ArrayTimeLineMeasurementContainer tlmC = (ArrayTimeLineMeasurementContainer) tlm.getContainer();
+                    if (tlmC.distance != null && tl instanceof ArrayTimeLinePipe) {
                         ArrayTimeLinePipeContainer cont = ((ArrayTimeLinePipe) tl).container;
                         //Moment 0 = Total mass
                         double mass = 0.0;
@@ -887,10 +904,13 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         moment0_particleMass.addOrUpdate(time, mass);
 
                         double m1 = tlmC.getMomentum1_xm(i);
-                        if (!Double.isNaN(m1) && m1 > 0) {
+                        if (Double.isFinite(m1) && m1 > 0) {
                             moment1_messung.addOrUpdate(time, m1);
                             if (cont.moment1 != null) {
                                 //Get reference Momentum index to calculate difference and statistics
+                                if (tl.getTimeContainer().getLastTime() < timeMeasurement) {
+                                    continue;
+                                }
                                 double refTimeIndex = tl.getTimeContainer().getTimeIndexDouble(timeMeasurement);// i * ((TimeIndexContainer) tl.getTimeContainer()).getActualTimeIndex() / (double) tlm.getContainer().getNumberOfTimes();
                                 int refTimeIndexInt = (int) refTimeIndex;
 
@@ -909,6 +929,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                                     m2ref = cont.moment2[refTimeIndexInt] * (1 - refFrac) + cont.moment2[refTimeIndexInt + 1] * (refFrac);
                                 }
                                 if (i > -1 && mref > 0 && !Double.isNaN(mref)) {
+//                                    System.out.println("mref in " + i + " is " + mref + " ("+ timeMeasurement+" / "+ time + ")");
                                     moment1_delta.addOrUpdate(time, m1 - mref);
                                     moment1_delta_relative.addOrUpdate(time, (m1 - mref) / mref);
 
@@ -936,8 +957,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 /**
                  * [m^3/s]
                  */
-                double discharge = tl.getDischarge((int) statusTimeIndexDouble) * (1 - statusTimeIndexDouble % 1.) + tl.getDischarge(((int) statusTimeIndexDouble) + 1) * (statusTimeIndexDouble % 1.);
-
+                double dischargeS, dischargeE = 0, dischargeM = 0, cS = 0, cE = 0;
                 double massFluxSum = 0;
                 double massSum = 0;
                 /**
@@ -945,31 +965,39 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                  */
                 double dt = 0;
                 if (i > 0) {
+                    double statusTimeIndexDoubleStart = tl.getTimeContainer().getTimeIndexDouble(tlm.getTimes().getTimeMilliseconds(i - 1));
+                    double statusTimeIndexDoubleEnd = tl.getTimeContainer().getTimeIndexDouble(tlm.getTimes().getTimeMilliseconds(i));
+
                     dt = (tlm.getContainer().getTimeMillisecondsAtIndex(i) - tlm.getContainer().getTimeMillisecondsAtIndex(i - 1)) / 1000.;
-                }
-                for (int j = 0; j < tlm.getContainer().getNumberOfMaterials(); j++) {
-                    double c = tlm.getConcentrationOfType(i, j);
-                    if (Double.isNaN(c)) {
-                        c = 0;
-                    } else if (Double.isInfinite(c)) {
-                        c = 0;
+                    dischargeS = tl.getDischarge_DoubleIndex(statusTimeIndexDoubleStart);
+                    dischargeE = tl.getDischarge_DoubleIndex(statusTimeIndexDoubleEnd);//(int) statusTimeIndexDouble) * (1 - statusTimeIndexDouble % 1.) + tl.getDischarge(((int) statusTimeIndexDouble) + 1) * (statusTimeIndexDouble % 1.);
+
+                    for (int m = 0; m < tlm.getContainer().getNumberOfMaterials(); m++) {
+                        cS = tlm.getConcentrationOfType(i - 1, m);
+                        cE = tlm.getConcentrationOfType(i, m);
+                        if (!Double.isFinite(cS)) {
+                            cS = 0;
+                        }
+                        if (!Double.isFinite(cE)) {
+                            cE = 0;
+                        }
+//                        double mf = cE * dischargeE;//(cS * dischargeS + cE * dischargeE) * 0.5;
+                        mes_massFlux_Type.get(m).addOrUpdate(time, cE * dischargeE);
+                        mes_concentration_Type.get(m).addOrUpdate(time, cE);
+
+                        massFluxSum += (cS * dischargeS + cE * dischargeE) * 0.5;
+                        massSum += cE * vol_c;
                     }
-                    double mf = c * discharge;
-                    mes_massFlux_Type.get(j).addOrUpdate(time, mf);
-                    mes_concentration_Type.get(j).addOrUpdate(time, c);
-
-                    massFluxSum += mf;
-                    massSum += c * vol_c;
+                    mass_total_sum += massFluxSum * dt;
+//                    System.out.println("CTL: "+i+"\t mf:"+(massFluxSum*dt) +" -> total:\t"+mass_total_sum+" c1:"+cS+"\tcE:"+cE+"\tdischE:"+dischargeE);
                 }
 
-                mass_sum += massFluxSum * dt;
 //                if (massFluxSum > 0) {
 //                    System.out.println("Add " + massFluxSum + " * " + dt + "s = " + (massFluxSum * dt) + "\tsum:" + mass_sum);
 //                }
-
                 m_massflux.addOrUpdate(time, massFluxSum);
                 m_m.addOrUpdate(time, massSum);
-                m_m_sum.addOrUpdate(time, mass_sum);
+                m_m_sum.addOrUpdate(time, mass_total_sum);
 
                 float c = tlm.getConcentration(i);
                 if (Double.isNaN(c)) {
@@ -1104,7 +1132,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             this.collection.addSeries(ref_m_sum);
         }
 
-        if (m_m_sum.getMaxY() > 0) {
+        if (m_m_sum.getMaxY() > 0 || m_m_sum.getMinY() < 0) {
             this.collection.addSeries(m_m_sum);
         }
 
@@ -2348,7 +2376,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         if (c == null) {
             this.setStorage(c, null);
         } else {
-            this.setStorage(c, c.getClass().getSimpleName() + "  " + c.getName() );
+            this.setStorage(c, c.getClass().getSimpleName() + "  " + c.getName());
         }
     }
 

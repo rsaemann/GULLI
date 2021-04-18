@@ -103,6 +103,8 @@ public class InjectionPanelPointlocation extends JPanel {
         modelDuration.setValue(info.getDurationSeconds() / 60);
         spinnerDuration = new JSpinner(modelDuration);
         spinnerDuration.setPreferredSize(new Dimension(60, 12));
+        spinnerDuration.setEnabled(checkInjectionDuration.isSelected());
+        spinnerInjection.setEnabled(checkInjectionDuration.isSelected());
         this.add(new JLabel("Duration [min]"));
         this.add(spinnerDuration);
 
@@ -149,14 +151,14 @@ public class InjectionPanelPointlocation extends JPanel {
 
             if (info.spillInManhole()) {
                 if (info.getCapacity() != null) {
-                    buttonSetPosition.setText(info.getCapacity().getClass().getSimpleName()+" '"+info.getCapacity().getName()+"'");
+                    buttonSetPosition.setText(info.getCapacity().getClass().getSimpleName() + " '" + info.getCapacity().getName() + "'");
                     buttonSetPosition.setToolTipText(info.getCapacity().toString() + " found; Click here to select position on map.");
                 } else {
                     if (info.getCapacityName() != null) {
                         buttonSetPosition.setText("?>" + info.getCapacityName());
                         buttonSetPosition.setToolTipText("search for " + info.getCapacityName() + "; Click here to select position on map.");
-                    }else if(info.getPosition()!=null){
-                         buttonSetPosition.setText("MH near "+df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
+                    } else if (info.getPosition() != null) {
+                        buttonSetPosition.setText("MH near " + df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
                     }
                 }
             } else {
@@ -279,7 +281,7 @@ public class InjectionPanelPointlocation extends JPanel {
                         setBorder(new TitledBorder("changed"));
                     }
                 } catch (Exception e) {
-                    setBorder(new TitledBorder("Error: "+e.getLocalizedMessage()));
+                    setBorder(new TitledBorder("Error: " + e.getLocalizedMessage()));
                 }
             }
         });

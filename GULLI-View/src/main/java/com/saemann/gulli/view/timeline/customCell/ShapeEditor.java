@@ -93,8 +93,12 @@ public class ShapeEditor extends AbstractCellEditor
             boolean isSelected,
             int row,
             int column) {
-        System.out.println("selected shape: "+value);
+//        System.out.println("selected shape: "+value);
         boolean foundIndex=false;
+        if(value==null){
+            combobox.setSelectedIndex(0);
+            foundIndex=true;
+        }
         if (value instanceof Shape) {
             currentShape = (Shape) value;
             for (int i = 0; i < availableShapes.length; i++) {

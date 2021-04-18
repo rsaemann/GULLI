@@ -34,7 +34,6 @@ import java.awt.event.MouseEvent;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
-import java.util.Date;
 import javax.swing.ButtonGroup;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -195,6 +194,11 @@ public class OutflowMinimizerPanel extends JPanel {
         }
     }
 
+    /**
+     * m^3 during the whole simulation
+     * @param timeline
+     * @return 
+     */
     public static double totalDischarge(TimeLinePipe timeline) {
         double sum = 0;
         for (int i = 1; i < timeline.getNumberOfTimes(); i++) {

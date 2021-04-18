@@ -23,8 +23,8 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
+import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.io.FileContainer;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
@@ -45,7 +45,7 @@ public class Setup {
 
     public Collection<InjectionInfo> injections;
     public Collection<Material> materials;
-    
+
     private boolean loadResultInjections = true;
 
     protected double timestepTransport = 1;
@@ -64,8 +64,20 @@ public class Setup {
     protected boolean surfaceMeasurementTimeContinuous = true;
     protected boolean surfaceMeasurementSpatialConsistent = true;
     protected SurfaceMeasurementRaster surfaceMeasurementRasterClass;
+
+    //SImulationparameter Surface . Allocations demonstrate which flag is used. They will be set (overwritten) when the Setup is generated.
+    protected boolean enterDryCells = !ParticleSurfaceComputing2D.preventEnteringDryCell;
+    protected boolean dryMovement = ParticleSurfaceComputing2D.gradientFlowForDryCells;
+    protected double dryVelocity = ParticleSurfaceComputing2D.dryFlowVelocity;
+    protected boolean smoothZigZag=ParticleSurfaceComputing2D.meanVelocityAtZigZag;
+    protected boolean slideAlongEdge=ParticleSurfaceComputing2D.slidealongEdges;
+    protected boolean stopSlow=ParticleSurfaceComputing2D.blockVerySlow;
+
+    protected int viewUpdateIntervall = 0;
+
+    protected int intervalTraceParticles = 0;
     
-    protected int intervalTraceParticles=0;
+    protected ParticleSurfaceComputing2D.TIMEINTEGRATION timeIntegration = ParticleSurfaceComputing2D.timeIntegration;
 
     public FileContainer getFiles() {
         return files;
@@ -102,8 +114,6 @@ public class Setup {
     public void setMaterials(Collection<Material> materials) {
         this.materials = materials;
     }
-    
-    
 
     public double getTimestepTransport() {
         return timestepTransport;
@@ -172,7 +182,7 @@ public class Setup {
     public boolean isSurfaceMeasurementSpatialConsistent() {
         return surfaceMeasurementSpatialConsistent;
     }
-    
+
     public void setSurfaceMeasurementSpatialConsistent(boolean surfaceMeasurementSpatialConsistent) {
         this.surfaceMeasurementSpatialConsistent = surfaceMeasurementSpatialConsistent;
     }
@@ -192,15 +202,12 @@ public class Setup {
 //    public void setSurfaceDiffusion(Dispersion2D_Constant diffusion) {
 //        this.diffusion = diffusion;
 //    }
-
 //    public double getNetworkdispersion() {
 //        return networkdispersion;
 //    }
-
 //    public void setNetworkdispersion(double networkdispersion) {
 //        this.networkdispersion = networkdispersion;
 //    }
-
     public SurfaceMeasurementRaster getSurfaceMeasurementRasterClass() {
         return surfaceMeasurementRasterClass;
     }
@@ -232,6 +239,72 @@ public class Setup {
     public void setIntervalTraceParticles(int intervalTraceParticles) {
         this.intervalTraceParticles = intervalTraceParticles;
     }
+
+    public boolean isEnterDryCells() {
+        return enterDryCells;
+    }
+
+    public void setEnterDryCells(boolean enterDryCells) {
+        this.enterDryCells = enterDryCells;
+    }
+
+    public boolean isDryMovement() {
+        return dryMovement;
+    }
+
+    public void setDryMovement(boolean dryMovement) {
+        this.dryMovement = dryMovement;
+    }
+
+    public double getDryVelocity() {
+        return dryVelocity;
+    }
+
+    public void setDryVelocity(double dryVelocity) {
+        this.dryVelocity = dryVelocity;
+    }
+
+    public boolean isSmoothZigZag() {
+        return smoothZigZag;
+    }
+
+    public void setSmoothZigZag(boolean smoothZigZag) {
+        this.smoothZigZag = smoothZigZag;
+    }
+
+    public boolean isStopSlow() {
+        return stopSlow;
+    }
+
+    public void setStopSlow(boolean stopSlow) {
+        this.stopSlow = stopSlow;
+    }
+
+    public int getViewUpdateIntervall() {
+        return viewUpdateIntervall;
+    }
+
+    public void setViewUpdateIntervall(int viewUpdateIntervall) {
+        this.viewUpdateIntervall = viewUpdateIntervall;
+    }
+
+    public boolean isSlideAlongEdge() {
+        return slideAlongEdge;
+    }
+
+    public void setSlideAlongEdge(boolean slideAlongEdge) {
+        this.slideAlongEdge = slideAlongEdge;
+    }
+
+    public ParticleSurfaceComputing2D.TIMEINTEGRATION getTimeIntegration() {
+        return timeIntegration;
+    }
+
+    public void setTimeIntegration(ParticleSurfaceComputing2D.TIMEINTEGRATION timeIntegration) {
+        this.timeIntegration = timeIntegration;
+    }
+    
+    
     
     
 

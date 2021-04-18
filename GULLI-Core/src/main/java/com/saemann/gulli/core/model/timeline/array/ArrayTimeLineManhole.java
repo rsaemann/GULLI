@@ -92,8 +92,8 @@ public class ArrayTimeLineManhole implements TimeLineManhole {
     /**
      * The Flow from manhole to surface at the current set timestamp. Actual
      * time is set by calling setActualTime on the Container.
-     *
-     * @return
+     * 
+     * @return exchange flux to 2D surface [m^3/s]
      */
     @Override
     public float getActualFlowToSurface() {
@@ -117,7 +117,7 @@ public class ArrayTimeLineManhole implements TimeLineManhole {
     /**
      * Set the height of water above sealevel.
      *
-     * @param value
+     * @param value [m üNN]
      * @param temporalIndex
      */
     public void setWaterZ(float value, int temporalIndex) {
@@ -126,12 +126,22 @@ public class ArrayTimeLineManhole implements TimeLineManhole {
 
     /**
      * Set the height of water above soleheight.
-     *
-     * @param value
+     * 
+     * @param value [m]
      * @param temporalIndex
      */
     public void setWaterLevel(float value, int temporalIndex) {
         container.waterLevel[getIndex(temporalIndex)] = value;
+    }
+
+    /**
+     * Set the inflow from the hydraulic model (runoff generation)
+     * This is NOT the exchange flux between 2d surface and manhole!
+     * @param value m^3/s
+     * @param temporalInde 
+     */
+    public void setInflow(float value, int temporalInde) {
+        container.inflow[getIndex(temporalInde)] = value;
     }
 
     /**

@@ -65,7 +65,6 @@ import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
-import java.util.ListIterator;
 import org.geotools.referencing.CRS;
 import org.locationtech.jts.geom.Coordinate;
 import org.opengis.geometry.MismatchedDimensionException;
@@ -1375,6 +1374,20 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net) throws FileNotFoundException, IOException, SQLException {
         return applyTimelines(net, 0);
     }
+    
+     /**
+     * TImelines will show the event time, if subtracted time is 0. Can subtract
+     * a time, to make all timelines start at 0
+     *
+     * @param net
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws SQLException
+     */
+    public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net, long timesubtraction) throws FileNotFoundException, IOException, SQLException {
+    return applyTimelines(net, timesubtraction, 0);
+    }
 
     /**
      * TImelines will show the event time, if subtracted time is 0. Can subtract
@@ -1386,7 +1399,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * @throws IOException
      * @throws SQLException
      */
-    public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net, long timesubtraction) throws FileNotFoundException, IOException, SQLException {
+    public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net, long timesubtraction, long additionalMilliseconds) throws FileNotFoundException, IOException, SQLException {
 
         ArrayTimeLinePipeContainer container;
         con = getConnection();
@@ -1424,9 +1437,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 times[i] -= timesubtraction;
                 i++;
             }
+            times[times.length-1]+=additionalMilliseconds;
             container = new ArrayTimeLinePipeContainer(times, net.getPipes().size());
             manholeContainer = new ArrayTimeLineManholeContainer(times, net.getManholes().size());
-//        ArrayTimeLineManholeContainer.instance=manholeContainer;
             i = 0;
             for (Pipe pipe : net.getPipes()) {
                 pipe.setStatusTimeLine(new ArrayTimeLinePipe(container, i));
@@ -1439,14 +1452,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             //OLD SCHEME WITHOUT 2D SURFACE
             try {
-                res = st.executeQuery("SELECT ID,KNOTEN,ZEITPUNKT,DURCHFLUSS,ZUFLUSS,WASSERSTAND,UEBERSTAUVOLUMEN,VOLUMEN,OBERFLAECHE from LAU_GL_S ORDER BY ID,ZEITPUNKT;");
+                res = st.executeQuery("SELECT ID,KNOTEN,ZUFLUSS,WASSERSTAND from LAU_GL_S ORDER BY ID,ZEITPUNKT;");
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
                 while (res.next()) {
                     int heID = res.getInt(1);
 //                    String heName = res.getString(2);
-                    float h = res.getFloat(6);
+                    float inflow=res.getFloat(3);
+                    float h = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
                         id = heID;
@@ -1456,6 +1470,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         if (mh.getStatusTimeLine() != null) {
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterZ(h, timeIndex);
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterLevel(h - mh.getSole_height(), timeIndex);
+                            ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setInflow(inflow,timeIndex);
                         }
                     }
                     timeIndex++;
@@ -1470,8 +1485,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 res = st.executeQuery("SELECT ID,"
                         + "KNOTEN, "
                         + "ZEITPUNKT, "
-                        + "(ABFLUSS-ZUFLUSS) AS NETTO, "
-                        + "WASSERSTAND "
+                        + "(ABFLUSS-ZUFLUSS) AS NETTO "
                         + "FROM KNOTENLAUFEND2D "
                         + "ORDER BY ID, ZEITPUNKT;");
                 int id = Integer.MIN_VALUE;
@@ -1479,7 +1493,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 Manhole mh = null;
                 while (res.next()) {
                     int heID = res.getInt(1);
-//                    String heName = res.getString(2);
                     float outflow = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
@@ -1498,7 +1511,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             res.close();
             ///////////////////////////////////////////////Timeseries in Pipes//////////////////
             // Zeitreihe in Rohren abfragen
-            res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,DURCHFLUSS,GESCHWINDIGKEIT,WASSERSTAND,AUSLASTUNG,FROUDE,WASSERSTANDOBEN,WASSERSTANDUNTEN from LAU_GL_EL ORDER BY ID,ZEITPUNKT;");
+            res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,DURCHFLUSS,GESCHWINDIGKEIT,WASSERSTAND from LAU_GL_EL ORDER BY ID,ZEITPUNKT;");
             int id = Integer.MIN_VALUE;
             Pipe pipe = null;
             int timeIndex = 0;
@@ -1533,21 +1546,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     ((ArrayTimeLinePipe) p.getStatusTimeLine()).calculateMaxMeanValues();
                 }
             }
-            //Stabilitätsindex auslesen
-//            res = st.executeQuery("SELECT KANTE, ID, STABILITAETSINDEX from LAU_MAX_EL");
-//            while (res.next()) {
-//                String pipename = res.getString(1);
-//                Pipe p = net.getPipeByName(pipename);
-//                if (p != null) {
-//                    if (p.tags == null) {
-//                        p.tags = new Tags(1);
-//                    }
-//                    p.tags.put("Stabilitaet", res.getInt(3) + "");
-//                }
-//            }
             ///////////////FERTIG ROHRE
+            
             //******************************BEGIN Schmutzfracht******************
-//        res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,STOFF,KONZENTRATION from KANTESTOFFLAUFEND ORDER BY ID, ZEITPUNKT;");
             res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION, AUSLASTUNG, STOFF"
                     + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
                     + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
@@ -3178,9 +3179,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
             int index = 0;
             while (rs.next()) {
                 waterZ[index] = rs.getFloat(1);
-                inflow[index] = rs.getFloat(2);
+                inflow[index] = rs.getFloat(2); //Inflow from hydrologic surface model
                 index++;
             }
+            //Load exchange to 2D-Surface 
             rs = st.executeQuery("SELECT ID, KNOTEN,ZEITPUNKT, (ABFLUSS-ZUFLUSS) AS NETTO FROM KNOTENLAUFEND2D WHERE ID=" + manholeManualID + " ORDER BY  ZEITPUNKT;");
             if (!rs.isBeforeFirst()) {
                 //No Data
@@ -3188,7 +3190,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             index = 0;
             while (rs.next()) {
-                spillflux[index] = rs.getFloat(4);
+                spillflux[index] = rs.getFloat(4); //Exchange to hydraulic surface model (positive: Spill from manhole to surface; negative=inflow from surface into manhole)
                 index++;
             }
             SparseTimelineManhole stlm = new SparseTimelineManhole(container, manholeManualID, manholeName, soleHeight);
@@ -3517,6 +3519,32 @@ public class HE_Database implements SparseTimeLineDataProvider {
         rs.close();
         st.close();
         return areaHectar * 10000.;
+    }
+
+    /**
+     * The total inflow from the surface into a manhole (HYSTEM runoff) unit:
+     * m^3 Hashmap<Manhole HE-ID, Double:inflow>
+     *
+     * @return Inflow per manhole
+     */
+    public HashMap<Integer, Double> loadManholeTotalSurfaceInflow() throws SQLException, IOException {
+        int number = this.readNumberOfManholes();
+        Statement st = getConnection().createStatement();
+        ResultSet rs = st.executeQuery("Select SUM(Zufluss),id FROM LAU_GL_S Group by Id");
+        if (!rs.isBeforeFirst()) {
+            st.close();
+            return null;
+        }
+
+        HashMap<Integer, Double> map = new HashMap<>(number);
+        while (rs.next()) {
+            double inflow = rs.getDouble(1);
+            int id = rs.getInt(2);
+            map.put(id, inflow);
+        }
+        rs.close();
+        st.close();
+        return map;
     }
 
     @Override
@@ -3915,8 +3943,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
     }
 
     public static String getRequestbenchmarkString() {
-        if(sqlRequestCount==0)sqlRequestCount=1;
-        if(sqlMHRequestCount==0)sqlMHRequestCount=1;
-        return "HE SQL Benchmark: SQL Requests Pipes: " + sqlRequestCount + " with total " + sqlRequestTime/1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query)\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime/1000 + " s  Manholes: " + sqlMHRequestCount + " with total " + sqlMHRequestTime/1000 + " s (" + (sqlMHRequestTime / sqlMHRequestCount) + "ms/query)\tWaiting threads: " + waitingForMHRequestCount + " with total pausing time:" + waitingForMHRequestTime + "ms";
+        if (sqlRequestCount == 0) {
+            sqlRequestCount = 1;
+        }
+        if (sqlMHRequestCount == 0) {
+            sqlMHRequestCount = 1;
+        }
+        return "HE SQL Benchmark: SQL Requests Pipes: " + sqlRequestCount + " with total " + sqlRequestTime / 1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query) ##  Manholes: " + sqlMHRequestCount + " with total " + sqlMHRequestTime / 1000 + " s (" + (sqlMHRequestTime / sqlMHRequestCount) + "ms/query)\tPipe Waiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime / 1000 + " s ## Manhole Waiting threads: " + waitingForMHRequestCount + " with total pausing time:" + waitingForMHRequestTime + "ms";
     }
 }

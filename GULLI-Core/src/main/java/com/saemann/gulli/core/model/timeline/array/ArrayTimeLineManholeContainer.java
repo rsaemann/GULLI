@@ -24,7 +24,7 @@ public class ArrayTimeLineManholeContainer extends TimeIndexContainer {
 
     /**
      * Inflow from external source (e.g. HYSTEM, 1d-runoff calculation) that
-     * cannot be seen in the tosurface flow.
+     * cannot be seen in the tosurface flow. [m^3/s]
      */
     public final float[] inflow;
 

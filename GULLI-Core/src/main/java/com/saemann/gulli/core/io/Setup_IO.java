@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.io;
 
+import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
@@ -106,6 +107,24 @@ public class Setup_IO {
         bw.write("<SimulationParameters>");
         bw.newLine();
         bw.write("\t<Timestep unit='s'>" + setup.getTimestepTransport() + "</>");
+        bw.newLine();
+        bw.write("\t<Timeintegration>" + setup.getTimeIntegration().name() + "</>");
+        bw.newLine();
+        bw.write("\t<Surface>");
+        bw.newLine();
+        bw.write("\t\t<EnterDry>" + setup.isEnterDryCells() + "</>");
+        bw.newLine();
+        bw.write("\t\t<DryMovement>" + setup.isDryMovement() + "</>");
+        bw.newLine();
+        bw.write("\t\t<DryVelocity unit='m/s'>" + setup.getDryVelocity() + "</>");
+        bw.newLine();
+        bw.write("\t\t<SmoothZigZag>" + setup.isSmoothZigZag() + "</>");
+        bw.newLine();
+        bw.write("\t\t<SlideAlongEdge>" + setup.isSlideAlongEdge() + "</>");
+        bw.newLine();
+        bw.write("\t\t<StopVerySlow>" + setup.isStopSlow() + "</>");
+        bw.newLine();
+        bw.write("\t</Surface>");
         bw.newLine();
         bw.write("</SimulationParameters>");
         bw.newLine();
@@ -442,8 +461,26 @@ public class Setup_IO {
                         if (dt > 0) {
                             setup.setTimestepTransport(dt);
                         }
+                    } else if (line.contains("Timeintegration")) {
+                        try {
+                            String name = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                            setup.setTimeIntegration(ParticleSurfaceComputing2D.TIMEINTEGRATION.valueOf(name));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else if (line.contains("EnterDry")) {
+                        setup.setEnterDryCells(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
+                    } else if (line.contains("DryMovement")) {
+                        setup.setDryMovement(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
+                    } else if (line.contains("SmoothZigZag")) {
+                        setup.setSmoothZigZag(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
+                    } else if (line.contains("SlideAlongEdge")) {
+                        setup.setSlideAlongEdge(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
+                    } else if (line.contains("StopVerySlow")) {
+                        setup.setStopSlow(Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
+                    } else if (line.contains("DryVelocity")) {
+                        setup.setDryVelocity(Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</"))));
                     }
-
                     if (line.contains("/SimulationParameters")) {
                         state = -1;
                     }
@@ -565,13 +602,16 @@ public class Setup_IO {
                                     } else if (injectionType != null && injectionType.equals(InjectionArealInformation.class.getSimpleName())) {
                                         InjectionArealInformation ainj = new InjectionArealInformation(mat, null, injectionMass, injectionParticles);
                                         ainj.setMass(injectionMass);
+                                        ainj.setDuration(injectionDuration);
                                         inj = ainj;
                                     } else if (injectionType != null && injectionType.equals(InjectionSubArealInformation.class.getSimpleName())) {
                                         InjectionSubArealInformation ainj = new InjectionSubArealInformation(mat, null, injectionFilterString, injectionMass, injectionParticles);
+                                        ainj.setDuration(injectionDuration);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
                                     } else if (injectionType != null && injectionType.equals(InjectionInflowInformation.class.getSimpleName())) {
                                         InjectionInflowInformation ainj = new InjectionInflowInformation(mat, null, injectionConcentration, injectionParticles);
+                                        ainj.setDuration(injectionDuration);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
                                     } else {
@@ -608,8 +648,8 @@ public class Setup_IO {
                                 injectionDuration = 0;
                                 injectionPosition = null;
                                 injectionDiffusive = false;
-                                injectionLatitude=Double.NaN;
-                                injectionLongitude=Double.NaN;
+                                injectionLatitude = Double.NaN;
+                                injectionLongitude = Double.NaN;
                                 break;
                             }
 

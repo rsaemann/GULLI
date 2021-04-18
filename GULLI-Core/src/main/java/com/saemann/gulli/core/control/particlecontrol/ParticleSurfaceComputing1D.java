@@ -99,12 +99,13 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      * selected transport function.
      *
      * @param p
+     * @param dt
      */
     @Override
-    public void moveParticle(Particle p) {
+    public void moveParticle(Particle p, double dt) {
         try {
 //            status = 0;
-            moveParticle1(p);
+            moveParticle1(p, (float) dt);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -116,7 +117,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
      *
      * @param p
      */
-    private void moveParticle1(Particle p) {
+    private void moveParticle1(Particle p, float dt) {
         float remaining_dt = dt;
 
         // Move PArticle to end of surfacePath

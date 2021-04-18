@@ -70,7 +70,6 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.filechooser.FileFilter;
 import com.saemann.gulli.core.model.surface.Surface;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.topology.Network;
 import org.jfree.data.time.TimeSeries;
 import com.saemann.gulli.view.themelayer.PipeThemeLayer;
@@ -121,14 +120,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JButton buttonSetupSave, buttonSetupLoad;
     private JLabel labelSetupName;
     private JButton buttonFileNetwork, buttonFilePipeResult;
+    private JCheckBox checkSparsePipeLoading;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
     private JButton buttonFileSurface, buttonFileWaterdepths;
 
     private ButtonGroup group_timestep;
     private JRadioButton radioExplicit, radioStepsplicit, radioCrankNicolson;
-    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles,checkBlockSlow,checkMeanZigzagVelocity;
-//    private JRadioButton radioEnterdry, radioStopDry, radioProjectDry;
-//    private boolean wasrunning = false;
+    private JCheckBox checkParticleDryMovement, checkEnterdry, checkProjectAtObstacles, checkBlockSlow, checkMeanZigzagVelocity;
+
     private final JCheckBox checkDrawUpdateIntervall;
     private JPanel panelShapes, panelShapesSurface, panelShapePipe;
     private JSlider sliderTimeShape;
@@ -139,19 +138,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     private JLabel labelScenarioInformation;
 
-//    private JButton newInjectionPointButton;
-//    private JButton newInjectionAreaButton;
     private JButton buttonShowRaingauge;
     private JButton buttonLoadAllPipeTimelines;
 
     private InjectionOrganisatorPanel injectionOrganisationPanel;
     private MeasurementPanel measurementPanel;
-//    private JPanel panelInjection;
-//    private JPanel panelInjectionList;
-//    private JPanel panelInjectionButtons;
     private ImageIcon iconError, iconLoading, iconPending;
 
-//    private JButton buttonFileStreetinlets;
     private JLabel labelCurrentAction;
 
     JRadioButton radioVelocityGDB, radioVelocityWL;
@@ -314,7 +307,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkProjectAtObstacles.setToolTipText("Projection of movement vectors along edges to boundaries");
         checkBlockSlow = new JCheckBox("StopSlow", ParticleSurfaceComputing2D.blockVerySlow);
         checkBlockSlow.setToolTipText("Stop and disable movement, if movement is stuck");
-        checkMeanZigzagVelocity=new JCheckBox("Smooth ZigZag", ParticleSurfaceComputing2D.meanVelocityAtEdgeConflicts);
+        checkMeanZigzagVelocity = new JCheckBox("Smooth ZigZag", ParticleSurfaceComputing2D.meanVelocityAtZigZag);
         checkMeanZigzagVelocity.setToolTipText("Use mean velocity if particles is trapped between two cells");
         JPanel panelMovementAlgorithm = new JPanel(new GridLayout(3, 2, 5, 5));
         panelMovementAlgorithm.setMaximumSize(new Dimension(500, 80));
@@ -597,6 +590,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             }
         });
 
+        if (checkSparsePipeLoading != null) {
+            checkSparsePipeLoading.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    control.getLoadingCoordinator().sparsePipeLoading = checkSparsePipeLoading.isSelected();
+                }
+            });
+        }
+
         buttonFileSurface.addActionListener(new ActionListener() {
 
             @Override
@@ -792,7 +794,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkMeanZigzagVelocity.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ParticleSurfaceComputing2D.meanVelocityAtEdgeConflicts = checkMeanZigzagVelocity.isSelected();
+                ParticleSurfaceComputing2D.meanVelocityAtZigZag = checkMeanZigzagVelocity.isSelected();
             }
         });
 
@@ -1273,8 +1275,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelSetup.add(labelSetupName, BorderLayout.CENTER);
 
         //Pipe Network 
-        JPanel panelNetwork = new JPanel(new GridLayout(2, 1));
-        panelNetwork.setPreferredSize(new Dimension(200, 90));
+        JPanel panelNetwork = new JPanel(new GridLayout(3, 1));
+        panelNetwork.setPreferredSize(new Dimension(500, 120));
         TitledBorder borderPipe = new TitledBorder("Pipe Network");
         borderPipe.setBorder(new LineBorder(Color.blue.darker(), 2, true));
         panelNetwork.setBorder(borderPipe);
@@ -1285,6 +1287,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         //Pipe velocities
         this.buttonFilePipeResult = new JButton("Pipe Velocity");
         panelNetwork.add(buttonFilePipeResult);
+        if (control != null) {
+            this.checkSparsePipeLoading = new JCheckBox("Sparse Loading", control.getLoadingCoordinator().sparsePipeLoading);
+            this.checkSparsePipeLoading.setToolTipText("Sparse loading requires less memory but takes more time to load flow field during the simulation.");
+            panelNetwork.add(checkSparsePipeLoading);
+        }
 
         //Surface Panel
         JPanel panelSurface = new JPanel(new GridLayout(2, 1));
@@ -1532,6 +1539,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         } else {
             buttonFilePipeResult.setToolTipText("Not set");
         }
+        if (checkSparsePipeLoading != null) {
+            checkSparsePipeLoading.setSelected(control.getLoadingCoordinator().sparsePipeLoading);
+        }
 
         buttonFileSurface.setBackground(getLoadingColor(lc.getLoadingSurface()));
         buttonFileSurface.setIcon(getLoadingIcon(lc.getLoadingSurface()));
@@ -1639,7 +1649,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         checkProjectAtObstacles.setSelected(ParticleSurfaceComputing2D.slidealongEdges);
         checkParticleDryMovement.setSelected(ParticleSurfaceComputing2D.gradientFlowForDryCells);
         checkBlockSlow.setSelected(ParticleSurfaceComputing2D.blockVerySlow);
-        checkMeanZigzagVelocity.setSelected(ParticleSurfaceComputing2D.meanVelocityAtEdgeConflicts);
+        checkMeanZigzagVelocity.setSelected(ParticleSurfaceComputing2D.meanVelocityAtZigZag);
         labelParticlesTotal.setText("/ " + dfParticles.format(control.getThreadController().getNumberOfTotalParticles()));
 //        textDispersionPipe.setText(ParticlePipeComputing.getDispersionCoefficient() + "");
 //        try {
@@ -1650,6 +1660,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //            textDispersionSurface.setText("");
 //            textDispersionSurface.setToolTipText(e.getLocalizedMessage());
 //        }
+        if(ParticleSurfaceComputing2D.timeIntegration==ParticleSurfaceComputing2D.TIMEINTEGRATION.EXPLICIT){
+            radioExplicit.setSelected(true);
+        }else if(ParticleSurfaceComputing2D.timeIntegration==ParticleSurfaceComputing2D.TIMEINTEGRATION.CRANKNICOLSON){
+            radioCrankNicolson.setSelected(true);
+        }else if(ParticleSurfaceComputing2D.timeIntegration==ParticleSurfaceComputing2D.TIMEINTEGRATION.STEPSPLICIT){
+            radioStepsplicit.setSelected(true);
+        }
 
         measurementPanel.updateParameters();
     }

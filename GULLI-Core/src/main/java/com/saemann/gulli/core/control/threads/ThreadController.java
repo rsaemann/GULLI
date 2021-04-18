@@ -31,7 +31,6 @@ import com.saemann.gulli.core.control.listener.ParticleListener;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
-import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.extran.HE_GDB_IO;
 import java.util.ArrayList;
@@ -50,7 +49,6 @@ import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
 
@@ -205,7 +203,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         barrier_sync.setStepEndTime(simulationNextTimeMS);
         barrier_particle.setStepStartTime(simulationTimeMS);
         barrier_particle.setStepEndTime(simulationNextTimeMS);
-       
+
         if (control.getScenario() != null) {
             control.getScenario().setActualTime(simulationTimeMS);
         }
@@ -528,7 +526,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 e.printStackTrace();
             }
         }
-        
+
         HE_Database.resetRequestBenchmark();
         HE_GDB_IO.resetRequestBenchmark();
     }
@@ -844,12 +842,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                         for (SimulationActionListener l : listener) {
                             l.simulationFINISH(simulationTimeMS >= simulationTimeEnd, particlesReachedOutlet);
                         }
-                        if(HE_Database.sqlRequestCount>0){
-                            System.out.println(HE_Database.getRequestbenchmarkString());
-                        }
-                        if(HE_GDB_IO.sqlRequestCount>0){
-                            System.out.println(HE_GDB_IO.getRequestbenchmarkString());
-                        }
+
 //                        long totalPipeTime=0,totalSurfaceTime=0;
 //                        for (ParticleThread thread : barrier_particle.getThreads()) {
 //                            totalPipeTime+=thread.timePipe;
@@ -933,10 +926,15 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         return particles.length;
     }
 
+    /**
+     * Recalculates the maximum particle index to be reported to the particle
+     * threads. In the current step, all particles are active, that are released
+     * until the end of this simulation timestep.
+     */
     private void checkWaitingParticleIndex() {
         if (particles != null) {
             for (int i = waitingParticleIndex; i < particles.length; i++) {
-                if (particles[i].getInsertionTime() <= simulationTimeMS) {
+                if (particles[i].getInsertionTime() < simulationNextTimeMS) {
                     waitingParticleIndex = i + 1;
                 } else {
                     waitingParticleIndex = i;
@@ -989,7 +987,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                                         if (thread instanceof ParticleThread) {
                                             ParticleThread pt = (ParticleThread) thread;
                                             str.append("\n ");
-                                            str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status + ", index:" + pt.getActualParticleBlockStartIndex());// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
+                                            str.append(pt.threadIndex + ". " + pt.getClass().getSimpleName() + " " + pt.getState() + ":" + (pt.isActive() ? "calculating" : "waiting") + " status:" + pt.status + ", index:" + pt.getActualParticleBlockStartIndex() + " - " + pt.getActualParticleBlockLastIndex());// + "  Particles waiting:" + pt.numberOfWaitingParticles + " active:" + pt.numberOfActiveParticles + "  completed:" + pt.numberOfCompletedParticles);
                                             if (pt.getActualParticle() != null) {
                                                 Particle p = pt.getActualParticle();
                                                 str.append("   Particle: " + p.getId() + " in " + p.getSurrounding_actual() + " : status=" + p.status);
@@ -1216,6 +1214,92 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             return 0;
         }
         return this.barrier_particle.getThreads().size();
+    }
+
+    public String reportLoadingTimes() {
+        String str = "";
+        if (HE_Database.sqlRequestCount > 0) {
+            str += HE_Database.getRequestbenchmarkString() + "\n";
+        }
+        if (HE_GDB_IO.sqlRequestCount > 0) {
+            str += HE_GDB_IO.getRequestbenchmarkString() + "\n";
+        }
+        return str;
+    }
+
+    public String reportTravelStatistics() {
+        double maxStay = 0;
+        double maxLeft = 0;
+        int nbLeft = 0, nbStay = 0;
+        double sumLeft = 0, sumStay = 0;
+        int stayManhole = 0, stayPipe = 0, staySurface = 0;
+        int dry = 0, block = 0;
+        for (Particle particle : particles) {
+            if (particle.hasLeftSimulation()) {
+                nbLeft++;
+                sumLeft += particle.getTravelledPathLength();
+                if (particle.getMoveLength() > maxLeft) {
+                    maxLeft = particle.getTravelledPathLength();
+                }
+            } else {
+                nbStay++;
+                sumStay += particle.getTravelledPathLength();
+                if (particle.getMoveLength() > maxStay) {
+                    maxStay = particle.getTravelledPathLength();
+                }
+                if (particle.getSurrounding_actual() instanceof Surface) {
+                    staySurface++;
+                    if (particle.drymovement) {
+                        dry++;
+                    }
+                    if (particle.blocked) {
+                        block++;
+                    }
+                } else if (particle.getSurrounding_actual() instanceof Pipe) {
+                    stayPipe++;
+                } else {
+                    stayManhole++;
+                }
+            }
+        }
+        int[] staygroup = new int[10];
+        double ds = (maxStay - 100) / 8;
+        for (Particle particle : particles) {
+            if (particle.hasLeftSimulation()) {
+                continue;
+            } else {
+                if (particle.getTravelledPathLength() < 50) {
+                    staygroup[0]++;
+                } else if (particle.getTravelledPathLength() < 100) {
+                    staygroup[1]++;
+                } else {
+                    int index = (int) (2 + (particle.getTravelledPathLength() - 100) / ds);
+                    if (index < 2) {
+
+                        System.out.println("wrong group " + index + " for " + particle.getTravelledPathLength());
+                        index = 2;
+                    }
+                    if (index >= staygroup.length) {
+                        System.out.println("exceeding index " + index + " for " + particle.getTravelledPathLength());
+                        index = staygroup.length - 1;
+                    }
+                    staygroup[index]++;
+                }
+            }
+        }
+
+        String str = "Left: " + nbLeft + " (" + ((100 * nbLeft) / (nbLeft + nbStay)) + "%)\tMax: " + (int) (maxLeft) + " m\t avrg: " + (int) (sumLeft / nbLeft) + " m.\n";
+        str += "Stay: " + nbStay + " (" + ((100 * nbStay) / (nbLeft + nbStay)) + "%)\tMax: " + (int) (maxStay) + " m\t avrg: " + (int) (sumStay / nbStay) + " m.";
+        str += "\n\t  0- 50m:\t" + staygroup[0];
+        str += "\n\t 50-100m:\t" + staygroup[1];
+        for (int i = 2; i < staygroup.length; i++) {
+            str += "\n\t - " + (int) ((i - 1) * ds + 100) + ":\t" + staygroup[i];
+        }
+        str += "\n  On Surface: " + staySurface + "  (" + ((100 * staySurface) / (staySurface + stayManhole + stayPipe)) + "%)  Dry:" + ((100 * dry) / (staySurface) + "%  blocked: " + ((100 * block) / (staySurface) + "%"));
+        str += "\n  In Pipe:    " + stayPipe + "  (" + ((100 * stayPipe) / (staySurface + stayManhole + stayPipe)) + "%)";
+        str += "\n  In Manhole: " + stayManhole + "  (" + ((100 * stayManhole) / (staySurface + stayManhole + stayPipe)) + "%)";
+
+        return str;
     }
 
 }

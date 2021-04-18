@@ -96,4 +96,10 @@ public class SparseTimeLineManholeContainer extends TimeIndexContainer {
         dataprovider.fillTimelineManhole(manholeManualId, manholeName, tl);
     }
 
+    public SparseTimeLineDataProvider getDataprovider() {
+        return dataprovider;
+    }
+    
+    
+
 }

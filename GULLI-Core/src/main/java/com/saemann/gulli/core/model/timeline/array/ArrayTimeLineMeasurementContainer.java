@@ -300,6 +300,8 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
 
         this.mass_type = new float[numberOfCapacities * times.getNumberOfTimes()][numberOfMaterials];
         this.samplesInTimeInterval = new int[times.getNumberOfTimes()];
+        this.measurementTimes=new long[times.getNumberOfTimes()];
+        
 
         maxConcentration_global = 0;
     }

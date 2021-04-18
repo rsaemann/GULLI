@@ -56,11 +56,11 @@ public class InjectionPanelInflow extends JPanel {
     protected InjectionPanelInflow(final InjectionInflowInformation info, PaintManager paintManager) {
         super();
         setLayout(new GridLayout(7, 2));
-        this.setBorder(new TitledBorder(new LineBorder(Color.blue.darker(), 1, true),"Inflow"));
+        this.setBorder(new TitledBorder(new LineBorder(Color.blue.darker(), 1, true), "Inflow"));
 
         this.info = info;
         this.paintManager = paintManager;
-        
+
         //Name
         spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, 0, Integer.MAX_VALUE, 1));
         this.add(spinnerMaterial);
@@ -126,7 +126,7 @@ public class InjectionPanelInflow extends JPanel {
         modelLoad.setValue(info.getLoad());
         spinnerLoad = new JSpinner(modelLoad);
         spinnerLoad.setPreferredSize(new Dimension(60, 12));
-        spinnerLoad.setToolTipText((int)(info.getLoad()*10000)+" kg/ha");
+        spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
         this.add(new JLabel("Load [kg/m^2]"));
         this.add(spinnerLoad);
 
@@ -153,12 +153,15 @@ public class InjectionPanelInflow extends JPanel {
         spinnerMass.setEditor(massEditor);
         this.add(spinnerMass);
         try {
-            
+
             this.setToolTipText("<html><b>Inflow</b>"
-                    + "<br> Area: " + (int) info.getTotalArea()+ " m² = " + (int) (info.getTotalArea() / 10000) + " ha"
+                    + "<br> Area: " + (int) info.getTotalArea() + " m² = " + (int) (info.getTotalArea() / 10000) + " ha"
                     + "<br>Volume: " + (int) info.getTotalvolume() + "m^3 </html>");
         } catch (Exception e) {
         }
+
+        spinnerDuration.setEnabled(checkInjectionDuration.isSelected());
+        spinnerInjection.setEnabled(checkInjectionDuration.isSelected());
 
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
             @Override

@@ -66,6 +66,8 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurementSection;
+import java.util.Collection;
+import java.util.Comparator;
 import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;
 
@@ -752,14 +754,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
         int counter = 0;
         Particle.resetCounterID();
-//        System.out.println("Injections: " + scenario.getInjections().size());
         for (InjectionInfo injection_ : scenario.getInjections()) {
             counter++;
-//            currentAction.description = "Injection spill " + counter + "/" + scenario.getInjections().size();
             currentAction.hasProgress = true;
             currentAction.progress = counter / (float) scenario.getInjections().size();
             fireAction(currentAction);
-//            System.out.println(counter + ": " + injection);
             //find capacity
             Capacity c = null;
             int surfaceCell = -1;
@@ -804,7 +803,6 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         //Need to update the injections for a new network
                         injection.setNetwork(network);
                     }
-//                int counterinflow = 0;
 
                     for (int i = 0; i < injection.getManholes().length; i++) {
                         Manhole manhole = injection.getManholes()[i];
@@ -1011,6 +1009,21 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 ((SparseTimeLinePipeContainer) scenario.getStatusTimesPipe()).numberOfMaterials = maxMaterialID + 1;
             }
         }
+        //Order PArticles by insertion time
+        allParticles.sort(new Comparator<Particle>() {
+            @Override
+            public int compare(Particle o1, Particle o2) {
+                if (o1.getInsertionTime() == o2.getInsertionTime()) {
+                    return 0;
+                }
+                if (o1.getInsertionTime() > o2.getInsertionTime()) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
+        });
+
         this.setParticles(allParticles);
         currentAction.description = "Injections recalculated";
         currentAction.hasProgress = true;
@@ -1019,6 +1032,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     }
 
     @Override
+
     public void simulationFINISH(boolean timeOut, boolean particlesOut) {
     }
 

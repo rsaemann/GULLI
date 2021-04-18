@@ -105,7 +105,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      */
     public static double dryFlowVelocity = 0.05;
 
-    public static double dryWaterlevel = 0.005;
+    public static double dryWaterlevel = 0.01;
 
     public static int maxNumberOfIterationLoops = 100;
 
@@ -164,9 +164,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     /**
      * If velocities of two sides are competititve (particle will always swap
-     * between), then the mean velocity is used.
+     * between sides), then the mean velocity is used.
      */
-    public static boolean meanVelocityAtEdgeConflicts = true;
+    public static boolean meanVelocityAtZigZag = true;
 
     /**
      * If true, not the start of the current timestep is used but the mean value
@@ -213,7 +213,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
     private boolean shouldReRandomize = true;
 
-    private int trackid = 634504;
+//    private int trackid = 634504;
 
     private DecimalFormat df = new DecimalFormat("0.0000", DecimalFormatSymbols.getInstance(Locale.US));
 
@@ -303,15 +303,16 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
      * selected transport function.
      *
      * @param p
+     * @param dt simulation timestep [s]
      */
     @Override
-    public void moveParticle(Particle p) {
+    public void moveParticle(Particle p, double dt) {
         checkSurrounding(p);
         shortLengthCounter = 0;
 
         cellID = p.surfaceCellID;
         shouldReRandomize = true;
-        moveParticleCellIterative2(p, dt);
+        moveParticleCellIterative2(p, (float) dt);
 
         if (p.isOnSurface() && !surface.getMeasurementRaster().spatialConsistency) {
             //Only measure once at the end, if spatial consistency is disabled.
@@ -949,7 +950,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
 //                      status=2;
                 if (cellIDnew >= 0) {
-                    if (meanVelocityAtEdgeConflicts) {
+                    if (meanVelocityAtZigZag) {
                         if ((cellIDnew == oldCellID1 || cellIDnew == oldCellID2)) {
                             //Come into zigzag condition
                             //will enter a cell where it already have been
@@ -1266,9 +1267,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         lengthfactor *= 0.95;
                         posxneu = posxalt + (posxneu - posxalt) * lengthfactor;
                         posyneu = posyalt + (posyneu - posyalt) * lengthfactor;
-                        if (cellID == trackid) {
-                            System.out.println("PARTICLE " + p.getId() + " loop: " + loopcounter + " 11 " + (slidealongEdges ? "slide" : "") + (isprojecting ? "projecting" : ""));
-                        }
+//                        if (cellID == trackid) {
+//                            System.out.println("PARTICLE " + p.getId() + " loop: " + loopcounter + " 11 " + (slidealongEdges ? "slide" : "") + (isprojecting ? "projecting" : ""));
+//                        }
 
                         if (Double.isNaN(posxneu)) {
                             System.out.println("1Set Position to NaN length:" + lengthfactor + "  posAlt:" + posxalt + " neu: " + posxneu);

@@ -98,7 +98,7 @@ public class ParticlePipeComputing {
 //     * [m^2/s] up to 30% fill rate.
 //     */
 ////    public double dispersionCoefficient_low = 0.015;//m^2/s
-    protected static float dt;
+//    protected static float dt;
 
     protected static float sqrt2dt;
 
@@ -145,11 +145,8 @@ public class ParticlePipeComputing {
     }
 
     public void setDeltaTime(double deltaTime) {
-        ParticlePipeComputing.dt = (float) deltaTime;
+//        ParticlePipeComputing.dt = (float) deltaTime;
         ParticlePipeComputing.sqrt2dt = (float) Math.sqrt(2 * deltaTime);
-//        System.out.println("deltatime set new to " + deltaTime);
-//        ParticlePipeComputing.diffusionDistance = getDispersionDistance(deltaTime, diffusionturbulentCoefficient);
-//        this.dispersionDistance_low = getDispersionDistance(deltaTime, dispersionCoefficient_low);
     }
 
 //    protected static double getDispersionDistance(double dt, double dispersionCoefficient) {
@@ -186,9 +183,9 @@ public class ParticlePipeComputing {
 //
 //        return ds;
 //    }
-    public void moveParticle(Particle p) {
+    public void moveParticle(Particle p, double dt) {
 //        moveParticle4_transfersensitive(p);
-        moveParticle5_celltransmission(p);
+        moveParticle5_celltransmission(p, (float) dt);
         if (p.tracing()) {
             if (p.isInPipeNetwork()) {
                 ((HistoryParticle) p).addToHistory(p.getSurrounding_actual());
@@ -199,7 +196,7 @@ public class ParticlePipeComputing {
     /**
      * @deprecated @param p
      */
-    public void moveParticle1(Particle p) {
+    public void moveParticle1(Particle p, double dt) {
         if (p.getSurrounding_actual() == null) {
             return;
         }
@@ -343,7 +340,7 @@ public class ParticlePipeComputing {
     /**
      * @deprecated @param p
      */
-    private void moveParticle2(Particle p) {
+    private void moveParticle2(Particle p, double dt) {
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (c == null || c.isSetAsOutlet()) {
@@ -590,7 +587,7 @@ public class ParticlePipeComputing {
     /**
      * @deprecated @param p
      */
-    private void moveParticle3(Particle p) {
+    private void moveParticle3(Particle p, double dt) {
 
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
@@ -970,7 +967,7 @@ public class ParticlePipeComputing {
      *
      * @param p
      */
-    private void moveParticle4_transfersensitive(Particle p) {
+    private void moveParticle4_transfersensitive(Particle p, double dt) {
         double position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
 //        status = 2;
@@ -1404,7 +1401,7 @@ public class ParticlePipeComputing {
      *
      * @param p
      */
-    private void moveParticle5_celltransmission(Particle p) {
+    private void moveParticle5_celltransmission(Particle p, float dt) {
         float position1d = p.getPosition1d_actual();
         Capacity c = p.getSurrounding_actual();
         if (Float.isNaN(position1d)) {
@@ -1679,9 +1676,9 @@ public class ParticlePipeComputing {
         p.setPosition1d_actual(neuePosition);
     }
 
-    public double getDeltaTime() {
-        return dt;
-    }
+//    public double getDeltaTime() {
+//        return dt;
+//    }
 
 //    public double calcDistanceTurbulentDiffusion(double velocity, RandomGenerator rand) {
 //        if (turbulentCalculation == TURBULENT_DIFFUSION.FIX_DIFFUSION_COEFFICIENT) {

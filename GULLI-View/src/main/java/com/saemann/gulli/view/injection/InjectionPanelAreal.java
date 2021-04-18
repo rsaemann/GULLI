@@ -54,7 +54,7 @@ public class InjectionPanelAreal extends JPanel {
     protected InjectionPanelAreal(final InjectionArealInformation info, PaintManager paintManager) {
         super();
         setLayout(new GridLayout(5, 2));
-        this.setBorder(new TitledBorder(new LineBorder(Color.green.darker(), 1, true),"Total Area 2D"));
+        this.setBorder(new TitledBorder(new LineBorder(Color.green.darker(), 1, true), "Total Area 2D"));
 
         this.info = info;
         this.paintManager = paintManager;
@@ -142,6 +142,9 @@ public class InjectionPanelAreal extends JPanel {
                     + "<br> Area: " + (int) info.getSurface().calcTotalTriangleArea() + " m² = " + (int) (info.getSurface().calcTotalTriangleArea() / 10000) + " ha"
                     + " </html>");
         }
+
+        spinnerDuration.setEnabled(checkInjectionDuration.isSelected());
+        spinnerInjection.setEnabled(checkInjectionDuration.isSelected());
 
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
             @Override

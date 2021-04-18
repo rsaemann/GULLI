@@ -270,4 +270,9 @@ public class SparseTimelinePipe implements TimeLinePipe {
         return container.namesMaterials;
     }
 
+    @Override
+    public float getDischarge_DoubleIndex(double temporalIndex) {
+        return getValue_DoubleIndex(flux, temporalIndex);
+    }
+
 }

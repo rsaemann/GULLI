@@ -88,18 +88,19 @@ public class Timeline_IO {
             bw.newLine();
             bw.write("Materialindex:" + materialindex);
             bw.newLine();
-            long[] times = pipe.getMeasurementTimeLine().getContainer().measurementTimes;
-            bw.write("Times:" + times.length);
+            int nbtimes = pipe.getMeasurementTimeLine().getContainer().getTimes().getNumberOfTimes();
+            bw.write("Times:" + nbtimes);
             bw.newLine();
             bw.write("ContinuousSampling:" + tlm.getContainer().timecontinuousMeasures);
             bw.newLine();
             bw.write("TimeMS;Massflux[kg/s]");
             bw.newLine();
             bw.append("***");
-            for (int i = 0; i < times.length; i++) {
+            for (int i = 0; i < nbtimes; i++) {
                 bw.newLine();
-                bw.append(times[i] + ";");
-                double discharge = tls.getVelocity(tls.getTimeContainer().getTimeIndex(times[i])) / pipe.getLength();//1/s
+                long measurementTime=pipe.getMeasurementTimeLine().getContainer().getMeasurementTimestampAtTimeIndex(i);
+                bw.append(measurementTime + ";");
+                double discharge = tls.getVelocity(tls.getTimeContainer().getTimeIndex(measurementTime)) / pipe.getLength();//1/s
                 bw.append(pipe.getMeasurementTimeLine().getMass(i, materialindex) * discharge + "");
             }
             bw.flush();
@@ -130,17 +131,17 @@ public class Timeline_IO {
             bw.newLine();
             bw.write("Materialindex:" + materialindex);
             bw.newLine();
-            long[] times = pipe.getMeasurementTimeLine().getContainer().measurementTimes;
-            bw.write("Times:" + times.length);
+            int nbtimes = pipe.getMeasurementTimeLine().getContainer().getTimes().getNumberOfTimes();
+            bw.write("Times:" + nbtimes);
             bw.newLine();
             bw.write("ContinuousSampling:" + tlm.getContainer().timecontinuousMeasures);
             bw.newLine();
             bw.write("TimeMS;Concentration[kg/m³]");
             bw.newLine();
             bw.append("***");
-            for (int i = 0; i < times.length; i++) {
+            for (int i = 0; i < nbtimes; i++) {
                 bw.newLine();
-                bw.append(times[i] + ";");
+                bw.append(pipe.getMeasurementTimeLine().getContainer().getMeasurementTimestampAtTimeIndex(i) + ";");
                 bw.append(pipe.getMeasurementTimeLine().getConcentrationOfType(i, materialindex) + "");
             }
             bw.flush();

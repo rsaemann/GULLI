@@ -51,7 +51,7 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     public String[] namesMaterials;
 
-    public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider,boolean shiftTimesToZero) {
+    public SparseTimeLinePipeContainer(SparseTimeLineDataProvider dataprovider, boolean shiftTimesToZero) {
         super(dataprovider.loadTimeStepsNetwork(shiftTimesToZero));
         this.dataprovider = dataprovider;
         hasReferencePollution = dataprovider.hasTimeLineMass();
@@ -63,6 +63,11 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     public SparseTimeLinePipeContainer(long[] times) {
         super(times);
+    }
+
+    public static SparseTimeLinePipeContainer ExtendedEnd(long[] times, long additionalMillisecondsForLastEntry) {
+        times[times.length - 1] += additionalMillisecondsForLastEntry;
+        return new SparseTimeLinePipeContainer(times);
     }
 
     public SparseTimeLinePipeContainer(TimeContainer cont) {
@@ -97,9 +102,10 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     /**
      * Fills the timeline with discharge [m^3/s] information
+     *
      * @param tl
      * @param pipeManualId
-     * @param pipeName 
+     * @param pipeName
      */
     public void loadTimelineDischarge(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
@@ -112,9 +118,10 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     /**
      * Fills the timeline with solute massflux [kg/s] information
+     *
      * @param tl
      * @param pipeManualId
-     * @param pipeName 
+     * @param pipeName
      */
     public void loadTimelineMassflux(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {
@@ -125,9 +132,10 @@ public class SparseTimeLinePipeContainer extends TimeIndexContainer {
 
     /**
      * Fills the timeline with concentration [kg/m^3] information.
+     *
      * @param tl
      * @param pipeManualId
-     * @param pipeName 
+     * @param pipeName
      */
     public void loadTimelineConcentration(SparseTimelinePipe tl, long pipeManualId, String pipeName) {
         if (verboseRequests) {

@@ -61,6 +61,14 @@ public interface TimeLinePipe {
      * @return
      */
     public float getDischarge(int temporalIndex);
+    
+    /**
+     * Volume Flow in pipe in [m³/s]
+     *
+     * @param temporalIndex
+     * @return
+     */
+    public float getDischarge_DoubleIndex(double temporalIndex);
 
     /**
      * Reference massflux [kg/s] of solute in pipe volume if given.

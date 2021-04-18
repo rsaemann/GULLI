@@ -23,13 +23,11 @@
  */
 package com.saemann.gulli.core.control.scenario;
 
-import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import java.util.ArrayList;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexCalculator;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 
@@ -246,5 +244,5 @@ public abstract class Scenario {
     public void setMaterials(ArrayList<Material> materials) {
         this.materials = materials;
     }
-
+    
 }

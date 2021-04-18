@@ -97,15 +97,18 @@ public class AnalyticalChannel {
         this.width = width;
         this.totallength = length;
 
-        this.numberOfTimeIntervals = (int) (simulationDurationS / timeIntervalDurationS);
+        this.numberOfTimeIntervals = (int) (simulationDurationS / timeIntervalDurationS)+1;
         this.timeintervallengthMS = (int) (timeIntervalDurationS * 1000);
         injections = new ArrayList<>();
-        System.out.println("create timelines");
+//        System.out.println("create timelines");
 
-        long[] times_ = new long[numberOfTimeIntervals + 1];
+        long[] times_ = new long[numberOfTimeIntervals];
+//        System.out.println("Samples: Timeline: " + times_.length);
         for (int i = 0; i < times_.length; i++) {
             times_[i] = (long) (i * timeintervallengthMS);
+//            System.out.println("  " + i + " : " + times_[i]);
         }
+
         times = new TimeIndexContainer(times_);
         scenario = new SpillScenario(times, injections);
         scenario.setTimesManhole(times);
@@ -142,7 +145,7 @@ public class AnalyticalChannel {
         letztesMH.setAsOutlet(true);
         manholes.add(letztesMH);
 
-        Material material = new Material("Matlab", 1000, true);
+//        Material material = new Material("Solute", 1000, true);
 //        final ArrayList<InjectionInformation> injections = new ArrayList<>(lengthX);
 //        System.out.println("Load x from 0 to "+lengthX);
         int skipped = 0;
@@ -156,12 +159,12 @@ public class AnalyticalChannel {
 //        System.out.println("Matlab mass: " + mass + " kg => \t" + massPerParticle + " kg/particle");
         timelinesPipe = new ArrayTimeLinePipe[numberOfChannelElements];
 
-        double tempMassSum = 0;
-        int counterParticles = 0;
+//        double tempMassSum = 0;
+//        int counterParticles = 0;
         float c = 0;
 
         ArrayTimeLinePipe tl = new ArrayTimeLinePipe(pipeTLcontainer, 0);
-
+        //Set constant values
         for (int t = 0; t < times.getNumberOfTimes(); t++) {
             float v = velocity;
             tl.setVelocity(v, t);
@@ -170,11 +173,6 @@ public class AnalyticalChannel {
             float vol = (float) (h * width * dx);
             tl.setVolume(vol, t);
             tl.setDischarge((float) (v * h * width), t);
-//            for (int i = 1; i < numberOfChannelElements; i++) {
-//                pipeTLcontainer.velocity[i*numberOfTimeIntervals+t]=v;
-//                pipeTLcontainer.waterlevel[i*numberOfTimeIntervals+t]=h;
-//                pipeTLcontainer.volume[i*numberOfTimeIntervals+t]=vol;
-//            }
         }
 
         TimeLineManhole tlmh = new TimeLineManhole() {
@@ -225,13 +223,14 @@ public class AnalyticalChannel {
             }
         };
 
+        //Calculate reference mass transport values
         for (int i = 1; i < numberOfChannelElements; i++) {
 
             double posX = i * dx;
             coord = new Coordinate(posX, y);
             coord = gt.toGlobal(coord);
             neuePos = new Position(coord.x, coord.y, posX, y);
-            distancesX[i - 1] = (i - 1) * segmentLength;//-0.5*segmentLength;
+            distancesX[i - 1] = (float) ((i-0.5 /*- 1*/) * segmentLength);//-0.5*segmentLength;
 
             Manhole neuesMH = new Manhole(neuePos, "MH_" + i, circ);
             neuesMH.setTop_height(1);
@@ -250,8 +249,7 @@ public class AnalyticalChannel {
             p.setLength((float) dx);
 
             try {
-//                ArrayTimeLinePipe tl = new ArrayTimeLinePipe(pipeTLcontainer, i - 1);
-                tl = new ArrayTimeLinePipe(pipeTLcontainer, i-1);
+                tl = new ArrayTimeLinePipe(pipeTLcontainer, i - 1);
 
                 for (int t = 0; t < times.getNumberOfTimes(); t++) {
                     float v = velocity;
@@ -261,22 +259,9 @@ public class AnalyticalChannel {
                     float vol = (float) (h * width * dx);
                     tl.setVolume(vol, t);
                     tl.setDischarge((float) (v * h * width), t);
-//            for (int i = 1; i < numberOfChannelElements; i++) {
-//                pipeTLcontainer.velocity[i*numberOfTimeIntervals+t]=v;
-//                pipeTLcontainer.waterlevel[i*numberOfTimeIntervals+t]=h;
-//                pipeTLcontainer.volume[i*numberOfTimeIntervals+t]=vol;
-//            }
                 }
-                timelinesPipe[i-1] = tl;
-//                for (int t = 0; t < times.getNumberOfTimes(); t++) {
-//                    float v = velocity;
-//                    tl.setVelocity(v, t);
-//                    float h = waterlevel;
-//                    tl.setWaterlevel(h, t);
-//                    float vol = (float) (h * width * p.getLength());
-//                    tl.setVolume(vol, t);
-//                    tl.setDischarge((float) (v * h * width), t);
-//                }
+                timelinesPipe[i - 1] = tl;
+
 
                 p.setStatusTimeLine(tl);
                 tl.calculateMaxMeanValues();
@@ -289,7 +274,7 @@ public class AnalyticalChannel {
                 letztesX = posX;
 
             } catch (Exception e) {
-                System.err.println("Matlab Array too big @x=" + i);
+                System.err.println("Pipe Timeline Array too big @x=" + i);
                 e.printStackTrace();
 
                 break;
@@ -333,21 +318,18 @@ public class AnalyticalChannel {
     }
 
     public void addContaminationSuperposition(int injectionElementIndex, int injectionTimeIndex, float mass) {
-        double x_inj = distancesX[injectionElementIndex];// injectionElementIndex * segmentlength;// + segmentlength * 0.5;
+        double x_inj = distancesX[injectionElementIndex];
         double t_injMS = injectionTimeIndex * timeintervallengthMS;
 
         double v_e = width * waterlevel * segmentlength;
         double c_ini = mass / v_e;
-        //System.out.println("c_ini= " + c_ini + " kg/m³  from " + mass + " kg in " + width + "x" + waterlevel + "x" + segmentlength + "=" + v_e + "m^3 volume");
 
         for (int it = injectionTimeIndex; it < numberOfTimeIntervals; it++) {
             float t = (float) ((it * timeintervallengthMS - t_injMS) * 0.001); //Seconds since injection
-//            System.out.println(it+": "+t+"s");
             if (t == 0) {
-                t = 0.001f;
+//                t = 0.0001f;
 //                //only set the initial concentration at the initial position
                 c[injectionElementIndex][injectionTimeIndex] += c_ini;//* 0.5;
-//                c[injectionElementIndex + 1][injectionTimeIndex] += c_ini * 0.5;
 
                 continue;
             }
@@ -363,7 +345,7 @@ public class AnalyticalChannel {
 
             } else {
                 for (int i = 0; i < numberOfChannelElements; i++) {
-                    float x = (float) ((i) * segmentlength - x_inj);
+                    float x = (float) ((i+0.5) * segmentlength - x_inj);
                     float addC = (float) ((c_ini / (sqrt4pidt)) * Math.exp(-(x - velocity * t) * (x - velocity * t) / (4 * disp * t)));
                     c[i][it] += addC * 1;
                 }
@@ -428,7 +410,7 @@ public class AnalyticalChannel {
                 System.out.println("analytical concentration [" + i + "] is null");
                 continue;
             }
-            float x = (float) ((i) * segmentlength);
+            float x = (float) ((i+0.5) * segmentlength);
             for (int j = 0; j < numberOfTimeIntervals; j++) {
                 tl.setConcentration_Reference(cp[j], j, 0);
                 tl.setMassflux_reference(cp[j] * tl.getDischarge(j), j, 0);
@@ -442,7 +424,7 @@ public class AnalyticalChannel {
         //2. Momentum
         for (int t = 0; t < numberOfTimeIntervals; t++) {
             for (int j = 0; j < numberOfChannelElements; j++) {
-                float x = (float) ((j) * segmentlength);
+                float x = (float) ((j+0.5) * segmentlength);
                 momentum2[t] += c[j][t] * (x - momentum1[t]) * (x - momentum1[t]);
             }
             momentum2[t] = momentum2[t] / sumC[t];

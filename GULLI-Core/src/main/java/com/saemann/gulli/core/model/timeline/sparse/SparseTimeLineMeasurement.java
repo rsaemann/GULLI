@@ -278,8 +278,6 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
                 }
             }
 
-            
-
         } catch (Exception e) {
             System.out.println(this.getClass() + "::addMeasurements(timindex=" + timeindex + " (/" + container.getTimes().getNumberOfTimes() + ")=>" + timeindex + ", particles=" + numberOfParticlesInTimestep + ", volume=" + volume + ")");
             e.printStackTrace();
@@ -293,8 +291,9 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
         }
         int ptcount = 0;
         for (int i = 0; i < timeindex; i++) {
-
-            ptcount += particles[i];
+            if (samplesInTimeIntervalPipe[i] > 0) {
+                ptcount += particles[i] / samplesInTimeIntervalPipe[i];
+            }
         }
         return ptcount;
     }

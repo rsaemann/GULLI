@@ -3,6 +3,7 @@ package com.saemann.gulli.view.run;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
+import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,7 +41,8 @@ public class RunMainView {
         //Der Controller koordiniert alle einzelnen Module und startet die Benutzeroberfläche.
         //Control links all model and io components and stores the mesh and all simulation-related information
         final Controller control = new Controller();
-        control.intervallHistoryParticles=10;
+
+        control.intervallHistoryParticles = 10;
         //ViewController links the Controller to the GUI
         final ViewController vcontroller = new ViewController(control);
         //The Main Frame containing the Map.
@@ -82,7 +84,6 @@ public class RunMainView {
             System.out.println("startfile does not exist");
         }
 
-
         if (StartParameters.isAutoStartatStartup()) {
             final Runnable r = new Runnable() {
                 @Override
@@ -116,6 +117,20 @@ public class RunMainView {
                 lc.startLoadingRequestedFiles(true);
             }
         }
+
+        //Add some additional output at the end of a Simulation
+        control.addSimulationListener(new SimulationActionAdapter() {
+            @Override
+            public void simulationFINISH(boolean timeOut, boolean particlesOut) {
+                //Inform about the Time that it took to load information from the Database
+                System.out.println(control.getThreadController().reportLoadingTimes());
+                //Disabled debugging information. Can be enabled for information about stuck particles on the surface
+                if (false) {
+                    System.out.println("-----");
+                    System.out.println(control.getThreadController().reportTravelStatistics());
+                }
+            }
+        });
 
     }
 }

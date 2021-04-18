@@ -54,7 +54,7 @@ public class InjectionPanelSubArea extends JPanel {
     protected InjectionPanelSubArea(final InjectionSubArealInformation info) {
         super();
         setLayout(new GridLayout(6, 2));
-        this.setBorder(new TitledBorder(new LineBorder(Color.green.darker(), 1, true),"SubArea"));
+        this.setBorder(new TitledBorder(new LineBorder(Color.green.darker(), 1, true), "SubArea"));
 
         this.info = info;
 //        this.paintManager = paintManager;
@@ -130,7 +130,7 @@ public class InjectionPanelSubArea extends JPanel {
         JSpinner.NumberEditor massEditor = new JSpinner.NumberEditor(spinnerMass, "0.###");
         try {
             if (this.info.getSurface() != null) {
-                massEditor.setToolTipText((int)this.info.getArea() + " m² = " + (int)(this.info.getArea() / 10000.) + " ha");
+                massEditor.setToolTipText((int) this.info.getArea() + " m² = " + (int) (this.info.getArea() / 10000.) + " ha");
                 spinnerMass.setToolTipText(massEditor.getToolTipText());
             }
         } catch (Exception e) {
@@ -150,6 +150,8 @@ public class InjectionPanelSubArea extends JPanel {
                 + "<br> Area: " + (int) info.getArea() + " m² = " + (int) (info.getArea() / 10000) + " ha"
                 + " </html>");
 
+        spinnerInjection.setEnabled(checkInjectionDuration.isSelected());
+
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
@@ -159,7 +161,7 @@ public class InjectionPanelSubArea extends JPanel {
                 info.setMaterialID((int) spinnerMaterial.getValue());
                 if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed - Press Reset button to recalculate (takes a while)"));
-                    
+
                 }
             }
         });
@@ -182,7 +184,7 @@ public class InjectionPanelSubArea extends JPanel {
                 selfChanging = false;
             }
         });
-        
+
         this.checkInjectionDuration.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {

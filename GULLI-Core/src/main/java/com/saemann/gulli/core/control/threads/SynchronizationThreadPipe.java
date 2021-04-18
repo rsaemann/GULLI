@@ -61,7 +61,6 @@ public class SynchronizationThreadPipe extends Thread {
     private Pipe[] pipes;
 
 //    private long lastVelocityFreez, nextVelocityDefreez;
-
     private MeasurementContainer mcp;
     private SurfaceMeasurementRaster smr;
 
@@ -108,12 +107,17 @@ public class SynchronizationThreadPipe extends Thread {
                     mcp = control.getScenario().getMeasurementsPipe();
                     if (mcp != null) {
                         if (mcp.measurementsActive) {
-                            mcp.measurementTimes[writeindex] = barrier.getStepEndTime();
+//                            if (mcp.spatialConsistentMeasures) {
+                                mcp.addMeasurementTime(writeindex, barrier.getStepEndTime());
+//                            } else {
+//                                mcp.addMeasurementTime(writeindex, (long) ((barrier.getStepStartTime()+barrier.getStepEndTime())*0.5));
+////                                .measurementTimes[writeindex] = (long) ((barrier.getStepStartTime()+barrier.getStepEndTime())*0.5);
+//                            }
                             mcp.samplesInTimeInterval[writeindex]++;
 //                            System.out.println("Measure pipes index "+writeindex+" at "+barrier.getStepEndTime() +" in step "+control.getThreadController().getSteps());
                             for (Pipe pipe : pipes) {
                                 if (pipe.getMeasurementTimeLine() != null) {
-                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesInTimestep()> 0) {
+                                    if (pipe.getMeasurementTimeLine().getNumberOfParticlesInTimestep() > 0) {
                                         pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getFluidVolume());
                                     }
                                     pipe.getMeasurementTimeLine().resetNumberOfParticles();
@@ -137,7 +141,7 @@ public class SynchronizationThreadPipe extends Thread {
                         if (smr != null) {
                             if (smr.measurementsActive) {
                                 smr.measurementsInTimeinterval[writeindexSurface]++;
-                                smr.durationInTimeinterval[writeindexSurface]+=ThreadController.getDeltaTime();
+                                smr.durationInTimeinterval[writeindexSurface] += ThreadController.getDeltaTime();
                                 smr.measurementTimestamp[writeindexSurface] = barrier.getStepEndTime();
 //                            System.out.println("Written on surface index "+writeindexSurface+" \tfor time: "+barrier.getStepEndTime());
                             }
@@ -188,20 +192,20 @@ public class SynchronizationThreadPipe extends Thread {
         //Pipe
         boolean changed = false;
         if (control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-            MeasurementContainer mp =  control.getScenario().getMeasurementsPipe();
+            MeasurementContainer mp = control.getScenario().getMeasurementsPipe();
             if (MeasurementContainer.timecontinuousMeasures) {
-                 writeindex = mp.getIndexForTime(barrier.stepEndTime);
+                writeindex = mp.getIndexForTime(barrier.stepEndTime);
                 //Sample all the time
                 if (!mp.measurementsActive) {
                     mp.measurementsActive = true;
                     changed = true;
                 }
-            }else{
+            } else {
                 //SAmple only at timespots
                 int actual = mp.getIndexForTime(barrier.stepStartTime);
                 int next = mp.getIndexForTime(barrier.stepEndTime);
 //                System.out.println("prepareSamples in step "+control.getThreadController().getSteps()+": indexnow: "+actual+" :-> "+next);
-                if (writeindex > next||writeindex<0) {
+                if (writeindex > next || writeindex < 0) {
                     //After reset of a simulation, we need to reset the writeindex
                     writeindex = next;
                     mp.measurementsActive = true;

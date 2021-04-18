@@ -55,7 +55,7 @@ public abstract class MeasurementContainer {
 
     protected int actualTimeIndex = 0;
 
-    public long[] measurementTimes;
+    protected long[] measurementTimes;
 
 //    /**
 //     * Indicates how many samples are taken during one sampling interval. This
@@ -123,8 +123,24 @@ public abstract class MeasurementContainer {
      * @param timeindex
      * @return timestamp of the sample
      */
-    public long getMeasurementTimestampAtTimeIndex(int timeindex) {
-        return measurementTimes[timeindex];
+    public long getMeasurementTimestampAtTimeIndex(int timeindex) throws IndexOutOfBoundsException{
+        if(samplesInTimeInterval[timeindex]==0){
+           throw new IndexOutOfBoundsException("No samples taken in the MeasurementContainer for sample index "+timeindex);//getTimes().getTimeIndex(timeindex);
+        }
+        return measurementTimes[timeindex] / samplesInTimeInterval[timeindex];
+    }
+
+    /**
+     * Add a timestamp of the measurement to the accumulated timestamp array. To
+     * calculate the mean timestamp value for the index, the accumulated value
+     * must be divided by the number of taken samples. (This calculation is
+     * performed when using getMeasurementTimestampAtTimeIndex-Method
+     *
+     * @param timeindex
+     * @param timeStamp
+     */
+    public void addMeasurementTime(int timeindex, long timeStamp) {
+        this.measurementTimes[timeindex] += timeStamp;
     }
 
     public int getSamplesInTimeInterval(int timeIndex) {
