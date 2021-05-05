@@ -123,10 +123,15 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         // Move PArticle to end of surfacePath
 //        System.out.println("Particle " + p.getId() + " is in " + p.getSurrounding_actual());
 //        status = 1;
-        double sqrtD = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p);
-        float dispDS = (float) (random.nextDouble() * sqrtD * sqrt_2_dt);
-        float dispV = dispDS / dt;
+        float dispV;
         float ds = 0;
+        if (p.getMaterial().getDispersionCalculatorPipe() == null) {
+            dispV = 0;
+        } else {
+            double sqrtD = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p);
+            float dispDS = (float) (random.nextDouble() * sqrtD * sqrt_2_dt);
+            dispV = dispDS / dt;
+        }
         if (p.getSurrounding_actual() instanceof SurfaceTrianglePath) {
 //            status = 2;
             SurfaceTrianglePath path = (SurfaceTrianglePath) p.getSurrounding_actual();
@@ -189,7 +194,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
         for (int i = 0; i < 10; i++) {
             SurfaceTriangle triangle = (SurfaceTriangle) p.getSurrounding_actual();
 
-            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p,1, 0);
+            surface.getMeasurementRaster().measureParticle(ThreadController.getSimulationTimeMS(), p, 1, 0);
 
 //            if (triangle.measurement != null) {
 //                triangle.measurement.measureParticle(ThreadController.getSimulationTimeMS(), p);
@@ -342,7 +347,7 @@ public class ParticleSurfaceComputing1D implements ParticleSurfaceComputing {
     @Override
     public void setDeltaTimestep(double seconds) {
         this.dt = (float) seconds;
-        this.sqrt_2_dt=Math.sqrt(2*dt);
+        this.sqrt_2_dt = Math.sqrt(2 * dt);
     }
 
     @Override

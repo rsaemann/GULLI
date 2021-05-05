@@ -74,14 +74,14 @@ public class Material {
      */
     protected Dispersion1D_Calculator dispersionPipe;
     
-    public enum DISPERSION_PIPE{CONSTANT};
+    public enum DISPERSION_PIPE{NONE,CONSTANT};//,DISPERSIVITY};
 
     /**
      * Calculates the dispersion coefficient of a particle on the surface
      */
     protected Dispersion2D_Calculator dispersionSurface;
     
-    public enum DISPERSION_SURFACE{CONSTANT,FISCHER,WATERLEVEL}
+    public enum DISPERSION_SURFACE{NONE,CONSTANT,FISCHER,WATERLEVEL}
 
     /**
      * Index to identify the material. Index for storing in measurement

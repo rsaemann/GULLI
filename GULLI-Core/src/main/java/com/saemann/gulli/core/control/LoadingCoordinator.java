@@ -850,6 +850,13 @@ public class LoadingCoordinator {
             long start = System.currentTimeMillis();
             if (this.surface != null) {
                 this.surface.freeMemory();
+                this.surface=null;
+                control.loadSurface(surface, this);
+                if(scenario!=null){
+                    scenario.setMeasurementsSurface(null);
+                    scenario.setStatusTimesSurface(null);
+                }
+                System.gc();
             }
             Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
 //            if(additionalMilliseconds>0){
@@ -1951,6 +1958,8 @@ public class LoadingCoordinator {
         } else {
             control.setTraceParticles(false);
         }
+        
+        control.getLoadingCoordinator().sparsePipeLoading=setup.isSparsePipeVelocity();
 
         //Simulationparameters
         ParticleSurfaceComputing2D.blockVerySlow = setup.isStopSlow();
@@ -2035,7 +2044,9 @@ public class LoadingCoordinator {
         setup.setSlideAlongEdge(ParticleSurfaceComputing2D.slidealongEdges);
         setup.setSmoothZigZag(ParticleSurfaceComputing2D.meanVelocityAtZigZag);
         setup.setStopSlow(ParticleSurfaceComputing2D.blockVerySlow);
-
+        
+        setup.setSparsePipeVelocity(control.getLoadingCoordinator().sparsePipeLoading);
+        
         return Setup_IO.saveScenario(file, setup);
 
     }

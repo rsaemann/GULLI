@@ -1,6 +1,5 @@
 package com.saemann.gulli.core.model.timeline.array;
 
-import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
@@ -20,7 +19,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
     /**
      * Mass of contaminants in total [timeindex]
      */
-    public float[] mass_total;
+    public double[] mass_total;
     /**
      * mass of different types of contaminants [timeindex][contaminantIndex] raw
      * value. must be divided by the number of samples to get the value for the
@@ -103,7 +102,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         this.particles = new float[numberOfPipes * numberOfTimes];
         this.particles_visited = new int[numberOfPipes * numberOfTimes];
         this.volumes = new float[numberOfPipes * numberOfTimes];
-        this.mass_total = new float[numberOfPipes * numberOfTimes];
+        this.mass_total = new double[numberOfPipes * numberOfTimes];
 
         this.mass_type = new float[numberOfPipes * numberOfTimes][numberOfContaminantTypes];
         this.measurementTimes = new long[numberOfTimes];
@@ -296,7 +295,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         this.particles = new float[numberOfCapacities * times.getNumberOfTimes()];
         this.particles_visited = new int[numberOfCapacities * times.getNumberOfTimes()];
         this.volumes = new float[numberOfCapacities * times.getNumberOfTimes()];
-        this.mass_total = new float[numberOfCapacities * times.getNumberOfTimes()];
+        this.mass_total = new double[numberOfCapacities * times.getNumberOfTimes()];
 
         this.mass_type = new float[numberOfCapacities * times.getNumberOfTimes()][numberOfMaterials];
         this.samplesInTimeInterval = new int[times.getNumberOfTimes()];

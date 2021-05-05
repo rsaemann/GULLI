@@ -372,7 +372,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         totalvelocity = testVelocity(particlevelocity);
 
-        if (enableDiffusion) {
+        if (p.getMaterial().getDispersionCalculatorSurface()!=null) {
             // calculate with diffusion 
             if (totalvelocity < dryFlowVelocity) {
                 if (gradientFlowForDryCells) {
@@ -451,6 +451,11 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         return true;
     }
 
+    /**
+     * @deprecated 
+     * @param p
+     * @param dt 
+     */
     private void moveParticleCellIterative(Particle p, float dt) {
 
         // get the particle velocity (most computation time used here)
@@ -1190,7 +1195,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     //Goes into cell id <0
                     if (cellIDnew == -2) {
                         // goes over a trespassable boundary
-                        p.setInactive();
+                        p.setLeftSimulation();
 //                        System.out.println("Particle "+p.getId()+" moved across the domain boundary and became inactive. from cell "+cellID);
                         return;
                     }
@@ -1289,6 +1294,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     }
                 }
             }
+            p.addMovingLength(temp_distance);
             posxalt = posxneu;
             posyalt = posyneu;
             oldCellID2 = oldCellID1;

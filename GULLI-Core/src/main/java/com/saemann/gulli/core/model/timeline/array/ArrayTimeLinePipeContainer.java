@@ -43,6 +43,8 @@ public class ArrayTimeLinePipeContainer extends TimeIndexContainer {
 
     public float[] moment1, moment2;
     public float[] distance;
+    
+    public String[] materialnames;
 
     public enum CALCULATION {
 

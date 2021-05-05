@@ -18,7 +18,7 @@ public class Manhole extends StorageVolume {
     protected int surfaceTriangleID = -1;
 
     protected Connection_ToSurface topConnection;
-
+    
     public Manhole(Position position, String name, Profile profile) {
         super(profile);
         if (!(position instanceof Position3D)) {

@@ -144,15 +144,21 @@ public class InjectionInflowInformation implements InjectionInfo {
                     try {
                         HashMap<Integer, Double> map = db.loadManholeTotalSurfaceInflow();
                         if (map != null) {
+                            System.out.println("Manholes: "+manholes.length+"  inflow: "+map.size());
                             for (int i = 0; i < manholes.length; i++) {
-                                volume[i] = map.get((int) (manholes[i].getManualID())).floatValue();
+                                Double d = map.get((int) (manholes[i].getManualID()));
+                                if (d == null) {
+                                    System.err.println("Could not get inflow for manhole " + manholes[i].getName() + " / " + manholes[i].getManualID());
+                                } else {
+                                    volume[i] = d.floatValue();
+                                }
                             }
                             needCalculation = false;
-                            totalvolume=0;
+                            totalvolume = 0;
                             for (int i = 0; i < volume.length; i++) {
-                                totalvolume+=volume[i];                                
+                                totalvolume += volume[i];
                             }
-                            System.out.println("Total inflow volume is "+totalvolume+" from HE Database");
+                            System.out.println("Total inflow volume is " + totalvolume + " from HE Database");
                         }
                     } catch (SQLException ex) {
                         Logger.getLogger(InjectionInflowInformation.class.getName()).log(Level.SEVERE, null, ex);
@@ -172,7 +178,7 @@ public class InjectionInflowInformation implements InjectionInfo {
                     volume[m] += v;
                 }
             }
-            System.out.println("Total inflow volume is "+totalvolume+" for Manholes");
+            System.out.println("Total inflow volume is " + totalvolume + " for Manholes");
         }
         if (concentration > 0) {
             totalMass = totalvolume * concentration;

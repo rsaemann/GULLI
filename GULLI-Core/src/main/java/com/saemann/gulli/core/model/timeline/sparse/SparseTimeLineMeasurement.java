@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2021 B1.
+ * Copyright 2021 saemann.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -88,11 +88,17 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
     private float[] particleMassPerTypeinTimestep;
 
     private float[] particleMassPerTypeLastTimestep;
+    
+    /**
+     * Length of the pipe in [m]
+     */
+    private float length=1;
 
     private final Lock lock = new ReentrantLock();
 
     public SparseTimeLineMeasurement(SparseMeasurementContainer container) {
         this.container = container;
+//        this.length=pipelength;
     }
 
     private void prepareWritable() {
@@ -124,7 +130,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
             return 0;
         }
         //mass and volume are both sums of the interval samples and therefore do not have to be divided by the number of samples
-        float c = (float) (mass_total[temporalIndex] / (volumes[temporalIndex]));
+        float c =  (mass_total[temporalIndex]*samplesInTimeIntervalPipe[temporalIndex]) / (volumes[temporalIndex]*container.samplesInTimeInterval[temporalIndex]);
         return c;
     }
 
@@ -142,7 +148,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
             return 0;
         }
 
-        return (float) (mass_type[temporalIndex][materialIndex] / (volumes[temporalIndex]));
+        return  (mass_type[temporalIndex][materialIndex]*samplesInTimeIntervalPipe[temporalIndex]) / (volumes[temporalIndex]*container.samplesInTimeInterval[temporalIndex]);
     }
 
     /**

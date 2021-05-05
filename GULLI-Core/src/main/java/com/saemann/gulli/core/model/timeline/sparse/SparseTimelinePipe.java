@@ -63,7 +63,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     /**
      * Reference mass if given in scenario. May be null [times][materialtypes]
      */
-    private float[][] mass_reference;
+    private float[][] massflux_reference;
 
     /**
      * Reference concentration if given in scenario. May be null
@@ -123,11 +123,13 @@ public class SparseTimelinePipe implements TimeLinePipe {
 
     @Override
     public float getMassflux_reference(int temporalIndex, int material) {
-        if (mass_reference == null) {
+        if (massflux_reference == null) {
             this.container.loadTimelineMassflux(this, pipeManualID, pipeName);
         }
-        if(mass_reference==null)return 0;
-        return mass_reference[temporalIndex][material];
+        if (massflux_reference == null) {
+            return 0;
+        }
+        return massflux_reference[temporalIndex][material];
     }
 
     @Override
@@ -160,7 +162,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
                 container.loadTimelineWaterlevel(this, pipeManualID, pipeName);
 
             }
-            if (volume == null&&waterlevel!=null) {
+            if (volume == null && waterlevel != null) {
                 //calculate fluid volume
                 volume = new float[waterlevel.length];
                 for (int i = 0; i < waterlevel.length; i++) {
@@ -218,7 +220,7 @@ public class SparseTimelinePipe implements TimeLinePipe {
     }
 
     public void setMassflux_reference(float[][] mass_reference) {
-        this.mass_reference = mass_reference;
+        this.massflux_reference = mass_reference;
     }
 
     public void setConcentration_reference(float[][] concentration_reference) {
@@ -273,6 +275,22 @@ public class SparseTimelinePipe implements TimeLinePipe {
     @Override
     public float getDischarge_DoubleIndex(double temporalIndex) {
         return getValue_DoubleIndex(flux, temporalIndex);
+    }
+
+    public void setMassflux_reference(float value, int temporalIndex, int materialIndex) {
+
+        if (massflux_reference == null || massflux_reference.length == 0) {
+            massflux_reference = new float[container.numberOfMaterials][container.numberOfMaterials];
+        }
+        massflux_reference[temporalIndex][materialIndex] = value;
+    }
+
+    public void setConcentration_reference(float value, int temporalIndex, int materialIndex) {
+
+        if (concentration_reference == null || massflux_reference.length == 0) {
+            concentration_reference = new float[container.numberOfMaterials][container.numberOfMaterials];
+        }
+        concentration_reference[temporalIndex][materialIndex] = value;
     }
 
 }

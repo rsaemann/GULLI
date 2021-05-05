@@ -15,7 +15,7 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     protected float h_max = 0, h_mean = 0;
     protected float mf_max = 0, mf_mean = 0; //massflux [kg/s]
     protected float c_max = 0, c_mean = 0; //concentration [kg/m³]
-    private long lastcallTime=Long.MIN_VALUE;
+    private long lastcallTime = Long.MIN_VALUE;
     private float vLastCall;
 
     public long getTimeMilliseconds(int timeIndex) {
@@ -84,10 +84,10 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
     }
 
     public float getConcentration_reference_DoubleIndex(double temporalIndex, int materialIndex) {
-        return (float) getValue_DoubleIndex(container.concentration_reference, temporalIndex,materialIndex);
+        return (float) getValue_DoubleIndex(container.concentration_reference, temporalIndex, materialIndex);
     }
-    
-     @Override
+
+    @Override
     public float getVolume(int temporalIndex) {
         return container.volume[getIndex(temporalIndex)];
     }
@@ -131,14 +131,24 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 
     public void setMassflux_reference(float value, int temporalIndex, int materialIndex) {
 
-        if (container.massflux_reference == null) {
+        if (container.massflux_reference == null || container.massflux_reference.length == 0) {
             synchronized (container) {
                 if (container.massflux_reference == null) {
                     container.initMass_Reference();
                 }
             }
         }
-        container.massflux_reference[getIndex(temporalIndex)][materialIndex] = value;
+        try {
+            container.massflux_reference[getIndex(temporalIndex)][materialIndex] = value;
+        } catch (Exception e) {
+            System.out.println("Access violation when setting massflux " + value + " to timeindex " + temporalIndex + " of material " + materialIndex);
+            if (container.massflux_reference != null) {
+                System.err.println("   array.length: " + container.massflux_reference.length);
+                if (container.massflux_reference.length > 0) {
+                    System.out.println("      array for " + container.massflux_reference[0].length + " materials");
+                }
+            }
+        }
     }
 
     @Override
@@ -148,14 +158,14 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 
     public void setConcentration_Reference(float value, int temporalIndex, int materialIndex) {
 
-        if (container.concentration_reference == null) {
+        if (container.concentration_reference == null || container.concentration_reference.length == 0) {
             synchronized (container) {
-                if (container.concentration_reference == null) {
+                if (container.concentration_reference == null) {                    
                     container.initConcentration_Reference();
                 }
             }
         }
-        container.concentration_reference[getIndex(temporalIndex)][materialIndex] = value;
+            container.concentration_reference[getIndex(temporalIndex)][materialIndex] = value;
     }
 
     public void calculateMaxMeanValues() {
@@ -315,12 +325,12 @@ public class ArrayTimeLinePipe implements TimeLinePipe {
 //    }
     @Override
     public double getVolume() {
-       return  container.volume[getIndex(container.getActualTimeIndex())];
+        return container.volume[getIndex(container.getActualTimeIndex())];
     }
 
     @Override
     public String[] getMaterialNames() {
-        return new String[1];
+        return container.materialnames;
     }
-    
+
 }

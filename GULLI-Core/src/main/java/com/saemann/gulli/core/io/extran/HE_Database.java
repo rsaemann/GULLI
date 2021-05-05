@@ -1374,8 +1374,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
     public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net) throws FileNotFoundException, IOException, SQLException {
         return applyTimelines(net, 0);
     }
-    
-     /**
+
+    /**
      * TImelines will show the event time, if subtracted time is 0. Can subtract
      * a time, to make all timelines start at 0
      *
@@ -1386,7 +1386,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * @throws SQLException
      */
     public Pair<ArrayTimeLinePipeContainer, ArrayTimeLineManholeContainer> applyTimelines(Network net, long timesubtraction) throws FileNotFoundException, IOException, SQLException {
-    return applyTimelines(net, timesubtraction, 0);
+        return applyTimelines(net, timesubtraction, 0);
     }
 
     /**
@@ -1437,7 +1437,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 times[i] -= timesubtraction;
                 i++;
             }
-            times[times.length-1]+=additionalMilliseconds;
+            times[times.length - 1] += additionalMilliseconds;
             container = new ArrayTimeLinePipeContainer(times, net.getPipes().size());
             manholeContainer = new ArrayTimeLineManholeContainer(times, net.getManholes().size());
             i = 0;
@@ -1459,7 +1459,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 while (res.next()) {
                     int heID = res.getInt(1);
 //                    String heName = res.getString(2);
-                    float inflow=res.getFloat(3);
+                    float inflow = res.getFloat(3);
                     float h = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
@@ -1470,7 +1470,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         if (mh.getStatusTimeLine() != null) {
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterZ(h, timeIndex);
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterLevel(h - mh.getSole_height(), timeIndex);
-                            ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setInflow(inflow,timeIndex);
+                            ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setInflow(inflow, timeIndex);
                         }
                     }
                     timeIndex++;
@@ -1547,48 +1547,89 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 }
             }
             ///////////////FERTIG ROHRE
-            
-            //******************************BEGIN Schmutzfracht******************
-            res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION, AUSLASTUNG, STOFF"
-                    + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
-                    + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
-            // Konzentration mg/l = g/m^3
-            // Frachtrate  kg/s
-            id = Integer.MIN_VALUE;
-            int indexMaterial = 0;
-            String materialName = "";
-//            System.out.println("Leses schmutzfracht ein");
-            while (res.next()) {
-                int heID = res.getInt(1);
-                String heName = res.getString(2);
-                String stoffName = res.getString(7);
-                long time = 0;
-                if (isSQLite) {
-                    try {
-                        time = sqliteDateTimeFormat.parse(res.getString(3)).getTime();
-                    } catch (ParseException ex) {
-                        Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                } else {
-                    time = res.getTimestamp(3).getTime();
-                }
-                time -= timesubtraction;
-                double frachtrate = res.getDouble(4);
-                double concentration = res.getDouble(5);
-                if (id != heID) {
-                    pipe = net.getPipeByName(heName);
-                    id = heID;
-                    indexMaterial = 0;
-                    materialName = stoffName;
-                }
-                if (!stoffName.equals(materialName)) {
-                    indexMaterial++;
-                    materialName = stoffName;
-                }
 
-                timeIndex = ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).container.getTimeIndex(time);
-                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setMassflux_reference((float) frachtrate, timeIndex, indexMaterial);
-                ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setConcentration_Reference((float) concentration, timeIndex, indexMaterial);
+            //******************************BEGIN Schmutzfracht******************
+            //Number of materials
+            res = st.executeQuery("SELECT COUNT (*) FROM STOFFGROESSE");
+            numberOfMaterials = 0;
+            if (res.isBeforeFirst()) {
+                res.next();
+                numberOfMaterials = res.getInt(1);
+            } else {
+                if (verbose) {
+                    System.out.println("no result when requesting number of materials");
+                }
+            }
+            res.close();
+
+            if (numberOfMaterials > 0) {
+                container.setNumberOfMaterials(numberOfMaterials);
+                //Read names of materials
+                String[] names = new String[numberOfMaterials];
+                HashMap<String, Integer> nameMap = new HashMap<>(numberOfMaterials);
+                int index = 0;
+                res = st.executeQuery("SELECT Name, Gesamtabflussmasse FROM STOFFGROESSE order by id");
+                while (res.next()) {
+                    names[index] = res.getString(1);
+                    nameMap.put(names[index], index);
+                    index++;
+                }
+                container.materialnames = names;
+                res.close();
+
+//                if (isSQLite) {
+                    res=st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION, AUSLASTUNG, STOFF\n" +
+"                         FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT where KONZENTRATION>0\n" +
+"                         ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
+//                    res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000. AS FRACHTKGPS,KONZENTRATION/1000., AUSLASTUNG, STOFF"
+//                            + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
+//                            + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
+//                } else {
+//                    //Firebird HE7.9
+//                    res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION/1000., AUSLASTUNG, STOFF"
+//                            + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
+//                            + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
+//                }
+                // Konzentration mg/l = g/m^3 -> Faktor /1000 to kg/m^3
+                // Frachtrate  kg/s
+                id = Integer.MIN_VALUE;
+                int indexMaterial = 0;
+                String materialName = "";
+
+                while (res.next()) {
+                    int heID = res.getInt(1);
+                    String heName = res.getString(2);
+                    String stoffName = res.getString(7);
+                    long time = 0;
+                    if (isSQLite) {
+                        try {
+                            time = sqliteDateTimeFormat.parse(res.getString(3)).getTime();
+                        } catch (ParseException ex) {
+                            Logger.getLogger(HE_Database.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    } else {
+                        time = res.getTimestamp(3).getTime();
+                    }
+                    time -= timesubtraction;
+                    double frachtrate = res.getDouble(4);
+                    double concentration = res.getDouble(5);
+                    if (id != heID) {
+                        pipe = net.getPipeByName(heName);
+                        id = heID;
+                        materialName = stoffName;
+                        indexMaterial = nameMap.get(stoffName);
+
+                    }
+                    if (!stoffName.equals(materialName)) {
+                        indexMaterial = nameMap.get(stoffName);
+                        materialName = stoffName;
+                    }
+
+                    timeIndex = (int) (((ArrayTimeLinePipe) pipe.getStatusTimeLine()).container.getTimeIndexDouble(time) + 0.1);
+                    ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setMassflux_reference((float) frachtrate, timeIndex, indexMaterial);
+                    ((ArrayTimeLinePipe) pipe.getStatusTimeLine()).setConcentration_Reference((float) concentration, timeIndex, indexMaterial);
+
+                }
             }
         }
         return new Pair<>(container, manholeContainer);
@@ -1990,7 +2031,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             while (rs.next()) {
                 Material mat = materialMap.get(rs.getInt("STOFFREF"));
-                double tfactor = rs.getDouble("EINZELWERT_von24") * rs.getDouble("STOFFWERT_von24");
+                double ez24 = rs.getDouble("EINZELWERT_von24");
+                double sw24 = rs.getDouble("STOFFWERT_von24");
+                double tfactor = 1;
+                String nameStoffmuster = rs.getString("STOFFEINLEITERZEITMUSTER");
+                if (nameStoffmuster == null) {
+                    tfactor = ez24;
+                } else {
+                    tfactor = ez24 * sw24;
+                }
                 double lps = rs.getDouble("ZUFLUSSDIREKT_LperS");
                 double c = rs.getDouble("KONZENTRATION_MGperL");
 
@@ -2000,7 +2049,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 double injectionTime = (endtime - starttime) / 1000;
                 double wert = tfactor * c * lps * injectionTime / 1000000.;
 
-                System.out.println("Scenario injection: c=" + c + "mg/l,  q=" + lps + "L/s, timevariation:" + tfactor + ", duration:" + injectionTime + "s = total: " + wert + "kg");
+                if (verbose) {
+                    System.out.println("Einzelwert: " + ez24 + "   Stoffwert: " + sw24 + " -> faktor " + tfactor);
+                    System.out.println("Scenario injection: c=" + c + "mg/l,  q=" + lps + "L/s, timevariation:" + tfactor + ", duration:" + injectionTime + "s = total: " + wert + "kg");
+                }
 
                 try {
                     HEInjectionInformation info = new HEInjectionInformation(rs.getString("ROHR"), mat, starttime, endtime, wert);//p.getPosition3D(0),true, wert, numberofparticles, m, starttime, endtime);
@@ -2961,7 +3013,12 @@ public class HE_Database implements SparseTimeLineDataProvider {
             Statement st = getConnection().createStatement();
             ResultSet res;
             int sampleElementID = -1;
-            res = st.executeQuery("SELECT ID FROM LAU_GL_EL LIMIT 1;");
+            if (isSQLite) {
+                res = st.executeQuery("SELECT ID FROM LAU_GL_EL LIMIT 1;");
+            } else {
+                //FIREBIRD 
+                res = st.executeQuery("SELECT FIRST 1 ID FROM LAU_GL_EL;");
+            }
             while (res.next()) {
                 sampleElementID = res.getInt(1);
             }
@@ -3750,15 +3807,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
         bb = bb.order(ByteOrder.LITTLE_ENDIAN);
         int number = bb.getInt(0);
         long[] time = new long[number];
-//        System.out.println("number=" + number);
 
-//         for (int i = 0; i < bb.limit(); i++) {
-//             System.out.println(i+": "+bb.getLong(i));
-//        }
         int l = (byteBlob.length - 4) / 16;
         for (int i = 0; i < l; i++) {
             int start = 4 + i * 16;
-//            System.out.println(bb.getInt(start)+", +1:"+bb.getInt(start+1)+", +2:"+bb.getInt(start+2)+", +3:"+bb.getInt(start+3)+",\t -1:"+bb.getInt(start-1)+", -2:"+bb.getInt(start-2));
             long byteLong = bb.getLong(start);
             if (byteLong < 0) {
                 System.err.println("Timeindex " + i + " of Messdaten seems not to be correctly formatted. Cannot decode Timevalue from bytelong " + byteLong + ". Check the HE entry for the Timestamp and save it without second and millisecond information.");

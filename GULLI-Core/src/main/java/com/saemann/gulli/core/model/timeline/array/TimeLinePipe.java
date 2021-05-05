@@ -137,6 +137,10 @@ public interface TimeLinePipe {
      */
     public TimeContainer getTimeContainer();
 
+    /**
+     *
+     * @return
+     */
     public String[] getMaterialNames();
 
 }

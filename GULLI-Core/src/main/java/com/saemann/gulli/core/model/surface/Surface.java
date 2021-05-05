@@ -3389,16 +3389,44 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * prevent the memory from OutOfMemory Exceptions
      */
     public void freeMemory() {
-        this.neighbourDistances=null;
-        this.NodeNeighbours=null;
-        this.actualVelocity=null;
-        this.actualVelocitySet=null;
-        this.edgeLength=null;
-        this.maxNeighbourVelocity=null;
-        this.maxTriangleVelocity=null;
-        this.neighbourvelocity=null;
-        this.triangle_downhilldirection=null;
-        this.triangle_downhillIntensity=null;
+        this.neighbourDistances = null;
+        this.NodeNeighbours = null;
+        this.actualVelocity = null;
+        this.actualVelocitySet = null;
+        this.edgeLength = null;
+        this.maxNeighbourVelocity = null;
+        this.maxTriangleVelocity = null;
+        this.neighbourvelocity = null;
+        this.triangle_downhilldirection = null;
+        this.triangle_downhillIntensity = null;
+        this.triangleArea = null;
+        this.triangleVelocity = null;
+        this.weight = null;
+        this.neumannNeighbours = null;
+        this.triangleMids = null;
+        this.triangleCapacitys = null;
+        this.manholes = null;
+        this.inletArray = null;
+        if (capacityNames != null) {
+            this.capacityNames.clear();
+        }
+        this.capacityNames = null;
+        if (this.mapIndizes != null) {
+            this.mapIndizes.clear();
+        }
+        if (this.paths != null) {
+            this.paths.clear();
+        }
+        this.waterlevels=null;
+        
+        
+        if(velocityLoader!=null){
+            if(velocityLoader instanceof HE_GDB_IO){
+                HE_GDB_IO io=(HE_GDB_IO)waterlevelLoader;
+                io.close();
+            }
+        }
+        this.velocityLoader=null;
     }
 
 }

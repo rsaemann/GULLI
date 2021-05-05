@@ -47,6 +47,7 @@ public class Setup {
     public Collection<Material> materials;
 
     private boolean loadResultInjections = true;
+    private boolean sparsePipeVelocity=false;
 
     protected double timestepTransport = 1;
 //    protected Dispersion2D_Constant diffusion;
@@ -302,6 +303,14 @@ public class Setup {
 
     public void setTimeIntegration(ParticleSurfaceComputing2D.TIMEINTEGRATION timeIntegration) {
         this.timeIntegration = timeIntegration;
+    }
+
+    public boolean isSparsePipeVelocity() {
+        return sparsePipeVelocity;
+    }
+
+    public void setSparsePipeVelocity(boolean sparsePipeVelocity) {
+        this.sparsePipeVelocity = sparsePipeVelocity;
     }
     
     

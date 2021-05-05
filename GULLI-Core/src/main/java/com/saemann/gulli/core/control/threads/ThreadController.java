@@ -1235,16 +1235,16 @@ public class ThreadController implements ParticleListener, SimulationActionListe
         int stayManhole = 0, stayPipe = 0, staySurface = 0;
         int dry = 0, block = 0;
         for (Particle particle : particles) {
-            if (particle.hasLeftSimulation()) {
+            if (particle.isInactive()) {
                 nbLeft++;
                 sumLeft += particle.getTravelledPathLength();
-                if (particle.getMoveLength() > maxLeft) {
+                if (particle.getTravelledPathLength() > maxLeft) {
                     maxLeft = particle.getTravelledPathLength();
                 }
             } else {
                 nbStay++;
                 sumStay += particle.getTravelledPathLength();
-                if (particle.getMoveLength() > maxStay) {
+                if (particle.getTravelledPathLength() > maxStay) {
                     maxStay = particle.getTravelledPathLength();
                 }
                 if (particle.getSurrounding_actual() instanceof Surface) {
@@ -1262,12 +1262,11 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                 }
             }
         }
+        maxStay += 1;
         int[] staygroup = new int[10];
         double ds = (maxStay - 100) / 8;
         for (Particle particle : particles) {
-            if (particle.hasLeftSimulation()) {
-                continue;
-            } else {
+            if (particle.isActive()) {
                 if (particle.getTravelledPathLength() < 50) {
                     staygroup[0]++;
                 } else if (particle.getTravelledPathLength() < 100) {
@@ -1288,18 +1287,32 @@ public class ThreadController implements ParticleListener, SimulationActionListe
             }
         }
 
-        String str = "Left: " + nbLeft + " (" + ((100 * nbLeft) / (nbLeft + nbStay)) + "%)\tMax: " + (int) (maxLeft) + " m\t avrg: " + (int) (sumLeft / nbLeft) + " m.\n";
-        str += "Stay: " + nbStay + " (" + ((100 * nbStay) / (nbLeft + nbStay)) + "%)\tMax: " + (int) (maxStay) + " m\t avrg: " + (int) (sumStay / nbStay) + " m.";
-        str += "\n\t  0- 50m:\t" + staygroup[0];
-        str += "\n\t 50-100m:\t" + staygroup[1];
-        for (int i = 2; i < staygroup.length; i++) {
-            str += "\n\t - " + (int) ((i - 1) * ds + 100) + ":\t" + staygroup[i];
-        }
-        str += "\n  On Surface: " + staySurface + "  (" + ((100 * staySurface) / (staySurface + stayManhole + stayPipe)) + "%)  Dry:" + ((100 * dry) / (staySurface) + "%  blocked: " + ((100 * block) / (staySurface) + "%"));
-        str += "\n  In Pipe:    " + stayPipe + "  (" + ((100 * stayPipe) / (staySurface + stayManhole + stayPipe)) + "%)";
-        str += "\n  In Manhole: " + stayManhole + "  (" + ((100 * stayManhole) / (staySurface + stayManhole + stayPipe)) + "%)";
+        int total = nbLeft + nbStay;
 
-        return str;
+        if (total > 0) {
+            String str = "Left: " + nbLeft + " (" + ((100 * nbLeft) / (nbLeft + nbStay)) + "%)\tMax: " + (int) (maxLeft) + " m\t avrg: " + (int) (sumLeft / nbLeft) + " m.\n";
+            str += "Stay: " + nbStay + " (" + ((100 * nbStay) / (nbLeft + nbStay)) + "%)\tMax: " + (int) (maxStay) + " m\t avrg: " + (int) (sumStay / nbStay) + " m.";
+            str += "\n\t  0- 50m:\t" + staygroup[0];
+            str += "\n\t 50-100m:\t" + staygroup[1];
+            for (int i = 2; i < staygroup.length; i++) {
+                str += "\n\t   - " + (int) ((i - 1) * ds + 100) + ":\t" + staygroup[i];
+            }
+            try {
+                str += "\n  On Surface: " + staySurface + "  (" + ((100 * staySurface) / (staySurface + stayManhole + stayPipe)) + "%)  Dry:" + ((100 * dry) / (staySurface) + "%  blocked: " + ((100 * block) / (staySurface) + "%"));
+
+            } catch (Exception e) {
+            }
+            try {
+                str += "\n  In Pipe:    " + stayPipe + "  (" + ((100 * stayPipe) / (staySurface + stayManhole + stayPipe)) + "%)";
+            } catch (Exception e) {
+            }
+            try {
+                str += "\n  In Manhole: " + stayManhole + "  (" + ((100 * stayManhole) / (staySurface + stayManhole + stayPipe)) + "%)";
+            } catch (Exception e) {
+            }
+            return str;
+        }
+        return null;
     }
 
 }

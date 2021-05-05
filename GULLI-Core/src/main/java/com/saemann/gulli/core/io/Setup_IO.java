@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.io;
 
+import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.control.scenario.Scenario;
@@ -62,6 +63,18 @@ public class Setup_IO {
     public static boolean saveScenario(File file, Setup setup) throws IOException {
 
         Scenario scenario = setup.scenario;
+        if (scenario == null) {
+            scenario = new Scenario() {
+                @Override
+                public void init(Controller c) {
+                }
+
+                @Override
+                public void reset() {
+                }
+            };
+            scenario.setName(file.getName());
+        }
         FileWriter fw = new FileWriter(file);
         BufferedWriter bw = new BufferedWriter(fw);
         bw.write("<Scenario>");
@@ -81,6 +94,8 @@ public class Setup_IO {
             bw.write("\t\t<NetworkFlowField>" + files.getPipeResult() + "</>");
             bw.newLine();
             bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
+            bw.newLine();
+            bw.write("\t\t<Sparse>" + setup.isSparsePipeVelocity() + "</>");
             bw.newLine();
             bw.write("\t</Network>");
             bw.newLine();
@@ -172,66 +187,68 @@ public class Setup_IO {
         bw.newLine();
         bw.write("<Materials>");
         bw.newLine();
-        for (int mi = 0; mi <= scenario.getMaxMaterialID(); mi++) {
-            Material m = scenario.getMaterialByIndex(mi);
-            if (m != null) {
-                bw.write("\t<Material id=" + mi + ">");
-                bw.newLine();
-                bw.write("\t\t<Name>" + m.getName() + "</>");
-                bw.newLine();
-                bw.write("\t\t<Density unit='kg/m^3'>" + m.getDensity() + "</>");
-                bw.newLine();
-                bw.write("\t\t<Flowcalculator>" + m.getRoutingCalculator().getClass().getName() + "</>");
-                bw.newLine();
-                Dispersion1D_Calculator disp1d = m.getDispersionCalculatorPipe();
-                if (disp1d != null) {
-                    bw.write("\t\t<Network>");
+        if (scenario.getInjections() != null && !scenario.getInjections().isEmpty()) {
+            for (int mi = 0; mi <= scenario.getMaxMaterialID(); mi++) {
+                Material m = scenario.getMaterialByIndex(mi);
+                if (m != null) {
+                    bw.write("\t<Material id=" + mi + ">");
                     bw.newLine();
-                    bw.write("\t\t\t<Dispersion>");
+                    bw.write("\t\t<Name>" + m.getName() + "</>");
                     bw.newLine();
-                    bw.write("\t\t\t\t<Type Parameters=" + disp1d.getNumberOfParameters() + ">" + disp1d.getClass().getName() + "</>");
+                    bw.write("\t\t<Density unit='kg/m^3'>" + m.getDensity() + "</>");
                     bw.newLine();
-                    String[] descriptions = disp1d.getParameterDescription();
-                    String[] units = disp1d.getParameterUnits();
-                    double[] paramValues = disp1d.getParameterValues();
-                    for (int i = 0; i < disp1d.getNumberOfParameters(); i++) {
-                        bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
+                    bw.write("\t\t<Flowcalculator>" + m.getRoutingCalculator().getClass().getName() + "</>");
+                    bw.newLine();
+                    Dispersion1D_Calculator disp1d = m.getDispersionCalculatorPipe();
+                    if (disp1d != null) {
+                        bw.write("\t\t<Network>");
                         bw.newLine();
+                        bw.write("\t\t\t<Dispersion>");
+                        bw.newLine();
+                        bw.write("\t\t\t\t<Type Parameters=" + disp1d.getNumberOfParameters() + ">" + disp1d.getClass().getName() + "</>");
+                        bw.newLine();
+                        String[] descriptions = disp1d.getParameterDescription();
+                        String[] units = disp1d.getParameterUnits();
+                        double[] paramValues = disp1d.getParameterValues();
+                        for (int i = 0; i < disp1d.getNumberOfParameters(); i++) {
+                            bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
+                            bw.newLine();
+                        }
+                        bw.write("\t\t\t</Dispersion>");
+                        bw.newLine();
+                        bw.write("\t\t</Network>");
+                        bw.newLine();
+                    }
+                    bw.write("\t\t<Surface>");
+                    bw.newLine();
+                    Dispersion2D_Calculator disp2d = m.getDispersionCalculatorSurface();
+                    if (disp2d != null) {
+                        bw.write("\t\t\t<Dispersion>");
+                        bw.newLine();
+                        String[] descriptions = disp2d.getParameterOrderDescription();
+                        String[] units = disp2d.getParameterUnits();
+                        double[] paramValues = disp2d.getParameterValues();
+                        bw.write("\t\t\t\t<Type Parameters=" + descriptions.length + ">" + disp2d.getClass().getName() + "</>"
+                        );
+                        bw.newLine();
+
+                        for (int i = 0; i < paramValues.length; i++) {
+                            bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
+                            bw.newLine();
+                        }
+
                     }
                     bw.write("\t\t\t</Dispersion>");
                     bw.newLine();
-                    bw.write("\t\t</Network>");
+                    bw.write("\t\t\t<DryFlow unit='m/s'>" + setup.getRoutingSurfaceDryflowVelocity() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t\t<EnterDry>" + setup.isRoutingSurfaceEnterDryCells() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t</Surface>");
+                    bw.newLine();
+                    bw.write("\t</Material>");
                     bw.newLine();
                 }
-                bw.write("\t\t<Surface>");
-                bw.newLine();
-                Dispersion2D_Calculator disp2d = m.getDispersionCalculatorSurface();
-                if (disp2d != null) {
-                    bw.write("\t\t\t<Dispersion>");
-                    bw.newLine();
-                    String[] descriptions = disp2d.getParameterOrderDescription();
-                    String[] units = disp2d.getParameterUnits();
-                    double[] paramValues = disp2d.getParameterValues();
-                    bw.write("\t\t\t\t<Type Parameters=" + descriptions.length + ">" + disp2d.getClass().getName() + "</>"
-                    );
-                    bw.newLine();
-
-                    for (int i = 0; i < paramValues.length; i++) {
-                        bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
-                        bw.newLine();
-                    }
-
-                }
-                bw.write("\t\t\t</Dispersion>");
-                bw.newLine();
-                bw.write("\t\t\t<DryFlow unit='m/s'>" + setup.getRoutingSurfaceDryflowVelocity() + "</>");
-                bw.newLine();
-                bw.write("\t\t\t<EnterDry>" + setup.isRoutingSurfaceEnterDryCells() + "</>");
-                bw.newLine();
-                bw.write("\t\t</Surface>");
-                bw.newLine();
-                bw.write("\t</Material>");
-                bw.newLine();
             }
         }
         bw.write("</Materials>");
@@ -240,82 +257,84 @@ public class Setup_IO {
         bw.newLine();
         bw.write("\t<FromNetworkResult>" + setup.isLoadResultInjections() + "</>");
         bw.newLine();
-        for (InjectionInfo inj : scenario.getInjections()) {
-            bw.write("\t<Injection id=" + inj.getId() + ">");
-            bw.newLine();
-            bw.write("\t\t<Type>" + inj.getClass().getSimpleName() + "</>");
-            bw.newLine();
-            if (inj instanceof InjectionInformation) {
-                InjectionInformation injection = (InjectionInformation) inj;
-
-                bw.write("\t\t<OnSurface>" + injection.spillOnSurface() + "</>");
+        if (scenario.getInjections() != null) {
+            for (InjectionInfo inj : scenario.getInjections()) {
+                bw.write("\t<Injection id=" + inj.getId() + ">");
                 bw.newLine();
+                bw.write("\t\t<Type>" + inj.getClass().getSimpleName() + "</>");
+                bw.newLine();
+                if (inj instanceof InjectionInformation) {
+                    InjectionInformation injection = (InjectionInformation) inj;
 
-                if (injection.spillOnSurface()) {
+                    bw.write("\t\t<OnSurface>" + injection.spillOnSurface() + "</>");
+                    bw.newLine();
+
+                    if (injection.spillOnSurface()) {
 //                if (injection.spilldistributed) {
 //                    bw.write("\t\t<Diffusive>true</>");
 //                    bw.newLine();
 //                } else {
-                    if (injection.getCapacityID() >= 0) {
-                        bw.write("\t\t<Surfacecell>" + injection.getCapacityID() + "</>");
-                        bw.newLine();
-                    }
+                        if (injection.getCapacityID() >= 0) {
+                            bw.write("\t\t<Surfacecell>" + injection.getCapacityID() + "</>");
+                            bw.newLine();
+                        }
 //                }
-                } else if (injection.spillInManhole()) {
-                    if (injection.getCapacity() != null) {
-                        bw.write("\t\t<Capacity id=" + injection.getCapacity().getManualID() + ">" + injection.getCapacityName() + "</>");
+                    } else if (injection.spillInManhole()) {
+                        if (injection.getCapacity() != null) {
+                            bw.write("\t\t<Capacity id=" + injection.getCapacity().getManualID() + ">" + injection.getCapacityName() + "</>");
+                            bw.newLine();
+                        } else {
+                            bw.write("\t\t<Capacity>" + injection.getCapacityName() + "</>");
+                            bw.newLine();
+                        }
+                    }
+                    if (injection.getPosition() != null) {
+                        bw.write("\t\t<Position>");
                         bw.newLine();
-                    } else {
-                        bw.write("\t\t<Capacity>" + injection.getCapacityName() + "</>");
+                        bw.write("\t\t\t<Latitude>" + injection.getPosition().getLatitude() + "</>");
+                        bw.newLine();
+                        bw.write("\t\t\t<Longitude>" + injection.getPosition().getLongitude() + "</>");
+                        bw.newLine();
+                        bw.write("\t\t</Position>");
                         bw.newLine();
                     }
+                } else if (inj instanceof InjectionArealInformation) {
+                    InjectionArealInformation ai = (InjectionArealInformation) inj;
+                    bw.write("\t\t<Diffusive>true</>");
+                    bw.newLine();
+                    bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
+                    bw.newLine();
+                } else if (inj instanceof InjectionSubArealInformation) {
+                    InjectionSubArealInformation ai = (InjectionSubArealInformation) inj;
+                    bw.write("\t\t<Diffusive>true</>");
+                    bw.newLine();
+                    bw.write("\t\t<Filter>" + ai.getNameFilter() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
+                    bw.newLine();
+                } else if (inj instanceof InjectionInflowInformation) {
+                    InjectionInflowInformation ai = (InjectionInflowInformation) inj;
+                    bw.write("\t\t<Diffusive>false</>");
+                    bw.newLine();
+                    bw.write("\t\t<Concentration unit='kg/m^3'>" + ai.getConcentration() + "</>");
+                    bw.newLine();
                 }
-                if (injection.getPosition() != null) {
-                    bw.write("\t\t<Position>");
-                    bw.newLine();
-                    bw.write("\t\t\t<Latitude>" + injection.getPosition().getLatitude() + "</>");
-                    bw.newLine();
-                    bw.write("\t\t\t<Longitude>" + injection.getPosition().getLongitude() + "</>");
-                    bw.newLine();
-                    bw.write("\t\t</Position>");
-                    bw.newLine();
-                }
-            } else if (inj instanceof InjectionArealInformation) {
-                InjectionArealInformation ai = (InjectionArealInformation) inj;
-                bw.write("\t\t<Diffusive>true</>");
+                bw.write("\t\t<Start unit='s'>" + inj.getStarttimeSimulationsAfterSimulationStart() + "</>");
                 bw.newLine();
-                bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
+                bw.write("\t\t<Duration unit='s'>" + inj.getDurationSeconds() + "</>");
                 bw.newLine();
-            } else if (inj instanceof InjectionSubArealInformation) {
-                InjectionSubArealInformation ai = (InjectionSubArealInformation) inj;
-                bw.write("\t\t<Diffusive>true</>");
+                bw.write("\t\t<Material id=" + inj.getMaterial().materialIndex + ">" + inj.getMaterial().getName() + "</>");
                 bw.newLine();
-                bw.write("\t\t<Filter>" + ai.getNameFilter() + "</>");
+                bw.write("\t\t<Mass unit='kg'>" + inj.getMass() + "</>");
                 bw.newLine();
-                bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
+                bw.write("\t\t<Particles>" + inj.getNumberOfParticles() + "</>");
                 bw.newLine();
-            } else if (inj instanceof InjectionInflowInformation) {
-                InjectionInflowInformation ai = (InjectionInflowInformation) inj;
-                bw.write("\t\t<Diffusive>false</>");
+                bw.write("\t\t<Active>" + inj.isActive() + "</>");
                 bw.newLine();
-                bw.write("\t\t<Concentration unit='kg/m^3'>" + ai.getConcentration() + "</>");
+                bw.write("\t</Injection>");
                 bw.newLine();
-            }
-            bw.write("\t\t<Start unit='s'>" + inj.getStarttimeSimulationsAfterSimulationStart() + "</>");
-            bw.newLine();
-            bw.write("\t\t<Duration unit='s'>" + inj.getDurationSeconds() + "</>");
-            bw.newLine();
-            bw.write("\t\t<Material id=" + inj.getMaterial().materialIndex + ">" + inj.getMaterial().getName() + "</>");
-            bw.newLine();
-            bw.write("\t\t<Mass unit='kg'>" + inj.getMass() + "</>");
-            bw.newLine();
-            bw.write("\t\t<Particles>" + inj.getNumberOfParticles() + "</>");
-            bw.newLine();
-            bw.write("\t\t<Active>" + inj.isActive() + "</>");
-            bw.newLine();
-            bw.write("\t</Injection>");
-            bw.newLine();
 
+            }
         }
 
         bw.write("</Injections>");
@@ -449,6 +468,11 @@ public class Setup_IO {
                             if (f.exists()) {
                                 setup.files.surfaceResult = f;
                             }
+                        }
+                    } else if (line.contains("<Sparse>")) {
+                        Boolean sparse = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                        if (networkRelation) {
+                            setup.setSparsePipeVelocity(sparse);
                         }
                     }
                     if (line.contains("/InputFiles")) {

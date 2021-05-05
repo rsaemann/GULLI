@@ -35,12 +35,16 @@ public class StorageVolume extends Capacity {
      * [m] water height above sea level [üNN]
      */
 //    protected float water_height;
-
     protected int numberOutgoings, numberIncomings;
-    
+
     protected TimeLineManhole timelineStatus;
-    
+
     protected String name;
+
+    /**
+     * simple counter to balance all outflowing particles
+     */
+    public float passedMass = 0;
 
     public StorageVolume(Profile profile) {
         super(profile);
@@ -78,10 +82,10 @@ public class StorageVolume extends Capacity {
             newConnections[i] = connections[i - 1];
         }
         connections = newConnections;
-        
+
         if (con.isStartOfPipe()) {
             numberOutgoings++;
-        }else {
+        } else {
             numberIncomings++;
         }
         return true;
@@ -98,15 +102,15 @@ public class StorageVolume extends Capacity {
     }
 
     /**
-     * returns Water level above sea level
-     * Wasserhöhe üNN.
+     * returns Water level above sea level Wasserhöhe üNN.
+     *
      * @return
      */
     @Override
     public double getWaterHeight() {
         return timelineStatus.getActualWaterZ();
     }
-    
+
 //    /**
 //     * Waterlevel from sole of this volume.
 //     * Wasserstand ab Grundsohle.
@@ -115,7 +119,6 @@ public class StorageVolume extends Capacity {
 //    public double getWaterLevel(){
 //        return timelineStatus.getWaterZ(ArrayTimeLineManhole.getActualTimeIndex())-this.sole_height;
 //    }
-
     @Override
     public double getFluidVolume() {
         return profile.getTotalArea() * (getWaterlevel());
@@ -150,13 +153,9 @@ public class StorageVolume extends Capacity {
         return numberOutgoings;
     }
 
-
     public String getName() {
         return name;
     }
-    
-    
-
 
     @Override
     public void setMeasurementTimeLine(MeasurementTimeline tl) {
@@ -167,7 +166,7 @@ public class StorageVolume extends Capacity {
     public MeasurementTimeline getMeasurementTimeLine() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
-    
+
     public TimeLineManhole getStatusTimeLine() {
         return this.timelineStatus;
     }
@@ -180,7 +179,5 @@ public class StorageVolume extends Capacity {
     public double getWaterlevel() {
         return timelineStatus.getActualWaterLevel();//timelineStatus.getActualWaterZ()-this.getSole_height();
     }
-    
-    
 
 }

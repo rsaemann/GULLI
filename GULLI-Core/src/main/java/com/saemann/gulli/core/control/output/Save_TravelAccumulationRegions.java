@@ -58,11 +58,11 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
      * -1=all materials
      */
     public int materialIndex = -1;
-    
+
     /**
      * Buffer to each side in ° 0.0004 = 25m buffer to each side
      */
-    public double buffer=0.0004;
+    public double buffer = 0.0004;
 
     /**
      * Only traces of particles that reached an outlet.
@@ -98,9 +98,11 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
             }
 
             Surface surface = sc.getSurface();
-            if (surface == null) {
-                System.err.println("No surface to write contamination shapes.");
-                return null;
+            boolean langitudeFirst = true;
+            if (surface != null) {
+                surface.getGeotools().isGloablLongitudeFirst();
+//                System.err.println("No surface to write contamination shapes.");
+//                return null;
             }
 
             //Create surrounding shape of contaminated areas.
@@ -137,15 +139,15 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
                     System.out.println("No Travelpath traces files created.");
                     continue;
                 }
-                
-                Geometry area=shapes.get(0).buffer(buffer, 1);
+
+                Geometry area = shapes.get(0).buffer(buffer, 1);
                 for (LineString shape : shapes) {
-                    area=area.union(shape.buffer(buffer, 1, 0));
+                    area = area.union(shape.buffer(buffer, 1, 0));
                 }
-                area=TopologyPreservingSimplifier.simplify(area, buffer*0.1);
+                area = TopologyPreservingSimplifier.simplify(area, buffer * 0.1);
 //                area=area.buffer(buffer,1,0);
 //                area=area.buffer(-buffer,1,0);
-                
+
                 name = entry.getKey();
                 if (fileformat == StoringCoordinator.FileFormat.SHP) {
                     File shpfile = new File(fileRoot, name + ".shp");
@@ -157,36 +159,37 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
                     if (shxfile.exists()) {
                         shxfile.delete();
                     }
-                    SHP_IO_GULLI.writeWGS84(area, shpfile.getAbsolutePath(), name, !surface.getGeotools().isGloablLongitudeFirst());
+                    SHP_IO_GULLI.writeWGS84(area, shpfile.getAbsolutePath(), name, !langitudeFirst);
                     if (verbose) {
                         System.out.println("Shapefiles written to " + shpfile.getAbsolutePath());
                     }
                 } else if (fileformat == StoringCoordinator.FileFormat.CSV) {
-                    File csvFile = new File(fileRoot, name + ".csv");
-                    try {
-                        HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, surface);
-                        if (verbose) {
-                            System.out.println("Shapefiles written to " + csvFile.getAbsolutePath());
-                        }
-                    } catch (IOException ex) {
-                        Logger.getLogger(StoringCoordinator.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+//                    File csvFile = new File(fileRoot, name + ".csv");
+//                    try {
+//                        HE_SurfaceIO.writeSurfaceContaminationCSV(csvFile, surface);
+//                        if (verbose) {
+//                            System.out.println("Shapefiles written to " + csvFile.getAbsolutePath());
+//                        }
+//                    } catch (IOException ex) {
+//                        Logger.getLogger(StoringCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+                    throw new UnsupportedOperationException("Write traces as CSV not yet implemented");
                 } else if (fileformat == StoringCoordinator.FileFormat.GeoJSON) {
                     File jsonfile = new File(fileRoot, name + ".json");
                     GeoJSON_IO geojson = new GeoJSON_IO();
                     geojson.setMaximumFractionDigits(5);
                     //GeoJSON convention is: longitude first;
-                    geojson.swapXY = !StartParameters.JTS_WGS84_LONGITUDE_FIRST;
+                    geojson.swapXY = !langitudeFirst;// StartParameters.JTS_WGS84_LONGITUDE_FIRST;
                     Geometry mercator = area;
 //                    for (int i = 0; i < mercator.length; i++) {
 //                        Geometry geom = shapes.get(i);
 //                        mercator[i] = geom;
 
-                        GeoJSON_IO.JSONProperty[] props = new GeoJSON_IO.JSONProperty[3];
-                        props[0] = new GeoJSON_IO.JSONProperty("stoff", materialName);
-                        props[1] = new GeoJSON_IO.JSONProperty("eventid", 0);
-                        props[2] = new GeoJSON_IO.JSONProperty("part", 0);
-                        mercator.setUserData(props);
+                    GeoJSON_IO.JSONProperty[] props = new GeoJSON_IO.JSONProperty[3];
+                    props[0] = new GeoJSON_IO.JSONProperty("stoff", materialName);
+                    props[1] = new GeoJSON_IO.JSONProperty("eventid", 0);
+                    props[2] = new GeoJSON_IO.JSONProperty("part", 0);
+                    mercator.setUserData(props);
 //                    }
                     try {
                         geojson.write(jsonfile, new Geometry[]{mercator});
@@ -201,7 +204,7 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
                     if (gpckFile.exists()) {
                         gpckFile.delete();
                     }
-                    ArrayList<Geometry> geoms=new ArrayList<>(1);
+                    ArrayList<Geometry> geoms = new ArrayList<>(1);
                     geoms.add(area);
                     Geopackage_IO.writeWGS84(geoms, gpckFile.getAbsolutePath(), name, !surface.getGeotools().isGloablLongitudeFirst());
                     if (verbose) {
@@ -218,7 +221,7 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
                     }
                 }
             }
-            System.out.println("Created all Travel path area files in "+fileRoot.getAbsolutePath());
+            System.out.println("Created all Travel path area files in " + fileRoot.getAbsolutePath());
         } catch (Exception exception) {
             exception.printStackTrace();
         }
@@ -253,8 +256,8 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
 
     @Override
     public void setParameterValueDouble(int index, double value) {
-        if(index==0){
-            buffer=value;
+        if (index == 0) {
+            buffer = value;
         }
     }
 

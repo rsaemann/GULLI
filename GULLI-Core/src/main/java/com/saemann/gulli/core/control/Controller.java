@@ -481,6 +481,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     }
                 }
             }
+            for (Manhole manhole : network.getManholes()) {
+                manhole.passedMass = 0;
+            }
         } else {
 //            System.err.println("Network is not yet loaded. Cannot reset MeasurementTimelines of Pipes.");
         }

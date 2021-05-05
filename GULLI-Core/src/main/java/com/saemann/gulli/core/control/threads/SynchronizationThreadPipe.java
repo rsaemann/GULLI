@@ -108,7 +108,7 @@ public class SynchronizationThreadPipe extends Thread {
                     if (mcp != null) {
                         if (mcp.measurementsActive) {
 //                            if (mcp.spatialConsistentMeasures) {
-                                mcp.addMeasurementTime(writeindex, barrier.getStepEndTime());
+                            mcp.addMeasurementTime(writeindex, barrier.getStepEndTime());
 //                            } else {
 //                                mcp.addMeasurementTime(writeindex, (long) ((barrier.getStepStartTime()+barrier.getStepEndTime())*0.5));
 ////                                .measurementTimes[writeindex] = (long) ((barrier.getStepStartTime()+barrier.getStepEndTime())*0.5);
@@ -118,7 +118,13 @@ public class SynchronizationThreadPipe extends Thread {
                             for (Pipe pipe : pipes) {
                                 if (pipe.getMeasurementTimeLine() != null) {
                                     if (pipe.getMeasurementTimeLine().getNumberOfParticlesInTimestep() > 0) {
-                                        pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getFluidVolume());
+                                        //The calculation of the volume seems to be erroneous. Use the calculation via the discharge, if water is moving
+                                        if (pipe.getStatusTimeLine().getDischarge() < 0.001) {
+                                            //If water is resting, calculate via the water level
+                                            pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getStatusTimeLine().getVolume());
+                                        } else {
+                                            pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getStatusTimeLine().getDischarge() * pipe.getLength() / pipe.getStatusTimeLine().getVelocity());
+                                        }
                                     }
                                     pipe.getMeasurementTimeLine().resetNumberOfParticles();
                                 }
