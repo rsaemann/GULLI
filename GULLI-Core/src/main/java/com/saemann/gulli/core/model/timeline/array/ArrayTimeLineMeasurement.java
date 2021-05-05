@@ -57,10 +57,13 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
 //    public boolean active = true;
     private int spatialIndex;
 
-    public ArrayTimeLineMeasurement(ArrayTimeLineMeasurementContainer container, int spatialIndex) {
+    private float pipelength;
+
+    public ArrayTimeLineMeasurement(ArrayTimeLineMeasurementContainer container, int spatialIndex, float length) {
         this.container = container;
         this.spatialIndex = spatialIndex;
         this.startIndex = container.getNumberOfTimes() * spatialIndex;
+        this.pipelength = length;
         if (useIDsharpParticleCounting) {
             particles = new HashSet<>(0);
         } else {
@@ -70,9 +73,6 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
 
     private int getIndex(int temporalIndex) {
         int i = container.getNumberOfTimes() * spatialIndex + temporalIndex;//startIndex + temporalIndex;
-//        if (i >= container.getn) {
-//            System.err.println(this.getClass() + ":Index out of Bounds: temporalIndex:" + temporalIndex + " + startindex: " + startIndex + " = " + i + ">= " + ArrayTimeLineMeasurement.counts.length);
-//        }
         return i;
     }
 
@@ -130,10 +130,14 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
     @Override
     public float getMass(int temporalIndex, int materialIndex) {
         int index = getIndex(temporalIndex);
-        float mass = (float) (container.mass_type[index][materialIndex] / (container.samplesInTimeInterval[temporalIndex]/*samplesPerTimeinterval*/));
-//        System.out.println("mass at ti="+temporalIndex+": mass="+container.mass_type[index][materialIndex]+", smples: "+container.samplesInTimeInterval[temporalIndex]);
+        float mass = (float) (container.mass_type[index][materialIndex] / (container.samplesInTimeInterval[temporalIndex]));
         return mass;
+    }
 
+    @Override
+    public float getMassFlux(int temporalIndex, int materialIndex) {
+        int index = getIndex(temporalIndex);
+        return (container.massflux_type[index][materialIndex] / (container.samplesInTimeInterval[temporalIndex]));
     }
 
     /**
@@ -152,13 +156,19 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
                 continue;
             }
             int index = getIndex(i);
-            float temp_mass = (float) (container.mass_total[index] / (container.samplesInTimeInterval[i]));
-            float discharge = tl.getVelocity(tl.getTimeContainer().getTimeIndex(container.getTimeMillisecondsAtIndex(i))) / pipeLength;
+//            float temp_mass = (float) (container.mass_total[index] / (container.samplesInTimeInterval[i]));
+//            float discharge = tl.getVelocity(tl.getTimeContainer().getTimeIndex(container.getTimeMillisecondsAtIndex(i))) / pipeLength;
             float dt = (container.getMeasurementTimestampAtTimeIndex(i) - container.getMeasurementTimestampAtTimeIndex(i - 1)) / 1000.f;
-            massSum += temp_mass * discharge * dt;
-
+//            massSum += temp_mass * discharge * dt;
+            massSum += dt * container.massflux_total[index] / container.samplesInTimeInterval[i];
         }
         return massSum;
+    }
+
+    @Override
+    public float getMassFlux(int temporalIndex) {
+        int index = getIndex(temporalIndex);
+        return (container.massflux_total[index] / (container.samplesInTimeInterval[temporalIndex]));
     }
 
     /**
@@ -203,7 +213,7 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
      * @param volume in the Pipe at current
      */
     @Override
-    public void addMeasurement(int timeindex, double volume) {
+    public void addMeasurement(int timeindex, double volume, double velocity) {
         int index = getIndex(timeindex);
 
         try {
@@ -214,11 +224,14 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
             }
             container.volumes[index] += volume;
             container.mass_total[index] += particleMassInTimestep;
+            container.massflux_total[index] += particleMassInTimestep * velocity / pipelength;
 
             if (particleMassPerTypeinTimestep != null) {
                 try {
                     for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
-                        container.mass_type[index][i] += (float) (particleMassPerTypeinTimestep[i]);
+                        container.mass_type[index][i] += particleMassPerTypeinTimestep[i];
+                        container.massflux_type[index][i] += particleMassPerTypeinTimestep[i] * velocity/pipelength ;
+
                     }
                 } catch (Exception e) {
                     System.err.println("Index problem with material " + (particleMassPerTypeinTimestep.length - 1) + ", length of array: " + container.mass_type[index].length);
@@ -230,8 +243,7 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
             if (tempmass > maxMass) {
                 maxMass = tempmass;
             }
-//            System.out.println("store mass at time "+timeindex +" counts: "+container.counts[index]);
-            double temp_c = tempmass / volume;//container.volumes[index];// (tempmass * container.counts[index] / (container.volumes[index]));
+            double temp_c = tempmass / volume;
             if (!Double.isInfinite(temp_c) && !Double.isNaN(temp_c)) {
                 if (temp_c > maxConcentration) {
                     maxConcentration = temp_c;
@@ -389,11 +401,13 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
      * @param temporalIndex
      * @return
      */
+    @Override
     public int getParticles_Visited(int temporalIndex) {
         int index = getIndex(temporalIndex);
         return (container.particles_visited[index]);
     }
 
+    @Override
     public ArrayTimeLineMeasurementContainer getContainer() {
         return container;
     }
@@ -401,6 +415,11 @@ public class ArrayTimeLineMeasurement implements MeasurementTimeline {
     @Override
     public TimeContainer getTimes() {
         return container.getTimes();
+    }
+
+    @Override
+    public float getReferenceLength() {
+        return pipelength;
     }
 
 }

@@ -598,7 +598,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     try {
                         if (pipe.getEndConnection().getManhole().isSetAsOutlet()) {
                             Position3D pos = pipe.getEndConnection().getPosition();
-                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), pos.getLongitude(), pos.getLatitude(), MapViewer.COLORHOLDER_LABEL, "Outlet: " + df1.format(pipe.getEndConnection().getManhole().passedMass));//pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength())) + " kg");
+                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), pos.getLongitude(), pos.getLatitude(), MapViewer.COLORHOLDER_LABEL, "Out: " + df1.format(pipe.getEndConnection().getManhole().passedMass)+" kg");//pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength())) + " kg");
                             lp.setCoronaBackground(true);
                             mapViewer.addPaintInfoToLayer("OutletMass", lp);
                         }

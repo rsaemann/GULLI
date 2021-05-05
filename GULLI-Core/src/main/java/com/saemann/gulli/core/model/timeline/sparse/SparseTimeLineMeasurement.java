@@ -45,12 +45,20 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
      * Mass of contaminants in total [timeindex]
      */
     public float[] mass_total;
+
+    /**
+     * Massflux [kg/s] of contaminants in total [timeindex]
+     */
+    public float[] massflux_total;
     /**
      * mass of different types of contaminants [timeindex][contaminantIndex] raw
      * value. must be divided by the number of samples to get the value for the
      * interval
      */
     public float[][] mass_type;
+
+    public float[][] massflux_type;
+
     public float[] volumes;
 
     protected SparseMeasurementContainer container;
@@ -88,17 +96,17 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
     private float[] particleMassPerTypeinTimestep;
 
     private float[] particleMassPerTypeLastTimestep;
-    
+
     /**
      * Length of the pipe in [m]
      */
-    private float length=1;
+    private float length = 1;
 
     private final Lock lock = new ReentrantLock();
 
-    public SparseTimeLineMeasurement(SparseMeasurementContainer container) {
+    public SparseTimeLineMeasurement(SparseMeasurementContainer container, float pipelength) {
         this.container = container;
-//        this.length=pipelength;
+        this.length=pipelength;
     }
 
     private void prepareWritable() {
@@ -112,6 +120,8 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
         samplesInTimeIntervalPipe = new int[numberOfTimes];
         mass_total = new float[numberOfTimes];
         mass_type = new float[numberOfTimes][numberOfMaterials];
+        massflux_total = new float[numberOfTimes];
+        massflux_type = new float[numberOfTimes][numberOfMaterials];
         volumes = new float[numberOfTimes];
         particleMassPerTypeLastTimestep = new float[numberOfMaterials];
         particleMassPerTypeinTimestep = new float[numberOfMaterials];
@@ -130,7 +140,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
             return 0;
         }
         //mass and volume are both sums of the interval samples and therefore do not have to be divided by the number of samples
-        float c =  (mass_total[temporalIndex]*samplesInTimeIntervalPipe[temporalIndex]) / (volumes[temporalIndex]*container.samplesInTimeInterval[temporalIndex]);
+        float c = (mass_total[temporalIndex] * samplesInTimeIntervalPipe[temporalIndex]) / (volumes[temporalIndex] * container.samplesInTimeInterval[temporalIndex]);
         return c;
     }
 
@@ -148,7 +158,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
             return 0;
         }
 
-        return  (mass_type[temporalIndex][materialIndex]*samplesInTimeIntervalPipe[temporalIndex]) / (volumes[temporalIndex]*container.samplesInTimeInterval[temporalIndex]);
+        return (mass_type[temporalIndex][materialIndex] * samplesInTimeIntervalPipe[temporalIndex]) / (volumes[temporalIndex] * container.samplesInTimeInterval[temporalIndex]);
     }
 
     /**
@@ -186,6 +196,26 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
 
     }
 
+    @Override
+    public float getMassFlux(int temporalIndex, int materialIndex) {
+        if (massflux_total == null) {
+            return 0;
+        }
+
+        float massf = (float) (massflux_type[temporalIndex][materialIndex] / (container.samplesInTimeInterval[temporalIndex]));
+        return massf;
+    }
+
+    @Override
+    public float getMassFlux(int temporalIndex) {
+        if (massflux_total == null) {
+            return 0;
+        }
+        float massf = (float) (massflux_total[temporalIndex] / (container.samplesInTimeInterval[temporalIndex]));
+//        System.out.println("timeindex: " + temporalIndex + "  sum:" + massflux_total[temporalIndex] + " / " + container.samplesInTimeInterval[temporalIndex] + " = " + massf + "kg/s");
+        return massf;
+    }
+
     /**
      * Total passed mass. Can be negative, if mass flux is directed reverse to
      * pipe orientation.
@@ -196,6 +226,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
      */
     @Override
     public float getTotalMass(TimeLinePipe tl, float pipeLength) {
+        float massSum_direct = 0;
         float massSum = 0;
         for (int i = 1; i < container.getTimes().getNumberOfTimes(); i++) {
             if (samplesInTimeIntervalPipe[i] < 1) {
@@ -205,9 +236,10 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
             float discharge = tl.getVelocity(tl.getTimeContainer().getTimeIndex(container.getTimes().getTimeMilliseconds(i))) / pipeLength;
             float dt = (container.getTimes().getTimeMilliseconds(i) - container.getTimes().getTimeMilliseconds(i - 1)) / 1000.f;
             massSum += temp_mass * discharge * dt;
-
+            massSum_direct += dt * massflux_total[i] / container.samplesInTimeInterval[i];
         }
-        return massSum;
+        System.out.println("Massum: assambled: " + massSum + "\t direct: " + massSum_direct);
+        return massSum_direct;
     }
 
     /**
@@ -259,7 +291,7 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
      * @param volume in the Pipe at current
      */
     @Override
-    public void addMeasurement(int timeindex, double volume) {
+    public void addMeasurement(int timeindex, double volume, double velocity) {
         if (numberOfParticlesInTimestep == 0) {
             //Nothing to do here. No information from trespassing particles gathered during the last simulation loop.
             return;
@@ -273,11 +305,13 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
             particles[timeindex] += numberOfParticlesInTimestep;
             volumes[timeindex] += volume;
             mass_total[timeindex] += particleMassInTimestep;
+            massflux_total[timeindex] += particleMassInTimestep * velocity / length;
 
             if (particleMassPerTypeinTimestep != null) {
                 try {
                     for (int i = 0; i < particleMassPerTypeinTimestep.length; i++) {
-                        mass_type[timeindex][i] += (float) (particleMassPerTypeinTimestep[i]);
+                        mass_type[timeindex][i] +=  (particleMassPerTypeinTimestep[i]);
+                        massflux_type[timeindex][i] += particleMassPerTypeinTimestep[i] * velocity / length;
                     }
                 } catch (Exception e) {
                     System.err.println("Index problem with material " + (particleMassPerTypeinTimestep.length - 1) + ", length of array: " + mass_type[timeindex].length);
@@ -444,6 +478,8 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
         initialized = false;
         mass_total = null;
         mass_type = null;
+        massflux_total = null;
+        massflux_type = null;
 //        measurementTimes=null;
         particleMassPerTypeinTimestep = null;
         particleMassPerTypeLastTimestep = null;
@@ -470,4 +506,10 @@ public class SparseTimeLineMeasurement implements MeasurementTimeline {
     public double getMassLastTimestep(int materialIndex) {
         return particleMassPerTypeLastTimestep[materialIndex];
     }
+
+    @Override
+    public float getReferenceLength() {
+        return length;
+    }
+
 }

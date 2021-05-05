@@ -529,7 +529,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
             for (Pipe pipe : network.getPipes()) {
-                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m);
+                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m,pipe.getLength());
                 pipe.setMeasurementTimeLine(tlm);
                 list.add(tlm);
             }
@@ -547,7 +547,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
             int number = 0;
             for (Pipe p : network.getPipes()) {
-                p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
+                p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number, p.getLength()));
                 number++;
             }
         }
@@ -564,7 +564,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
             for (Pipe pipe : network.getPipes()) {
-                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m);
+                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m,pipe.getLength());
                 pipe.setMeasurementTimeLine(tlm);
                 list.add(tlm);
             }
@@ -582,7 +582,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
             int number = 0;
             for (Pipe p : network.getPipes()) {
-                p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number));
+                p.setMeasurementTimeLine(new ArrayTimeLineMeasurement(container_m, number, p.getLength()));
                 number++;
             }
         }

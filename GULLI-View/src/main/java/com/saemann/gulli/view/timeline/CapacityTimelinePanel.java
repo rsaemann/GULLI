@@ -212,7 +212,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries m_p_l = new TimeSeries(new SeriesKey("Particles/Length", "", "1/m", Color.orange, new AxisKey("Particle per Length")), "Time", "");
     private final TimeSeries m_p_l_sum = new TimeSeries(new SeriesKey("\u03a3Particles/Length", "", "1/m", Color.orange), "Time", "");
     private final TimeSeries m_m = new TimeSeries(new SeriesKey("p. Mass", "m_p", "kg", Color.red, new AxisKey("Mass")), "Time", "");
-    private final TimeSeries m_m_sum = new TimeSeries(new SeriesKey(/*\u03a3*/"Sum p. Mass ", "", "kg", Color.pink, new AxisKey("Mass", "Mass [kg]")), "Time", "");
+    private final TimeSeries m_m_acc = new TimeSeries(new SeriesKey(/*\u03a3*/"Sum p. Mass ", "", "kg", Color.pink, new AxisKey("Mass", "Mass [kg]")), "Time", "");
     private final TimeSeries m_vol = new TimeSeries(new SeriesKey("Volumen", "V", "m³", Color.cyan, new AxisKey("Vol", "Volume [m³]")), "Time", "m³");
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V", "Velocity [m/s]"), 0), "Time", "m/s");
@@ -313,11 +313,12 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p_l.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_c.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_p_sum.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refConcentrationTotal.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) refMassfluxTotal.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_massflux.getKey()).name, false);
 
-        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_sum.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) m_m_acc.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) ref_m_sum.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) hpipe0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
@@ -672,7 +673,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
         m_m.clear();
         m_c.clear();
-        m_m_sum.clear();
+        m_m_acc.clear();
         m_n.clear();
         m_p.clear();
         m_p_sum.clear();
@@ -797,7 +798,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         }
 
         if (tlm != null && tlm.getContainer() != null) {
-            float mass_total_sum = 0;
+            float mass_total_accumulation = 0;
             double offset = 0;
             double offset2 = 0;
 
@@ -959,17 +960,21 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         if (!Double.isFinite(cE)) {
                             cE = 0;
                         }
-                        mes_massFlux_Type.get(m).addOrUpdate(time, cE * dischargeE);
+                        float mft=tlm.getMassFlux(i, m);
+//                        if(mft>0)System.out.println("Massflux "+time+"\t "+mft+" kg/s"+tlm.getReferenceLength());
+                        mes_massFlux_Type.get(m).addOrUpdate(time,mft);// cE * dischargeE);
                         mes_concentration_Type.get(m).addOrUpdate(time, cE);
 
                         massFluxSum += (cS * dischargeS + cE * dischargeE) * 0.5;
                         massSum += cE * vol_c;
                     }
-                    mass_total_sum += massFluxSum * dt;
+                    mass_total_accumulation += dt*tlm.getMassFlux(i);
                 }
-                m_massflux.addOrUpdate(time, massFluxSum);
+                float mftotal=tlm.getMassFlux(i);
+//                System.out.println("massflux direct: "+mftotal+" \t assembled: "+massFluxSum);
+                m_massflux.addOrUpdate(time, mftotal);
                 m_m.addOrUpdate(time, massSum);
-                m_m_sum.addOrUpdate(time, mass_total_sum);
+                m_m_acc.addOrUpdate(time, mass_total_accumulation);
 
                 float c = tlm.getConcentration(i);
                 if (Double.isNaN(c)) {
@@ -1101,8 +1106,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             this.collection.addSeries(ref_m_sum);
         }
 
-        if (m_m_sum.getMaxY() > 0 || m_m_sum.getMinY() < 0) {
-            this.collection.addSeries(m_m_sum);
+        if (m_m_acc.getMaxY() > 0 || m_m_acc.getMinY() < 0) {
+            this.collection.addSeries(m_m_acc);
         }
 
         if (m_p.getMaxY() > 0) {

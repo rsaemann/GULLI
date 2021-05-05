@@ -33,8 +33,7 @@ import com.saemann.gulli.core.model.timeline.array.TimeLinePipe;
  * @author Robert Sämann
  */
 public interface MeasurementTimeline {
-    
-    
+
     /**
      * Add a particle to the measurement storage for the current time. The
      * container must be measurementActive=true to add this particle.
@@ -44,22 +43,21 @@ public interface MeasurementTimeline {
      * the whole timestep.
      */
     public void addParticle(Particle particleToCount, float dtfactor);
-    
+
     /**
      * Sumup and write the collected data so far into the storage array for the
      * given timeindex.
      *
      * @param timeindex
-     * @param volume in the Pipe at current
+     * @param volume [m^3] in the Pipe at current
+     * @param velocity [m/s] mean velocity in pipe
      */
-    public void addMeasurement(int timeindex, double volume);
-    
+    public void addMeasurement(int timeindex, double volume, double velocity);
+
     /**
      * Clears all counters to start a new sampling action.
      */
     public void resetNumberOfParticles();
-    
-    
 
     public boolean hasValues(int timeIndex);
 
@@ -79,6 +77,23 @@ public interface MeasurementTimeline {
      * @return mass [kg] of this material
      */
     public float getMass(int temporalIndex, int materialIndex);
+
+    /**
+     * Massflux in [kg/s]
+     *
+     * @param temporalIndex
+     * @param materialIndex
+     * @return massflux
+     */
+    public float getMassFlux(int temporalIndex, int materialIndex);
+
+    /**
+     * Massflux of all materials summarized in [kg/s]
+     *
+     * @param temporalIndex
+     * @return massflux
+     */
+    public float getMassFlux(int temporalIndex);
 
     /**
      * Mean volume sampled during the ith time interval.
@@ -105,24 +120,26 @@ public interface MeasurementTimeline {
      * @return
      */
     public float getParticles(int temporalIndex);
-    
+
     public int getNumberOfParticlesUntil(int timeindex);
-    
+
     public double getNumberOfParticlesInTimestep();
-    
+
     public double getParticleMassInTimestep();
-    
+
     /**
-     * Accumulated number of particles sampled during the interval; 
+     * Accumulated number of particles sampled during the interval;
+     *
      * @param temporalIndex
-     * @return 
+     * @return
      */
     public int getParticles_Visited(int temporalIndex);
 
-    
     public void resetVisitedParticlesStorage();
-    
+
     public TimeContainer getTimes();
-    
+
     public MeasurementContainer getContainer();
+    
+    public float getReferenceLength();
 }

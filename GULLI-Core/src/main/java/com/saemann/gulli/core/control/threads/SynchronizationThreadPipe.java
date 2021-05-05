@@ -121,9 +121,9 @@ public class SynchronizationThreadPipe extends Thread {
                                         //The calculation of the volume seems to be erroneous. Use the calculation via the discharge, if water is moving
                                         if (pipe.getStatusTimeLine().getDischarge() < 0.001) {
                                             //If water is resting, calculate via the water level
-                                            pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getStatusTimeLine().getVolume());
+                                            pipe.getMeasurementTimeLine().addMeasurement(writeindex, pipe.getStatusTimeLine().getVolume(), pipe.getStatusTimeLine().getVelocity());
                                         } else {
-                                            pipe.getMeasurementTimeLine().addMeasurement(writeindex, (float) pipe.getStatusTimeLine().getDischarge() * pipe.getLength() / pipe.getStatusTimeLine().getVelocity());
+                                            pipe.getMeasurementTimeLine().addMeasurement(writeindex, pipe.getStatusTimeLine().getDischarge() * pipe.getLength() / pipe.getStatusTimeLine().getVelocity(),  pipe.getStatusTimeLine().getVelocity());
                                         }
                                     }
                                     pipe.getMeasurementTimeLine().resetNumberOfParticles();

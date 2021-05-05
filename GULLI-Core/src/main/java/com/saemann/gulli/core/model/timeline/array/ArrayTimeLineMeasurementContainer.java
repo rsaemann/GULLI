@@ -13,32 +13,38 @@ import com.saemann.gulli.core.model.topology.Pipe;
 public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
 
 //    public static ArrayTimeLineMeasurementContainer instance;
-
 //    private TimeContainer times;
     public float[] particles;
     /**
-     * Mass of contaminants in total [timeindex]
+     * Mass [kg] of contaminants in total [timeindex]
      */
-    public double[] mass_total;
+    public float[] mass_total;
+
+    /**
+     * Massflux [kg/s] of contaminants in total [timeindex]
+     */
+    public float[] massflux_total;
     /**
      * mass of different types of contaminants [timeindex][contaminantIndex] raw
      * value. must be divided by the number of samples to get the value for the
      * interval
      */
     public float[][] mass_type;
+
+    /**
+     * massflux [kg/s] per material
+     */
+    public float[][] massflux_type;
     public int[] particles_visited;
     public float[] volumes;
     public int[] counts;
-    
 
-   
     /**
      * Distance from an injection point to calculate the momentum of
      * concentration.
      */
     public static float[] distance;
 
-    
     private int numberOfCapacities;
 //    private int numberOfContaminants;
 
@@ -60,7 +66,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
 
     public ArrayTimeLineMeasurementContainer(Network network, long intervalMilliseconds, long starttime, long endtime, int numberOfMaterials) {
         super();
-        System.out.println("Create new "+getClass());
+        System.out.println("Create new " + getClass());
         long durationMS = endtime - starttime;
 
         boolean fits = durationMS % intervalMilliseconds == 0;
@@ -79,7 +85,7 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         int i = 0;
         for (Pipe pipe : network.getPipes()) {
             if (pipe.getMeasurementTimeLine() == null) {
-                pipe.setMeasurementTimeLine(new ArrayTimeLineMeasurement(this, i));
+                pipe.setMeasurementTimeLine(new ArrayTimeLineMeasurement(this, i,pipe.getLength()));
             }
             i++;
         }
@@ -102,13 +108,16 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         this.particles = new float[numberOfPipes * numberOfTimes];
         this.particles_visited = new int[numberOfPipes * numberOfTimes];
         this.volumes = new float[numberOfPipes * numberOfTimes];
-        this.mass_total = new double[numberOfPipes * numberOfTimes];
+        this.mass_total = new float[numberOfPipes * numberOfTimes];
+        this.massflux_total = new float[numberOfPipes * numberOfTimes];
 
         this.mass_type = new float[numberOfPipes * numberOfTimes][numberOfContaminantTypes];
+        this.massflux_type = new float[numberOfPipes * numberOfTimes][numberOfContaminantTypes];
         this.measurementTimes = new long[numberOfTimes];
         this.samplesInTimeInterval = new int[numberOfTimes];
     }
 
+    @Override
     public void setNumberOfMaterials(int number) {
         if (this.numberOfMaterials == number) {
             return;
@@ -123,11 +132,9 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         actualTimeIndex = neuerIndex;
     }
 
-   
-
     @Override
     public void setIntervalSeconds(double seconds, long startTime, long endTime) {
-        if (seconds == this.getTimes().getDeltaTimeMS()/1000 && startTime == this.getTimes().getFirstTime() && endTime == this.getTimes().getLastTime()) {
+        if (seconds == this.getTimes().getDeltaTimeMS() / 1000 && startTime == this.getTimes().getFirstTime() && endTime == this.getTimes().getLastTime()) {
             //Nothing changed
             return;
         }
@@ -144,8 +151,6 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         System.out.println("calculate  number of snapshots: " + numberOfTimes);
         initialize(numberOfTimes, numberOfCapacities, numberOfMaterials);
     }
-
-   
 
     /**
      * Seconds per Timeindex between storing timesteps.
@@ -274,8 +279,6 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         return zaehler / nenner;
     }
 
-  
-
     public int getNumberOfTimes() {
         return times.getNumberOfTimes();
     }
@@ -295,12 +298,13 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
         this.particles = new float[numberOfCapacities * times.getNumberOfTimes()];
         this.particles_visited = new int[numberOfCapacities * times.getNumberOfTimes()];
         this.volumes = new float[numberOfCapacities * times.getNumberOfTimes()];
-        this.mass_total = new double[numberOfCapacities * times.getNumberOfTimes()];
+        this.mass_total = new float[numberOfCapacities * times.getNumberOfTimes()];
+        this.massflux_total = new float[numberOfCapacities * times.getNumberOfTimes()];
 
         this.mass_type = new float[numberOfCapacities * times.getNumberOfTimes()][numberOfMaterials];
+        this.massflux_type = new float[numberOfCapacities * times.getNumberOfTimes()][numberOfMaterials];
         this.samplesInTimeInterval = new int[times.getNumberOfTimes()];
-        this.measurementTimes=new long[times.getNumberOfTimes()];
-        
+        this.measurementTimes = new long[times.getNumberOfTimes()];
 
         maxConcentration_global = 0;
     }
@@ -361,11 +365,8 @@ public class ArrayTimeLineMeasurementContainer extends MeasurementContainer {
 //    public boolean isTimespotmeasurement() {
 //        return timespotmeasurement;
 //    }
-
     public int getNumberOfContaminants() {
         return numberOfMaterials;
     }
-
-   
 
 }
