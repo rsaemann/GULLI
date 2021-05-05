@@ -114,13 +114,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JProgressBar progressSimulation;
     private JProgressBar progressLoading;
     private boolean longerThan1Day = false;
-    private JCheckBox checkVelocityFunction;
+//    private JCheckBox checkVelocityFunction;
     private JTextField textDispersionPipe, textDispersionSurface;
     private JFormattedTextField textSeed;
     private JButton buttonSetupSave, buttonSetupLoad;
     private JLabel labelSetupName;
     private JButton buttonFileNetwork, buttonFilePipeResult;
-    private JCheckBox checkSparsePipeLoading;
+    private JCheckBox checkSparsePipeLoading, checkLoadFileSpills;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
     private JButton buttonFileSurface, buttonFileWaterdepths;
 
@@ -133,7 +133,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
     private JSlider sliderTimeShape;
     private JLabel labelSliderTime;
 
-    private final ArrayList<JComboBox<PaintManager.SURFACESHOW>> combosDurfaceShow = new ArrayList<>();
+//    private final ArrayList<JComboBox<PaintManager.SURFACESHOW>> combosDurfaceShow = new ArrayList<>();
     final JCheckBox checkTrianglesNodes;
 
     private JLabel labelScenarioInformation;
@@ -320,8 +320,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelTabSimulation.add(panelMovementAlgorithm);
 
         // Velocity Function instead of Dispersion
-        checkVelocityFunction = new JCheckBox("Velocity function", ParticlePipeComputing.useStreamlineVelocity);
-        checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
+//        checkVelocityFunction = new JCheckBox("Velocity function", ParticlePipeComputing.useStreamlineVelocity);
+//        checkVelocityFunction.setToolTipText("Use Streamline equivalent velocity instead of turbulent Dispersion.");
         //Seed
         JPanel panelSeed = new JPanel(new BorderLayout());
         panelSeed.add(new JLabel("Seed :"), BorderLayout.WEST);
@@ -819,14 +819,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             }
 
         });
-        checkVelocityFunction.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent ae) {
-                ParticlePipeComputing.useStreamlineVelocity = checkVelocityFunction.isSelected();
-                textDispersionPipe.setEnabled(!checkVelocityFunction.isSelected());
-            }
-        });
+//        checkVelocityFunction.addActionListener(new ActionListener() {
+//
+//            @Override
+//            public void actionPerformed(ActionEvent ae) {
+//                ParticlePipeComputing.useStreamlineVelocity = checkVelocityFunction.isSelected();
+//                textDispersionPipe.setEnabled(!checkVelocityFunction.isSelected());
+//            }
+//        });
         radioExplicit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -1040,6 +1040,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     timeelapsed += (int) seconds % 60 + "s ";
                 }
                 labelSliderTime.setText(timeelapsed);
+                paintManager.updateSurfaceShows(true);
+                mapViewer.recalculateShapes();
                 mapViewer.needMapUpdate();
                 mapViewer.repaint();
             }
@@ -1288,9 +1290,15 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.buttonFilePipeResult = new JButton("Pipe Velocity");
         panelNetwork.add(buttonFilePipeResult);
         if (control != null) {
+            JPanel panelcheks=new JPanel(new GridLayout(1, 2));
             this.checkSparsePipeLoading = new JCheckBox("Sparse Loading", control.getLoadingCoordinator().sparsePipeLoading);
             this.checkSparsePipeLoading.setToolTipText("Sparse loading requires less memory but takes more time to load flow field during the simulation.");
-            panelNetwork.add(checkSparsePipeLoading);
+            panelcheks.add(checkSparsePipeLoading);
+        
+            this.checkLoadFileSpills=new JCheckBox("Spills from File", control.getLoadingCoordinator().loadResultInjections);
+            this.checkLoadFileSpills.setToolTipText("If checked, the spill definitions from the Flow field file are loaded. If false, all spills must be defined manually");
+            panelcheks.add(checkLoadFileSpills);
+            panelNetwork.add(panelcheks);
         }
 
         //Surface Panel
@@ -1415,6 +1423,24 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 panelTable.getTable().collectionChanged();
             }
         });
+        
+        if(checkSparsePipeLoading!=null){
+            checkSparsePipeLoading.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    control.getLoadingCoordinator().sparsePipeLoading=checkSparsePipeLoading.isSelected();
+                }
+            });
+        }
+        
+        if(checkLoadFileSpills!=null){
+            checkLoadFileSpills.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    control.getLoadingCoordinator().loadResultInjections=checkLoadFileSpills.isSelected();
+                }
+            });
+        }
 
         return panelLoading;
     }
@@ -1541,6 +1567,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         }
         if (checkSparsePipeLoading != null) {
             checkSparsePipeLoading.setSelected(control.getLoadingCoordinator().sparsePipeLoading);
+        }
+        if(checkLoadFileSpills!=null){
+            checkLoadFileSpills.setSelected(control.getLoadingCoordinator().loadResultInjections);
         }
 
         buttonFileSurface.setBackground(getLoadingColor(lc.getLoadingSurface()));

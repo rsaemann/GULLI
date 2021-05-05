@@ -4,6 +4,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
+import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,6 +44,7 @@ public class RunMainView {
         final Controller control = new Controller();
 
         control.intervallHistoryParticles = 10;
+        
         //ViewController links the Controller to the GUI
         final ViewController vcontroller = new ViewController(control);
         //The Main Frame containing the Map.
@@ -89,6 +91,7 @@ public class RunMainView {
                 @Override
                 public void run() {
 
+
                     control.recalculateInjections();
                     control.start();
                     Runnable runner = this;
@@ -123,11 +126,15 @@ public class RunMainView {
             @Override
             public void simulationFINISH(boolean timeOut, boolean particlesOut) {
                 //Inform about the Time that it took to load information from the Database
-                System.out.println(control.getThreadController().reportLoadingTimes());
-                //Disabled debugging information. Can be enabled for information about stuck particles on the surface
-                if (false) {
-                    System.out.println("-----");
-                    System.out.println(control.getThreadController().reportTravelStatistics());
+                try {
+//                    System.out.println(control.getThreadController().reportLoadingTimes());
+                    //Disabled debugging information. Can be enabled for information about stuck particles on the surface
+                    if (true) {
+//                        System.out.println(control.getThreadController().reportTravelStatistics());                        
+                    }
+//                    System.out.println("-----");
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         });

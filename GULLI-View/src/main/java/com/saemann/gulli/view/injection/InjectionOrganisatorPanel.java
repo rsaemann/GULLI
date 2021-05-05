@@ -147,6 +147,9 @@ public class InjectionOrganisatorPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 Material mat = new Material("Spill", 1000, true);
                 if (control.getScenario() != null) {
+                    if (control.getScenario().getMaterials() == null) {
+                        control.getScenario().setMaterials(new ArrayList<>(3));
+                    }
                     control.getScenario().getMaterials().add(mat);
                     recreatePanels();
                 }

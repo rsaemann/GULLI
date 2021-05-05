@@ -117,14 +117,36 @@ public class MaterialPanel extends JPanel {
                         material.setDispersionCalculatorSurface(dcc);
                         updateValues();
                     }
+                } else if (comboDispersionSurface.getSelectedItem().equals(Material.DISPERSION_SURFACE.NONE)) {
+                    if (!(material.getDispersionCalculatorSurface() == null)) {
+                        material.setDispersionCalculatorSurface(null);
+                        updateValues();
+                    }
                 } else {
                     System.out.println("Unknown enum for Materiel.DISPERSION_SURFACE '" + comboDispersionSurface.getSelectedItem() + "'");
                 }
             }
         });
+        comboDispersionPipe.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (comboDispersionPipe.getSelectedItem().equals(Material.DISPERSION_PIPE.CONSTANT)) {
+                    if (!(material.getDispersionCalculatorPipe() instanceof Dispersion1D_Constant)) {
+                        material.setDispersionCalculatorPipe(new Dispersion1D_Constant());
+                        updateValues();
+                    }
+                } else if (comboDispersionPipe.getSelectedItem().equals(Material.DISPERSION_PIPE.NONE)) {
+                    if (material.getDispersionCalculatorPipe() != null) {
+                        material.setDispersionCalculatorPipe(null);
+                        updateValues();
+                    }
+                } else {
+                    System.out.println("Unknown pipe dispersion " + comboDispersionPipe.getSelectedItem() + ". DO not know which Dispersion calculator to apply");
+                }
+            }
+        });
+
         updateValues();
-//        this.setPreferredSize(new Dimension(160, 95));
-//        this.setMinimumSize(new Dimension(160, 90));
     }
 
     public void updateValues() {
@@ -138,6 +160,7 @@ public class MaterialPanel extends JPanel {
                 comboDispersionPipe.setSelectedItem(Material.DISPERSION_PIPE.CONSTANT);
             } else {
                 System.out.println("Unknown Dispersion calculator 1d '" + pc.getClass() + " for material " + material.toString());
+                comboDispersionPipe.setSelectedItem(Material.DISPERSION_PIPE.NONE);
             }
 
             panelDispersionPipeParameters.removeAll();

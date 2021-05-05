@@ -32,18 +32,20 @@ import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
-import javax.swing.border.BevelBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
  *
@@ -54,7 +56,7 @@ public class OutputPanel extends JPanel {
     protected OutputIntention output;
 
     protected TitledBorder border;
-    protected JButton buttonSave;
+    protected JButton buttonSave, buttonSaveAs;
 
 //    protected JTextField textname;
     protected JLabel labelIndex;
@@ -91,7 +93,6 @@ public class OutputPanel extends JPanel {
         buttonSave = new JButton("Save");
         buttonSave.setToolTipText("Save now");
         panelName.add(buttonSave, BorderLayout.EAST);
-//        panelName.add(textname, BorderLayout.CENTER);
         this.add(panelName);
         this.add(new JSeparator(JSeparator.HORIZONTAL));
 
@@ -99,6 +100,10 @@ public class OutputPanel extends JPanel {
         comboFileFormat = new JComboBox<>(StoringCoordinator.FileFormat.values());
         panelRoutingChooser.add(new JLabel("Format: "), BorderLayout.WEST);
         panelRoutingChooser.add(comboFileFormat, BorderLayout.CENTER);
+        buttonSaveAs = new JButton("Save as...");
+        buttonSaveAs.setToolTipText("Choose a location to save the file.");
+        panelRoutingChooser.add(buttonSaveAs, BorderLayout.EAST);
+
         this.add(panelRoutingChooser);
         this.add(new JSeparator(JSeparator.HORIZONTAL));
         panelIntParameters = new JPanel();
@@ -124,6 +129,21 @@ public class OutputPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 output.writeOutput(sc);
+            }
+        });
+
+        buttonSaveAs.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fc = new JFileChooser(output.getOutputFile());
+                fc.setFileFilter(new FileNameExtensionFilter("", comboFileFormat.getSelectedItem().toString()));
+                int n = fc.showSaveDialog(buttonSaveAs);
+                if (n == JFileChooser.APPROVE_OPTION) {
+                    File f = fc.getSelectedFile();
+                    output.setOutputFile(f);
+                    output.writeOutput(sc);
+                }
+
             }
         });
 

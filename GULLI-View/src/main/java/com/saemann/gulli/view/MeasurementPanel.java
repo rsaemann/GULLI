@@ -32,12 +32,9 @@ import com.saemann.gulli.core.control.output.OutputIntention;
 import com.saemann.gulli.core.control.output.Save_TravelAccumulationRegions;
 import com.saemann.gulli.core.control.output.Save_Travelpath;
 import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
-import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectangleRaster;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
-import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -261,16 +258,6 @@ public class MeasurementPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 MeasurementContainer.timecontinuousMeasures=checkMeasureContinouslyPipe.isSelected();
-//                if (control != null && control.getScenario() != null && control.getScenario().getMeasurementsPipe() != null) {
-//                    if (checkMeasureContinouslyPipe.isSelected()) {
-//                        double seconds = ((Number) textMeasurementSecondsPipe.getValue()).doubleValue();
-//
-//                        control.getScenario().getMeasurementsPipe().setSamplesPerTimeindex(seconds / ThreadController.getDeltaTime());
-//                    } else {
-//                        control.getScenario().getMeasurementsPipe().OnlyRecordOncePerTimeindex();
-//                    }
-////                    System.out.println("Sample " + control.getScenario().getMeasurementsPipe().samplesPerTimeinterval + "x per interval");
-//                }
             }
         });
 
