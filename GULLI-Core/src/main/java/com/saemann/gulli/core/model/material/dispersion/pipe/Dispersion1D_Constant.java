@@ -35,7 +35,7 @@ public class Dispersion1D_Constant implements Dispersion1D_Calculator {
     /**
      * Dispersion coefficient [m^2/s]
      */
-    protected double dispersion = 2;
+    protected double dispersion = 0.2;
 
     protected double sqrt = Math.sqrt(dispersion);
 

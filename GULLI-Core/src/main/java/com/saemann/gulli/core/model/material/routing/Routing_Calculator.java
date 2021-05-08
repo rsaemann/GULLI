@@ -39,7 +39,7 @@ public interface Routing_Calculator {
      *
      * @param mh
      * @param probability
-     * @param forward in advective direction, ds < 0 : anti advection direction 
+     * @param forward in advective direction, ds < 0 : anti advection direction
      * @return
      */
     public abstract Connection_Manhole whichConnection(Manhole mh, RandomGenerator probability, boolean forward);
@@ -53,7 +53,7 @@ public interface Routing_Calculator {
      * @param random
      * @return
      */
-    public abstract boolean particleIsDepositing(Particle particle, Capacity capacity,  RandomGenerator random);
+    public abstract boolean particleIsDepositing(Particle particle, Capacity capacity, RandomGenerator random);
 
     /**
      * Returns wheather a particle is changing back to mobile state (from
@@ -66,5 +66,12 @@ public interface Routing_Calculator {
      * @return
      */
     public abstract boolean particleIsEroding(Particle particle, Capacity capacity, RandomGenerator random);
+
+    /**
+     * Returns whether this Calculator supports deposition at all.
+     *
+     * @return
+     */
+    public abstract boolean useDeposition();
 
 }

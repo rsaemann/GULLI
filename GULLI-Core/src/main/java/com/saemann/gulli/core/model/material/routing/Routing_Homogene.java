@@ -217,4 +217,11 @@ public class Routing_Homogene implements Routing_Calculator {
 
         return null;
     }
+
+    @Override
+    public boolean useDeposition() {
+        return false;
+    }
+    
+    
 }

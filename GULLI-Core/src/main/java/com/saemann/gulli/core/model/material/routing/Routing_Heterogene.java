@@ -86,4 +86,9 @@ public class Routing_Heterogene extends Routing_Homogene {
         return false;
     }
 
+    @Override
+    public boolean useDeposition() {
+        return true;
+    }
+
 }

@@ -51,67 +51,32 @@ public class ParticlePipeComputing {
     protected int id = autoIncrement++;
     public static int maxloopsPerParticle = 1000;
 
-    public enum COMPUTING {
+//    public enum COMPUTING {
+//
+//        RANDOMWALK
+//    };
 
-        RANDOMWALK
-    };
+//    public enum TURBULENT_DIFFUSION {
+//
+//        FIX_DIFFUSION_COEFFICIENT, FIX_DIFFUSIVE_COEFFICIENT;
+//    }
 
-    public enum RANDOM_DISTRIBUTION {
+//    public COMPUTING computing = COMPUTING.RANDOMWALK;
 
-        NORMAL_GAUSS, UNIFORM, TRIANGLE
-    }
-
-    public enum TURBULENT_DIFFUSION {
-
-        FIX_DIFFUSION_COEFFICIENT, FIX_DIFFUSIVE_COEFFICIENT;
-    }
-
-//    private final RANDOM_DISTRIBUTION distributionForm;
-//    private UniformDistribution uniformDistribution;
-//    private final VelocityDistribution velocityFunction;
-//    private long seed;
-    public COMPUTING computing = COMPUTING.RANDOMWALK;
-
-//    public static boolean useDynamicVelocity = true;
-    public static boolean useDynamicDispersion = false;
+//    public static boolean useDynamicDispersion = false;
 
     public static boolean measureOnlyFinalCapacity = false;
 
-//    /**
-//     * Determines the computational effort for the diffusive
-//     */
-//    public TURBULENT_DIFFUSION turbulentCalculation = TURBULENT_DIFFUSION.FIX_DIFFUSION_COEFFICIENT;
     /**
      * Replace Dispersion by varying advective velocity [0,1.25]*meanVelocity.
      */
-    public static boolean useStreamlineVelocity = false;
-//    /**
-//     * [m^2/s]
-//     */
-//    private static double diffusionturbulentCoefficient = 2;//m^2/s
+//    public static boolean useStreamlineVelocity = false;
 
-//    /**
-//     * Diffusivity [m]
-//     */
-//    private static double diffusivityTurbulentCoefficient = 2;//m
-//    /**
-//     * [m^2/s] up to 30% fill rate.
-//     */
-////    public double dispersionCoefficient_low = 0.015;//m^2/s
-//    protected static float dt;
     protected static float sqrt2dt;
 
-//    private static double diffusionDistance = getDispersionDistance(dt, diffusionturbulentCoefficient);
-//    protected double dispersionDistance_low = getDispersionDistance(dt, dispersionCoefficient_low);
-    /**
-     * [m/s] minimum Velocity even in perfect horizontal pipes
-     */
-//    public double minimumVelocity = 0.009;
     private RandomGenerator rand;
 
-//    public RandomDistribution randDist;
-//    private ParticleThread thread;
-    public static int[] passedPipesCounter;
+//    public static int[] passedPipesCounter;
 
     /**
      * If set to false, particles will not leave the pipe system towards the
@@ -121,17 +86,17 @@ public class ParticlePipeComputing {
 
     private Surface surface;
 
-    /**
-     * If true PArticles may deposite at low velocities and activate on high
-     * velocities.
-     */
-    public boolean useDeposition = false;
+//    /**
+//     * If true PArticles may deposite at low velocities and activate on high
+//     * velocities.
+//     */
+//    public boolean useDeposition = false;
 
-    /**
-     * Only measure a particle in the capacity at the end of a timestep.
-     * Otherwise measure in every passed capacity.
-     */
-    public boolean measureOnlyInDestination = true;
+//    /**
+//     * Only measure a particle in the capacity at the end of a timestep.
+//     * Otherwise measure in every passed capacity.
+//     */
+//    public boolean measureOnlyInDestination = true;
 
     public int status = -1;
 
@@ -144,44 +109,9 @@ public class ParticlePipeComputing {
     }
 
     public void setDeltaTime(double deltaTime) {
-//        ParticlePipeComputing.dt = (float) deltaTime;
         ParticlePipeComputing.sqrt2dt = (float) Math.sqrt(2 * deltaTime);
     }
 
-//    protected static double getDispersionDistance(double dt, double dispersionCoefficient) {
-////        System.out.println("Max dispersion-distance: " + Math.sqrt(dt * dispersionCoefficient) + " m,\tdt: " + dt + " s,\t D: " + dispersionCoefficient + " m²/s");
-//        return Math.sqrt(2. * dt * dispersionCoefficient);
-//    }
-//    /**
-//     * m²/s
-//     *
-//     * @return
-//     */
-//    public static double getDispersionCoefficient() {
-//        return diffusionturbulentCoefficient;
-//    }
-//
-//    public double getDispersionDistance() {
-//        return diffusionDistance;
-//    }
-//    public static void setDispersionCoefficient(double dispersionCoefficient) {
-//        ParticlePipeComputing.diffusionturbulentCoefficient = dispersionCoefficient;
-//        ParticlePipeComputing.diffusionDistance = getDispersionDistance(dt, dispersionCoefficient);
-//    }
-//    private double getTraveldistance(Particle p) {
-//        double ds = 0;
-//        Capacity c = p.getSurrounding_actual();
-//        if (c.getClass().equals(Pipe.class)) {
-//            p.setVelocity1d(((Pipe) c).averageVelocity_actual());
-//            ds = p.getVelocity1d() * dt;
-//        }
-//
-//        double gauss = rand.nextGaussian();
-//        double dk = diffusionDistance * gauss;
-//        ds += dk;
-//
-//        return ds;
-//    }
     public void moveParticle(Particle p, double dt) {
 //        moveParticle4_transfersensitive(p);
         moveParticle5_celltransmission(p, (float) dt);
@@ -604,17 +534,17 @@ public class ParticlePipeComputing {
         double diff = 0;
         if (c.getClass().equals(Pipe.class)) {
             p.setVelocity1d(((Pipe) c).getVelocity());
-            if (useStreamlineVelocity) {
-                double f = rand.nextGaussian();
-                adv = Math.abs(((Pipe) c).getVelocity() * dt * f * 3);
-//                System.out.println("f=" + f + "\t u=" + adv + "m/s");
-                if (adv < 0.00001) {
-                    return;
-                }
-            } else {
+//            if (useStreamlineVelocity) {
+//                double f = rand.nextGaussian();
+//                adv = Math.abs(((Pipe) c).getVelocity() * dt * f * 3);
+////                System.out.println("f=" + f + "\t u=" + adv + "m/s");
+//                if (adv < 0.00001) {
+//                    return;
+//                }
+//            } else {
                 adv = Math.abs(((Pipe) c).getVelocity()) * (dt/*-timeSpend*/);
                 diff = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p) * sqrt2dt * rand.nextGaussian();//diff = calcDistanceTurbulentDiffusion(p.getVelocity1d(), rand);
-            }
+//            }
 
         } else {
             diff = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p) * sqrt2dt * rand.nextGaussian();//diff = calcDistanceTurbulentDiffusion(p.getVelocity1d(), rand);
@@ -963,7 +893,8 @@ public class ParticlePipeComputing {
 
     /**
      * Version uses advective speed in every visited pipe
-     * @deprecated 
+     *
+     * @deprecated
      * @param p
      */
     private void moveParticle4_transfersensitive(Particle p, double dt) {
@@ -989,7 +920,7 @@ public class ParticlePipeComputing {
 //        status=104;
 //        int oldCapacityID = (int) c.getAutoID();
 
-        if (useDeposition) {
+        if (p.getMaterial().getRoutingCalculator().useDeposition()) {
 //Test for deposition
             if (p.isDeposited()) {
                 if (p.getMaterial().getRoutingCalculator().particleIsEroding(p, c, rand)) {
@@ -1420,8 +1351,10 @@ public class ParticlePipeComputing {
             if (p.tracing()) {
                 ((HistoryParticle) p).addToHistory(c);
             }
-            if(c instanceof Manhole){
-                ((Manhole) c).passedMass+=p.getParticleMass();
+            if (c instanceof Manhole) {
+                synchronized (c) {
+                    ((Manhole) c).passedMass += p.getParticleMass();
+                }
             }
             return;
         }
@@ -1431,7 +1364,7 @@ public class ParticlePipeComputing {
             return;
         }
 //        System.out.println("3 Particle in "+p.getSurrounding_actual());
-        if (useDeposition) {
+        if (p.getMaterial().getRoutingCalculator().useDeposition()) {
             //Test for deposition
             if (p.isDeposited()) {
                 if (p.getMaterial().getRoutingCalculator().particleIsEroding(p, c, rand)) {
@@ -1486,7 +1419,7 @@ public class ParticlePipeComputing {
 
             distance_total = distance_adv + distance_diff;
             resultVelocity = distance_total / dt;
-            reverseDispersion = distance_adv<0 ^ distance_total < 0;//!(distance_total < 0 ^ v < 0);
+            reverseDispersion = distance_adv < 0 ^ distance_total < 0;//!(distance_total < 0 ^ v < 0);
 
             neuePosition = position1d + distance_total;
             if (neuePosition < 0) {
@@ -1498,7 +1431,7 @@ public class ParticlePipeComputing {
                 if (!measureOnlyFinalCapacity) {
                     pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
                 }
-                 p.addMovingLength(moved);
+                p.addMovingLength(moved);
             } else if (neuePosition > pipe.getLength()) {
                 moved = pipe.getLength() - position1d;
                 neuePosition -= moved;//pipe.getLength();
@@ -1508,7 +1441,7 @@ public class ParticlePipeComputing {
                 if (!measureOnlyFinalCapacity) {
                     pipe.getMeasurementTimeLine().addParticle(p, timespend / dt);
                 }
-                 p.addMovingLength(moved);
+                p.addMovingLength(moved);
             } else {
                 //Stays inside this pipe
                 moved = distance_total;
@@ -1520,7 +1453,6 @@ public class ParticlePipeComputing {
                 return;
             }
 
-           
         } else {
             if (c.getConnections().length > 0) {
                 if (c.getConnections()[0].getHeight() > c.getWaterHeight()) {
@@ -1552,7 +1484,9 @@ public class ParticlePipeComputing {
                         if (p.tracing()) {
                             ((HistoryParticle) p).addToHistory(c);
                         }
-                        mh.passedMass+=p.getParticleMass();
+                        synchronized (mh) {
+                            mh.passedMass += p.getParticleMass();
+                        }
                         return;
                     }
                     /**
@@ -1604,7 +1538,7 @@ public class ParticlePipeComputing {
                     p.setVelocity1d(v);
                     distance_total = distance_adv + (distance_diff * remaining_dt / dt);
                     resultVelocity = Math.abs(distance_total / remaining_dt);
-                    reverseDispersion = distance_adv<0 ^ distance_total < 0;//distance_adv * distance_total < 0;//!(distance_total < 0 ^ v < 0);
+                    reverseDispersion = distance_adv < 0 ^ distance_total < 0;//distance_adv * distance_total < 0;//!(distance_total < 0 ^ v < 0);
 
                     if (con.isStartOfPipe()) {
                         position1d = 0;
@@ -1651,12 +1585,12 @@ public class ParticlePipeComputing {
                             pipe.getMeasurementTimeLine().addParticle(p, dt);
                         }
                     }
-                    
+
                     p.addMovingLength(moved);
                     if (timespend == 0) {
                         break;
                     }
-                    
+
                 } catch (Exception e) {
                     System.out.println(this.getClass() + ":: Unsupported Capacity " + c.getClass() + " to move particle here. loop " + loops + " startcapacity:" + p.getSurrounding_actual() + "  material index: " + p.getMaterial().materialIndex);
                     e.printStackTrace();
