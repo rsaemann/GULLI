@@ -538,6 +538,7 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
 
     /**
      * kg/s in pipe
+     *
      * @param pipeMaualID
      * @param pipeName
      * @param numberOfTimes
@@ -545,14 +546,14 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
      */
     @Override
     public float[][] loadTimeLineMassflux(long pipeMaualID, String pipeName, int numberOfTimes) {
-        float[][] values=new float[nbPeriods][nbPollutants];
+        float[][] values = new float[nbPeriods][nbPollutants];
         try {
-            float[] discharge=getLinkValues(pipeName,0);//m^3/s?
-        
+            float[] discharge = getLinkValues(pipeName, 0);//m^3/s?
+
             for (int i = 0; i < nbPollutants; i++) {
-                float[] c=getLinkValues(pipeName, i+5);//mg/L
+                float[] c = getLinkValues(pipeName, i + 5);//mg/L
                 for (int t = 0; t < nbPeriods; t++) {
-                    values[t][i]=c[t]*discharge[t]/1000f;// -> kg/s
+                    values[t][i] = c[t] * discharge[t] / 1000f;// -> kg/s
                 }
             }
         } catch (IOException ex) {
@@ -563,13 +564,13 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
 
     @Override
     public float[][] loadTimeLineConcentration(long pipeMaualID, String pipeName, int numberOfTimes) {
-        float[][] values=new float[nbPeriods][nbPollutants];
+        float[][] values = new float[nbPeriods][nbPollutants];
         try {
-            
+
             for (int i = 0; i < nbPollutants; i++) {
-                float[] c=getLinkValues(pipeName, i+5);//mg/L
+                float[] c = getLinkValues(pipeName, i + 5);//mg/L
                 for (int t = 0; t < nbPeriods; t++) {
-                    values[t][i]=c[t]/1000f; //kg/m^3
+                    values[t][i] = c[t] / 1000f; //kg/m^3
                 }
             }
         } catch (IOException ex) {
@@ -613,10 +614,39 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
     @Override
     public boolean fillTimelinePipe(long pipeManualID, String pipeName, SparseTimelinePipe timeline) {
         try {
-            timeline.setFlux(getLinkValues(pipeName, 0));
-            timeline.setVelocity(getLinkValues(pipeName, 2));
+            float[] q = getLinkValues(pipeName, 0);
+            timeline.setFlux(q);
+            float[] v = getLinkValues(pipeName, 2);
+            boolean onlyNull = true;
+            for (float f : v) {
+                if (f != 0) {
+                    onlyNull = false;
+                    break;
+                }
+            }
+            // in putfalls, the velocity is 0 also if the discharge is !=0
+            if (onlyNull) {
+                //Check, if q is not null 
+                for (int i = 0; i < q.length; i++) {
+                    if (q[i] == 0) {
+                        continue;
+                    }
+                    if (q[i] > 0) {
+                        v[i] = 0.5f;
+                    } else {
+                        v[i] = -0.5f;
+                    }
+                }
+            }
+            timeline.setVelocity(v);
             timeline.setWaterlevel(getLinkValues(pipeName, 1));
+
             return true;
+        } catch (NullPointerException npe) {
+            timeline.setFlux(new float[timeline.getNumberOfTimes()]);
+            timeline.setVelocity(new float[timeline.getNumberOfTimes()]);
+            timeline.setWaterlevel(new float[timeline.getNumberOfTimes()]);
+            Logger.getLogger(SWMM_Out_Reader.class.getName()).log(Level.SEVERE, null, npe);
         } catch (IOException ex) {
             Logger.getLogger(SWMM_Out_Reader.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -630,8 +660,8 @@ public class SWMM_Out_Reader implements SparseTimeLineDataProvider {
 
     @Override
     public SparseTimelineManhole loadTimelineManhole(long manholeManualID, String manholeName, float soleheight, SparseTimeLineManholeContainer container) {
-           throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-     
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+
     }
 
     @Override

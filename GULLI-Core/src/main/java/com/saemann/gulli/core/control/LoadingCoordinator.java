@@ -1074,7 +1074,7 @@ public class LoadingCoordinator {
                         }else{
                             tc= createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps());
                         }
-                        System.out.println("Dt for surface: "+tc.getDeltaTimeMS()/1000+"   defined dt: "+surfaceTimestepMS/1000);
+//                        System.out.println("Dt for surface: "+tc.getDeltaTimeMS()/1000+"   defined dt: "+surfaceTimestepMS/1000);
                         surface.setTimeContainer(tc);
                         scenario.setStatusTimesSurface(surface);
                     }

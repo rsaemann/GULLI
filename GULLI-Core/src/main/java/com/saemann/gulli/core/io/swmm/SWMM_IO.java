@@ -320,6 +320,9 @@ public class SWMM_IO {
             System.out.print("Creating Geospatial Transformation...");
         }
         try {
+            if(epsgCodeUTM==null||epsgCodeUTM.isEmpty()){
+                epsgCodeUTM="EPSG:25832";
+            }
             utmCRS = af.createCoordinateReferenceSystem(epsgCodeUTM);
             wgs84CRS = af.createCoordinateReferenceSystem("EPSG:4326");//CRS.decode("EPSG:4326"); //WGS84
 //            utm3CRS = CRS.decode("EPSG:31467");//DHDN / 3-degree Gauss-Kruger zone 3
@@ -668,11 +671,7 @@ public class SWMM_IO {
                 from.addConnection(cf);
                 to.addConnection(ct);
                 pipe.setLength((float) ((Position) cf.getPosition()).distance(((Position) ct.getPosition())));
-                pipe.setName("Outlet " + p.getKey());
-//                pipe.tags = new Tags();
-//                pipe.tags.put("Pipe", "Outlet");
-//                pipe.tags.put("Water", (p.getKey().substring(0, 1)));
-//                pipe.tags.put("ex height", p.getValue().height + "m");
+                pipe.setName(p.getKey());
                 pipes.put(p.getKey(), pipe);
             }
         }
@@ -989,6 +988,8 @@ public class SWMM_IO {
             }
             if (line.startsWith(";;")) {
                 continue;
+            } if (line.startsWith(";")) {
+                continue;
             }
             if (line.isEmpty()) {
                 continue;
@@ -1121,7 +1122,7 @@ public class SWMM_IO {
     private void readStorages(BufferedReader br) throws IOException {
         String line = "";
         String[] parts;
-        String name, elevation, maxdepth, initdepth, param1, param2, param3, param4, pondedarea, evaporFract;
+        String name, elevation, maxdepth, initdepth, shape, param1, param2, param3 = "0", param4 = "0", pondedarea = "0", evaporFract = "0";
         storages = new HashMap<>();
         while (br.ready()) {
             br.mark(4000);
@@ -1145,14 +1146,28 @@ public class SWMM_IO {
             elevation = parts[1];
             maxdepth = parts[2];
             initdepth = parts[3];
+            shape = parts[4];
             param1 = parts[5];
             param2 = parts[6];
-            param3 = parts[7];
-            param4 = parts[8];
+            if (parts.length > 7) {
+                param3 = parts[7];
+                if (parts.length > 8) {
+                    param4 = parts[8];
+                    if (parts.length > 9) {
+                        pondedarea = parts[9];
+                        if (parts.length > 10) {
+                            evaporFract = parts[10];
+                        }
+                    }
+                }
+            }
 
-            pondedarea = parts[9];
-            evaporFract = parts[10];
-            Storage s = new Storage(name, Double.parseDouble(elevation), Double.parseDouble(maxdepth), Double.parseDouble(initdepth), Double.parseDouble(param1), Double.parseDouble(param2), Double.parseDouble(param3), Double.parseDouble(param4), Double.parseDouble(pondedarea), Double.parseDouble(evaporFract));
+            Storage s;
+            if (shape.toLowerCase().equals("tabular")) {
+                s=new Storage(name, Double.parseDouble(elevation), Double.parseDouble(maxdepth), Double.parseDouble(initdepth),0,0,0,0,0,0);
+            } else {
+                s = new Storage(name, Double.parseDouble(elevation), Double.parseDouble(maxdepth), Double.parseDouble(initdepth), Double.parseDouble(param1), Double.parseDouble(param2), Double.parseDouble(param3), Double.parseDouble(param4), Double.parseDouble(pondedarea), Double.parseDouble(evaporFract));
+            }
             storages.put(name, s);
         }
     }
@@ -1498,6 +1513,9 @@ public class SWMM_IO {
                 return;
             }
             if (line.startsWith(";;")) {
+                continue;
+            }
+            if (line.startsWith(";")) {
                 continue;
             }
             if (line.isEmpty()) {
