@@ -77,10 +77,15 @@ public class ContaminationShape implements OutputIntention {
         this.materialIndex = materialIndex;
         this.cumulativeShape = cumulative;
     }
-
+    
     @Override
     public File writeOutput(StoringCoordinator sc) {
-        File fileRoot = sc.getFileRoot();
+        return writeOutput(sc, sc.getFileRoot());
+    }
+
+    @Override
+    public File writeOutput(StoringCoordinator sc, File f) {
+        File fileRoot = f;
         String materialName;
         if (materialIndex < 0) {
             materialName = "all";

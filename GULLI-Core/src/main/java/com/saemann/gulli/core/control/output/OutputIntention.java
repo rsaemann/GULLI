@@ -39,6 +39,15 @@ public interface OutputIntention {
      * @return successfully written file, null otherwise
      */
     public File writeOutput(StoringCoordinator sc);
+    
+     /**
+     * Storing the requested operation and return the File, if successfull.
+     *
+     * @param sc StoringCoordinator for data requests.
+     * @param f
+     * @return successfully written file, null otherwise
+     */
+    public File writeOutput(StoringCoordinator sc, File f);
 
     public File getOutputFile();
 

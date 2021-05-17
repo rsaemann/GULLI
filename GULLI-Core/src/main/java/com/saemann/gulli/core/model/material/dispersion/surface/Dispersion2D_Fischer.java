@@ -32,34 +32,16 @@ import com.saemann.gulli.core.model.surface.Surface;
  *
  * @author riss, saemann
  */
-public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
+public class Dispersion2D_Fischer implements Dispersion2D_Calculator {
 
-//    // choose between "Fisher", "Lin" and "D1" for diffusion calculation:
-//    public enum DIFFTYPE {
-//
-//        FISCHER, LIN, D, tenH, H, Htenth, NO
-//    };
-//    public DIFFTYPE diffType = DIFFTYPE.D;
-    public double Dxx;       //Diffusionkoeffizient in xx direction
-    public double Dyy;       // -"- in yy direction
-    public double Dxy;       // -"- in xy direction
-    public double[] D;      // Diffusionkoeffizients vector
 
-    private double al=5.91;       //longitudinal dispersivity (Elder: 5.93, Lin: 13)
-    private double at=0.15;       //transversal dispersitivy (Fischer: 0.15, Lin: 1.2)
-    private double C;        //Chezy roughness
+    private double al = 5.93;       //longitudinal dispersivity (Elder: 5.93, Lin: 13)
+    private double at = 0.15;       //transversal dispersitivy (Fischer: 0.15, Lin: 1.2)
+//    private double C;        //Chezy roughness
     private final double wg = Math.sqrt(9.81);
 
-    public double[] directD = new double[]{0.01, 0.01, 0};
-    public double[] directSqrtD = new double[]{0.1, 0.1, 0};
-
     public Dispersion2D_Fischer() {
-        D = new double[3];
     }
-
-//    public double[] calculateDiffusion(double vx, double vy, Surface surface, int triangleID) {
-//        return calculateDiffusion(vx, vy, surface, triangleID, null);
-//    }
 
     /**
      * Calculate sqrt(Dxx) and sqrt(Dyy) for the given particle surrounding.
@@ -75,7 +57,6 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
     @Override
     public void calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
 
-       
 //        double[] retur = tofill;
 //        if (retur == null) {
 //            retur = new double[3];
@@ -113,9 +94,18 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
 //                D[1] = 0;
 //        }
         double h = surface.getActualWaterlevel(triangleID);
-        C = surface.getkst() * Math.pow(h, 1. / 6.); //
-        Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
-        Dyy = ((al * (vy * vy) + at * (vx * vx)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+        if (h == 0) {
+            tofill[0] = 0;
+            tofill[1] = 0;
+            return;
+        }
+        double C = surface.getkst(triangleID) * Math.pow(h, 1. / 6.); //
+        double nenner = h * wg / (Math.sqrt(vx * vx + vy * vy) * C);
+        double Dxx = (al * (vx * vx) + at * (vy * vy)) * nenner;
+        double Dyy = (al * (vy * vy) + at * (vx * vx)) * nenner;
+        if (Double.isNaN(Dxx)) {
+            System.out.println("Fischer is NaN: h:" + h + ", C=" + C + "  w=" + wg + " vx=" + vx + " nenner=" + nenner);
+        }
 //        System.out.println("Dxx: "+Dxx+"   Dyy="+Dyy);
         //Dxx = 1;
         //Dyy = 1;
@@ -136,7 +126,6 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
 //        if (diffType == DIFFTYPE.D) {
 //            return directD;
 //        }
-
 //        double[] retur = tofill;
 //        if (retur == null) {
 //            System.out.println("new double[3] for diffusion");
@@ -145,7 +134,6 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
 //        double h = 0;
 //        switch (diffType) {
 //            case FISCHER:
-              
 //                break;
 //            case LIN:
 //                al = 13;
@@ -174,9 +162,14 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
 //                D[1] = 0;
 //        }
         double h = surface.getActualWaterlevel(triangleID);
-        C = surface.getkst() * Math.pow(h, 1. / 6.); //
-        Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
-        Dyy = ((al * (vy * vy) + at * (vx * vx)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+        if (h == 0) {
+            tofill[0] = 0;
+            tofill[1] = 0;
+            return;
+        }
+        double C = surface.getkst() * Math.pow(h, 1. / 6.); //
+        double Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
+        double Dyy = ((al * (vy * vy) + at * (vx * vx)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
 //        System.out.println("Dxx: "+Dxx+"   Dyy="+Dyy);
         //Dxx = 1;
         //Dyy = 1;
@@ -187,88 +180,40 @@ public class Dispersion2D_Fischer implements Dispersion2D_Calculator{
         //Dyy = at*vabs + dm;
         tofill[0] = Dxx;
         tofill[1] = Dyy;
-//        tofill[2] = Dxy;
 
-//        return tofill;
     }
-
-// Diffusionsberechnung nach Lin (1997) : tidal flow and transport modeling using ultimate quickest scheme.
-//    public double[] calculateDiffusion(double vx, double vy, double h, double kst) throws NoDiffusionStringException {
-//        if (null == s) {
-//            throw new NoDiffusionStringException();
-//        } else {
-//        switch (diffType) {
-//            case tenH:
-//                return new double[]{h * 10., h * 10.};
-//            case H:
-//                return new double[]{h, h};
-//            case Htenth:
-//                return new double[]{h * 0.1, h * 0.1};
-//            case FISCHER:
-//                al = 5.91;
-//                at = 0.15;
-//                break;
-//            case LIN:
-//                al = 13;
-//                at = 1.2;
-//                break;
-//            case D:
-//                return directD;
-//            default:
-//                D[0] = 0;
-//                D[1] = 0;
-//        }
-
-//        C = kst * Math.pow(h, 1. / 6.); //
-//        Dxx = ((al * (vx * vx) + at * (vy * vy)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
-//        Dyy = ((al * (vy * vy) + at * (vx * vx)) * h * wg) / (Math.sqrt(vx * vx + vy * vy) * C);
-//        System.out.println("Dxx: "+Dxx+"   Dyy="+Dyy);
-        //Dxx = 1;
-        //Dyy = 1;
-
-        //altenative: D after Bear(1972) for groundwater:
-        //double vabs = Math.sqrt(vx*vx+vy*vy);
-        //Dxx = al*vabs + dm;
-        //Dyy = at*vabs + dm;
-//        D[0] = Dxx;
-//        D[1] = Dyy;
-//        D[2] = Dxy;
-//
-//        return D;
-//    }
 
     @Override
     public String getDiffusionString() {
-        return "Fischer("+al+";"+at+")";
+        return "Fischer(" + al + ";" + at + ")";
     }
-
 
     @Override
     public String[] getParameterOrderDescription() {
-        return new String[]{"lateral Dispersivity","transversal Dispersivity"};
+        return new String[]{"lateral Dispersivity", "transversal Dispersivity"};
     }
 
     @Override
     public double[] getParameterValues() {
-        return new double[]{al,at};
+        return new double[]{al, at};
     }
 
     @Override
     public void setParameterValues(double[] parameter) {
-        if(parameter!=null&&parameter.length>1){
-            this.al=parameter[0];
-            this.at=parameter[1];
+        if (parameter != null && parameter.length > 1) {
+            this.al = parameter[0];
+            this.at = parameter[1];
         }
     }
 
     @Override
     public String[] getParameterUnits() {
-        return new String[]{"m","m"};
+        return new String[]{"m", "m"};
     }
 
     @Override
     public boolean isIsotropic() {
-       return false;
+        return false;
     }
 
     public class NoDiffusionStringException extends Exception {

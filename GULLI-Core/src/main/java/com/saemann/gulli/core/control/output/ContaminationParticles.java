@@ -54,8 +54,23 @@ public class ContaminationParticles implements OutputIntention {
      * particles is >= minimumParticleCount. standard=1;
      */
     public int minimumParticleCount = 1;
-    
-    private File outputFile=null;
+
+    private File outputFile = null;
+
+    @Override
+    public File writeOutput(StoringCoordinator sc, File f) {
+        try {
+            if (sc.getSurface() == null) {
+                return null;
+            }
+//            File file = new File(sc.getFileRoot(), "Contamination.csv");
+            HE_SurfaceIO.writeSurfaceContaminationCSV(f, sc.getSurface());
+            return f;
+        } catch (IOException ex) {
+            Logger.getLogger(ContaminationParticles.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
 
     @Override
     public File writeOutput(StoringCoordinator sc) {
@@ -76,13 +91,13 @@ public class ContaminationParticles implements OutputIntention {
     public String getFileSuffix() {
         return fileformat.name();
     }
-    
-     @Override
+
+    @Override
     public String getFilePath() {
         return "./Contamination.csv";
     }
-    
-     @Override
+
+    @Override
     public File getOutputFile() {
         return outputFile;
     }
@@ -91,8 +106,8 @@ public class ContaminationParticles implements OutputIntention {
     public void setOutputFile(File output) {
         this.outputFile = output;
     }
-    
-        @Override
+
+    @Override
     public double[] getParameterValuesDouble() {
         return null;
     }
@@ -106,26 +121,26 @@ public class ContaminationParticles implements OutputIntention {
         return null;
     }
 
-     @Override
+    @Override
     public int[] getParameterValuesInt() {
-        return new int[]{materialIndex,minimumParticleCount};
+        return new int[]{materialIndex, minimumParticleCount};
     }
 
     @Override
     public String[] getParameterNamesInt() {
-        return new String[]{"Material index (-1=all)","min. Number of particles"};
+        return new String[]{"Material index (-1=all)", "min. Number of particles"};
     }
 
     @Override
     public void setParameterValueInt(int index, int value) {
-        if(index==0){
-            this.materialIndex=value;
-        }else if(index==1){
-            this.minimumParticleCount=value;
+        if (index == 0) {
+            this.materialIndex = value;
+        } else if (index == 1) {
+            this.minimumParticleCount = value;
         }
     }
-    
-      @Override
+
+    @Override
     public StoringCoordinator.FileFormat getFileFormat() {
         return StoringCoordinator.FileFormat.CSV;
     }
@@ -133,14 +148,14 @@ public class ContaminationParticles implements OutputIntention {
     @Override
     public void setFileFormat(StoringCoordinator.FileFormat ff) {
     }
-    
-     @Override
+
+    @Override
     public StoringCoordinator.FileFormat[] getSupportedFileFormat() {
         return new StoringCoordinator.FileFormat[]{StoringCoordinator.FileFormat.CSV};
     }
 
     @Override
     public String toString() {
-        return "Contamination Particles (."+fileformat+") of "+(materialIndex<0?" all Materials":"Material "+materialIndex);
+        return "Contamination Particles (." + fileformat + ") of " + (materialIndex < 0 ? " all Materials" : "Material " + materialIndex);
     }
 }

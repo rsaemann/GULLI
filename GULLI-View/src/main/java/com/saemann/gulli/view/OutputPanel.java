@@ -140,8 +140,7 @@ public class OutputPanel extends JPanel {
                 int n = fc.showSaveDialog(buttonSaveAs);
                 if (n == JFileChooser.APPROVE_OPTION) {
                     File f = fc.getSelectedFile();
-                    output.setOutputFile(f);
-                    output.writeOutput(sc);
+                    output.writeOutput(sc,f);
                 }
 
             }

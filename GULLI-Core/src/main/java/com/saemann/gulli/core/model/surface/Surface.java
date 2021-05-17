@@ -416,6 +416,15 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public double getkst() {
         return kst;
     }
+    
+    /**
+     * Return the surface roughness (kst) in the cell of ID.
+     * @param cellID
+     * @return 
+     */
+    public double getkst(int cellID) {
+        return kst;
+    }
 
     public float[][] getEdgeLength() {
         return edgeLength;

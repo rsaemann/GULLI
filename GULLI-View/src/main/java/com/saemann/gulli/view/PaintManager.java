@@ -233,7 +233,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, HEATMAP_LIN_BAGATELL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, VELOCITY, SLOPE, VERTEX_HEIGHT;
+        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, HEATMAP_LIN_BAGATELL, HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, VELOCITY, SLOPE, VERTEX_HEIGHT;
     };
     private final ArrayList<SURFACESHOW> surfaceShows = new ArrayList<>();//SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -598,7 +598,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     try {
                         if (pipe.getEndConnection().getManhole().isSetAsOutlet()) {
                             Position3D pos = pipe.getEndConnection().getPosition();
-                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), pos.getLongitude(), pos.getLatitude(), MapViewer.COLORHOLDER_LABEL, "Out: " + df1.format(pipe.getEndConnection().getManhole().passedMass)+" kg");//pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength())) + " kg");
+                            LabelPainting lp = new LabelPainting(pipe.getAutoID(), pos.getLongitude(), pos.getLatitude(), MapViewer.COLORHOLDER_LABEL, "Out: " + df1.format(pipe.getEndConnection().getManhole().passedMass) + " kg");//pipe.getMeasurementTimeLine().getTotalMass(pipe.getStatusTimeLine(), pipe.getLength())) + " kg");
                             lp.setCoronaBackground(true);
                             mapViewer.addPaintInfoToLayer("OutletMass", lp);
                         }
@@ -1469,6 +1469,44 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     e.printStackTrace();
                 }
 
+            } else if (surfaceShow == SURFACESHOW.HEATMAP_MASS_LEVEL && !updatedOnlyTime) {
+                for (int i = 0; i < 4; i++) {
+                    mapViewer.clearLayer(layerSurfaceContaminated+i);                    
+                }
+                if (surface == null) {
+                    surfaceShow = SURFACESHOW.NONE;
+                    return;
+                }
+                try {
+                    double totalMass = 0;
+                    for (InjectionInfo injection : control.getScenario().getInjections()) {
+                        if (injection == null || !injection.isActive()) {
+                            continue;
+                        }
+                        totalMass += injection.getMass();
+                    }
+                    //Unterteilen Mass in 4 Categorien:
+                    double[] category = new double[]{0, 0.00001, 0.0001, 0.001};
+                    double[] masslimit = new double[category.length];
+                    DoubleColorHolder[] ch = new DoubleColorHolder[category.length];
+                    for (int i = 0; i < category.length; i++) {
+                        masslimit[i] = category[i] * totalMass;
+                        ch[i] = new DoubleColorHolder(Color.orange, interpolateColor(Color.yellow, Color.red, i / (double) (category.length - 1)), ">" + (masslimit[i]<1?df1.format(masslimit[i]):(int)(masslimit[i])) + "kg");
+
+                        ArrayList<Geometry> list = ShapeTools.createShapesWGS84_byMass(surface, 10, 5, -1, masslimit[i], true);
+                        int j = 0;
+                        if (list != null) {
+                            for (Geometry g : list) {
+                                AreaPainting ap = new AreaPainting(j, ch[i], g);
+                                mapViewer.addPaintInfoToLayer(layerSurfaceContaminated + i, ap);
+                                j++;
+                            }
+                        }
+                    }
+                    mapViewer.recalculateShapes();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             } else if (surfaceShow == SURFACESHOW.CONTAMINATIONCLUSTER && !updatedOnlyTime) {
                 if (surface == null) {
                     surfaceShow = SURFACESHOW.NONE;
@@ -2195,7 +2233,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         int index = (int) (relConcentration * 100);
         index = Math.min(index, 100);
         index = Math.max(index, 0);
-//        System.out.println("rel:"+relConcentration+"\t index="+index);
         return chConcentration[index];
     }
 
@@ -2211,14 +2248,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         return chVelocity[Math.min(100, Math.max(0, percent))];
     }
 
-//    public NodePainting getParticlePainting(long id) {
-//        for (NodePainting particlePainting : particlePaintings) {
-//            if (particlePainting.getId() == id) {
-//                return particlePainting;
-//            }
-//        }
-//        return null;
-//    }
     @Override
     public void selectLocationID(Object o, String string, long id) {
         if (selectedLayer != null && selectedLayer.equals(string) && selectedID == id) {
@@ -2360,11 +2389,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             str.append("none");
                         } else {
                             double sum = 0;
-                            for (int i = 0; i < measurement.getParticlecount().length; i++) {
+                            for (double[] particlecount : measurement.getParticlecount()) {
                                 double materialsum = 0;
-                                for (int t = 0; t < measurement.getParticlecount()[i].length; t++) {
-                                    materialsum += measurement.getParticlecount()[i][t];
-
+                                for (int t = 0; t < particlecount.length; t++) {
+                                    materialsum += particlecount[t];
                                 }
                                 str.append(df1.format(materialsum)).append(", ");
                                 sum += materialsum;
@@ -2386,7 +2414,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             if (measurement.getParticlecount().length > 1) {
                                 str.append("\u03a3 ").append(df1.format(sum));
                             }
-                            str.append("kg");
+                            str.append("kg*s");
 
                         }
                     }
@@ -2397,7 +2425,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 selectedID = id;
                 mapViewer.recalculateShapes();
                 mapViewer.repaint();
-                return;
             } else if (string.equals(layerInjectionLocation)) {
                 for (InjectionInfo injection : injections) {
                     if (injection.getId() % injections.size() == id) {
@@ -2744,6 +2771,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 mapViewer.clearLayer(layerSurfaceMeasurementRaster);
             } else if (show == SURFACESHOW.HEATMAP_LIN || show == SURFACESHOW.HEATMAP_LOG || show == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
                 mapViewer.clearLayer(layerSurfaceContaminated);
+            } else if (show == SURFACESHOW.HEATMAP_MASS_LEVEL) {
+                for (int i = 0; i < 4; i++) {
+                    mapViewer.clearLayer(layerSurfaceContaminated + i);
+                }
             } else if (show == SURFACESHOW.SPECTRALMAP) {
                 mapViewer.clearLayer(layerSurfaceContaminated);
             } else if (show == SURFACESHOW.CONTAMINATIONCLUSTER) {

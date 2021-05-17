@@ -25,6 +25,7 @@ package com.saemann.gulli.core.control.maths;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryCollection;
@@ -474,10 +475,10 @@ public class GeometryTools {
         tofill[1] = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
         tofill[2] = 1 - tofill[0] - tofill[1];
     }
-    
-    public static void calcPositionFromBarycentric(double[] toFillPosition,double x1, double x2, double x3, double y1, double y2, double y3, double bw1, double bw2, double bw3){
-        toFillPosition[0]=x1*bw1+x2*bw2+x3*bw3;
-        toFillPosition[1]=y1*bw1+y2*bw2+y3*bw3;
+
+    public static void calcPositionFromBarycentric(double[] toFillPosition, double x1, double x2, double x3, double y1, double y2, double y3, double bw1, double bw2, double bw3) {
+        toFillPosition[0] = x1 * bw1 + x2 * bw2 + x3 * bw3;
+        toFillPosition[1] = y1 * bw1 + y2 * bw2 + y3 * bw3;
     }
 
     /**
@@ -582,6 +583,97 @@ public class GeometryTools {
 //        projectedpoint[0]=
         return f;
 
+    }
+
+    /**
+     * Create Geometries (Multipolygons) for each number of intersecting input
+     * geometries. index 0= Union of all geometries index 1= All areas that is
+     * covered by at least 2 geometries. ... ondex last= intersection of all
+     * geometries
+     *
+     * @param ensemblemembers
+     * @return
+     */
+    public static Geometry[] getEnsembleOverlay(Geometry[] ensemblemembers) {
+        Geometry[] resultUnions = new Geometry[ensemblemembers.length];
+        int levels = ensemblemembers.length;
+        GeometryFactory gf = new GeometryFactory();
+        HashMap<Integer, ArrayList<Geometry>> geomToIntersection = new HashMap<>(ensemblemembers.length);
+        for (int i = 0; i < ensemblemembers.length; i++) {
+            if (ensemblemembers[i] instanceof GeometryCollection) {
+                ensemblemembers[i] = ensemblemembers[i].union();
+            }
+            ArrayList<Geometry> l = new ArrayList<>(1);
+            l.add(ensemblemembers[i]);
+            geomToIntersection.put(i, l);
+//            System.out.println(i + ": is " + ensemblemembers[i].getGeometryType() + "  with " + ensemblemembers[i].getNumGeometries() + " elements");
+        }
+        HashMap<Integer, ArrayList<Geometry>> geomToIntersectionNext = new HashMap<>(ensemblemembers.length);
+
+//        ArrayList<Geometry> nextList = new ArrayList<>(ensemblemembers.length * (ensemblemembers.length - 1));
+        for (int i = 0; i < levels; i++) {
+            Geometry union = geomToIntersection.get(0).get(0);
+            for (int j = 0; j < ensemblemembers.length; j++) {
+                ArrayList<Geometry> geom = geomToIntersection.get(j);
+                if (geom != null) {
+                    for (Geometry geometry : geom) {
+                        union = union.union(geometry);
+                        ArrayList<Geometry> intersections = new ArrayList<>(ensemblemembers.length - j);
+                        for (int k = j + 1; k < ensemblemembers.length; k++) {
+                            Geometry intersection = geometry.intersection(ensemblemembers[k]);
+                            if (intersection instanceof MultiPolygon || intersection instanceof Polygon) {
+
+                            } else {
+                                ArrayList<Geometry> geomt = new ArrayList<>(intersection.getNumGeometries());
+                                for (int l = 0; l < intersection.getNumGeometries(); l++) {
+                                    Geometry g = intersection.getGeometryN(l);
+                                    if (g instanceof Polygon) {
+                                        geomt.add(g);
+                                    } else if (g instanceof MultiPolygon) {
+                                        geomt.add(g);
+                                    } else {
+//                                        System.out.println(" skip " + i + ": " + intersection.getGeometryN(l).getGeometryType());
+                                    }
+                                }
+                                intersection = gf.buildGeometry(geomt).union();
+                            }
+                            System.out.println("Created intersection: " + intersection.getGeometryType() + " with " + intersection.getNumGeometries() + " valid? " + intersection.isValid());
+                            intersections.add(intersection);
+                        }
+                        geomToIntersectionNext.put(j, intersections);
+                    }
+                }
+
+            }
+            resultUnions[i] = union;
+            geomToIntersection = geomToIntersectionNext;
+            geomToIntersectionNext = new HashMap<>(ensemblemembers.length);
+        }
+
+        //Create intersection of all manually
+        Geometry intersection = ensemblemembers[0];
+        for (int i = 0; i < ensemblemembers.length; i++) {
+            intersection = intersection.intersection(ensemblemembers[i]);
+            if (intersection instanceof MultiPolygon || intersection instanceof Polygon) {
+
+            } else {
+                ArrayList<Geometry> geomt = new ArrayList<>(intersection.getNumGeometries());
+                for (int l = 0; l < intersection.getNumGeometries(); l++) {
+                    Geometry g = intersection.getGeometryN(l);
+                    if (g instanceof Polygon) {
+                        geomt.add(g);
+                    } else if (g instanceof MultiPolygon) {
+                        geomt.add(g);
+                    } else {
+//                                        System.out.println(" skip " + i + ": " + intersection.getGeometryN(l).getGeometryType());
+                    }
+                }
+                intersection = gf.buildGeometry(geomt).union();
+            }
+        }
+        resultUnions[resultUnions.length-1]=intersection;
+
+        return resultUnions;
     }
 
 //    public static void main(String[] args) {

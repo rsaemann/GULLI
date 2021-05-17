@@ -465,6 +465,172 @@ public class ShapeTools {
 
     /**
      *
+     * @param surface
+     * @param clusterCount
+     * @param clusterloops
+     * @param materialIndex select -1 for all
+     * @param minimumMasse triangles with less than this amount of mass
+     * are ignored
+     * @param longitudeFirst transform to (longitude,latitude) wgs84 coordinates
+     * @return
+     * @throws TransformException
+     */
+    public static ArrayList<Geometry> createShapesWGS84_byMass(Surface surface, int clusterCount, int clusterloops, int materialIndex, double minimumMass, boolean longitudeFirst) throws TransformException {
+        if (surface.getMeasurementRaster() instanceof SurfaceMeasurementRectangleRaster) {
+            SurfaceMeasurementRectangleRaster raster = (SurfaceMeasurementRectangleRaster) surface.getMeasurementRaster();
+            GeometryFactory gf = new GeometryFactory();
+            LinkedList<Polygon> rectangles = new LinkedList<>();
+            for (int x = 0; x < raster.getNumberOfCells(); x++) {
+//                for (int y = 0; y < raster.getNumberYIntervals(); y++) {
+                double sum = 0;
+                if (materialIndex < 0) {//count all
+
+                    for (int t = 0; t < raster.getNumberOfTimes(); t++) {
+                        for (int m = 0; m < raster.getNumberOfMaterials(); m++) {
+                            sum += raster.getMassInCell(x, t, m);
+                        }
+
+                    }
+                } else {//count only material 
+                    for (int t = 0; t < raster.getNumberOfTimes(); t++) {
+                        sum += raster.getMassInCell(x, t, materialIndex);
+
+                    }
+                }
+                if (sum >= minimumMass) {
+                    rectangles.add(gf.createPolygon(raster.getRectangleBoundClosed(x)));
+                }
+            }
+            //Build groups from single rectangles
+            Geometry union2 = CascadedPolygonUnion.union(rectangles);
+
+            if (union2 == null) {
+                throw new NullPointerException("constructed CascadedPolygonUnion is null for materialindex " + materialIndex + "   rectangles: " + rectangles.size());
+            }
+            union2 = surface.getGeotools().toGlobal(union2, longitudeFirst);
+//             System.out.println("ShapeTools: cascaded union with rectangleRaster created "+union2.getGeometryType()+" with "+union2.getNumGeometries()+" geometries.");
+            if (union2 instanceof MultiPolygon) {
+                MultiPolygon mp = (MultiPolygon) union2;
+                ArrayList<Geometry> geolist = new ArrayList<>(mp.getNumGeometries());
+                for (int i = 0; i < union2.getNumGeometries(); i++) {
+                    Geometry g2 = union2.getGeometryN(i);
+                    geolist.add(g2);
+                }
+                return geolist;
+            } else if (union2 instanceof Polygon) {
+                ArrayList<Geometry> geolist = new ArrayList<>(1);
+                geolist.add(union2);
+                return geolist;
+            } else {
+
+                throw new TransformException("constructed Geometry is " + union2.getGeometryType() + " with " + union2.getNumGeometries() + " geometries.");
+            }
+
+        } else if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+
+//            long starttime = System.currentTimeMillis();
+            LinkedList<Integer> contaminated = new LinkedList<>();
+            SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
+            for (int m = 0; m < raster.getMeasurements().length; m++) {
+                TriangleMeasurement measurement = raster.getMeasurements()[m];
+                if (measurement == null || measurement.getParticlecount() == null || measurement.getParticlecount().length == 0) {
+                    continue;
+                }
+                if (measurement.getParticlecount().length <= materialIndex) {
+                    //index out of bounds
+                    continue;
+                }
+                double sum = 0;
+                if (materialIndex >= 0) {
+
+                    for (int t = 0; t < raster.getIndexContainer().getNumberOfTimes(); t++) {
+                        sum += raster.getMassInCell(m, t, materialIndex);
+
+                    }
+
+                } else {
+                    for (int t = 0; t < raster.getIndexContainer().getNumberOfTimes(); t++) {
+                        for (int mat = 0; mat < raster.getNumberOfMaterials(); mat++) {
+                            sum += raster.getMassInCell(m, t, mat);
+                        }
+                    }
+                }
+               
+                if (sum >= minimumMass) {
+                    contaminated.add(m);
+                }
+            }
+            ArrayList<LinkedList<Integer>> c = calcTriangleGroupContaminated(surface, contaminated, clusterCount, clusterloops);
+            if (c == null || c.isEmpty()) {
+                return null;
+            }
+//            System.out.println(c.size() + " groups of triangleclusters.");
+            GeometryFactory gf = new GeometryFactory();
+            ArrayList<Geometry> retur = new ArrayList<>(c.size());
+            for (LinkedList<Integer> l : c) {
+                ArrayList<Polygon> triangles = new ArrayList<>(l.size());
+
+                for (Integer tri : l) {
+                    int[] nodes = surface.getTriangleNodes()[(int) tri];
+                    Coordinate[] coords = new Coordinate[4];
+                    for (int j = 0; j < 3; j++) {
+                        coords[j] = new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]);
+                    }
+                    coords[3] = coords[0];//Close ring
+                    triangles.add((Polygon) gf.createPolygon(coords).buffer(0.0001, 1));
+                }
+
+                Geometry union = null;
+                try {
+                    union = CascadedPolygonUnion.union(triangles);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                if (union == null) {
+//                    System.err.println("ShapeTools::createShapesWGS84: union of " + triangles.size() + " triangles is null.");
+                } else {
+//                    System.out.println((System.currentTimeMillis() - starttime) + "ms  Geometrytype: " + union.getGeometryType() + "   nGeometries:" + union.getNumGeometries() + "  triangles:" + l.size());
+
+                    try {
+                        retur.add(surface.getGeotools().toGlobal(union, longitudeFirst));
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+                }
+
+//            System.out.println("Centroid: " + union.getCentroid().getCoordinate() + "   -> " + surface.getGeotools().toGlobal(union.getCentroid().getCoordinate()));
+            }
+//            System.out.println("**************************");
+//            System.out.println("    retur: "+retur.size());
+            Geometry union2 = CascadedPolygonUnion.union(retur);
+//            System.out.println("   union:"+union2);
+            if (union2 instanceof MultiPolygon) {
+                MultiPolygon mp = (MultiPolygon) union2;
+                ArrayList<Geometry> geolist = new ArrayList<>(mp.getNumGeometries());
+                for (int i = 0; i < union2.getNumGeometries(); i++) {
+                    Geometry g2 = union2.getGeometryN(i);
+                    geolist.add(g2);
+//                if (g2 instanceof Polygon) {
+//                    Polygon p2 = (Polygon) g2;
+//                    geolist.add(p2.getExteriorRing());
+//                } else {
+//                    System.out.println("Type of GeometryN(" + i + ") is " + g2.getGeometryType());
+//                    geolist.add(g2);
+//                }
+                }
+//            System.out.println((System.currentTimeMillis() - starttime) + "ms until Multipolygon return");
+                return geolist;
+            }
+//        System.out.println((System.currentTimeMillis() - starttime) + "ms until Geometry return");
+            return retur;
+        } else {
+            throw new UnsupportedOperationException("Can not handly Raster Type " + surface.getMeasurementRaster().getClass() + " to build contamination shape.");
+        }
+
+    }
+
+    /**
+     *
      * @param surf
      * @param triangleIDs
      * @return
@@ -513,12 +679,13 @@ public class ShapeTools {
     }
 
     /**
-     * Travel paths ordered by the name of the outlet capacity.
-     * all Traces that are still inside the boundary have the key "inside".
+     * Travel paths ordered by the name of the outlet capacity. all Traces that
+     * are still inside the boundary have the key "inside".
+     *
      * @param surf
      * @param nw
      * @param particles
-     * @return 
+     * @return
      */
     public static HashMap<String, ArrayList<LineString>> createTravelPathsToOutlet(Surface surf, Network nw, Particle[] particles) {
         HashMap<String, ArrayList<LineString>> map = new HashMap<>(nw.getLeaves().size());
@@ -526,24 +693,28 @@ public class ShapeTools {
         /**
          * The key for all traces that have not yet left the model boundary.
          */
-        String keyActive="inside";
+        String keyActive = "inside";
         for (Particle p : particles) {
             if (!p.tracing()) {
                 continue;
             }
             HistoryParticle hp = (HistoryParticle) p;
             Coordinate[] coords = hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]);
-            if(coords.length<4)continue;
+            if (coords.length < 4) {
+                continue;
+            }
             LineString line = gf.createLineString(coords);
 
-            String key =null;
-            if(hp.getHistory().size()<3)continue;
-            if(hp.getHistory().getLast().isSetAsOutlet()){
-                key= hp.getHistory().getLast().getName();
-            }else{
-                key=keyActive;
+            String key = null;
+            if (hp.getHistory().size() < 3) {
+                continue;
             }
-            
+            if (hp.getHistory().getLast().isSetAsOutlet()) {
+                key = hp.getHistory().getLast().getName();
+            } else {
+                key = keyActive;
+            }
+
             ArrayList<LineString> linelist = map.get(key);
             if (linelist == null) {
                 linelist = new ArrayList<>();

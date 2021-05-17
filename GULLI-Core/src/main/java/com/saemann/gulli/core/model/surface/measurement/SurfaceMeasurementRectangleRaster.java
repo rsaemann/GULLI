@@ -398,6 +398,24 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         cs[4] = cs[0];
         return cs;
     }
+    
+    /**
+     * Returns 5 coordinates
+     *
+     * @param cellindex
+     * @return Array of 5 Coordinates (last=first)
+     */
+    public Coordinate[] getRectangleBoundClosed(int cellindex) {
+        int xindex = cellindex / numberYIntervals;
+        int yindex = cellindex % numberYIntervals;
+        Coordinate[] cs = new Coordinate[5];
+        cs[0] = new Coordinate(xmin + (xindex) * xIntervalWidth, ymin + (yindex) * YIntervalHeight);
+        cs[2] = new Coordinate(xmin + (xindex + 1) * xIntervalWidth, ymin + (yindex + 1) * YIntervalHeight);
+        cs[1] = new Coordinate(cs[2].x, cs[0].y);
+        cs[3] = new Coordinate(cs[0].x, cs[2].y);
+        cs[4] = cs[0];
+        return cs;
+    }
 
     public int getNumberOfTimes() {
         if (this.times == null) {

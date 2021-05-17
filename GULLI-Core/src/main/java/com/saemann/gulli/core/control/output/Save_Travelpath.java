@@ -80,6 +80,11 @@ public class Save_Travelpath implements OutputIntention {
 
     @Override
     public File writeOutput(StoringCoordinator sc) {
+        return writeOutput(sc, sc.getFileRoot());
+    }
+
+    @Override
+    public File writeOutput(StoringCoordinator sc, File f) {
         try {
             File fileRoot = sc.getFileRoot();
             String materialName;
@@ -132,7 +137,7 @@ public class Save_Travelpath implements OutputIntention {
                     System.out.println("No Travelpath traces files created.");
                     continue;
                 }
-                name=entry.getKey();
+                name = entry.getKey();
                 if (fileformat == StoringCoordinator.FileFormat.SHP) {
                     File shpfile = new File(fileRoot, name + ".shp");
                     File shxfile = new File(fileRoot, name + ".shx");

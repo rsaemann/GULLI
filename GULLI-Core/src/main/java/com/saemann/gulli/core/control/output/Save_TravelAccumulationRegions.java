@@ -85,11 +85,16 @@ public class Save_TravelAccumulationRegions implements OutputIntention {
         this.fileformat = fileformat;
         this.materialIndex = materialIndex;
     }
-
+    
     @Override
     public File writeOutput(StoringCoordinator sc) {
+        return writeOutput(sc, sc.getFileRoot());
+    }
+
+    @Override
+    public File writeOutput(StoringCoordinator sc, File f) {
         try {
-            File fileRoot = sc.getFileRoot();
+            File fileRoot = f;
             String materialName;
             if (materialIndex < 0) {
                 materialName = "all";

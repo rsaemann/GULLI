@@ -214,7 +214,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private boolean shouldReRandomize = true;
 
 //    private int trackid = 634504;
-
     private DecimalFormat df = new DecimalFormat("0.0000", DecimalFormatSymbols.getInstance(Locale.US));
 
     /**
@@ -372,7 +371,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
         totalvelocity = testVelocity(particlevelocity);
 
-        if (p.getMaterial().getDispersionCalculatorSurface()!=null) {
+        if (p.getMaterial().getDispersionCalculatorSurface() != null) {
             // calculate with diffusion 
             if (totalvelocity < dryFlowVelocity) {
                 if (gradientFlowForDryCells) {
@@ -427,6 +426,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 }
                 posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
                 posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
+                if(Double.isNaN(posxneu)){
+                    System.out.println("Got a NaN x Position old was: "+posxalt+"  dt="+dt+"  dx="+dx+"  vx="+particlevelocity[0]+"  totalV="+totalvelocity+"  wurzelX:"+sqrt2dtDx+"  wurzelY:"+sqrt2dtDy+" tempDiffx:"+tempDiff[0]);
+                }
             }
         } else {
             //No diffusion/dispersion
@@ -452,9 +454,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     }
 
     /**
-     * @deprecated 
-     * @param p
-     * @param dt 
+     * @deprecated @param p
+     * @param dt
      */
     private void moveParticleCellIterative(Particle p, float dt) {
 
@@ -712,12 +713,13 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         posyneu = tempProjection[1];
                     }
                     cellID = cellIDnew;
-                    if(cellIDnew==oldCellID1||cellID==oldCellID2){
-                        if(blockVerySlow){
-                            p.blocked=true;
-                            p.blockVelocity=totalvelocity;
-                           } break;
-                        
+                    if (cellIDnew == oldCellID1 || cellID == oldCellID2) {
+                        if (blockVerySlow) {
+                            p.blocked = true;
+                            p.blockVelocity = totalvelocity;
+                        }
+                        break;
+
                     }
                     //is in new
                     if (lengthfactor < 0.0001) {
@@ -836,8 +838,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         posxalt = p.getPosition3d().x;
         posyalt = p.getPosition3d().y;
         oldCellID1 = p.surfaceCellID;
-        oldCellID2=oldCellID1;
-        totalvelocity=0;
+        oldCellID2 = oldCellID1;
+        totalvelocity = 0;
         timeLeft = dt;
         wasInFreeflow = false;
         loopcounter = 0;
@@ -877,7 +879,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         return;
                     } else {
                         p.blocked = false;
-                        zigzag=false;
+                        zigzag = false;
                     }
                 } else {
                     if (!wasInFreeflow && !gradientFlowstateActual) {
@@ -1095,9 +1097,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                                         p.surfaceCellID = cellID;
                                         p.setPosition3D(posxneu, posyneu);
                                         if (blockVerySlow) {
-                                                p.blocked = true;
-                                                p.blockVelocity = totalvelocity;//testVelocity(particlevelocity);
-                                            }
+                                            p.blocked = true;
+                                            p.blockVelocity = totalvelocity;//testVelocity(particlevelocity);
+                                        }
                                         return;
                                     }
 
@@ -1182,12 +1184,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                             particlevelocity[1] = tempVelocity[1];
                             break;
                         }
-                            if (shortLengthCounter > 3) {
-                                break;
-                            }
-                            shortLengthCounter++;
-                        } else {
-                            shortLengthCounter = 0;
+                        if (shortLengthCounter > 3) {
+                            break;
+                        }
+                        shortLengthCounter++;
+                    } else {
+                        shortLengthCounter = 0;
                     }
                     isprojecting = false;
 
@@ -1306,7 +1308,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         moveToSurroundingCell(p, vertex0, vertex1, vertex2);
 
         if (Double.isNaN(posxneu)) {
-            System.out.println("0Set Position to NaN of particle " + p.getId() + " in cell " + cellID);
+            System.out.println("0Set Position to NaN of particle " + p.getId() + " in cell " + cellID + "   vx:" + particlevelocity[0] + ", vy=" + particlevelocity[1] + " loop:" + loopcounter + " length:" + lengthfactor + " timeleft:" + timeLeft);
             posxneu = surface.getTriangleMids()[cellID][0];
             posyneu = surface.getTriangleMids()[cellID][1];
         }
