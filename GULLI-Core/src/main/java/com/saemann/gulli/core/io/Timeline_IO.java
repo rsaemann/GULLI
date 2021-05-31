@@ -98,10 +98,15 @@ public class Timeline_IO {
             bw.append("***");
             for (int i = 0; i < nbtimes; i++) {
                 bw.newLine();
-                long measurementTime=pipe.getMeasurementTimeLine().getContainer().getMeasurementTimestampAtTimeIndex(i);
-                bw.append(measurementTime + ";");
-                double discharge = tls.getVelocity(tls.getTimeContainer().getTimeIndex(measurementTime)) / pipe.getLength();//1/s
-                bw.append(pipe.getMeasurementTimeLine().getMass(i, materialindex) * discharge + "");
+                try {
+                    long measurementTime = pipe.getMeasurementTimeLine().getContainer().getMeasurementTimestampAtTimeIndex(i);
+                    bw.append(measurementTime + ";");
+                    double discharge = tls.getVelocity(tls.getTimeContainer().getTimeIndex(measurementTime)) / pipe.getLength();//1/s
+                    bw.append(pipe.getMeasurementTimeLine().getMass(i, materialindex) * discharge + "");
+                } catch (Exception iOException) {
+                    bw.append(pipe.getMeasurementTimeLine().getTimes().getTimeMilliseconds(i) + ";0");
+//                    iOException.printStackTrace();
+                }
             }
             bw.flush();
             fw.flush();

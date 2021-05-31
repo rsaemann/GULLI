@@ -1398,7 +1398,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                     double massum = 0;
                                     for (int t = 0; t < raster.getNumberOfTimes(); t++) {
                                         for (int m = 0; m < raster.getNumberOfMaterials(); m++) {
-                                            massum += raster.getMass()[x][y][t][m];
+                                            try {
+                                                massum += raster.getMass()[x][y][t][m];
+
+                                            } catch (Exception e) {
+                                            }
                                         }
                                     }
                                     if (massum <= bagatell) {
@@ -1471,7 +1475,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
             } else if (surfaceShow == SURFACESHOW.HEATMAP_MASS_LEVEL && !updatedOnlyTime) {
                 for (int i = 0; i < 4; i++) {
-                    mapViewer.clearLayer(layerSurfaceContaminated+i);                    
+                    mapViewer.clearLayer(layerSurfaceContaminated + i);
                 }
                 if (surface == null) {
                     surfaceShow = SURFACESHOW.NONE;
@@ -1491,7 +1495,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     DoubleColorHolder[] ch = new DoubleColorHolder[category.length];
                     for (int i = 0; i < category.length; i++) {
                         masslimit[i] = category[i] * totalMass;
-                        ch[i] = new DoubleColorHolder(Color.orange, interpolateColor(Color.yellow, Color.red, i / (double) (category.length - 1)), ">" + (masslimit[i]<1?df1.format(masslimit[i]):(int)(masslimit[i])) + "kg");
+                        ch[i] = new DoubleColorHolder(Color.orange, interpolateColor(Color.yellow, Color.red, i / (double) (category.length - 1)), ">" + (masslimit[i] < 1 ? df1.format(masslimit[i]) : (int) (masslimit[i])) + "kg");
 
                         ArrayList<Geometry> list = ShapeTools.createShapesWGS84_byMass(surface, 10, 5, -1, masslimit[i], true);
                         int j = 0;
@@ -3366,15 +3370,15 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 return false;
             }
             if (p.isOnSurface()) {
-//                if (p.blocked) {
-//                    g2.setColor(Color.red);
-//                } else {
-                if (p.isDrySurfaceMovement()) {
-                    g2.setColor(chParticlesSurface.getFillColor());
+                if (p.blocked) {
+                    g2.setColor(Color.red);
                 } else {
-                    g2.setColor(chParticlesSurface.getColor());
+                    if (p.isDrySurfaceMovement()) {
+                        g2.setColor(chParticlesSurface.getFillColor());
+                    } else {
+                        g2.setColor(chParticlesSurface.getColor());
+                    }
                 }
-//                }
             } else {
                 g2.setColor(chParticlesNetwork.getColor());
             }

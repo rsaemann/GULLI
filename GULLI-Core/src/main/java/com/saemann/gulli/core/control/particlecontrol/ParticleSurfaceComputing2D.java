@@ -235,7 +235,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double dx, dy;
     private int vstatus = 0;
     private int shortLengthCounter = 0;
-    private int oldCellID1 = -1, oldCellID2 = -2;
+    private int oldCellID1 = -1, oldCellID2 = -2, startCellID = -3;
 
     private boolean calculateVelocityPosition = true;
     private boolean isprojecting = false;
@@ -310,6 +310,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         shortLengthCounter = 0;
 
         cellID = p.surfaceCellID;
+
         shouldReRandomize = true;
         moveParticleCellIterative2(p, (float) dt);
 
@@ -426,8 +427,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 }
                 posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
                 posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
-                if(Double.isNaN(posxneu)){
-                    System.out.println("Got a NaN x Position old was: "+posxalt+"  dt="+dt+"  dx="+dx+"  vx="+particlevelocity[0]+"  totalV="+totalvelocity+"  wurzelX:"+sqrt2dtDx+"  wurzelY:"+sqrt2dtDy+" tempDiffx:"+tempDiff[0]);
+                if (Double.isNaN(posxneu)) {
+                    System.out.println("Got a NaN x Position old was: " + posxalt + "  dt=" + dt + "  dx=" + dx + "  vx=" + particlevelocity[0] + "  totalV=" + totalvelocity + "  wurzelX:" + sqrt2dtDx + "  wurzelY:" + sqrt2dtDy + " tempDiffx:" + tempDiff[0]);
                 }
             }
         } else {
@@ -839,6 +840,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         posyalt = p.getPosition3d().y;
         oldCellID1 = p.surfaceCellID;
         oldCellID2 = oldCellID1;
+        startCellID = cellID;
+        lengthfactor = 1;
         totalvelocity = 0;
         timeLeft = dt;
         wasInFreeflow = false;
@@ -876,6 +879,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 if (p.blocked == true) {
                     if (Math.abs(totalvelocity - p.blockVelocity) < minimumDistanceBeforeBlock) {
 //                    System.out.println("Particle " + p.getId() + " is blocked here");
+                        if (surface.getMeasurementRaster().spatialConsistency) {
+                            surface.getMeasurementRaster().measureParticle(simulationtime, p, lengthfactor * timeLeft, threadindex);
+                        }
                         return;
                     } else {
                         p.blocked = false;
@@ -906,6 +912,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 //Stays inside this cell
                 p.surfaceCellID = cellID;
                 if (allowWashToPipesystem) {
+                    surface.getMeasurementRaster().measureParticle(simulationtime, p, lengthfactor * timeLeft, threadindex);
                     washToPipesystem(p, cellID);
                 }
                 break;
@@ -1176,6 +1183,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         posyneu = tempProjection[1];
                     }
                     cellID = cellIDnew;
+                    isprojecting = false;
                     //is in new
                     if (lengthfactor < 0.0001) {
                         if (cellID == oldCellID1 || cellID == oldCellID2) {
@@ -1191,7 +1199,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     } else {
                         shortLengthCounter = 0;
                     }
-                    isprojecting = false;
 
                 } else {
                     //Goes into cell id <0
@@ -1315,10 +1322,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         p.setPosition3D(posxneu, posyneu);
         if (blockVerySlow && gradientFlowstateActual) {
             if (!wasInFreeflow) {//If the particle is almost immobile, skip the continuous calculation and park it in blocking state
-                if (Math.abs(posxneu - posxalt) + Math.abs(posyalt - posyneu) < minimumDistanceBeforeBlock) {
-                    p.blocked = true;
-                    p.blockVelocity = testVelocity(particlevelocity);
+                if (startCellID == cellID) {
+                    if (Math.abs(posxneu - posxalt) + Math.abs(posyalt - posyneu) < minimumDistanceBeforeBlock) {
+                        p.blocked = true;
+                        p.blockVelocity = testVelocity(particlevelocity);
 //                    p.blockVelocity = totalvelocity;
+                    }
                 }
             }
         }

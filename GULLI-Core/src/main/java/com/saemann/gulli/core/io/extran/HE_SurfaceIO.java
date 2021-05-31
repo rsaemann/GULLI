@@ -821,11 +821,20 @@ public class HE_SurfaceIO {
         }
         //Number of particles can be a decimal number if continuous measurements is enabled
         DecimalFormat df2 = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(Locale.US));
+        DecimalFormat df3 = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.US));
         int[] samplesTaken = surface.getMeasurementRaster().measurementsInTimeinterval;
         int numberofIntervals = samplesTaken.length;
         if (samplesTaken[samplesTaken.length - 1] < 1) {
             numberofIntervals--;
         }
+//        double sum=0;
+//        for (int c = 0; c < surface.getMeasurementRaster().getNumberOfCells(); c++) {
+//            for (int i = 0; i < surface.getMeasurementRaster().measurementTimestamp.length; i++) {
+//                double d=surface.getMeasurementRaster().getRawNumberOfParticlesInCell(c, i, materialIndex);
+//                sum+=d;
+//            }
+//        }
+//        System.out.println("Total mass on surface: "+sum);
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile))) {
             if (surface.fileTriangles != null) {
@@ -878,7 +887,7 @@ public class HE_SurfaceIO {
                     for (int j = 0; j < timesteps; j++) {
                         double particles = raster.getRawNumberOfParticlesInCell(mID, j, materialIndex);
                         max = Math.max(max, particles);
-                        buffer.append(";").append(df2.format(particles));
+                        buffer.append(";").append(df3.format(particles));
                     }
                     if (max >= 1) {//Only write cell information, if there is content
                         bw.write(mID + ";");
@@ -891,6 +900,7 @@ public class HE_SurfaceIO {
                 }
             }
         }
+       
     }
 
     public static void writeSurfaceMassCSV(File outputFile, Surface surface, int materialIndex, int numberOfParticles, int decimalDigits) throws IOException {

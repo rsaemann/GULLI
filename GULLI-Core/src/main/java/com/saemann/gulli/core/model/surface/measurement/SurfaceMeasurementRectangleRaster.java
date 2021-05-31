@@ -43,7 +43,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     /**
      * [x-index][y-index][timeindex][materialindex]:counter
      */
-    public long[][][][] particlecounter;
+    public double[][][][] particlecounter;
 
     int numberXIntervals, numberYIntervals, numberOfMaterials;
     double xIntervalWidth, YIntervalHeight;
@@ -60,10 +60,10 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         this.numberYIntervals = numberYIntervals;
 
         mass = new double[numberXIntervals][][][];
-        particlecounter = new long[numberXIntervals][][][];
-        measurementsInTimeinterval = new int[times==null?2:times.getNumberOfTimes()];
+        particlecounter = new double[numberXIntervals][][][];
+        measurementsInTimeinterval = new int[times == null ? 2 : times.getNumberOfTimes()];
         measurementTimestamp = new long[measurementsInTimeinterval.length];
-        durationInTimeinterval=new double[measurementsInTimeinterval.length];
+        durationInTimeinterval = new double[measurementsInTimeinterval.length];
     }
 
     public static SurfaceMeasurementRectangleRaster SurfaceMeasurementRectangleRaster(Surface surf, int numberXInterval, int numberYInterval) {
@@ -93,12 +93,12 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         double minX = Double.POSITIVE_INFINITY, maxX = Double.NEGATIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
 
-        for (double[] vertex : surf.getVerticesPosition()) {
-            minX = Math.min(minX, vertex[0]);
-            maxX = Math.max(maxX, vertex[0]);
-            minY = Math.min(minY, vertex[1]);
-            maxY = Math.max(maxY, vertex[1]);
-        }
+            for (double[] vertex : surf.getVerticesPosition()) {
+                minX = Math.min(minX, vertex[0]);
+                maxX = Math.max(maxX, vertex[0]);
+                minY = Math.min(minY, vertex[1]);
+                maxY = Math.max(maxY, vertex[1]);
+            }
 
         int numx = (int) ((maxX - minX) / dx + 1);
         int numy = (int) ((maxY - minY) / dy + 1);
@@ -172,7 +172,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                 synchronized (mass) {
                     if (mass[xindex] == null) {
                         mass[xindex] = new double[numberYIntervals][][];
-                        particlecounter[xindex] = new long[numberYIntervals][][];
+                        particlecounter[xindex] = new double[numberYIntervals][][];
                     }
                 }
             }
@@ -180,7 +180,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
                 synchronized (mass) {
                     if (mass[xindex][yindex] == null) {
                         mass[xindex][yindex] = new double[times.getNumberOfTimes()][numberOfMaterials];
-                        particlecounter[xindex][yindex] = new long[times.getNumberOfTimes()][numberOfMaterials];
+                        particlecounter[xindex][yindex] = new double[times.getNumberOfTimes()][numberOfMaterials];
                     }
                 }
             }
@@ -259,7 +259,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
      *
      * @return number of particles in raster
      */
-    public long[][][][] getParticlecounter() {
+    public double[][][][] getParticlecounter() {
         return particlecounter;
     }
 
@@ -272,7 +272,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         return mass;
     }
 
-    public long getParticlesCounted(int xindex, int yindex, int timeindex, int materialindex) {
+    public double getParticlesCounted(int xindex, int yindex, int timeindex, int materialindex) {
         if (particlecounter == null) {
             return 0;
         }
@@ -309,8 +309,8 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         return sum;
     }
 
-    public int getMaxParticleCount() {
-        int maxSum = 0;
+    public double getMaxParticleCount() {
+        double maxSum = 0;
         for (int x = 0; x < numberXIntervals; x++) {
             if (particlecounter[x] == null) {
                 continue;
@@ -398,7 +398,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
         cs[4] = cs[0];
         return cs;
     }
-    
+
     /**
      * Returns 5 coordinates
      *
@@ -427,7 +427,7 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
     @Override
     public void reset() {
         mass = new double[numberXIntervals][][][];
-        particlecounter = new long[numberXIntervals][][][];
+        particlecounter = new double[numberXIntervals][][][];
         measurementsInTimeinterval = new int[times.getNumberOfTimes()];
 
         measurementTimestamp = new long[measurementsInTimeinterval.length];
@@ -588,9 +588,17 @@ public class SurfaceMeasurementRectangleRaster extends SurfaceMeasurementRaster 
 
     @Override
     public double getRawNumberOfParticlesInCell(int cellIndex, int timeindex, int materialIndex) {
-
+        if (particlecounter == null) {
+            return 0;
+        }
         int x = cellIndex / numberYIntervals;
+        if (particlecounter[x] == null) {
+            return 0;
+        }
         int y = cellIndex % numberYIntervals;
+        if (particlecounter[x][y] == null) {
+            return 0;
+        }
         return particlecounter[x][y][timeindex][materialIndex];
 
     }

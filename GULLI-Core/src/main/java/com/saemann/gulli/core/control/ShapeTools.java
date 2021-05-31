@@ -304,19 +304,20 @@ public class ShapeTools {
             GeometryFactory gf = new GeometryFactory();
             LinkedList<Polygon> rectangles = new LinkedList<>();
             for (int x = 0; x < raster.getParticlecounter().length; x++) {
-                long[][][] dim1 = raster.getParticlecounter()[x];
+                double[][][] dim1 = raster.getParticlecounter()[x];
 
                 if (dim1 == null) {
                     continue;
                 }
                 for (int y = 0; y < dim1.length; y++) {
-                    long[][] dim2 = dim1[y];
+                    double[][] dim2 = dim1[y];
 
                     if (dim2 == null) {
                         continue;
                     }
+                    double sum = 0;
                     if (materialIndex < 0) {//count all
-                        int sum = 0;
+
                         for (int t = 0; t < dim2.length; t++) {
                             for (int m = 0; m < dim2[t].length; m++) {
                                 sum += dim2[t][m];
@@ -327,7 +328,6 @@ public class ShapeTools {
                             }
                         }
                     } else {//count only material 
-                        int sum = 0;
                         for (int t = 0; t < dim2.length; t++) {
                             sum += dim2[t][materialIndex];
                             if (sum >= minimumCount) {
@@ -380,7 +380,7 @@ public class ShapeTools {
                         continue;
                     }
                     double[] particles = measurement.getParticlecount()[materialIndex];
-                    int sum = 0;
+                    double sum = 0;
                     for (int i = 0; i < particles.length; i++) {
                         sum += particles[i];
                         if (sum > minimumCount) {
@@ -469,8 +469,8 @@ public class ShapeTools {
      * @param clusterCount
      * @param clusterloops
      * @param materialIndex select -1 for all
-     * @param minimumMasse triangles with less than this amount of mass
-     * are ignored
+     * @param minimumMasse triangles with less than this amount of mass are
+     * ignored
      * @param longitudeFirst transform to (longitude,latitude) wgs84 coordinates
      * @return
      * @throws TransformException
@@ -487,7 +487,11 @@ public class ShapeTools {
 
                     for (int t = 0; t < raster.getNumberOfTimes(); t++) {
                         for (int m = 0; m < raster.getNumberOfMaterials(); m++) {
-                            sum += raster.getMassInCell(x, t, m);
+                            try {
+                                sum += raster.getMassInCell(x, t, m);
+
+                            } catch (Exception e) {
+                            }
                         }
 
                     }
@@ -555,7 +559,7 @@ public class ShapeTools {
                         }
                     }
                 }
-               
+
                 if (sum >= minimumMass) {
                     contaminated.add(m);
                 }

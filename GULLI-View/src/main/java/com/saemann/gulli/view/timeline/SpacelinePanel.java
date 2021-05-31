@@ -178,6 +178,12 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
             setLegendPosition(CapacityTimelinePanel.LEGEND_POSITION.values()[StartParameters.getTimelinePanelLegendPosition()]);
         } catch (Exception e) {
         }
+        
+        ((SeriesKey)m_p.getKey()).setVisible(false);
+        ((SeriesKey)m_n.getKey()).setVisible(false);
+        ((SeriesKey)m_m_sma.getKey()).setVisible(false);
+        
+        
 
         initChart(title);
         addPDFexport();
@@ -210,7 +216,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 //                SpacelinePanel.this.title = title;
                 SpacelinePanel.this.updateChart("Preparing... " + new Date(time));
 
-                SpacelinePanel.this.buildPipeSpaceline(referenceContainer,measurementContainer, time);
+                SpacelinePanel.this.buildPipeSpaceline(referenceContainer, measurementContainer, time);
 
                 SpacelinePanel.this.updateCheckboxPanel();
 
@@ -285,7 +291,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         }
     }
 
-    private void buildPipeSpaceline(ArrayTimeLinePipeContainer instance,MeasurementContainer mc, long time) {
+    private void buildPipeSpaceline(ArrayTimeLinePipeContainer instance, MeasurementContainer mc, long time) {
         this.referenceContainer = instance;
 
         double dtm = 1;
@@ -322,7 +328,12 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         int ind = indexTimePipe;
         float[] vs = instance.getVelocityForTimeIndex(ind);
         float[] hs = instance.getWaterlevelsForTimeIndex(ind);
-        float[] massFlux = instance.getMassFluxForTimeIndex(ind, 0);
+        float[] massFlux;
+        try {
+            massFlux = instance.getMassFluxForTimeIndex(ind, 0);
+        } catch (Exception e) {
+            massFlux = null;
+        }
         float[] cs = instance.getConcentrationForTimeIndex(ind, 0);
         float[] vol = instance.getVolumesForTimeIndex(ind);
         float[] q = instance.getDischargeForTimeIndex(ind);
@@ -333,7 +344,9 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
 //            System.out.println(i + "\t" + hs[i] + "m,\t"+vs[i]+"m/s"+"\tC:"+cs[i]);
                 hpipe.addOrUpdate(instance.distance[i], hs[i]);
                 v.addOrUpdate(instance.distance[i], vs[i]);
-                refMassFlux.addOrUpdate(instance.distance[i], massFlux[i]);
+                if (massFlux != null) {
+                    refMassFlux.addOrUpdate(instance.distance[i], massFlux[i]);
+                }
                 refMass.addOrUpdate(instance.distance[i], vol[i] * cs[i]);
                 refConcentration.addOrUpdate(instance.distance[i], cs[i]);
             }
@@ -362,7 +375,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
         }
 
         if (mc != null) {
-            ArrayTimeLineMeasurementContainer container = (ArrayTimeLineMeasurementContainer)mc;
+            ArrayTimeLineMeasurementContainer container = (ArrayTimeLineMeasurementContainer) mc;
             ind = container.getIndexForTime(time);
             float[] mass = container.getMassForTimeIndex(ind);
             float[] ps = container.getNumberOfParticlesForTimeIndex(ind);
@@ -1251,7 +1264,7 @@ public class SpacelinePanel extends JPanel implements CapacitySelectionListener 
                 this.measurementContainer = p.getMeasurementTimeLine().getContainer();
                 if (p.getStatusTimeLine() instanceof ArrayTimeLinePipe) {
                     this.referenceContainer = ((ArrayTimeLinePipe) p.getStatusTimeLine()).container;
-                    buildPipeSpaceline(referenceContainer,p.getMeasurementTimeLine().getContainer(), 0);
+                    buildPipeSpaceline(referenceContainer, p.getMeasurementTimeLine().getContainer(), 0);
                 }
             }
         }
