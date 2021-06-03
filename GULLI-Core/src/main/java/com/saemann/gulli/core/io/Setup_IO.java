@@ -91,6 +91,8 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t\t<RelativeNetworkTopology>" + file.getParentFile().toPath().relativize(files.getPipeNetwork().toPath()) + "</>");
             bw.newLine();
+            bw.write("\t\t<CRS>" + files.getCrsPipes() + "</>");
+            bw.newLine();
             bw.write("\t\t<NetworkFlowField>" + files.getPipeResult() + "</>");
             bw.newLine();
             bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
@@ -105,6 +107,8 @@ public class Setup_IO {
             bw.newLine();
             if (files.getSurfaceDirectory() != null) {
                 bw.write("\t\t<RelativeSurfaceTopology>" + file.getParentFile().toPath().relativize(files.getSurfaceDirectory().toPath()) + "</>");
+                bw.newLine();
+                bw.write("\t\t<CRS>" + files.getCrsSurface() + "</>");
                 bw.newLine();
             }
 
@@ -474,6 +478,20 @@ public class Setup_IO {
                         if (networkRelation) {
                             setup.setSparsePipeVelocity(sparse);
                         }
+                    } else if (line.contains("<CRS>")) {
+                        String crs = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                        if (networkRelation) {
+                            setup.files.setCrsPipes(crs);
+                        }
+                        if (surfaceRelation) {
+                            setup.files.setCrsSurface(crs);
+                        }
+                    } else if (line.contains("<Network>")) {
+                        networkRelation = true;
+                        surfaceRelation = false;
+                    } else if (line.contains("<Surface>")) {
+                        networkRelation = false;
+                        surfaceRelation = true;
                     }
                     if (line.contains("/InputFiles")) {
                         state = -1;

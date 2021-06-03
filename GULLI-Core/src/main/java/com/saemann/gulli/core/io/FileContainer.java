@@ -30,77 +30,96 @@ import java.io.File;
  * @author Sämann
  */
 public class FileContainer {
-     public File pipeResult;
-     public File pipeNetwork;
 
-        public File surfaceResult;
-        public File surfaceDirectory;
-        private File inlets;
+    public File pipeResult;
+    public File pipeNetwork;
 
-        private boolean pipeResultLoaded, pipeNetworkLoaded, surfaceResultLoaded, surfaceTopologyLoaded;
+    public File surfaceResult;
+    public File surfaceDirectory;
+    private File inlets;
 
-        public FileContainer(File pipeResult, File pipeNetwork, File surfaceResult, File surfaceDirectory, File inlets) {
-            this.pipeResult = pipeResult;
-            this.pipeNetwork = pipeNetwork;
-            this.surfaceResult = surfaceResult;
-            this.surfaceDirectory = surfaceDirectory;
-            this.inlets = inlets;
-        }
+    private String crsPipes = null, crsSurface = null;
 
-        public boolean isPipeResultLoaded() {
-            return pipeResultLoaded;
-        }
+    private boolean pipeResultLoaded, pipeNetworkLoaded, surfaceResultLoaded, surfaceTopologyLoaded;
 
-        public void setPipeResultLoaded(boolean pipeResultLoaded) {
-            this.pipeResultLoaded = pipeResultLoaded;
-        }
+    public FileContainer(File pipeResult, File pipeNetwork, File surfaceResult, File surfaceDirectory, File inlets) {
+        this.pipeResult = pipeResult;
+        this.pipeNetwork = pipeNetwork;
+        this.surfaceResult = surfaceResult;
+        this.surfaceDirectory = surfaceDirectory;
+        this.inlets = inlets;
+    }
 
-        public boolean isPipeNetworkLoaded() {
-            return pipeNetworkLoaded;
-        }
+    public boolean isPipeResultLoaded() {
+        return pipeResultLoaded;
+    }
 
-        public void setPipeNetworkLoaded(boolean pipeNetworkLoaded) {
-            this.pipeNetworkLoaded = pipeNetworkLoaded;
-        }
+    public void setPipeResultLoaded(boolean pipeResultLoaded) {
+        this.pipeResultLoaded = pipeResultLoaded;
+    }
 
-        public boolean isSurfaceResultLoaded() {
-            return surfaceResultLoaded;
-        }
+    public boolean isPipeNetworkLoaded() {
+        return pipeNetworkLoaded;
+    }
 
-        public void setSurfaceResultLoaded(boolean surfaceResultLoaded) {
-            this.surfaceResultLoaded = surfaceResultLoaded;
-        }
+    public void setPipeNetworkLoaded(boolean pipeNetworkLoaded) {
+        this.pipeNetworkLoaded = pipeNetworkLoaded;
+    }
 
-        public boolean isSurfaceTopologyLoaded() {
-            return surfaceTopologyLoaded;
-        }
+    public boolean isSurfaceResultLoaded() {
+        return surfaceResultLoaded;
+    }
 
-        public void setSurfaceTopologyLoaded(boolean surfaceTopologyLoaded) {
-            this.surfaceTopologyLoaded = surfaceTopologyLoaded;
-        }
+    public void setSurfaceResultLoaded(boolean surfaceResultLoaded) {
+        this.surfaceResultLoaded = surfaceResultLoaded;
+    }
 
-        public File getPipeResult() {
-            return pipeResult;
-        }
+    public boolean isSurfaceTopologyLoaded() {
+        return surfaceTopologyLoaded;
+    }
 
-        public File getPipeNetwork() {
-            return pipeNetwork;
-        }
+    public void setSurfaceTopologyLoaded(boolean surfaceTopologyLoaded) {
+        this.surfaceTopologyLoaded = surfaceTopologyLoaded;
+    }
 
-        public File getSurfaceResult() {
-            return surfaceResult;
-        }
+    public File getPipeResult() {
+        return pipeResult;
+    }
 
-        public File getSurfaceDirectory() {
-            return surfaceDirectory;
-        }
+    public File getPipeNetwork() {
+        return pipeNetwork;
+    }
 
-        public File getInlets() {
-            return inlets;
-        }
+    public File getSurfaceResult() {
+        return surfaceResult;
+    }
 
-        @Override
-        public String toString() {
-            return "FileContainer{" + "pipeResult=" + pipeResult + ", pipeNetwork=" + pipeNetwork + ", surfaceResult=" + surfaceResult + ", surfaceDirectory=" + surfaceDirectory + ", inlets=" + inlets + ", pipeResultLoaded=" + pipeResultLoaded + ", pipeNetworkLoaded=" + pipeNetworkLoaded + ", surfaceResultLoaded=" + surfaceResultLoaded + ", surfaceTopologyLoaded=" + surfaceTopologyLoaded + '}';
-        }
+    public File getSurfaceDirectory() {
+        return surfaceDirectory;
+    }
+
+    public File getInlets() {
+        return inlets;
+    }
+
+    public String getCrsPipes() {
+        return crsPipes;
+    }
+
+    public void setCrsPipes(String crsPipes) {
+        this.crsPipes = crsPipes;
+    }
+
+    public String getCrsSurface() {
+        return crsSurface;
+    }
+
+    public void setCrsSurface(String crsSurface) {
+        this.crsSurface = crsSurface;
+    }
+
+    @Override
+    public String toString() {
+        return "FileContainer{" + "pipeResult=" + pipeResult + ", pipeNetwork=" + pipeNetwork + ", surfaceResult=" + surfaceResult + ", surfaceDirectory=" + surfaceDirectory + ", inlets=" + inlets + ", pipeResultLoaded=" + pipeResultLoaded + ", pipeNetworkLoaded=" + pipeNetworkLoaded + ", surfaceResultLoaded=" + surfaceResultLoaded + ", surfaceTopologyLoaded=" + surfaceTopologyLoaded + '}';
+    }
 }

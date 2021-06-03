@@ -132,6 +132,22 @@ public class SWMM_IO {
         swmm.readFile(file);
         return swmm.finishNetwork();
     }
+    
+    /**
+     * Creates a GULLI Network from a SWMM *.inp file
+     *
+     * @param file *.inp file with definition of SWMM networlk topology
+     * @param crs CoordinateReferenceString e.g. "EPSG:25832"
+     * @return Network for GULLI
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws FactoryException
+     */
+    public static SWMMNetwork readNetwork(File file, String crs) throws FileNotFoundException, IOException, FactoryException {
+        SWMM_IO swmm = new SWMM_IO();
+        swmm.readFile(file);
+        return swmm.finishNetwork(crs);
+    }
 
     /**
      * Decode a *.inp file with SWMM topology information and stores the
@@ -322,6 +338,10 @@ public class SWMM_IO {
         try {
             if(epsgCodeUTM==null||epsgCodeUTM.isEmpty()){
                 epsgCodeUTM="EPSG:25832";
+                
+                System.out.println("use fallback UTM CRS: "+epsgCodeUTM);
+            }else{
+                System.out.println("CRS: "+epsgCodeUTM);
             }
             utmCRS = af.createCoordinateReferenceSystem(epsgCodeUTM);
             wgs84CRS = af.createCoordinateReferenceSystem("EPSG:4326");//CRS.decode("EPSG:4326"); //WGS84

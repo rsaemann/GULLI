@@ -4,28 +4,40 @@
 	<Network>
 		<NetworkTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\artificial_SWMM_model.inp</>
 		<RelativeNetworkTopology>artificial_SWMM_model.inp</>
+		<CRS>EPSG:31468</>
 		<NetworkFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\Result-T50\artificial_SWMM_model.out</>
 		<RelativeNetworkFlowField>Result-T50\artificial_SWMM_model.out</>
+		<Sparse>false</>
 	</Network>
 	<Surface>
 		<SurfaceTopology>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\Surfacegrid-Smalltown2</>
 		<RelativeSurfaceTopology>Surfacegrid-Smalltown2</>
+		<CRS>EPSG:31468</>
 		<SurfaceFlowField>E:\Eigene Dateien\Programmierung\NetbeansProjects\GULLI\Scenarios\SWMM\SmallTown2\Surfacegrid-Smalltown2\X.dat</>
 		<RelativeSurfaceFlowField>Surfacegrid-Smalltown2\X.dat</>
 	</Surface>
 </InputFiles>
 <SimulationParameters>
 	<Timestep unit='s'>1.0</>
+	<Timeintegration>STEPSPLICIT</>
+	<Surface>
+		<EnterDry>true</>
+		<DryMovement>true</>
+		<DryVelocity unit='m/s'>0.05</>
+		<SmoothZigZag>true</>
+		<SlideAlongEdge>true</>
+		<StopVerySlow>true</>
+	</Surface>
 </SimulationParameters>
 <Measuring>
 		<Network>
 			<Interval unit='s'>60.0</>
 			<Timecontinuous>true</>
 			<Spatialconsistent>true</>
-			<Synchronize Writing>true</>
+			<Synchronize Writing>false</>
 		</Network>
 		<Surface>
-			<Interval unit='s'>9.223372036854776E15</>
+			<Interval unit='s'>900.0</>
 			<Timecontinuous>true</>
 			<Spatialconsistent>true</>
 			<Synchronize Writing>false</>
@@ -36,13 +48,13 @@
 </Measuring>
 <Materials>
 	<Material id=0>
-		<Name>neu</>
+		<Name>Pollutant</>
 		<Density unit='kg/m^3'>1000.0</>
 		<Flowcalculator>com.saemann.gulli.core.model.material.routing.Routing_Homogene</>
 		<Network>
 			<Dispersion>
 				<Type Parameters=1>com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant</>
-				<DispersionCoefficient unit='m^2/s'>2.0</>
+				<DispersionCoefficient unit='m^2/s'>1.0</>
 			</Dispersion>
 		</Network>
 		<Surface>
@@ -67,9 +79,9 @@
 		</Position>
 		<Start unit='s'>0.0</>
 		<Duration unit='s'>1201.02</>
-		<Material id=0>neu</>
-		<Mass unit='kg'>1.0</>
-		<Particles>16000</>
+		<Material id=0>Pollutant</>
+		<Mass unit='kg'>1000.0</>
+		<Particles>31000</>
 		<Active>true</>
 	</Injection>
 </Injections>

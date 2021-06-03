@@ -177,6 +177,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public final String layerSurfaceMeasurementRaster = layerTriangle + "MRaster";
     private final ColorHolder chTriangleMeasurement = new ColorHolder(Color.orange, "Triangle probe");
     private final DoubleColorHolder chTrianglesContaminated = new DoubleColorHolder(Color.orange, Color.yellow, "Surface contaminated");
+    private DoubleColorHolder[] chTriangleContaminatedCat = null;
     private final DoubleColorHolder chTrianglesGrid = new DoubleColorHolder(Color.orange, new Color(1f, 1f, 1f, 0f), "Surface Triangles");
     private final DoubleColorHolder chCellMeasurements = new DoubleColorHolder(Color.orange.darker(), new Color(1f, 1f, 1f, 0f), "Surface Measurementraster");
     private final DoubleColorHolder chTrianglesWaterlevel = new DoubleColorHolder(Color.white, Color.blue, "Surface Waterlevel");
@@ -1492,16 +1493,21 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     //Unterteilen Mass in 4 Categorien:
                     double[] category = new double[]{0, 0.00001, 0.0001, 0.001};
                     double[] masslimit = new double[category.length];
-                    DoubleColorHolder[] ch = new DoubleColorHolder[category.length];
+                    if (chTriangleContaminatedCat == null || chTriangleContaminatedCat.length != category.length) {
+                        chTriangleContaminatedCat = new DoubleColorHolder[category.length];
+                        for (int i = 0; i < category.length; i++) {
+                            masslimit[i] = category[i] * totalMass;
+                            chTriangleContaminatedCat[i] = new DoubleColorHolder(Color.orange, interpolateColor(Color.yellow, Color.red, i / (double) (category.length - 1)), ">" + (masslimit[i] < 1 ? df1.format(masslimit[i]) : (int) (masslimit[i])) + "kg");
+                        }
+                    }
                     for (int i = 0; i < category.length; i++) {
                         masslimit[i] = category[i] * totalMass;
-                        ch[i] = new DoubleColorHolder(Color.orange, interpolateColor(Color.yellow, Color.red, i / (double) (category.length - 1)), ">" + (masslimit[i] < 1 ? df1.format(masslimit[i]) : (int) (masslimit[i])) + "kg");
 
                         ArrayList<Geometry> list = ShapeTools.createShapesWGS84_byMass(surface, 10, 5, -1, masslimit[i], true);
                         int j = 0;
                         if (list != null) {
                             for (Geometry g : list) {
-                                AreaPainting ap = new AreaPainting(j, ch[i], g);
+                                AreaPainting ap = new AreaPainting(j, chTriangleContaminatedCat[i], g);
                                 mapViewer.addPaintInfoToLayer(layerSurfaceContaminated + i, ap);
                                 j++;
                             }
@@ -2770,32 +2776,33 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     public boolean removeSurfaceShow(SURFACESHOW show) {
         try {
             if (show == SURFACESHOW.GRID) {
-                mapViewer.clearLayer(layerSurfaceGrid);
+                mapViewer.removeLayer(layerSurfaceGrid);
             } else if (show == SURFACESHOW.ANALYSISRASTER) {
-                mapViewer.clearLayer(layerSurfaceMeasurementRaster);
+                mapViewer.removeLayer(layerSurfaceMeasurementRaster);
             } else if (show == SURFACESHOW.HEATMAP_LIN || show == SURFACESHOW.HEATMAP_LOG || show == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
-                mapViewer.clearLayer(layerSurfaceContaminated);
+                mapViewer.removeLayer(layerSurfaceContaminated);
             } else if (show == SURFACESHOW.HEATMAP_MASS_LEVEL) {
                 for (int i = 0; i < 4; i++) {
-                    mapViewer.clearLayer(layerSurfaceContaminated + i);
+                    String key = layerSurfaceContaminated + i;
+                    mapViewer.removeLayer(key);
                 }
             } else if (show == SURFACESHOW.SPECTRALMAP) {
-                mapViewer.clearLayer(layerSurfaceContaminated);
+                mapViewer.removeLayer(layerSurfaceContaminated);
             } else if (show == SURFACESHOW.CONTAMINATIONCLUSTER) {
-                mapViewer.clearLayer(layerSurfaceContaminated);
+                mapViewer.removeLayer(layerSurfaceContaminated);
             } else if (show == SURFACESHOW.VERTEX_HEIGHT) {
-                mapViewer.clearLayer(layerLabelWaterlevel);
+                mapViewer.removeLayer(layerLabelWaterlevel);
             } else if (show == SURFACESHOW.SLOPE) {
-                mapViewer.clearLayer(layerSurfaceSlope);
-                mapViewer.clearLayer(layerArrow);
+                mapViewer.removeLayer(layerSurfaceSlope);
+                mapViewer.removeLayer(layerArrow);
             } else if (show == SURFACESHOW.VELOCITY) {
-                mapViewer.clearLayer(layerArrow);
+                mapViewer.removeLayer(layerArrow);
             } else if (show == SURFACESHOW.PARTICLETRACE) {
-                mapViewer.clearLayer(layerHistoryPath);
+                mapViewer.removeLayer(layerHistoryPath);
             } else if (show == SURFACESHOW.PARTICLETRACE_OUTLET) {
-                mapViewer.clearLayer(layerHistoryPath);
+                mapViewer.removeLayer(layerHistoryPath);
                 for (String layersHistoryPathToOutlet : layersHistoryPathToOutlets) {
-                    mapViewer.clearLayer(layersHistoryPathToOutlet);
+                    mapViewer.removeLayer(layersHistoryPathToOutlet);
                 }
             }
         } catch (Exception e) {

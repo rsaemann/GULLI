@@ -130,7 +130,7 @@ public class HE_SurfaceIO {
         return surf;
     }
 
-    public static Surface loadSurface(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML, MultiPolygon filter) throws FileNotFoundException, IOException {
+    public static Surface loadSurfaceFiltered(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML, MultiPolygon filter) throws FileNotFoundException, IOException {
         System.out.println("Filter surface loading with " + filter);
 //Coordinates   //X.dat
         FileReader fr = new FileReader(fileCoordinates);
@@ -338,9 +338,25 @@ public class HE_SurfaceIO {
     }
 
     public static Surface loadSurface(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML) throws FileNotFoundException, IOException {
-        if (testfilter != null) {
-            return loadSurface(fileCoordinates, fileTriangleIndizes, fileNeighbours, coordReferenceXML, testfilter);
-        }
+        return loadSurface(fileCoordinates, fileTriangleIndizes, fileNeighbours, coordReferenceXML, null);
+    }
+
+    /**
+     *
+     * @param fileCoordinates Vertex coordinates e.g. "X.dat"
+     * @param fileTriangleIndizes Indices of verties to form triangles
+     * "TRIMOD2.dat"
+     * @param fileNeighbours  Neighbours per triangle e.g. "TRIMOD1.dat"
+     * @param coordReferenceXML File where the coordinate reference is defined
+     * @param crs Manual override of CoordinateReference e.g. "EPSG:25832"
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static Surface loadSurface(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML, String crs) throws FileNotFoundException, IOException {
+//        if (testfilter != null) {
+//            return loadSurfaceFiltered(fileCoordinates, fileTriangleIndizes, fileNeighbours, coordReferenceXML, testfilter);
+//        }
 
 //        System.out.println("Load surface without filter");
 //Coordinates   //X.dat
@@ -375,7 +391,7 @@ public class HE_SurfaceIO {
 //        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
 //        start = System.currentTimeMillis();
-        String epsgCode = "EPSG:25832"; //Use this standard code for Hannover
+        String epsgCode = crs;//"EPSG:25832"; //Use this standard code for Hannover
         if (coordReferenceXML != null && coordReferenceXML.exists() && coordReferenceXML.canRead()) {
             epsgCode = loadSpatialReferenceCode(coordReferenceXML);
             if (epsgCode.equals("102329")) {
@@ -387,6 +403,7 @@ public class HE_SurfaceIO {
             } else {
                 epsgCode = "EPSG:" + epsgCode;
             }
+            
         }
 //        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
 
@@ -437,7 +454,7 @@ public class HE_SurfaceIO {
 //        System.out.println("Number of triangles: "+numberofTriangles);
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
-        integerParts=new int[9];
+        integerParts = new int[9];
         try {
             nc.setReader(br);
             while (br.ready()) {
@@ -452,29 +469,29 @@ public class HE_SurfaceIO {
                     neighbours[index][0] = integerParts[0];
                     neighbours[index][1] = integerParts[1];
                     neighbours[index][2] = integerParts[2];
-                    
+
                     // -1 = House no flow boundary
                     // -2 = outflow boundary / trespassable
-                    if(integerParts[0]<0){
-                        if(integerParts[6]==1){
-                            neighbours[index][0]=-2;
+                    if (integerParts[0] < 0) {
+                        if (integerParts[6] == 1) {
+                            neighbours[index][0] = -2;
                         }
                     }
-                    if(integerParts[1]<0){
-                        if(integerParts[7]==1){
-                            neighbours[index][1]=-2;
+                    if (integerParts[1] < 0) {
+                        if (integerParts[7] == 1) {
+                            neighbours[index][1] = -2;
                         }
                     }
-                    if(integerParts[2]<0){
-                        if(integerParts[8]==1){
-                            neighbours[index][2]=-2;
+                    if (integerParts[2] < 0) {
+                        if (integerParts[8] == 1) {
+                            neighbours[index][2] = -2;
                         }
                     }
                     index++;
                 }
             }
         } catch (Exception ex) {
-            System.err.println("Problem in line "+lines+" of "+fileNeighbours);
+            System.err.println("Problem in line " + lines + " of " + fileNeighbours);
             ex.printStackTrace();
         }
         br.close();
@@ -900,7 +917,7 @@ public class HE_SurfaceIO {
                 }
             }
         }
-       
+
     }
 
     public static void writeSurfaceMassCSV(File outputFile, Surface surface, int materialIndex, int numberOfParticles, int decimalDigits) throws IOException {
@@ -1444,7 +1461,9 @@ public class HE_SurfaceIO {
         try (BufferedReader br = new BufferedReader(new FileReader(fileManhole2Surface))) {
             String line;
             line = br.readLine();
-            if(line==null||line.isEmpty())return new ArrayList<>(0);
+            if (line == null || line.isEmpty()) {
+                return new ArrayList<>(0);
+            }
             String numberOfManholesStr = line.replaceAll("[^0-9.,]+", "").trim();
             int numberOfManholes = 10;
             try {
@@ -1454,16 +1473,18 @@ public class HE_SurfaceIO {
             manhole2Triangle = new ArrayList<>(numberOfManholes);
             while (br.ready()) {
                 line = br.readLine();
-                if(line.length()<20)continue;
+                if (line.length() < 20) {
+                    continue;
+                }
                 String[] seperated = line.split("%");
                 String[] values = null;
                 try {
                     values = seperated[2].replaceAll("  ", " ").split(" ");
-                
-                Pair<String, Integer> pair = new Pair<>(seperated[0].split(" ")[0], Integer.parseInt(values[2]));
-                manhole2Triangle.add(pair);
+
+                    Pair<String, Integer> pair = new Pair<>(seperated[0].split(" ")[0], Integer.parseInt(values[2]));
+                    manhole2Triangle.add(pair);
                 } catch (Exception e) {
-                    System.out.println(" problem with line '"+line+"'");
+                    System.out.println(" problem with line '" + line + "'");
                 }
             }
         }

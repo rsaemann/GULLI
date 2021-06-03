@@ -116,6 +116,7 @@ public class LoadingCoordinator {
     private LOADINGSTATUS loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
 
     private File fileNetwork;
+    private String crsNetwork = null, crsSurface = null;
 
     private HE_Database modelDatabase, resultDatabase;
     private static HE_Database tempFBDB;
@@ -510,8 +511,14 @@ public class LoadingCoordinator {
 //                    exception.printStackTrace();
                 }
                 if (crsCode == null) {
-                    crsCode = "EPSG:25832";
-                    System.err.println("No CRS information found. Use " + crsCode + " as CRS for Network geometry.");
+                    if (crsNetwork != null && !crsNetwork.isEmpty()) {
+                        crsCode = crsNetwork;
+                    } else {
+                        crsCode = "EPSG:25832";
+                        System.err.println("No CRS information found. Use " + crsCode + " as CRS for Network geometry.");
+                    }
+                }else{
+                    crsNetwork=crsCode;
                 }
                 nw = modelDatabase.loadNetwork(CRS.decode(crsCode));//HE_Database.loadNetwork(fileNetwork);
 
@@ -522,7 +529,7 @@ public class LoadingCoordinator {
                 }
 
             } else if (fileNetwork.getName().endsWith(".inp")) {
-                nw = SWMM_IO.readNetwork(fileNetwork);
+                nw = SWMM_IO.readNetwork(fileNetwork, crsNetwork);
                 this.filetype = FILETYPE.SWMM_5_1;
             } else {
                 loadingpipeNetwork = LOADINGSTATUS.ERROR;
@@ -754,7 +761,7 @@ public class LoadingCoordinator {
                         }
                         action.description = "Load downstream pipe velocities";
                         //Request Timelines for pipes and manholes & Create Timeindex container
-                        Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(nw, resultDatabase, pipesToLoad, manholesToLoad, zeroTimeStart,additionalMilliseconds);
+                        Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(nw, resultDatabase, pipesToLoad, manholesToLoad, zeroTimeStart, additionalMilliseconds);
                         if (verbose) {
                             System.out.println(getClass() + ": Loaded sparsecontainer " + ((System.currentTimeMillis() - starttime) + "ms."));
                         }
@@ -768,7 +775,7 @@ public class LoadingCoordinator {
                     action.description = "Open out file";
                     SWMM_Out_Reader reader = new SWMM_Out_Reader(fileMainPipeResult);
 
-                    Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(network, reader, new ArrayList(0), new ArrayList(0), zeroTimeStart,additionalMilliseconds);
+                    Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> cs = sparseLoadTimelines(network, reader, new ArrayList(0), new ArrayList(0), zeroTimeStart, additionalMilliseconds);
                     timeContainerPipe = cs.first;
                     timeContainerManholes = cs.second;
                     if (loadResultInjections) {
@@ -785,9 +792,9 @@ public class LoadingCoordinator {
                     if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
                         if (zeroTimeStart) {
                             long start = resultDatabase.getStartTimeNetwork();
-                            p = resultDatabase.applyTimelines(nw, start,additionalMilliseconds);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
+                            p = resultDatabase.applyTimelines(nw, start, additionalMilliseconds);//HE_Database.readTimelines(fileMainPipeResult, control.getNetwork());
                         } else {
-                            p = resultDatabase.applyTimelines(nw,0,additionalMilliseconds);
+                            p = resultDatabase.applyTimelines(nw, 0, additionalMilliseconds);
                         }
                         scenarioName = resultDatabase.readResultname();
                     } else if (fileMainPipeResult.getName().endsWith(".rpt")) {
@@ -850,19 +857,18 @@ public class LoadingCoordinator {
             long start = System.currentTimeMillis();
             if (this.surface != null) {
                 this.surface.freeMemory();
-                this.surface=null;
+                this.surface = null;
                 control.loadSurface(surface, this);
-                if(scenario!=null){
+                if (scenario != null) {
                     scenario.setMeasurementsSurface(null);
                     scenario.setStatusTimesSurface(null);
                 }
                 System.gc();
             }
             Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
-//            if(additionalMilliseconds>0){
-//                TimeIndexContainer tc = surf.getTimes();
-//                
-//            }
+            crsSurface=surf.getSpatialReferenceCode();
+            
+            
             start = System.currentTimeMillis();
             //load neighbour definitions
             {
@@ -950,7 +956,7 @@ public class LoadingCoordinator {
                 }
                 SurfaceVelocityLoader velocityLoader = null;
                 SurfaceWaterlevelLoader waterlevelLoader = null;
-                
+
                 if (lowername.endsWith("shp")) {
                     SHP_IO_GULLI.readTriangleFileToSurface(fileSurfaceWaterlevels, surface, verbose);
                 } else if (lowername.endsWith("csv")) {
@@ -1057,22 +1063,22 @@ public class LoadingCoordinator {
                     }
                 }
                 if (scenario != null) {
-                    long surfaceTimestepMS=0;
-                    if(filetype==FILETYPE.HYSTEM_EXTRAN_7||filetype==FILETYPE.HYSTEM_EXTRAN_8){
-                        if(resultDatabase!=null){
-                            surfaceTimestepMS= (long) (resultDatabase.read2DExportTimeStep()*60000);
+                    long surfaceTimestepMS = 0;
+                    if (filetype == FILETYPE.HYSTEM_EXTRAN_7 || filetype == FILETYPE.HYSTEM_EXTRAN_8) {
+                        if (resultDatabase != null) {
+                            surfaceTimestepMS = (long) (resultDatabase.read2DExportTimeStep() * 60000);
                         }
                     }
-                    
+
                     if (surface.getNumberOfTimestamps() < 2) {
                         surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), 2));
                         scenario.setStatusTimesSurface(surface);
                     } else {
                         TimeIndexContainer tc;
-                        if(surfaceTimestepMS>0){
-                            tc= createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps(),surfaceTimestepMS);
-                        }else{
-                            tc= createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps());
+                        if (surfaceTimestepMS > 0) {
+                            tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps(), surfaceTimestepMS);
+                        } else {
+                            tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps());
                         }
 //                        System.out.println("Dt for surface: "+tc.getDeltaTimeMS()/1000+"   defined dt: "+surfaceTimestepMS/1000);
                         surface.setTimeContainer(tc);
@@ -1775,22 +1781,22 @@ public class LoadingCoordinator {
         TimeIndexContainer tc = new TimeIndexContainer(times);
         return tc;
     }
-    
+
     public static TimeIndexContainer createTimeContainer(long start, long end, int numbertimesteps, long regularInterval) {
         long dt = regularInterval;//(end - start) / (numbertimesteps - 1);
         long[] times = new long[numbertimesteps];
         for (int i = 0; i < times.length; i++) {
             times[i] = start + i * dt;
         }
-        if(times[times.length-1]<end){
-            times[times.length-1]=end;
+        if (times[times.length - 1] < end) {
+            times[times.length - 1] = end;
         }
         TimeIndexContainer tc = new TimeIndexContainer(times);
         return tc;
     }
 
     public static Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> sparseLoadTimelines(Network network, SparseTimeLineDataProvider dataprovider, Collection<Pipe> pipes, Collection<StorageVolume> manholes) throws Exception {
-        return sparseLoadTimelines(network, dataprovider, pipes, manholes, false,0);
+        return sparseLoadTimelines(network, dataprovider, pipes, manholes, false, 0);
     }
 
     public static Pair<SparseTimeLinePipeContainer, SparseTimeLineManholeContainer> sparseLoadTimelines(Network network, SparseTimeLineDataProvider dataprovider, Collection<Pipe> pipes, Collection<StorageVolume> manholes, boolean zeroTimeStart, long additionalMilliseconds) throws Exception {
@@ -1809,7 +1815,7 @@ public class LoadingCoordinator {
                 pipe.setStatusTimeLine(new SparseTimelinePipe(container, pipe));
             }
         }
-        tp=dataprovider.loadTimeStepsNetwork(zeroTimeStart);
+        tp = dataprovider.loadTimeStepsNetwork(zeroTimeStart);
         tp[tp.length - 1] += additionalMilliseconds;
         SparseTimeLineManholeContainer mcontainer = new SparseTimeLineManholeContainer(tp);
         mcontainer.setDataprovider(dataprovider);
@@ -1950,7 +1956,7 @@ public class LoadingCoordinator {
         }
 
         control.getThreadController().setDeltaTime(setup.getTimestepTransport());
-        ParticleSurfaceComputing2D.timeIntegration=setup.getTimeIntegration();
+        ParticleSurfaceComputing2D.timeIntegration = setup.getTimeIntegration();
 
         if (setup.getIntervalTraceParticles() > 0) {
             control.setTraceParticles(true);
@@ -1958,8 +1964,8 @@ public class LoadingCoordinator {
         } else {
             control.setTraceParticles(false);
         }
-        
-        control.getLoadingCoordinator().sparsePipeLoading=setup.isSparsePipeVelocity();
+
+        control.getLoadingCoordinator().sparsePipeLoading = setup.isSparsePipeVelocity();
 
         //Simulationparameters
         ParticleSurfaceComputing2D.blockVerySlow = setup.isStopSlow();
@@ -2001,6 +2007,22 @@ public class LoadingCoordinator {
         if (files.surfaceResult != null) {
             this.setSurfaceFlowfieldFile(files.surfaceResult);
         }
+        if (files.getCrsPipes() != null && !files.getCrsPipes().isEmpty()) {
+            if (this.crsNetwork == null || !crsNetwork.equals(files.getCrsPipes())) {
+                crsNetwork = files.getCrsPipes();
+                changedPipeNetwork = true;
+            }
+        } else {
+            crsNetwork = null;
+        }
+        if (files.getCrsSurface() != null && !files.getCrsSurface().isEmpty()) {
+            if (this.crsSurface == null || !crsSurface.equals(files.getCrsSurface())) {
+                crsSurface = files.getCrsSurface();
+                changedSurface = true;
+            }
+        } else {
+            crsSurface = null;
+        }
     }
 
     public boolean saveSetup(File file) throws IOException {
@@ -2010,6 +2032,9 @@ public class LoadingCoordinator {
         if (fileSurfaceTriangleIndicesDAT != null) {
             setup.files.surfaceDirectory = fileSurfaceCoordsDAT.getParentFile();
         }
+        setup.files.setCrsPipes(crsNetwork);
+        setup.files.setCrsSurface(crsSurface);
+
         setup.injections = manualInjections;
         setup.scenario = scenario;
 
@@ -2044,9 +2069,9 @@ public class LoadingCoordinator {
         setup.setSlideAlongEdge(ParticleSurfaceComputing2D.slidealongEdges);
         setup.setSmoothZigZag(ParticleSurfaceComputing2D.meanVelocityAtZigZag);
         setup.setStopSlow(ParticleSurfaceComputing2D.blockVerySlow);
-        
+
         setup.setSparsePipeVelocity(control.getLoadingCoordinator().sparsePipeLoading);
-        
+
         return Setup_IO.saveScenario(file, setup);
 
     }

@@ -3438,4 +3438,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         this.velocityLoader=null;
     }
 
+    public String getSpatialReferenceCode() {
+        return spatialReferenceCode;
+    }
+    
+    
+
 }
