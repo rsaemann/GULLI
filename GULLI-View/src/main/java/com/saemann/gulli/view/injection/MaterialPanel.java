@@ -17,6 +17,7 @@ import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calcul
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Dispersivity;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Fischer;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Waterlevel;
 import java.awt.BorderLayout;
@@ -105,9 +106,17 @@ public class MaterialPanel extends JPanel {
                         material.setDispersionCalculatorSurface(dcc);
                         updateValues();
                     }
-                } else if (comboDispersionSurface.getSelectedItem().equals(Material.DISPERSION_SURFACE.FISCHER)) {
-                    if (!(material.getDispersionCalculatorSurface() instanceof Dispersion2D_Fischer)) {
-                        Dispersion2D_Fischer dcc = new Dispersion2D_Fischer();
+                } 
+//                else if (comboDispersionSurface.getSelectedItem().equals(Material.DISPERSION_SURFACE.FISCHER)) {
+//                    if (!(material.getDispersionCalculatorSurface() instanceof Dispersion2D_Fischer)) {
+//                        Dispersion2D_Fischer dcc = new Dispersion2D_Fischer();
+//                        material.setDispersionCalculatorSurface(dcc);
+//                        updateValues();
+//                    }
+//                }
+                else if (comboDispersionSurface.getSelectedItem().equals(Material.DISPERSION_SURFACE.DISPERSIVITY)) {
+                    if (!(material.getDispersionCalculatorSurface() instanceof Dispersion2D_Dispersivity)) {
+                        Dispersion2D_Dispersivity dcc = new Dispersion2D_Dispersivity();
                         material.setDispersionCalculatorSurface(dcc);
                         updateValues();
                     }
@@ -196,8 +205,8 @@ public class MaterialPanel extends JPanel {
         if (sc != null) {
             if (sc instanceof Dispersion2D_Constant) {
                 comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.CONSTANT);
-            } else if (sc instanceof Dispersion2D_Fischer) {
-                comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.FISCHER);
+            } else if (sc instanceof Dispersion2D_Dispersivity) {
+                comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.DISPERSIVITY);
             } else if (sc instanceof Dispersion2D_Waterlevel) {
                 comboDispersionSurface.setSelectedItem(Material.DISPERSION_SURFACE.WATERLEVEL);
             } else {

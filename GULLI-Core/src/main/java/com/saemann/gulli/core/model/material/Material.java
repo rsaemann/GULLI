@@ -81,7 +81,7 @@ public class Material {
      */
     protected Dispersion2D_Calculator dispersionSurface;
     
-    public enum DISPERSION_SURFACE{NONE,CONSTANT,FISCHER,WATERLEVEL}
+    public enum DISPERSION_SURFACE{NONE,CONSTANT,DISPERSIVITY,WATERLEVEL}//FISCHER,
 
     /**
      * Index to identify the material. Index for storing in measurement

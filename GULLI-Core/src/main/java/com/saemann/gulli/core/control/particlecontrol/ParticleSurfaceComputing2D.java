@@ -26,6 +26,8 @@ package com.saemann.gulli.core.control.particlecontrol;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Dispersivity;
+import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Fischer;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -54,6 +56,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     public static boolean verbose = false;
 
     public static boolean gridFree = false;
+
+    public static boolean decoupledDispersivity = false;
 
     /**
      * Deltatime for timestep in [second]. Set by ThreadController.
@@ -415,18 +419,28 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 }
 
                 // random walk step
-                if (p.getMaterial().getDispersionCalculatorSurface().isIsotropic()) {
-                    dx = z1 * sqrt2dtDx;
-
-                    dy = (z2 * sqrt2dtDy);
+                if (decoupledDispersivity) {
+                    Dispersion2D_Dispersivity f=(Dispersion2D_Dispersivity) p.getMaterial().getDispersionCalculatorSurface();
+                    
+                    dx=Math.sqrt(2*particlevelocity[0]*f.getLongitudinalDispersivity()*dt)*z1+Math.sqrt(2*particlevelocity[1]*f.getTransversalDispersivity()*dt)*z2;
+                    dy=Math.sqrt(2*particlevelocity[0]*f.getTransversalDispersivity()*dt)*z1+Math.sqrt(2*particlevelocity[1]*f.getLongitudinalDispersivity()*dt)*z2;
+                    posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
+                    posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
                 } else {
-                    // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991" with different values for 
-                    dx = (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy);
 
-                    dy = (particlevelocity[1] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[0] / totalvelocity) * z2 * sqrt2dtDy);
+                    if (p.getMaterial().getDispersionCalculatorSurface().isIsotropic()) {
+                        dx = z1 * sqrt2dtDx;
+
+                        dy = (z2 * sqrt2dtDy);
+                    } else {
+                        // random walk in 2 dimsensions as in "Kinzelbach and Uffing, 1991" with different values for 
+                        dx = (particlevelocity[0] / totalvelocity) * z1 * sqrt2dtDx + ((particlevelocity[1] / totalvelocity) * z2 * sqrt2dtDy);
+
+                        dy = (particlevelocity[1] / totalvelocity) * z1 * sqrt2dtDx - ((particlevelocity[0] / totalvelocity) * z2 * sqrt2dtDy);
+                    }
+                    posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
+                    posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
                 }
-                posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
-                posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
                 if (Double.isNaN(posxneu)) {
                     System.out.println("Got a NaN x Position old was: " + posxalt + "  dt=" + dt + "  dx=" + dx + "  vx=" + particlevelocity[0] + "  totalV=" + totalvelocity + "  wurzelX:" + sqrt2dtDx + "  wurzelY:" + sqrt2dtDy + " tempDiffx:" + tempDiff[0]);
                 }

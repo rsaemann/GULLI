@@ -14,7 +14,6 @@ import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D
 import com.saemann.gulli.core.control.threads.ParticleThread;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.io.AnalyticalSurface;
-import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLineMeasurementContainer;

@@ -812,7 +812,7 @@ public class ThreadController implements ParticleListener, SimulationActionListe
                     simulationNextTimeMS += deltatimeMS;
 //                    status = 22;
                     if (simulationTimeMS >= simulationTimeEnd) {
-                        System.out.println("Simulation time end reached!");
+//                        System.out.println("Simulation time end reached!");
                         calculationFinished = true;
                     }
                     checkWaitingParticleIndex();
