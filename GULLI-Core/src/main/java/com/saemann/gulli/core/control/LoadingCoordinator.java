@@ -517,8 +517,8 @@ public class LoadingCoordinator {
                         crsCode = "EPSG:25832";
                         System.err.println("No CRS information found. Use " + crsCode + " as CRS for Network geometry.");
                     }
-                }else{
-                    crsNetwork=crsCode;
+                } else {
+                    crsNetwork = crsCode;
                 }
                 nw = modelDatabase.loadNetwork(CRS.decode(crsCode));//HE_Database.loadNetwork(fileNetwork);
 
@@ -866,9 +866,8 @@ public class LoadingCoordinator {
                 System.gc();
             }
             Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
-            crsSurface=surf.getSpatialReferenceCode();
-            
-            
+            crsSurface = surf.getSpatialReferenceCode();
+
             start = System.currentTimeMillis();
             //load neighbour definitions
             {
@@ -2083,6 +2082,46 @@ public class LoadingCoordinator {
      */
     public FILETYPE getFiletype() {
         return filetype;
+    }
+
+    public String getCrsSurface() {
+        return crsSurface;
+    }
+
+    public String getCrsNetwork() {
+        return crsNetwork;
+    }
+
+    public void setCrsNetwork(String crsNetwork) {
+        if (crsNetwork == null && this.crsNetwork == null) {
+            //nothing changed
+            return;
+        }
+        if (crsNetwork != null && this.crsNetwork != null) {
+            if (crsNetwork.equals(this.crsNetwork)) {
+                //nothing changed
+                return;
+            }
+        }
+        this.crsNetwork = crsNetwork;
+        this.requestLoading = true;
+        this.loadingpipeNetwork = LOADINGSTATUS.REQUESTED;
+    }
+
+    public void setCrsSurface(String crsS) {
+        if (crsS == null && this.crsSurface == null) {
+            //nothing changed
+            return;
+        }
+        if (crsS != null && this.crsSurface != null) {
+            if (crsS.equals(this.crsSurface)) {
+                //nothing changed
+                return;
+            }
+        }
+        this.crsSurface = crsS;
+        this.requestLoading = true;
+        this.loadingSurface = LOADINGSTATUS.REQUESTED;
     }
 
 }

@@ -7,7 +7,6 @@ import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
-import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
@@ -78,7 +77,6 @@ import com.saemann.gulli.view.timeline.SeriesKey;
 import com.saemann.gulli.view.timeline.TimeSeriesEditorTablePanel;
 import com.saemann.gulli.view.video.GIFVideoCreator;
 import com.saemann.rgis.view.MapViewer;
-import java.util.ArrayList;
 import javax.swing.JSeparator;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -875,6 +873,58 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         });
 
+        JPopupMenu popupCRSNetwork = buttonFileNetwork.getComponentPopupMenu();
+        if (popupCRSNetwork == null) {
+            popupCRSNetwork = new JPopupMenu("Network Topology");
+            this.buttonFileNetwork.setComponentPopupMenu(popupCRSNetwork);
+        }
+        JMenuItem itemSelectCRS = new JMenuItem("CRS");
+        popupCRSNetwork.add(itemSelectCRS);
+        itemSelectCRS.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String current = control.getLoadingCoordinator().getCrsNetwork();
+                String s = JOptionPane.showInputDialog(buttonFileNetwork, "Coordinate Reference System for Pipe Network (" + current + ")", current);
+                if (s == null || s.isEmpty()) {
+                    buttonFileNetwork.getComponentPopupMenu().setVisible(false);
+                    return;
+                }
+                if (s != null && s.equals(current)) {
+                    //nothing changed
+                } else {
+                    control.getLoadingCoordinator().setCrsNetwork(s);
+                    updateLoadingState();
+                }
+                buttonFileNetwork.getComponentPopupMenu().setVisible(false);
+            }
+        });
+
+        JPopupMenu popupCRSSurface = buttonFileSurface.getComponentPopupMenu();
+        if (popupCRSSurface == null) {
+            popupCRSSurface = new JPopupMenu("Surface Topography");
+            this.buttonFileSurface.setComponentPopupMenu(popupCRSSurface);
+        }
+        JMenuItem itemSelectCRSS = new JMenuItem("CRS");
+        popupCRSSurface.add(itemSelectCRSS);
+        itemSelectCRSS.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String current = control.getLoadingCoordinator().getCrsSurface();
+                String s = JOptionPane.showInputDialog(buttonFileNetwork, "Coordinate Reference System for Surface(" + current + ")", current);
+                if (s == null || s.isEmpty()) {
+                    buttonFileSurface.getComponentPopupMenu().setVisible(false);
+                    return;
+                }
+                if (s != null && s.equals(current)) {
+                    //nothing changed
+                } else {
+                    control.getLoadingCoordinator().setCrsSurface(s);
+                    updateLoadingState();
+                }
+                buttonFileSurface.getComponentPopupMenu().setVisible(false);
+            }
+        });
+
         //////////////////////////////////////////////////////////////////////
         ///// Panel VIEW
         JPanel panelView = new JPanel(new BorderLayout());
@@ -1248,6 +1298,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         });
         menu.add(itemDeactivate);
         button.setComponentPopupMenu(menu);
+
     }
 
     private JPanel buildFilesLoadingPanel() {
@@ -1290,12 +1341,12 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.buttonFilePipeResult = new JButton("Pipe Velocity");
         panelNetwork.add(buttonFilePipeResult);
         if (control != null) {
-            JPanel panelcheks=new JPanel(new GridLayout(1, 2));
+            JPanel panelcheks = new JPanel(new GridLayout(1, 2));
             this.checkSparsePipeLoading = new JCheckBox("Sparse Loading", control.getLoadingCoordinator().sparsePipeLoading);
             this.checkSparsePipeLoading.setToolTipText("Sparse loading requires less memory but takes more time to load flow field during the simulation.");
             panelcheks.add(checkSparsePipeLoading);
-        
-            this.checkLoadFileSpills=new JCheckBox("Spills from File", control.getLoadingCoordinator().loadResultInjections);
+
+            this.checkLoadFileSpills = new JCheckBox("Spills from File", control.getLoadingCoordinator().loadResultInjections);
             this.checkLoadFileSpills.setToolTipText("If checked, the spill definitions from the Flow field file are loaded. If false, all spills must be defined manually");
             panelcheks.add(checkLoadFileSpills);
             panelNetwork.add(panelcheks);
@@ -1423,21 +1474,21 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 panelTable.getTable().collectionChanged();
             }
         });
-        
-        if(checkSparsePipeLoading!=null){
+
+        if (checkSparsePipeLoading != null) {
             checkSparsePipeLoading.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    control.getLoadingCoordinator().sparsePipeLoading=checkSparsePipeLoading.isSelected();
+                    control.getLoadingCoordinator().sparsePipeLoading = checkSparsePipeLoading.isSelected();
                 }
             });
         }
-        
-        if(checkLoadFileSpills!=null){
+
+        if (checkLoadFileSpills != null) {
             checkLoadFileSpills.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    control.getLoadingCoordinator().loadResultInjections=checkLoadFileSpills.isSelected();
+                    control.getLoadingCoordinator().loadResultInjections = checkLoadFileSpills.isSelected();
                 }
             });
         }
@@ -1568,7 +1619,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         if (checkSparsePipeLoading != null) {
             checkSparsePipeLoading.setSelected(control.getLoadingCoordinator().sparsePipeLoading);
         }
-        if(checkLoadFileSpills!=null){
+        if (checkLoadFileSpills != null) {
             checkLoadFileSpills.setSelected(control.getLoadingCoordinator().loadResultInjections);
         }
 
@@ -1689,11 +1740,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //            textDispersionSurface.setText("");
 //            textDispersionSurface.setToolTipText(e.getLocalizedMessage());
 //        }
-        if(ParticleSurfaceComputing2D.timeIntegration==ParticleSurfaceComputing2D.TIMEINTEGRATION.EXPLICIT){
+        if (ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.EXPLICIT) {
             radioExplicit.setSelected(true);
-        }else if(ParticleSurfaceComputing2D.timeIntegration==ParticleSurfaceComputing2D.TIMEINTEGRATION.CRANKNICOLSON){
+        } else if (ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.CRANKNICOLSON) {
             radioCrankNicolson.setSelected(true);
-        }else if(ParticleSurfaceComputing2D.timeIntegration==ParticleSurfaceComputing2D.TIMEINTEGRATION.STEPSPLICIT){
+        } else if (ParticleSurfaceComputing2D.timeIntegration == ParticleSurfaceComputing2D.TIMEINTEGRATION.STEPSPLICIT) {
             radioStepsplicit.setSelected(true);
         }
 

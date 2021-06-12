@@ -38,6 +38,7 @@ public class RainGauge {
             end = niederschlagsstarttime[niederschlagsstarttime.length - 1] + intervallMinutes * 60000;
         }
     }
+    
 
     public RainGauge(long startTime, long intervall, double[] precipitation) {
         this.precipitation = precipitation;

@@ -89,14 +89,20 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t\t<NetworkTopology>" + files.getPipeNetwork() + "</>");
             bw.newLine();
-            bw.write("\t\t<RelativeNetworkTopology>" + file.getParentFile().toPath().relativize(files.getPipeNetwork().toPath()) + "</>");
-            bw.newLine();
+            try {
+                bw.write("\t\t<RelativeNetworkTopology>" + file.getParentFile().toPath().relativize(files.getPipeNetwork().toPath()) + "</>");
+                bw.newLine();
+            } catch (Exception iOException) {
+            }
             bw.write("\t\t<CRS>" + files.getCrsPipes() + "</>");
             bw.newLine();
             bw.write("\t\t<NetworkFlowField>" + files.getPipeResult() + "</>");
             bw.newLine();
-            bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
-            bw.newLine();
+            try {
+                bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
+                bw.newLine();
+            } catch (Exception exception) {
+            }
             bw.write("\t\t<Sparse>" + setup.isSparsePipeVelocity() + "</>");
             bw.newLine();
             bw.write("\t</Network>");
@@ -106,17 +112,23 @@ public class Setup_IO {
             bw.write("\t\t<SurfaceTopology>" + files.getSurfaceDirectory() + "</>");
             bw.newLine();
             if (files.getSurfaceDirectory() != null) {
-                bw.write("\t\t<RelativeSurfaceTopology>" + file.getParentFile().toPath().relativize(files.getSurfaceDirectory().toPath()) + "</>");
-                bw.newLine();
-                bw.write("\t\t<CRS>" + files.getCrsSurface() + "</>");
-                bw.newLine();
+                try {
+                    bw.write("\t\t<RelativeSurfaceTopology>" + file.getParentFile().toPath().relativize(files.getSurfaceDirectory().toPath()) + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<CRS>" + files.getCrsSurface() + "</>");
+                    bw.newLine();
+                } catch (Exception exception) {
+                }
             }
 
             bw.write("\t\t<SurfaceFlowField>" + files.getSurfaceResult() + "</>");
             bw.newLine();
             if (files.getSurfaceResult() != null) {
-                bw.write("\t\t<RelativeSurfaceFlowField>" + file.getParentFile().toPath().relativize(files.getSurfaceResult().toPath()) + "</>");
-                bw.newLine();
+                try {
+                    bw.write("\t\t<RelativeSurfaceFlowField>" + file.getParentFile().toPath().relativize(files.getSurfaceResult().toPath()) + "</>");
+                    bw.newLine();
+                } catch (Exception exception) {
+                }
             }
             bw.write("\t</Surface>");
             bw.newLine();

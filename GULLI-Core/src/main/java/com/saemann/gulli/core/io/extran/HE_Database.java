@@ -587,6 +587,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             rs.next();
             crs = Integer.parseInt(rs.getString(1));
+            System.out.println("loaded from Firebird: "+crs);
         }
         return "EPSG:" + crs;
     }
