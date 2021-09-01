@@ -16,7 +16,7 @@ import org.locationtech.jts.geom.Coordinate;
  *
  * @author saemann
  */
-public class Particle {
+public class Particle{
 
     /**
      * invisible Counter that is used to give every particle a unique ID
@@ -64,11 +64,6 @@ public class Particle {
      */
     protected float moveLengthCummulative = 0;
 
-//    /**
-//     * Length of movement along the path. Sum of absolute stepsize. Negative
-//     * movement added as positive.
-//     */
-//    protected float moveLengthAbsolute = 0;
     /**
      * Status to determine the domain of the particle. -10:leftSimulation,
      * -1:waiting, 0:inactive; 10: pipenetwork 20:surface; 30:underground.
@@ -88,20 +83,9 @@ public class Particle {
      */
     protected ParticleInjection injectionInformation;
 
-    /**
-     * Pipe/Manhole/SurfaceTriangle this particle is injected at spilltime.
-     */
-//    public Capacity injectionSurrounding;
-//    protected int injectionCellID = -1;
-    //Stores the position UTM for the injection on the surface.
-//    public Position injectionPosition;
-//    public float injectionPosition1D;
     public Capacity toSurface, toPipenetwork, toSoil;
 
-//    /**
-//     * Position along travellength, when the particle was spilled out.
-//     */
-//    public float posToSurface = 0;
+
     /**
      * When the particle was spilled to the surface.
      */
@@ -118,20 +102,7 @@ public class Particle {
     public int lastSurfaceCellID = -1;
     public boolean blocked=false;
     public double blockVelocity=-1;
-//    public double blockXdir=0;
 
-//    public final ArrayList<Shortcut> usedShortcuts=new ArrayList<>(0);
-//    public float ds=0;
-//    public Particle(Capacity injectionSurrounding, double injectionPosition1D) {
-//        this.injectionSurrounding = injectionSurrounding;
-//        this.injectionPosition1D = (float) injectionPosition1D;
-//    }
-//
-//    public Particle(Capacity injectionSurrounding, double injectionPosition1D, long injectionTime) {
-//        this(injectionSurrounding, injectionPosition1D);
-//        this.injectionTime = injectionTime;
-//    }
-//
     public Particle(Material material, ParticleInjection injectionInformation, float mass, long injectionTime) {
         this(material, injectionInformation, mass);
         this.injectionTime = injectionTime;
@@ -287,28 +258,15 @@ public class Particle {
     }
 
     public void setVelocity1d(double velocity1d) {
-        if (velocity1d > 30) {
-            try {
-                throw new IllegalArgumentException("Velocity of " + velocity1d + " m/s is too much, I think");
-            } catch (IllegalArgumentException illegalArgumentException) {
-            }
-        }
+//        if (velocity1d > 30) {
+//            try {
+//                throw new IllegalArgumentException("Velocity of " + velocity1d + " m/s is too much, I think");
+//            } catch (IllegalArgumentException illegalArgumentException) {
+//            }
+//        }
         this.velocity1d = (float) velocity1d;
     }
 
-//    public double getLatitude() {
-//        if (position3d == null) {
-//            return 0;
-//        }
-//        return this.position3d.getLatitude();
-//    }
-//
-//    public double getLongitude() {
-//        if (position3d == null) {
-//            return 0;
-//        }
-//        return this.position3d.getLongitude();
-//    }
     public int getId() {
         return id;
     }
@@ -348,15 +306,8 @@ public class Particle {
         return moveLengthCummulative;
     }
 
-//    public void setTravelledPathLength(double travelledPathLength) {
-//        this.moveLengthCummulative = (float) travelledPathLength;
-//    }
-//
-//    public void addTravelledPathLength(double ds) {
-//        this.moveLengthCummulative += ds;
-//    }
+
     public void addMovingLength(double ds) {
-//        this.moveLengthAbsolute += Math.abs(ds);
         this.moveLengthCummulative += (ds);
     }
 
@@ -367,23 +318,8 @@ public class Particle {
      */
     public float getMoveLength() {
         return moveLengthCummulative;
-//        return moveLengthAbsolute;
     }
 
-//    public long getActivationTime() {
-//        return activationTime;
-//    }
-//
-//    public void setActivationTime(long activationTime) {
-//        this.activationTime = activationTime;
-//    }
-//    public boolean isActive() {
-//        return status;
-//    }
-//
-//    public void setActive(boolean status) {
-//        this.status = status;
-//    }
     public void setInsertionTime(long insertionTime) {
         this.injectionTime = insertionTime;
     }
@@ -469,13 +405,6 @@ public class Particle {
         this.position3d.y = utmPosition.y;
     }
 
-//    public int getInjectionCellID() {
-//        return injectionCellID;
-//    }
-//
-//    public void setInjectionCellID(int injectionCellID) {
-//        this.injectionCellID = injectionCellID;
-//    }
     public static long getMaxID() {
         return counterID;
     }

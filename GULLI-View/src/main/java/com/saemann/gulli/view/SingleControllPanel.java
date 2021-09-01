@@ -1112,7 +1112,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         // Zusammenbauen
         if (advancedOpions) {
-            this.add(panelVideo);
+            this.panelShapes.add(panelVideo);
         }
 
 //        JPanel panelstretch = new JPanel(new BorderLayout());
@@ -1136,6 +1136,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             if (i < paintManager.getSurfaceShows().size()) {
                 s = paintManager.getSurfaceShows().get(i);
             }
+            JPanel panelRow = new JPanel(new BorderLayout());
             JComboBox<PaintManager.SURFACESHOW> combo = new JComboBox<>(PaintManager.SURFACESHOW.values());
             if (s == null) {
                 combo.setSelectedItem(PaintManager.SURFACESHOW.NONE);
@@ -1157,7 +1158,30 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     updatePanelShapes();
                 }
             });
-            panelShapesSurface.add(combo);
+            final JButton buttonDelete = new JButton();
+            buttonDelete.setToolTipText("Remove this shape layer");
+            if(iconError!=null){
+                buttonDelete.setIcon(iconError);
+                buttonDelete.setPreferredSize(new Dimension(25,25));
+            }else{
+                buttonDelete.setText("X");
+            }
+            if(combo.getSelectedItem().equals(PaintManager.SURFACESHOW.NONE)){
+                buttonDelete.setEnabled(false);
+            }
+            buttonDelete.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    paintManager.removeSurfaceShow(oldvalue);
+                    mapViewer.recalculateShapes();
+                    mapViewer.repaint();
+                    updatePanelShapes();
+                }
+            });
+            
+            panelRow.add(combo, BorderLayout.CENTER);
+            panelRow.add(buttonDelete,BorderLayout.WEST);
+            panelShapesSurface.add(panelRow);
         }
         panelShapesSurface.add(checkTrianglesNodes);
         panelShapesSurface.revalidate();

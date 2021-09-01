@@ -23,6 +23,7 @@
  */
 package com.saemann.gulli.core.control;
 
+import com.google.common.collect.Lists;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
@@ -66,6 +67,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurementSection;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import org.locationtech.jts.geom.Coordinate;
@@ -297,8 +299,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             scenarioStarttime = scenario.getStartTime();
         }
         ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
-        if (duration < 0.01) {
+        if (duration < 0.1) {
             //Instant injection
+            System.out.println("   instantInjection");
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle particle;
                 long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L);
@@ -308,18 +311,20 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 } else {
                     particle = new Particle(material, injectionCapacityInformation, (float) massPerParticle, injectiontime);
                 }
-                particle.setMaterial(material);
+//                particle.setMaterial(material);
                 particle.setWaiting();
-                list.add(particle);
+                list.add(i, particle);
             }
             return list;
         }
         double s = (endIntensity - startIntensity) / duration;
         //if slope is 0 we can use the constant injection
         if (Math.abs(s) < 0.000001) {
+            System.out.println("   constant Injection");
             return createParticlesOverTimespan(numberOfParticles, massPerParticle, injectionCapacityInformation, material, starttimeAfterScenarioStart, duration);
         }
         if (s > 0) {
+            System.out.println("   gradient inc Injection");
             //increasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);
@@ -344,6 +349,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 list.add(particle);
             }
         } else {
+            System.out.println("   gradient decr. Injection");
             //decreasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);
@@ -377,28 +383,28 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario != null) {
             scenarioStarttime = scenario.getStartTime();
         }
-        ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
+        Particle[] list = new Particle[numberOfParticles];
         {
-            double dt = duration / (Math.max(1, numberOfParticles - 1));
-            double t = 0;
+//            double dt = duration / (Math.max(1, numberOfParticles - 1));
+//            double t = 0;
 
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle p;
-                long time = (long) (scenarioStarttime + (starttimeAfterScenarioStart + t) * 1000L);
+                long time = (long) (scenarioStarttime + (i / (double) numberOfParticles) * duration * 1000L);
                 if (traceParticles && intervallHistoryParticles > 0 && i % intervallHistoryParticles == 0) {
                     p = new HistoryParticle(material, injectionCapacityInformation, (float) massPerParticle, time);
                     tracerParticleCount++;
                 } else {
                     p = new Particle(material, injectionCapacityInformation, (float) massPerParticle, time);
                 }
-                p.setMaterial(material);
+//                p.setMaterial(material);
                 p.setWaiting();
-                list.add(p);
-                t += dt;
+                list[i] = p;
+//                t += dt;
             }
         }
 
-        return list;
+        return Lists.newArrayList(list);
     }
 
     /**
@@ -529,7 +535,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
             for (Pipe pipe : network.getPipes()) {
-                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m,pipe.getLength());
+                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m, pipe.getLength());
                 pipe.setMeasurementTimeLine(tlm);
                 list.add(tlm);
             }
@@ -564,7 +570,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 //            container_m.setSamplesPerTimeindex(container_m.getDeltaTimeS() / ThreadController.getDeltaTime());
             ArrayList<SparseTimeLineMeasurement> list = new ArrayList<>(network.getPipes().size());
             for (Pipe pipe : network.getPipes()) {
-                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m,pipe.getLength());
+                SparseTimeLineMeasurement tlm = new SparseTimeLineMeasurement(container_m, pipe.getLength());
                 pipe.setMeasurementTimeLine(tlm);
                 list.add(tlm);
             }
@@ -721,6 +727,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario == null || scenario.getInjections() == null) {
             return;
         }
+//        long start = System.currentTimeMillis();
 
         int totalNumberParticles = 0;
         tracerParticleCount = 0;
@@ -754,6 +761,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         scenario.setMaterials(indexedMaterials);
         maxMaterialID = indexedMaterials.size() - 1;
 
+//        System.out.println("Calculaing number of particles: " + totalNumberParticles + ", materials:" + (maxMaterialID + 1) + " took " + (System.currentTimeMillis() - start) + "ms. ");
         ArrayList<Particle> allParticles = new ArrayList<>(totalNumberParticles);
         int counter = 0;
         Particle.resetCounterID();
@@ -811,12 +819,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         Manhole manhole = injection.getManholes()[i];
                         float volume = injection.getVolumePerManhole()[i];
                         if (volume < 0.001) {
-//                        System.out.println("Skip manhole " + manhole + ". inflow is only " + volume + " m^3.");
                             continue;
                         }
                         double mass = volume * injection.getConcentration();
                         int particles = (int) (injection.getNumberOfParticles() * volume / injection.getTotalvolume());
-//                    System.out.println((counterinflow++)+" : "+particles + " Particles in " + manhole + " for " + volume + " m^3");
                         particles = Math.max(particles, 1);
                         ManholeInjection mi = new ManholeInjection(manhole);
                         ArrayList<Particle> ps = createParticlesOverTimespan(particles, mass / (double) particles, mi, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
@@ -826,13 +832,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 }
 
             } else if (injection_ instanceof InjectionInformation) {
+//                System.out.println("  Injectioninformation");
                 InjectionInformation injection = (InjectionInformation) injection_;
                 if (injection.spillOnSurface()) {
-//                    if (injection.spilldistributed) {
-//
-//                    } else {
-                    //Point location spill
-                    //Search for the position
                     if (getSurface() == null) {
                         continue;
                     }
@@ -843,6 +845,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         try {
                             utm = getSurface().getGeotools().toUTM(injection.getPosition());
                             position = new Position(injection.getPosition().getLongitude(), injection.getPosition().getLatitude(), utm.x, utm.y);
+//                            System.out.println("   neue Position erzeugt");
                         } catch (TransformException ex) {
                             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -850,6 +853,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
                     if (injection.getCapacityID() >= 0) {
                         surfaceCell = injection.getCapacityID();
+//                        System.out.println("      existing cell by id ");
                     } else if (injection.getCapacityName() != null) {
                         if (network != null) {
                             Capacity tempC = network.getPipeByName(injection.getCapacityName());
@@ -869,6 +873,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     if (surfaceCell < 0) {
                         if (position != null) {
                             //Try to find correct triangle at existing coordinates
+//                            System.out.println("   search for surface cell");
                             int id = getSurface().findContainingTriangle(position.x, position.y, 50);
                             if (id >= 0) {
                                 surfaceCell = id;
@@ -881,6 +886,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                             double[] utm = getSurface().getTriangleMids()[surfaceCell];
                             Coordinate wgs84 = getSurface().getGeotools().toGlobal(new Coordinate(utm[0], utm[1]), true);
                             position = new Position(wgs84.x, wgs84.y, utm[0], utm[1]);
+//                            System.out.println("      new position form triangle mid");
                         } catch (TransformException ex) {
                             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -939,7 +945,10 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 }
                 ///////////////////////////////////////////////////////////////
                 //Create particles over time
+
                 if (injection.isActive()) {
+//                    System.out.println("  create particles");
+//                    long startcreation = System.currentTimeMillis();
                     Position3D injectionposition = null;
                     if (injection.spillOnSurface() && injection.getPosition() != null) {
                         if (injection.getPosition() instanceof Position) {
@@ -967,14 +976,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     }
                     ParticleInjection pi = null;
                     if (injection.spillOnSurface()) {
-//                        if (injection.spilldistributed) {
-////                        System.out.println("Add areal injection ");
-//                            ArealInjection ai = new ArealInjection(surface);
-//                            pi = ai;
-//                        } else {
                         SurfaceInjection si = new SurfaceInjection(surface, surfaceCell);
                         pi = si;
-//                        }
                     } else if (injection.spillInManhole()) {
                         if (injection.getCapacity() instanceof Manhole) {
                             ManholeInjection mhi = new ManholeInjection((Manhole) injection.getCapacity());
@@ -991,19 +994,24 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     for (int i = 0; i < injection.getNumberOfIntervals(); i++) {
                         if (i == injection.getNumberOfIntervals() - 1) {
                             //last one constant
+//                            long startconstant = System.currentTimeMillis();
                             ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), pi, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i));
+//                            System.out.println("Creating particle objects constant: " + (System.currentTimeMillis() - startconstant) + "ms.");
                             allParticles.addAll(ps);
+//                            System.out.println("Creating particle objects constant and addtolist: " + (System.currentTimeMillis() - startconstant) + "ms.");
                         } else {
                             ArrayList<Particle> ps = createParticlesOverTimespan(injection.particlesInInterval(i), injection.massInInterval(i) / (double) injection.particlesInInterval(i), pi, injection.getMaterial(), injection.getIntervalStart(i), injection.getIntervalDuration(i), injection.getIntensity(i), injection.getIntensity(i + 1));
                             allParticles.addAll(ps);
                         }
 
                     }
+//                    System.out.println("Create particles for injection in " + (System.currentTimeMillis() - startcreation));
                 }
                 injection.resetChanged();
             }
         }
         if (surface != null) {
+//            System.out.println(" set number of particles to surface");
             surface.setNumberOfMaterials(maxMaterialID + 1);
         }
         if (scenario != null && scenario.getMeasurementsPipe() != null) {
@@ -1012,6 +1020,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 ((SparseTimeLinePipeContainer) scenario.getStatusTimesPipe()).numberOfMaterials = maxMaterialID + 1;
             }
         }
+//        System.out.println(" sort particles");
+//        long startsort = System.currentTimeMillis();
         //Order PArticles by insertion time
         allParticles.sort(new Comparator<Particle>() {
             @Override
@@ -1026,12 +1036,15 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 }
             }
         });
+//        System.out.println(" sorting took " + (System.currentTimeMillis() - startsort) + "ms");
+//        System.out.println("Recalculating particles took " + ((System.currentTimeMillis() - start)) + "ms");
 
         this.setParticles(allParticles);
         currentAction.description = "Injections recalculated";
         currentAction.hasProgress = true;
         currentAction.progress = 1;
         fireAction(currentAction);
+//        System.out.println("Informing about recalculation finished. total: " + ((System.currentTimeMillis() - start)) + "ms");
     }
 
     @Override
