@@ -92,5 +92,15 @@ public class PipeTheme_MaxFill extends PipeThemeLayer {
     public String getName() {
         return name;
     }
+
+    @Override
+    public void setDisplayTime(long displayTimeMS) {
+       
+    }
+
+    @Override
+    public float getInitializationProgress() {
+       return 1;
+    }
     
 }

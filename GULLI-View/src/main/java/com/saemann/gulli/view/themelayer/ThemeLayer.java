@@ -27,13 +27,31 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.rgis.view.MapViewer;
 
 /**
- * Creating a visualization of a selected theme.
- * A Theme can conatin multiple layer definitions.
+ * Creating a visualization of a selected theme. A Theme can conatin multiple
+ * layer definitions.
+ *
  * @author saemann
  */
 public interface ThemeLayer {
+
     
-    public void initializeTheme(MapViewer mapviewer, Controller c);
-    
+
+    /**
+     * Remove this theme by clearing the used layers from the mapviewer.
+     *
+     * @param mapviewer
+     */
     public void removeTheme(MapViewer mapviewer);
+
+    /**
+     * Update the shapes and color for dynmic themes
+     * @param displayTimeMS 
+     */
+    public abstract void setDisplayTime(long displayTimeMS);
+
+    /**
+     * The Progress of initialization between 0.0 and 1.0
+     * @return 
+     */
+    public abstract float getInitializationProgress();
 }

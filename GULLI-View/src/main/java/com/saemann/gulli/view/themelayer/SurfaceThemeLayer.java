@@ -24,30 +24,69 @@
 package com.saemann.gulli.view.themelayer;
 
 import com.saemann.gulli.core.control.Controller;
+import com.saemann.gulli.view.PaintManager;
 import com.saemann.rgis.view.MapViewer;
 
 /**
  *
  * @author saemann
  */
-public abstract class SurfaceThemeLayer implements ThemeLayer{
-    
-    protected boolean trianglesAsNodes=false;
-    
+public abstract class SurfaceThemeLayer implements ThemeLayer {
+
+//    protected boolean trianglesAsNodes = false;
     protected long showTime = 0;
-    
+    /**
+     * Initialization progress between 0.0 and 1.0 when initializing many shapes
+     * as a thread.
+     */
+    public float progress = -1;
+
     /**
      * Is it worth to repaint the layer with changing time?
-     * @return 
+     *
+     * @return
      */
-    public boolean isDynamic(){
+    public boolean isDynamic() {
         return false;
     }
 
-    @Override
-    public abstract void initializeTheme(MapViewer mapviewer, Controller c);
+    /**
+     * Display name used in the UserInterface (e.g. combo box for chosing theme)
+     *
+     * @return
+     */
+    public abstract String getDisplayName();
+
+    /**
+     * Initilizes a Theme by adding the shapes to layers in the MapViewer. This
+     * should be done inside a seperate Thread. The progress should be readable
+     * from the main Thread via the **getInitializationProgress** method.
+     *
+     * @param mapviewer
+     * @param c controller
+     * @param pm
+     * @param asNodes
+     * @return true for successfull initilization, false for missing elements
+     */
+    public abstract boolean initializeTheme(MapViewer mapviewer, Controller c, PaintManager pm, boolean asNodes);
 
     @Override
-    public abstract void removeTheme(MapViewer mapviewer);
-    
+    public float getInitializationProgress() {
+        return progress;
+    }
+
+    /**
+     * Set if the shape should be a single location node (true) or a complex 2D
+     * shape (false).
+     *
+     * @param mapViewer
+     * @param c
+     * @param pm
+     * @param asNodes
+     */
+    public void setDrawnAsNodes(MapViewer mapViewer, Controller c, PaintManager pm, boolean asNodes) {
+        removeTheme(mapViewer);
+        initializeTheme(mapViewer, c, pm, asNodes);
+    }
+
 }

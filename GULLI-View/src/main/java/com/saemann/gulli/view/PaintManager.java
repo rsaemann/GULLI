@@ -7,6 +7,8 @@ import com.saemann.gulli.core.control.listener.CapacitySelectionListener;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
+import com.saemann.gulli.core.control.particlecontrol.injection.ArealInjection;
+import com.saemann.gulli.core.control.particlecontrol.injection.SurfaceInjection;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -55,6 +57,10 @@ import com.saemann.gulli.core.model.topology.Network;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
+import com.saemann.gulli.view.themelayer.SurfaceThemeLayer;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Analysisraster;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Cells;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_HeatMap;
 import com.saemann.rgis.control.LocationIDListener;
 import com.saemann.rgis.view.ColorHolder;
 import com.saemann.rgis.view.DoubleColorHolder;
@@ -67,6 +73,7 @@ import com.saemann.rgis.view.shapes.LabelPainting;
 import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.LinePainting;
 import com.saemann.rgis.view.shapes.NodePainting;
+import com.saemann.rgis.view.shapes.PaintInfo;
 import java.util.HashMap;
 import java.util.Random;
 import org.geotools.referencing.CRS;
@@ -186,6 +193,14 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     GradientColorHolder chSurfaceHeatMap = new GradientColorHolder(0, 1, Color.yellow, Color.red, 255, "HeatMap");
     public final String layerLabelWaterlevel = "WL_TEXT";
 
+    public final String layerRemainOutlet = "REM_OUT";
+    public final String layerRemainSurface = "REM_SURF";
+    public final String layerRemainPipe = "REM_PIPE";
+
+    public final DoubleColorHolder chRemainOutlet = new DoubleColorHolder(Color.green.darker(), Color.green, "Reached Outlet");
+    public final DoubleColorHolder chRemainSurface = new DoubleColorHolder(Color.red.darker(), Color.red, "Remain on Surface");
+    public final DoubleColorHolder chRemainPipe = new DoubleColorHolder(Color.blue.darker(), Color.blue, "Remain in Pipe");
+
     private final ColorHolder chPolygon = new ColorHolder(Color.magenta, "Polygon");
 
     private final ColorHolder chContaminatedInlet = new ColorHolder(Color.GREEN, "Contaminated Inlet");
@@ -234,7 +249,17 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE, GRID, ANALYSISRASTER,/* WATERLEVEL1, WATERLEVEL10,*/ WATERLEVEL, WATERLEVELMAX, HEATMAP_LIN, HEATMAP_LOG, HEATMAP_LIN_BAGATELL, HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, VELOCITY, SLOPE, VERTEX_HEIGHT;
+        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(null), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN, VELOCITY, SLOPE, VERTEX_HEIGHT;
+        public SurfaceThemeLayer theme;
+
+        SURFACESHOW() {
+            this.theme = null;
+        }
+
+        SURFACESHOW(SurfaceThemeLayer t) {
+            this.theme = t;
+        }
+
     };
     private final ArrayList<SURFACESHOW> surfaceShows = new ArrayList<>();//SURFACESHOW.NONE;
     private boolean drawTrianglesAsNodes = true;
@@ -922,193 +947,196 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
         for (int s = 0; s < surfaceShows.size(); s++) {
             SURFACESHOW surfaceShow = surfaceShows.get(s);
-
-            if (surfaceShow == SURFACESHOW.GRID && !updatedOnlyTime) {
-                mapViewer.clearLayer(layerSurfaceGrid);
-                Layer layer = mapViewer.getLayer(layerSurfaceGrid);
-                if (layer == null) {
-                    layer = new Layer(layerSurfaceGrid, chTrianglesGrid);
-                    mapViewer.getLayers().add(layer);
-                }
-                if (drawTrianglesAsNodes) {
-                    int id = 0;
-                    if (false) {
-                        for (int i = 0; i < shownSurfaceTriangles.length; i++) {
-                            id = shownSurfaceTriangles[i];
-                            try {
-                                NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chTrianglesGrid);
-                                id++;
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
-                                layer.add(np, false);
-                                if (id > maximumNumberOfSurfaceShapes) {
-                                    break;
-                                }
-                            } catch (TransformException ex) {
-                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                    }
-                    if (true) {
-                        for (double[] triangleMid : surface.getTriangleMids()) {
-                            try {
-                                NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
-                                id++;
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
-                                layer.add(np, false);
-                                if (id > maximumNumberOfSurfaceShapes) {
-                                    break;
-                                }
-                            } catch (TransformException ex) {
-                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                    }
-                } else {
-                    try {
-                        if (false) {
-                            int id = 0;
-                            Coordinate[] coords = new Coordinate[4];
-                            int[] nodes;
-                            for (int i = 0; i < shownSurfaceTriangles.length; i++) {
-                                id = shownSurfaceTriangles[i];
-
-                                nodes = surface.getTriangleNodes()[id];
-                                for (int j = 0; j < 3; j++) {
-                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-                                }
-                                coords[3] = coords[0];//Close ring
-                                AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
-                                layer.add(ap, false);
-                                id++;
-                                if (id > maximumNumberOfSurfaceShapes) {
-                                    break;
-                                }
-                            }
-                        } else {
-                            int id = 0;
-                            Coordinate[] coords = new Coordinate[4];
-                            for (int[] nodes : surface.getTriangleNodes()) {
-
-                                for (int j = 0; j < 3; j++) {
-                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-                                }
-                                coords[3] = coords[0];//Close ring
-                                AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
-                                layer.add(ap, false);
-                                id++;
-                                if (id > maximumNumberOfSurfaceShapes) {
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (TransformException ex) {
-                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                }
-
-            } else if (surfaceShow == SURFACESHOW.ANALYSISRASTER && !updatedOnlyTime) {
-                if (surface == null || surface.getMeasurementRaster() == null) {
-                    surfaceShow = SURFACESHOW.NONE;
-                    return;
-                }
-                mapViewer.clearLayer(layerSurfaceMeasurementRaster);
-                Layer layer = mapViewer.getLayer(layerSurfaceMeasurementRaster);
-                if (layer == null) {
-                    layer = new Layer(layerSurfaceMeasurementRaster, chCellMeasurements);
-                    mapViewer.getLayers().add(layer);
-                }
-                int id = 0;
-                SurfaceMeasurementRaster raster = surface.getMeasurementRaster();
-                if (raster instanceof SurfaceMeasurementRectangleRaster) {
-                    SurfaceMeasurementRectangleRaster rectRaster = (SurfaceMeasurementRectangleRaster) raster;
-                    if (drawTrianglesAsNodes) {
-                        for (int x = 0; x < rectRaster.getNumberXIntervals(); x++) {
-                            for (int y = 0; y < rectRaster.getNumberYIntervals(); y++) {
-                                try {
-                                    Coordinate longlat = surface.getGeotools().toGlobal(rectRaster.getMidCoordinate(x, y), true);
-                                    NodePainting np = new NodePainting(x * rectRaster.getNumberYIntervals() + y, longlat, chCellMeasurements);
-//                                    mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, np);
-                                    layer.add(np, false);
-                                } catch (TransformException ex) {
-                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-                            }
-                        }
-                    } else {
-                        for (int x = 0; x < rectRaster.getNumberXIntervals(); x++) {
-                            for (int y = 0; y < rectRaster.getNumberYIntervals(); y++) {
-
-                                try {
-                                    Coordinate lowleft = new Coordinate(rectRaster.getXmin() + x * rectRaster.getxIntervalWidth(), rectRaster.getYmin() + y * rectRaster.getYIntervalHeight());
-                                    Coordinate topRight = new Coordinate(lowleft.x + rectRaster.getxIntervalWidth(), lowleft.y + rectRaster.getYIntervalHeight());
-                                    Coordinate topleft = new Coordinate(lowleft.x, topRight.y);
-                                    Coordinate lowRight = new Coordinate(topRight.x, lowleft.y);
-
-                                    Coordinate llll = surface.getGeotools().toGlobal(lowleft, true);
-                                    Coordinate lltr = surface.getGeotools().toGlobal(topRight, true);
-                                    Coordinate lltl = surface.getGeotools().toGlobal(topleft, true);
-                                    Coordinate lllr = surface.getGeotools().toGlobal(lowRight, true);
-
-                                    LinearRing ring = gf.createLinearRing(new Coordinate[]{llll, lltl, lltr, lllr, llll});
-                                    AreaPainting ap = new AreaPainting(x * rectRaster.getNumberYIntervals() + y, chCellMeasurements, ring);
-//                                    mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, ap);
-                                    layer.add(ap, false);
-                                } catch (TransformException ex) {
-                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                                }
-                            }
-                        }
-                    }
-
-                    mapViewer.recalculateShapes();
-                    mapViewer.recomputeLegend();
-                } else if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
-                    if (drawTrianglesAsNodes) {
-                        for (double[] triangleMid : surface.getTriangleMids()) {
-                            try {
-                                NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chCellMeasurements);
-                                id++;
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, np);
-                                layer.add(np, false);
-                                if (id > maximumNumberOfSurfaceShapes) {
-                                    break;
-                                }
-                            } catch (TransformException ex) {
-                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                        }
-                    } else {
-                        id = 0;
-                        Coordinate[] coords = new Coordinate[4];
-//                        Layer layer = mapViewer.getLayer(layerSurfaceMeasurementRaster);
-                        AreaPainting[] aps = new AreaPainting[Math.min(surface.getTriangleNodes().length, maximumNumberOfSurfaceShapes)];
-                        for (int[] nodes : surface.getTriangleNodes()) {
-                            try {
-                                for (int j = 0; j < 3; j++) {
-                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-                                }
-                                coords[3] = coords[0];//Close ring
-                                AreaPainting ap = new AreaPainting(id, chCellMeasurements, gf.createLinearRing(coords));
-                                aps[id] = ap;
-                                id++;
-                            } catch (TransformException ex) {
-                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                            if (id >= maximumNumberOfSurfaceShapes) {
-                                break;
-                            }
-                        }
-//                        if (layer == null) {
-//                            layer = new Layer(layerSurfaceMeasurementRaster, chCellMeasurements);
-//                            mapViewer.getLayers().add(layer);
+            if (surfaceShow.theme != null) {
+                continue;
+            }
+//            if (surfaceShow == SURFACESHOW.GRID && !updatedOnlyTime) {
+//                mapViewer.clearLayer(layerSurfaceGrid);
+//                Layer layer = mapViewer.getLayer(layerSurfaceGrid);
+//                if (layer == null) {
+//                    layer = new Layer(layerSurfaceGrid, chTrianglesGrid);
+//                    mapViewer.getLayers().add(layer);
+//                }
+//                if (drawTrianglesAsNodes) {
+//                    int id = 0;
+//                    if (false) {
+//                        for (int i = 0; i < shownSurfaceTriangles.length; i++) {
+//                            id = shownSurfaceTriangles[i];
+//                            try {
+//                                NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chTrianglesGrid);
+//                                id++;
+////                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+//                                layer.add(np, false);
+//                                if (id > maximumNumberOfSurfaceShapes) {
+//                                    break;
+//                                }
+//                            } catch (TransformException ex) {
+//                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
 //                        }
-                        layer.setPaintElements(aps);
-                    }
-                }
-
-            } else if (surfaceShow == SURFACESHOW.SPECTRALMAP && !updatedOnlyTime) {
+//                    }
+//                    if (true) {
+//                        for (double[] triangleMid : surface.getTriangleMids()) {
+//                            try {
+//                                NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
+//                                id++;
+////                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, np);
+//                                layer.add(np, false);
+//                                if (id > maximumNumberOfSurfaceShapes) {
+//                                    break;
+//                                }
+//                            } catch (TransformException ex) {
+//                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
+//                        }
+//                    }
+//                } else {
+//                    try {
+//                        if (false) {
+//                            int id = 0;
+//                            Coordinate[] coords = new Coordinate[4];
+//                            int[] nodes;
+//                            for (int i = 0; i < shownSurfaceTriangles.length; i++) {
+//                                id = shownSurfaceTriangles[i];
+//
+//                                nodes = surface.getTriangleNodes()[id];
+//                                for (int j = 0; j < 3; j++) {
+//                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+//                                }
+//                                coords[3] = coords[0];//Close ring
+//                                AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
+////                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
+//                                layer.add(ap, false);
+//                                id++;
+//                                if (id > maximumNumberOfSurfaceShapes) {
+//                                    break;
+//                                }
+//                            }
+//                        } else {
+//                            int id = 0;
+//                            Coordinate[] coords = new Coordinate[4];
+//                            for (int[] nodes : surface.getTriangleNodes()) {
+//
+//                                for (int j = 0; j < 3; j++) {
+//                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+//                                }
+//                                coords[3] = coords[0];//Close ring
+//                                AreaPainting ap = new AreaPainting(id, chTrianglesGrid, gf.createLinearRing(coords));
+////                                mapViewer.addPaintInfoToLayer(layerSurfaceGrid, ap);
+//                                layer.add(ap, false);
+//                                id++;
+//                                if (id > maximumNumberOfSurfaceShapes) {
+//                                    break;
+//                                }
+//                            }
+//                        }
+//                    } catch (TransformException ex) {
+//                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+//                }
+//
+//            } else if (surfaceShow == SURFACESHOW.ANALYSISRASTER && !updatedOnlyTime) {
+//                if (surface == null || surface.getMeasurementRaster() == null) {
+//                    surfaceShow = SURFACESHOW.NONE;
+//                    return;
+//                }
+//                mapViewer.clearLayer(layerSurfaceMeasurementRaster);
+//                Layer layer = mapViewer.getLayer(layerSurfaceMeasurementRaster);
+//                if (layer == null) {
+//                    layer = new Layer(layerSurfaceMeasurementRaster, chCellMeasurements);
+//                    mapViewer.getLayers().add(layer);
+//                }
+//                int id = 0;
+//                SurfaceMeasurementRaster raster = surface.getMeasurementRaster();
+//                if (raster instanceof SurfaceMeasurementRectangleRaster) {
+//                    SurfaceMeasurementRectangleRaster rectRaster = (SurfaceMeasurementRectangleRaster) raster;
+//                    if (drawTrianglesAsNodes) {
+//                        for (int x = 0; x < rectRaster.getNumberXIntervals(); x++) {
+//                            for (int y = 0; y < rectRaster.getNumberYIntervals(); y++) {
+//                                try {
+//                                    Coordinate longlat = surface.getGeotools().toGlobal(rectRaster.getMidCoordinate(x, y), true);
+//                                    NodePainting np = new NodePainting(x * rectRaster.getNumberYIntervals() + y, longlat, chCellMeasurements);
+////                                    mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, np);
+//                                    layer.add(np, false);
+//                                } catch (TransformException ex) {
+//                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                                }
+//                            }
+//                        }
+//                    } else {
+//                        for (int x = 0; x < rectRaster.getNumberXIntervals(); x++) {
+//                            for (int y = 0; y < rectRaster.getNumberYIntervals(); y++) {
+//
+//                                try {
+//                                    Coordinate lowleft = new Coordinate(rectRaster.getXmin() + x * rectRaster.getxIntervalWidth(), rectRaster.getYmin() + y * rectRaster.getYIntervalHeight());
+//                                    Coordinate topRight = new Coordinate(lowleft.x + rectRaster.getxIntervalWidth(), lowleft.y + rectRaster.getYIntervalHeight());
+//                                    Coordinate topleft = new Coordinate(lowleft.x, topRight.y);
+//                                    Coordinate lowRight = new Coordinate(topRight.x, lowleft.y);
+//
+//                                    Coordinate llll = surface.getGeotools().toGlobal(lowleft, true);
+//                                    Coordinate lltr = surface.getGeotools().toGlobal(topRight, true);
+//                                    Coordinate lltl = surface.getGeotools().toGlobal(topleft, true);
+//                                    Coordinate lllr = surface.getGeotools().toGlobal(lowRight, true);
+//
+//                                    LinearRing ring = gf.createLinearRing(new Coordinate[]{llll, lltl, lltr, lllr, llll});
+//                                    AreaPainting ap = new AreaPainting(x * rectRaster.getNumberYIntervals() + y, chCellMeasurements, ring);
+////                                    mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, ap);
+//                                    layer.add(ap, false);
+//                                } catch (TransformException ex) {
+//                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    mapViewer.recalculateShapes();
+//                    mapViewer.recomputeLegend();
+//                } else if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+//                    if (drawTrianglesAsNodes) {
+//                        for (double[] triangleMid : surface.getTriangleMids()) {
+//                            try {
+//                                NodePainting np = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chCellMeasurements);
+//                                id++;
+////                                mapViewer.addPaintInfoToLayer(layerSurfaceMeasurementRaster, np);
+//                                layer.add(np, false);
+//                                if (id > maximumNumberOfSurfaceShapes) {
+//                                    break;
+//                                }
+//                            } catch (TransformException ex) {
+//                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
+//                        }
+//                    } else {
+//                        id = 0;
+//                        Coordinate[] coords = new Coordinate[4];
+////                        Layer layer = mapViewer.getLayer(layerSurfaceMeasurementRaster);
+//                        AreaPainting[] aps = new AreaPainting[Math.min(surface.getTriangleNodes().length, maximumNumberOfSurfaceShapes)];
+//                        for (int[] nodes : surface.getTriangleNodes()) {
+//                            try {
+//                                for (int j = 0; j < 3; j++) {
+//                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+//                                }
+//                                coords[3] = coords[0];//Close ring
+//                                AreaPainting ap = new AreaPainting(id, chCellMeasurements, gf.createLinearRing(coords));
+//                                aps[id] = ap;
+//                                id++;
+//                            } catch (TransformException ex) {
+//                                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                            }
+//                            if (id >= maximumNumberOfSurfaceShapes) {
+//                                break;
+//                            }
+//                        }
+////                        if (layer == null) {
+////                            layer = new Layer(layerSurfaceMeasurementRaster, chCellMeasurements);
+////                            mapViewer.getLayers().add(layer);
+////                        }
+//                        layer.setPaintElements(aps);
+//                    }
+//                }
+//
+//            } else 
+            if (surfaceShow == SURFACESHOW.SPECTRALMAP && !updatedOnlyTime) {
                 try {
                     if (surface.getMeasurementRaster() != null) {
                         if (surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
@@ -1244,252 +1272,251 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     e.printStackTrace();
                 }
 
-            } else if (!updatedOnlyTime && (surfaceShow == SURFACESHOW.HEATMAP_LIN || surfaceShow == SURFACESHOW.HEATMAP_LOG || surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL)) {
-                try {
-                    Layer layer = mapViewer.getLayer(layerSurfaceContaminated);
-                    if (layer == null) {
-                        layer = new Layer(layerSurfaceContaminated, chSurfaceHeatMap);
-                        mapViewer.getLayers().add(layer);
-                    }
-                    if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
-                        SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
-                        synchronized (raster) {
-                            double totalmass = 0;
-                            for (InjectionInfo injection : control.getScenario().getInjections()) {
-                                totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
-                            }
-                            boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
-                            /**
-                             * count of particles per triangle exceeding this
-                             * number will get high color shapes. used to scale
-                             * the color between low color to max color.
-                             */
-                            double highColorCount = 1 * totalmass;
-                            if (logarithmic) {
-                                highColorCount = Math.log10(totalmass) + 5;
-                            }
-
-                            double totalmeasurements = 0;
-                            for (int i = 0; i < raster.measurementTimestamp.length; i++) {
-                                totalmeasurements += raster.measurementTimestamp[i];
-                            }
-                            if (totalmeasurements < 1) {
-                                System.err.println("No measurements.");
-                                return;
-                            }
-
-                            double bagatell = (0.00001 * totalmass);
-                            int nbMaterials = raster.getNumberOfMaterials();
-                            int nbtimes = raster.measurementTimestamp.length;
-                            double duration = 0;
-                            for (int i = 0; i < raster.durationInTimeinterval.length; i++) {
-                                duration += raster.durationInTimeinterval[i];
-                            }
-                            double normalisation = 1.0 / (double) duration;
-//                        System.out.println("Total duration of "+duration+" = "+(duration/60)+" min = "+(duration/3600)+"h");
-
-                            for (int i = 0; i < raster.getMeasurements().length; i++) {
-                                TriangleMeasurement triangleMeasurement = raster.getMeasurements()[i];
-                                if (triangleMeasurement == null) {
-                                    continue;
-                                }
-                                double cellMass = 0;
-                                double timesum = 0;
-                                for (int t = 0; t < nbtimes; t++) {
-                                    timesum = 0;
-                                    for (int m = 0; m < nbMaterials; m++) {
-                                        timesum += triangleMeasurement.getMassResidence()[m][t];
-                                    }
-                                    if (surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
-                                        if (timesum <= bagatell) {
-                                            continue;
-                                        }
-                                    }
-                                    cellMass += timesum;
-                                }
-                                if (cellMass == 0) {
-                                    continue;
-                                }
-                                final double frac;
-                                if (logarithmic) {
-                                    frac = (Math.log10(cellMass * normalisation) + 5) / highColorCount;
-                                } else {
-                                    //Linear
-                                    frac = cellMass * normalisation;
-                                }
-
-                                if (drawTrianglesAsNodes) {
-                                    Coordinate c = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]));
-
-                                    NodePainting np = new NodePainting(i, c, chSurfaceHeatMap) {
-                                        @Override
-                                        public boolean paint(Graphics2D g2) {
-
-                                            g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
-
-                                            return super.paint(g2); //To change body of generated methods, choose Tools | Templates.
-                                        }
-                                    };
-//                                    NodePainting np = new NodePainting(i, tri.getPosition3D(0).lonLatCoordinate(), new ColorHolder(color));
-                                    np.setRadius(2);
-                                    layer.add(np, false);
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, np);
-
-                                } else {
-                                    //Convert Coordinates
-                                    try {
-                                        int[] nodes = surface.getTriangleNodes()[i];
-                                        Coordinate[] coords = new Coordinate[4];
-                                        for (int j = 0; j < 3; j++) {
-                                            coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-                                        }
-                                        coords[3] = coords[0];//Close ring
-                                        AreaPainting ap = new AreaPainting(i, chSurfaceHeatMap, gf.createLinearRing(coords)) {
-
-                                            @Override
-                                            public boolean paint(Graphics2D g2) {
-                                                try {
-                                                    g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
-                                                    g2.fill(this.getOutlineShape());
-                                                } catch (Exception e) {
-                                                    return false;
-                                                }
-                                                return true;
-                                            }
-
-                                        };
-                                        layer.add(ap, false);
-//                                    mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
-                                    } catch (Exception exception) {
-                                        System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
-                                        System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-                                        throw exception;
-                                    }
-                                }
-                            }
-                        }
+//            } else if (!updatedOnlyTime && (surfaceShow == SURFACESHOW.HEATMAP_LIN || surfaceShow == SURFACESHOW.HEATMAP_LOG || surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL)) {
+//                try {
+//                    Layer layer = mapViewer.getLayer(layerSurfaceContaminated);
+//                    if (layer == null) {
+//                        layer = new Layer(layerSurfaceContaminated, chSurfaceHeatMap);
+//                        mapViewer.getLayers().add(layer);
 //                    }
-                    } else if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementRectangleRaster) {
-                        SurfaceMeasurementRectangleRaster raster = (SurfaceMeasurementRectangleRaster) surface.getMeasurementRaster();
-                        synchronized (raster) {
-                            double totalmass = 0;
-                            for (InjectionInfo injection : control.getScenario().getInjections()) {
-                                totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
-                            }
-                            boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
-                            /**
-                             * count of particles per triangle exceeding this
-                             * number will get high color shapes. used to scale
-                             * the color between low color to max color.
-                             */
-                            double highColorCount = 1 * totalmass;
-                            if (logarithmic) {
-                                highColorCount = Math.log10(totalmass) + 5;
-                            }
-
-                            double totalmeasurements = 0;
-                            for (int i = 0; i < raster.measurementTimestamp.length; i++) {
-                                totalmeasurements += raster.measurementTimestamp[i];
-                            }
-                            if (totalmeasurements < 1) {
-                                System.err.println("No measurements.");
-                                return;
-                            }
-
-                            double bagatell = (0.00001 * totalmass);
-                            double duration = 0;
-                            for (int i = 0; i < raster.durationInTimeinterval.length; i++) {
-                                duration += raster.durationInTimeinterval[i];
-                            }
-                            double normalisation = 1.0 / (double) duration;
-
-//                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
-                            for (int x = 0; x < raster.getNumberXIntervals(); x++) {
-                                if (raster.getParticlecounter()[x] == null) {
-                                    continue;
-                                }
-                                for (int y = 0; y < raster.getNumberYIntervals(); y++) {
-                                    if (raster.getParticlecounter()[x][y] == null) {
-                                        continue;
-                                    }
-                                    double massum = 0;
-                                    for (int t = 0; t < raster.getNumberOfTimes(); t++) {
-                                        for (int m = 0; m < raster.getNumberOfMaterials(); m++) {
-                                            try {
-                                                massum += raster.getMass()[x][y][t][m];
-
-                                            } catch (Exception e) {
-                                            }
-                                        }
-                                    }
-                                    if (massum <= bagatell) {
-                                        continue;
-                                    }
-                                    final double frac;
-                                    if (massum == 0) {
-                                        continue;
-                                    } else {
-
-                                        if (logarithmic) {
-                                            frac = (Math.log10(massum * normalisation) + 5) / highColorCount;
-                                        } else {
-                                            //Linear
-                                            frac = massum * normalisation;
-                                        }
-                                    }
-                                    int id = x + y * raster.getNumberXIntervals();
-                                    if (drawTrianglesAsNodes) {
-                                        Coordinate c = surface.getGeotools().toGlobal(raster.getMidCoordinate(x, y));
-                                        NodePainting np = new NodePainting(id, c, chSurfaceHeatMap) {
-                                            @Override
-                                            public boolean paint(Graphics2D g2) {
-
-                                                g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
-
-                                                return super.paint(g2);
-                                            }
-                                        };
-                                        np.setRadius(2);
-                                        layer.add(np, false);
-
-                                    } else {
-                                        //Convert Coordinates
-                                        try {
-                                            Coordinate[] coordsUTM = raster.getRectangleBound(x, y);
-                                            Coordinate[] coordsWGS = new Coordinate[5];
-                                            for (int j = 0; j < 4; j++) {
-                                                coordsWGS[j] = surface.getGeotools().toGlobal(coordsUTM[j]);
-                                            }
-                                            coordsWGS[4] = coordsWGS[0];//Close ring
-                                            AreaPainting ap = new AreaPainting(id, chSurfaceHeatMap, gf.createLinearRing(coordsWGS)) {
-                                                @Override
-                                                public boolean paint(Graphics2D g2) {
-                                                    g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
-                                                    g2.draw(outlineShape);
-                                                    g2.fill(outlineShape);
-                                                    return true;
-                                                }
-                                            };
-                                            layer.add(ap, false);
-//                                            mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
-                                        } catch (Exception exception) {
-                                            System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + id);
-                                            System.err.println("number of triangles: " + surface.getTriangleNodes().length);
-                                            throw exception;
-                                        }
-                                    }
-
-                                }
-                            }
-                        }
-                    }
-
-                    mapViewer.recalculateShapes();
-                    mapViewer.recomputeLegend();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
+//                    if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementTriangleRaster) {
+//                        SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
+//                        synchronized (raster) {
+//                            double totalmass = 0;
+//                            for (InjectionInfo injection : control.getScenario().getInjections()) {
+//                                totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
+//                            }
+//                            boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
+//                            /**
+//                             * count of particles per triangle exceeding this
+//                             * number will get high color shapes. used to scale
+//                             * the color between low color to max color.
+//                             */
+//                            double highColorCount = 1 * totalmass;
+//                            if (logarithmic) {
+//                                highColorCount = Math.log10(totalmass) + 5;
+//                            }
+//
+//                            double totalmeasurements = 0;
+//                            for (int i = 0; i < raster.measurementTimestamp.length; i++) {
+//                                totalmeasurements += raster.measurementTimestamp[i];
+//                            }
+//                            if (totalmeasurements < 1) {
+//                                System.err.println("No measurements.");
+//                                return;
+//                            }
+//
+//                            double bagatell = (0.00001 * totalmass);
+//                            int nbMaterials = raster.getNumberOfMaterials();
+//                            int nbtimes = raster.measurementTimestamp.length;
+//                            double duration = 0;
+//                            for (int i = 0; i < raster.durationInTimeinterval.length; i++) {
+//                                duration += raster.durationInTimeinterval[i];
+//                            }
+//                            double normalisation = 1.0 / (double) duration;
+////                        System.out.println("Total duration of "+duration+" = "+(duration/60)+" min = "+(duration/3600)+"h");
+//
+//                            for (int i = 0; i < raster.getMeasurements().length; i++) {
+//                                TriangleMeasurement triangleMeasurement = raster.getMeasurements()[i];
+//                                if (triangleMeasurement == null) {
+//                                    continue;
+//                                }
+//                                double cellMass = 0;
+//                                double timesum = 0;
+//                                for (int t = 0; t < nbtimes; t++) {
+//                                    timesum = 0;
+//                                    for (int m = 0; m < nbMaterials; m++) {
+//                                        timesum += triangleMeasurement.getMassResidence()[m][t];
+//                                    }
+//                                    if (surfaceShow == SURFACESHOW.HEATMAP_LIN_BAGATELL) {
+//                                        if (timesum <= bagatell) {
+//                                            continue;
+//                                        }
+//                                    }
+//                                    cellMass += timesum;
+//                                }
+//                                if (cellMass == 0) {
+//                                    continue;
+//                                }
+//                                final double frac;
+//                                if (logarithmic) {
+//                                    frac = (Math.log10(cellMass * normalisation) + 5) / highColorCount;
+//                                } else {
+//                                    //Linear
+//                                    frac = cellMass * normalisation;
+//                                }
+//
+//                                if (drawTrianglesAsNodes) {
+//                                    Coordinate c = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]));
+//
+//                                    NodePainting np = new NodePainting(i, c, chSurfaceHeatMap) {
+//                                        @Override
+//                                        public boolean paint(Graphics2D g2) {
+//
+//                                            g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+//
+//                                            return super.paint(g2); //To change body of generated methods, choose Tools | Templates.
+//                                        }
+//                                    };
+////                                    NodePainting np = new NodePainting(i, tri.getPosition3D(0).lonLatCoordinate(), new ColorHolder(color));
+//                                    np.setRadius(2);
+//                                    layer.add(np, false);
+////                                mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, np);
+//
+//                                } else {
+//                                    //Convert Coordinates
+//                                    try {
+//                                        int[] nodes = surface.getTriangleNodes()[i];
+//                                        Coordinate[] coords = new Coordinate[4];
+//                                        for (int j = 0; j < 3; j++) {
+//                                            coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+//                                        }
+//                                        coords[3] = coords[0];//Close ring
+//                                        AreaPainting ap = new AreaPainting(i, chSurfaceHeatMap, gf.createLinearRing(coords)) {
+//
+//                                            @Override
+//                                            public boolean paint(Graphics2D g2) {
+//                                                try {
+//                                                    g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+//                                                    g2.fill(this.getOutlineShape());
+//                                                } catch (Exception e) {
+//                                                    return false;
+//                                                }
+//                                                return true;
+//                                            }
+//
+//                                        };
+//                                        layer.add(ap, false);
+////                                    mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
+//                                    } catch (Exception exception) {
+//                                        System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
+//                                        System.err.println("number of triangles: " + surface.getTriangleNodes().length);
+//                                        throw exception;
+//                                    }
+//                                }
+//                            }
+//                        }
+////                    }
+//                    } else if (surface.getMeasurementRaster() != null && surface.getMeasurementRaster() instanceof SurfaceMeasurementRectangleRaster) {
+//                        SurfaceMeasurementRectangleRaster raster = (SurfaceMeasurementRectangleRaster) surface.getMeasurementRaster();
+//                        synchronized (raster) {
+//                            double totalmass = 0;
+//                            for (InjectionInfo injection : control.getScenario().getInjections()) {
+//                                totalmass += injection.getMass();//getNumberOfParticles();//getMass();//
+//                            }
+//                            boolean logarithmic = surfaceShow == SURFACESHOW.HEATMAP_LOG;
+//                            /**
+//                             * count of particles per triangle exceeding this
+//                             * number will get high color shapes. used to scale
+//                             * the color between low color to max color.
+//                             */
+//                            double highColorCount = 1 * totalmass;
+//                            if (logarithmic) {
+//                                highColorCount = Math.log10(totalmass) + 5;
+//                            }
+//
+//                            double totalmeasurements = 0;
+//                            for (int i = 0; i < raster.measurementTimestamp.length; i++) {
+//                                totalmeasurements += raster.measurementTimestamp[i];
+//                            }
+//                            if (totalmeasurements < 1) {
+//                                System.err.println("No measurements.");
+//                                return;
+//                            }
+//
+//                            double bagatell = (0.00001 * totalmass);
+//                            double duration = 0;
+//                            for (int i = 0; i < raster.durationInTimeinterval.length; i++) {
+//                                duration += raster.durationInTimeinterval[i];
+//                            }
+//                            double normalisation = 1.0 / (double) duration;
+//
+////                        double timeScale = ThreadController.getDeltaTimeMS() / (surface.getTimes().getDeltaTimeMS() / 1000.);
+//                            for (int x = 0; x < raster.getNumberXIntervals(); x++) {
+//                                if (raster.getParticlecounter()[x] == null) {
+//                                    continue;
+//                                }
+//                                for (int y = 0; y < raster.getNumberYIntervals(); y++) {
+//                                    if (raster.getParticlecounter()[x][y] == null) {
+//                                        continue;
+//                                    }
+//                                    double massum = 0;
+//                                    for (int t = 0; t < raster.getNumberOfTimes(); t++) {
+//                                        for (int m = 0; m < raster.getNumberOfMaterials(); m++) {
+//                                            try {
+//                                                massum += raster.getMass()[x][y][t][m];
+//
+//                                            } catch (Exception e) {
+//                                            }
+//                                        }
+//                                    }
+//                                    if (massum <= bagatell) {
+//                                        continue;
+//                                    }
+//                                    final double frac;
+//                                    if (massum == 0) {
+//                                        continue;
+//                                    } else {
+//
+//                                        if (logarithmic) {
+//                                            frac = (Math.log10(massum * normalisation) + 5) / highColorCount;
+//                                        } else {
+//                                            //Linear
+//                                            frac = massum * normalisation;
+//                                        }
+//                                    }
+//                                    int id = x + y * raster.getNumberXIntervals();
+//                                    if (drawTrianglesAsNodes) {
+//                                        Coordinate c = surface.getGeotools().toGlobal(raster.getMidCoordinate(x, y));
+//                                        NodePainting np = new NodePainting(id, c, chSurfaceHeatMap) {
+//                                            @Override
+//                                            public boolean paint(Graphics2D g2) {
+//
+//                                                g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+//
+//                                                return super.paint(g2);
+//                                            }
+//                                        };
+//                                        np.setRadius(2);
+//                                        layer.add(np, false);
+//
+//                                    } else {
+//                                        //Convert Coordinates
+//                                        try {
+//                                            Coordinate[] coordsUTM = raster.getRectangleBound(x, y);
+//                                            Coordinate[] coordsWGS = new Coordinate[5];
+//                                            for (int j = 0; j < 4; j++) {
+//                                                coordsWGS[j] = surface.getGeotools().toGlobal(coordsUTM[j]);
+//                                            }
+//                                            coordsWGS[4] = coordsWGS[0];//Close ring
+//                                            AreaPainting ap = new AreaPainting(id, chSurfaceHeatMap, gf.createLinearRing(coordsWGS)) {
+//                                                @Override
+//                                                public boolean paint(Graphics2D g2) {
+//                                                    g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
+//                                                    g2.draw(outlineShape);
+//                                                    g2.fill(outlineShape);
+//                                                    return true;
+//                                                }
+//                                            };
+//                                            layer.add(ap, false);
+////                                            mapViewer.addPaintInfoToLayer(layerSurfaceContaminated, ap);
+//                                        } catch (Exception exception) {
+//                                            System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + id);
+//                                            System.err.println("number of triangles: " + surface.getTriangleNodes().length);
+//                                            throw exception;
+//                                        }
+//                                    }
+//
+//                                }
+//                            }
+//                        }
+//                    }
+//
+//                    mapViewer.recalculateShapes();
+//                    mapViewer.recomputeLegend();
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
             } else if (surfaceShow == SURFACESHOW.HEATMAP_MASS_LEVEL && !updatedOnlyTime) {
                 for (int i = 0; i < 4; i++) {
                     mapViewer.clearLayer(layerSurfaceContaminated + i);
@@ -1900,6 +1927,115 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            } else if (surfaceShow == SURFACESHOW.REMAIN && !updatedOnlyTime) {
+                int numberOfTracerParticles = 0;
+                mapViewer.clearLayer(layerRemainOutlet);
+                mapViewer.clearLayer(layerRemainPipe);
+                mapViewer.clearLayer(layerRemainSurface);
+                if (surface == null || surface.triangleNodes == null) {
+                    return;
+                }
+                if (control.getThreadController().getParticles() == null) {
+                    return;
+                }
+                int[][] counter = new int[surface.triangleNodes.length][3];
+                //0: out (outlet)
+                //1: still on surface
+                //2: still in Pipe
+
+                for (Particle p : control.getThreadController().getParticles()) {
+                    if (p == null) {
+                        continue;
+                    }
+                    if (!p.getInjectionInformation().spillOnSurface()) {
+                        continue;
+                    }
+                    long surfaceID = -1;
+                    if (p.getInjectionInformation() instanceof SurfaceInjection) {
+                        surfaceID = ((SurfaceInjection) p.getInjectionInformation()).getInjectionCellID(p.getId());
+                    } else if (p.getInjectionInformation() instanceof ArealInjection) {
+                        surfaceID = ((ArealInjection) p.getInjectionInformation()).getInjectionCellID(p.getId());
+                    }
+
+                    if (surfaceID < 0) {
+                        System.err.println("DO not know how to get Cell ID from Injection definition " + p.getInjectionInformation());
+                    }
+
+                    if (p.hasLeftSimulation()) {
+                        //Reached outlet
+                        counter[(int) surfaceID][0]++;
+                    } else if (p.isOnSurface()) {
+                        counter[(int) surfaceID][1]++;
+                    } else if (p.isInPipeNetwork()) {
+                        counter[(int) surfaceID][2]++;
+                    } else {
+                        System.out.println("Do not know how to treat particle with status " + p.status + " for the remaining-coloring");
+                    }
+                }
+                Layer layerOut = mapViewer.getLayer(layerRemainOutlet);
+                if (layerOut == null) {
+                    layerOut = new Layer(layerRemainOutlet, chRemainOutlet);
+                    mapViewer.getLayers().add(layerOut);
+                }
+                Layer layerSurf = mapViewer.getLayer(layerRemainSurface);
+                if (layerSurf == null) {
+                    layerSurf = new Layer(layerRemainSurface, chRemainSurface);
+                    mapViewer.getLayers().add(layerSurf);
+                }
+                Layer layerPipe = mapViewer.getLayer(layerRemainPipe);
+                if (layerPipe == null) {
+                    layerPipe = new Layer(layerRemainPipe, chRemainPipe);
+                    mapViewer.getLayers().add(layerPipe);
+                }
+
+                for (int id = 0; id < counter.length; id++) {
+                    for (int j = 0; j < counter[0].length; j++) {
+                        if (counter[id][j] > 0) {
+                            //Create shape
+                            PaintInfo pi = null;
+                            if (drawTrianglesAsNodes) {
+                                try {
+                                    pi = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chRemainOutlet);
+
+                                } catch (TransformException ex) {
+                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            } else {
+                                int[] nodes = surface.getTriangleNodes()[id];
+                                Coordinate[] coords = new Coordinate[4];
+                                for (int n = 0; n < 3; n++) {
+                                    try {
+                                        coords[n] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[n]][0], surface.getVerticesPosition()[nodes[n]][1]));
+
+                                    } catch (TransformException ex) {
+                                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                                    }
+
+                                }
+                                coords[3] = coords[0];//Close ring
+                                LinearRing ring = gf.createLinearRing(coords);
+//                                System.out.println("GF: " + gf + "  ring: " + ring);
+                                AreaPainting ap = new AreaPainting(id, chRemainOutlet, ring);
+                                pi = ap;
+                            }
+                            if (pi != null) {
+                                //Sort and put the shape to the right color and layer
+                                if (j == 0) {
+                                    //RemainOutlet
+                                    layerOut.add(pi, false);
+                                } else if (j == 1) {
+                                    pi.setColor(chRemainSurface);
+                                    layerSurf.add(pi, false);
+                                } else if (j == 2) {
+                                    pi.setColor(chRemainPipe);
+                                    layerPipe.add(pi, false);
+                                }
+                            }
+                        }
+                    }
+                }
+                mapViewer.recalculateShapes();
+                mapViewer.repaint();
             } else if (surfaceShow == SURFACESHOW.VELOCITY) {
                 //Show Arrows of velocity
                 if (surface.getTimes() == null) {
@@ -2779,15 +2915,23 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public void addSurfaceShow(SURFACESHOW surfaceshow) {
         if (!surfaceShows.contains(surfaceshow)) {
-            new Thread("Adding " + surfaceshow + " to map") {
-                @Override
-                public void run() {
+            if (surfaceshow.theme != null) {
+                System.out.println("Adding theme " + surfaceshow.theme.getDisplayName());
+                if (surfaceshow.theme.initializeTheme(mapViewer, control, this, drawTrianglesAsNodes)) {
                     surfaceShows.add(surfaceshow);
-//                    System.out.println("completed adding layer for " + surfaceshow);
-                    updateSurfaceShows(false);
-                    mapViewer.repaint();
                 }
-            }.start();
+            } else {
+
+                new Thread("Adding " + surfaceshow + " to map") {
+                    @Override
+                    public void run() {
+                        surfaceShows.add(surfaceshow);
+//                    System.out.println("completed adding layer for " + surfaceshow);
+                        updateSurfaceShows(false);
+                        mapViewer.repaint();
+                    }
+                }.start();
+            }
         }
     }
 
@@ -2808,6 +2952,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public boolean removeSurfaceShow(SURFACESHOW show) {
         try {
+            if (show != null && show.theme != null) {
+                show.theme.removeTheme(mapViewer);
+                return surfaceShows.remove(show);
+            }
+
             if (show == SURFACESHOW.GRID) {
                 mapViewer.removeLayer(layerSurfaceGrid);
             } else if (show == SURFACESHOW.ANALYSISRASTER) {
@@ -2837,6 +2986,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 for (String layersHistoryPathToOutlet : layersHistoryPathToOutlets) {
                     mapViewer.removeLayer(layersHistoryPathToOutlet);
                 }
+            } else if (show == SURFACESHOW.REMAIN) {
+                mapViewer.clearLayer(layerRemainOutlet);
+                mapViewer.clearLayer(layerRemainPipe);
+                mapViewer.clearLayer(layerRemainSurface);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -3119,6 +3272,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         this.mapViewer.clearLayer(layerSurfaceMeasurementRaster);
 
         this.drawTrianglesAsNodes = asNodes;
+        for (SURFACESHOW surfaceShow : surfaceShows) {
+            if (surfaceShow.theme != null) {
+                surfaceShow.theme.setDrawnAsNodes(mapViewer, control, this, asNodes);
+            }
+        }
+
         this.updateSurfaceShows(false);
         this.mapViewer.recalculateShapes();
         this.mapViewer.repaint();
@@ -3133,9 +3292,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public void setInjectionLocation(Collection<InjectionInfo> injections) throws Exception {
         this.injections.clear();
-//        if (injections.size() > 50) {
-//            throw new Exception("Will not display more than 50 injection locations. (" + injections.size() + ")");
-//        }
         int counter = 0;
         for (InjectionInfo in : injections) {
             counter++;
@@ -3143,7 +3299,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 this.injections.addAll(injections);
                 System.err.println("Will only display 100 injection locations.");
                 break;
-//                throw new Exception("Will not display more than 50 injection locations. (" + injections.size() + ")");
             }
             try {
                 com.saemann.gulli.core.model.GeoPosition2D pos = null;
@@ -3451,12 +3606,50 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     }
 
-//    public static ArrayList<com.saemann.rgis.model.GeoPosition2D> toRGIS(ArrayList<com.saemann.gulli.core.model.GeoPosition2D> list) {
-//        ArrayList<com.saemann.rgis.model.GeoPosition2D> newlist = new ArrayList<>(list.size());
-//        for (com.saemann.gulli.core.model.GeoPosition2D geoPosition : list) {
-//            com.saemann.rgis.model.GeoPosition gp = new com.saemann.rgis.model.GeoPosition(geoPosition.getLatitude(), geoPosition.getLongitude());
-//            newlist.add(gp);
-//        }
-//        return newlist;
-//    }
+    /**
+     * The Geometry (WGS84) of a surface cell. Prepared to be used in a
+     * PaintInfo Object like AreaPaint
+     *
+     * @param id surface cell identifier
+     * @return
+     */
+    public LinearRing getCellRingGeometry(int id) {
+        int[] nodes = surface.getTriangleNodes()[id];
+        Coordinate[] coords = new Coordinate[nodes.length + 1];
+        for (int n = 0; n < coords.length - 1; n++) {
+            try {
+                coords[n] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[n]][0], surface.getVerticesPosition()[nodes[n]][1]));
+
+            } catch (TransformException ex) {
+                Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+        }
+        coords[coords.length - 1] = coords[0];//Close ring
+        LinearRing ring = surface.getGeotools().gf.createLinearRing(coords);
+        return ring;
+    }
+
+    /**
+     * The center coordinate (WGS84) of a surface cell. prepared to be used in a
+     * NodePainting object
+     *
+     * @param id cell identifier
+     * @return
+     */
+    public Coordinate getCellMidCoordinate(int id) {
+        try {
+            double[] pos = surface.getTriangleMids()[id];
+            Coordinate c = surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1]));
+            return c;
+        } catch (TransformException ex) {
+            Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return null;
+    }
+
+    public boolean isDrawTrianglesAsNodes() {
+        return drawTrianglesAsNodes;
+    }
+
 }

@@ -52,6 +52,16 @@ public abstract class PipeThemeLayer implements ThemeLayer {
             public String getName() {
                 return "";
             }
+
+            @Override
+            public void setDisplayTime(long displayTimeMS) {
+               
+            }
+
+            @Override
+            public float getInitializationProgress() {
+               return 1;
+            }
         }),
         PIPES(new PipeTheme_GreyPipes()), 
         MAX_WL(new PipeTheme_MaxFill());
@@ -68,15 +78,12 @@ public abstract class PipeThemeLayer implements ThemeLayer {
 
     };
 
-    @Override
+    
     public abstract void initializeTheme(MapViewer mapviewer, Controller c);
 
     @Override
     public abstract void removeTheme(MapViewer mapviewer);
 
     public abstract String getName();
-    
-    public void setTimeToShow(long timeToShow){
-    };
 
 }

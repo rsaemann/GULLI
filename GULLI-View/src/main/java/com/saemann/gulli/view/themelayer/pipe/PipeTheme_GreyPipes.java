@@ -64,4 +64,14 @@ public class PipeTheme_GreyPipes extends PipeThemeLayer {
         return "Pipes";
     }
 
+    @Override
+    public void setDisplayTime(long displayTimeMS) {
+       
+    }
+
+    @Override
+    public float getInitializationProgress() {
+       return 1;
+    }
+
 }

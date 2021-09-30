@@ -37,7 +37,7 @@ public class SubArealInjection extends SurfaceInjection {
     protected long[] cellIDs;
 
     public SubArealInjection(Surface surface, long[] cellIDs) {
-        super(surface, cellIDs[0]);
+        super(surface, (cellIDs!=null&&cellIDs.length>0?cellIDs[0]:-1));
         this.cellIDs = cellIDs;
     }
 

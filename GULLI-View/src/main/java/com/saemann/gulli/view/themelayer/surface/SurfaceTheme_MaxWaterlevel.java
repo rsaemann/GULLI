@@ -46,17 +46,16 @@ public class SurfaceTheme_MaxWaterlevel extends SurfaceThemeLayer {
     private static String name = "Max Waterlevel";
 
 //    public final DoubleColorHolder chTrianglesWaterlevel = new DoubleColorHolder(Color.white, Color.blue, "Max Waterlevel");
-
-    public final GradientColorHolder chTrianglesWaterlevel=new GradientColorHolder(0, 0.5, Color.white, Color.blue, 255, "Max Waterlevel");
+    public final GradientColorHolder chTrianglesWaterlevel = new GradientColorHolder(0, 0.5, Color.white, Color.blue, 255, "Max Waterlevel");
 
     public final String layerSurfaceWaterlevel = "TRI_WLMax";
 
     public final String layerLabelWaterlevel = "TXT_WLMax";
-    
-    public final float maxWaterlevel=0.5f;
+
+    public final float maxWaterlevel = 0.5f;
 
     @Override
-    public void initializeTheme(final MapViewer mapViewer, Controller c) {
+    public boolean initializeTheme(MapViewer mapViewer, Controller c, PaintManager pm, boolean asNodes) {
         final Surface surface = c.getSurface();
         if (surface == null) {
             throw new NullPointerException("Surface is null.");
@@ -76,10 +75,10 @@ public class SurfaceTheme_MaxWaterlevel extends SurfaceThemeLayer {
                 if (lvl < 0.02) {
                     continue;
                 }
-                if (trianglesAsNodes) {
+                if (asNodes) {
                     double[] pos = surface.getTriangleMids()[i];
                     NodePainting np = new NodePainting(i, surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1])), chTrianglesWaterlevel);
-                    np.setGradientColorIndex((int)(lvl/maxWaterlevel));
+                    np.setGradientColorIndex((int) (lvl / maxWaterlevel));
                     np.setRadius(2);
                     mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, np);
                 } else {
@@ -136,6 +135,7 @@ public class SurfaceTheme_MaxWaterlevel extends SurfaceThemeLayer {
         }
         mapViewer.recalculateShapes();
         mapViewer.recomputeLegend();
+        return true;
     }
 
     @Override
@@ -150,7 +150,15 @@ public class SurfaceTheme_MaxWaterlevel extends SurfaceThemeLayer {
     public boolean isDynamic() {
         return false;
     }
-    
-    
+
+    @Override
+    public void setDisplayTime(long displayTimeMS) {
+        
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "Max Waterlevel";
+    }
 
 }

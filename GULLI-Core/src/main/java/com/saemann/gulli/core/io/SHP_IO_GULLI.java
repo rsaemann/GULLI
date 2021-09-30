@@ -1160,4 +1160,98 @@ public class SHP_IO_GULLI {
         }
     }
 
+    /**
+     * Stores Found Ponds in the given file. Mainly used for Surface-Pond-Metric
+     * output.
+     *
+     * @param filePathName File to be used. *.shp .
+     * @param geoms Polygons to store
+     * @param id IDs of Polygons to be added to the attribute table. (Minimums
+     * point id)
+     * @param srid e.g. 25832
+     * @param epsgString e.g. "EPSG:25832
+     *
+     */
+    public static void writePoints(String filePathName, Point[] geoms, int[] id, int srid, String epsgString) {
+        try {
+
+            File directory = new File(filePathName).getParentFile();
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            if (!filePathName.endsWith(".shp")) {
+                filePathName += ".shp";
+            }
+            File outfile = new File(filePathName);
+            if (outfile.exists()) {
+                outfile.delete();
+            }
+
+            ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
+            Transaction createtransaction = new DefaultTransaction("create");
+//            GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();// new GeometryFactory();
+            Map<String, Serializable> params = new HashMap<String, Serializable>();
+            params.put("url", outfile.toURI().toURL());
+            params.put("create spatial index", Boolean.TRUE);
+            ShapefileDataStore datastore = (ShapefileDataStore) factory.createNewDataStore(params);
+
+            //Manhole Schema
+            final SimpleFeatureType SCHEMETYPE = DataUtilities.createType("Geometry",
+                    "the_geom:Point:srid=" + srid + ","
+                    + // <- the geometry attribute
+                    "locmin_id:int"
+            );
+
+            datastore.createSchema(SCHEMETYPE);
+//            datastore.forceSchemaCRS(CRS.decode(epsgString));
+
+            SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(SCHEMETYPE);
+
+            DefaultFeatureCollection collection = new DefaultFeatureCollection();
+            int counter1 = 0;
+            for (int i = 0; i < geoms.length; i++) {
+
+                Point g = geoms[i];
+                if (g == null) {
+                    continue;
+                }
+
+                sfb.add(g);
+                sfb.add(i);
+                SimpleFeature f = sfb.buildFeature("" + counter1++);
+                collection.add(f);
+
+            }
+
+            String typeName = datastore.getTypeNames()[0];
+            SimpleFeatureSource featureSource = datastore.getFeatureSource(typeName);
+
+            if (featureSource instanceof SimpleFeatureStore) {
+                SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+
+                featureStore.setTransaction(createtransaction);
+                try {
+                    featureStore.addFeatures(collection);
+                    createtransaction.commit();
+
+                } catch (Exception problem) {
+                    problem.printStackTrace();
+                    createtransaction.rollback();
+
+                } finally {
+                    createtransaction.close();
+                }
+//                System.exit(0); // success!
+            } else {
+                System.out.println(typeName + " does not support read/write access");
+//                System.exit(1);
+            }
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SchemaException ex) {
+            Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }
