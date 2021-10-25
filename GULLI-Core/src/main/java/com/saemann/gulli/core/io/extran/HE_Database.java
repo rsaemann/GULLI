@@ -587,7 +587,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             rs.next();
             crs = Integer.parseInt(rs.getString(1));
-            System.out.println("loaded from Firebird: "+crs);
+            System.out.println("loaded from Firebird: " + crs);
         }
         return "EPSG:" + crs;
     }
@@ -1130,6 +1130,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 + "::Can not find upper manhole '" + nameoben + "' for pump " + name);
 
                         continue;
+                    }else{
+                        mhoben.pumpsump=true;
                     }
                     if (mhunten == null) {
                         System.err.println("Can not find lower manhole '" + nameunten + "' for pump " + name);
@@ -1150,7 +1152,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                     Pipe pipe = new Pipe(upper, lower, p);
                     pipe.setName(name);
-
+                    pipe.setBuildType(Pipe.TYPE.PUMP);
                     mhoben.addConnection(upper);
                     mhunten.addConnection(lower);
 
@@ -1204,6 +1206,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                     Pipe pipe = new Pipe(upper, lower, p);
                     pipe.setName(name);
+                    pipe.setBuildType(Pipe.TYPE.CHOKE);
 
                     mhoben.addConnection(upper);
                     mhunten.addConnection(lower);
@@ -1275,6 +1278,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         System.out.println("Kanalart '" + watertype + "' ist noch icht bekannt. in " + this.getClass()
                                 .getName());
                     }
+                    pipe.setBuildType(Pipe.TYPE.WEIR);
                     pipe.setWaterType(type);
                     pipe.setLength((float) upper.getPosition().distance(lower.getPosition()));
                     pipe.setManualID(res.getInt(5));
@@ -1282,13 +1286,6 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     pipes_sewer.add(pipe);
                 }
                 res.close();
-                // Bei Schächten die Informationen aus der Berechnung hinzufügen
-//            try {
-//                res = st.executeQuery("SELECT name,ID,UEBERSTAUDAUER,UEBERSTAUVOLUMEN from LAU_MAX_S WHERE UEBERSTAUDAUER>0 ORDER BY ID;");
-//                res.close();
-//                
-//            } catch (SQLException sQLException) {
-//            }
             }
             pipes_sewer.addAll(pipes_drain);
             Network nw = new Network(pipes_sewer, new HashSet<Manhole>(smap.values()));
@@ -1407,19 +1404,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
         ArrayTimeLineManholeContainer manholeContainer;
         try (Statement st = con.createStatement()) {
             ResultSet res;
-//            res= st.executeQuery("SELECT MIN(ZEITPUNKT) FROM LAU_GL_EL;");
-//            res.next();
-//            long startime = res.getDate(1).getTime();
-//            res.close();
-//            res = st.executeQuery("SELECT MAX(ZEITPUNKT) FROM LAU_GL_EL;");
-//            res.next();
-//            long endtime = res.getDate(1).getTime();
-//            res.close();
             res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL;");
             res.next();
             int zeiteintraege = res.getInt(1);
             res.close();
-            //        System.out.println("  Scenario hat " + zeiteintraege + " Zeiteinträge.");
             // ArrayTimelinePipe muss neu initiiert werden
             //Read timesteps
             long[] times = new long[zeiteintraege];
@@ -1531,7 +1519,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 float q = res.getFloat(4);
                 float v = res.getFloat(5);
                 float h = res.getFloat(6);
+
                 if (pipe != null && pipe.getStatusTimeLine() != null) {
+                    if (pipe.getBuildType() != Pipe.TYPE.CONDUIT) {
+                        //Pumps do only have a flux but no velocity. Calculate substitute velocity.
+                        if (v == 0 && q != 0) {
+                            v = (float) (q / pipe.getProfile().getTotalArea());
+                            h = 1f;
+                        }
+                    }
                     ArrayTimeLinePipe tl = (ArrayTimeLinePipe) pipe.getStatusTimeLine();
                     tl.setVelocity(v, timeIndex);
                     tl.setWaterlevel(h, timeIndex);
@@ -1579,9 +1575,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 res.close();
 
 //                if (isSQLite) {
-                    res=st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION/1000, AUSLASTUNG, STOFF\n" +
-"                         FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT where KONZENTRATION>0\n" +
-"                         ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
+                res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION/1000, AUSLASTUNG, STOFF\n"
+                        + "                         FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT where KONZENTRATION>0\n"
+                        + "                         ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
 //                    res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000. AS FRACHTKGPS,KONZENTRATION/1000., AUSLASTUNG, STOFF"
 //                            + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
 //                            + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
@@ -3323,6 +3319,17 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     velocity[index] = rs.getFloat(1);
                     flux[index] = rs.getFloat(2);
                     waterlevel[index] = rs.getFloat(3);
+                   if (p.getBuildType() != Pipe.TYPE.CONDUIT) {
+                        //Pumps do only have a flux but no velocity. Calculate substitute velocity.
+                        if (velocity[index] == 0 &&  flux[index] != 0) {
+                            velocity[index] = (float) ( flux[index] / p.getProfile().getTotalArea());
+//                            if(p.getEndConnection().getHeight()>p.getStartConnection().getHeight()){
+//                                velocity[index]=-velocity[index];
+//                            }
+                            waterlevel[index] = 1f;
+                        }
+                    }
+                    
                     lastpipeTLset = true;
                     index++;
                     if (!rs.next()) {

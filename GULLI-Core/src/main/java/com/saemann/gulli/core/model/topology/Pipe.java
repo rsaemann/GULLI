@@ -14,6 +14,10 @@ import com.saemann.gulli.core.model.topology.profile.Profile;
  * @author saemann
  */
 public class Pipe extends Capacity {
+    
+    public enum TYPE{CONDUIT,PUMP,CHOKE,WEIR}
+    
+    protected TYPE buildType=TYPE.CONDUIT;
 
     /**
      * upper bound suction connection, Einfluss am oberen Ende
@@ -420,4 +424,14 @@ public class Pipe extends Capacity {
         list.add(endConnection.getPosition());
         return list;
     }
+
+    public TYPE getBuildType() {
+        return buildType;
+    }
+
+    public void setBuildType(TYPE buildType) {
+        this.buildType = buildType;
+    }
+    
+    
 }

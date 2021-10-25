@@ -83,7 +83,7 @@ public class Routing_Homogene implements Routing_Calculator {
     @Override
     public Connection_Manhole whichConnection(Manhole mh, RandomGenerator probability, boolean forward) {
 
-        if (mh.getWaterlevel() < dryWaterlevel) {
+        if (mh.getWaterlevel() < dryWaterlevel&&!mh.pumpsump) {
             if (verbose) {
                 System.out.println("waterlevel<" + dryWaterlevel + "m\t wL:" + mh.getWaterlevel() + "\t h:" + mh.getWaterHeight() + " --> null");
             }
@@ -148,7 +148,7 @@ public class Routing_Homogene implements Routing_Calculator {
             //search in outgoing pipes.
             qsum = 0;
             for (Connection_Manhole_Pipe connection : mh.getConnections()) {
-                if (connection.getHeight() < h && connection.isFlowInletToPipe()) {
+                if (connection.getHeight() <= h && connection.isFlowInletToPipe()) {
                     //Water in this connection
                     qsum += Math.abs(connection.getPipe().getFlowActual());
                     if (qsum > threashold) {
@@ -167,7 +167,7 @@ public class Routing_Homogene implements Routing_Calculator {
             //Positive Flow, Particle will leave in direction of flow
             float qsum = 0;
             for (Connection_Manhole_Pipe connection : mh.getConnections()) {
-                if (connection.getHeight() < h) {
+                if (connection.getHeight() <= h) {
                     if (connection.isFlowOutletFromPipe()) {
                         //Water in this connection
                         qsum += Math.abs(connection.getPipe().getFlowActual());
@@ -201,7 +201,7 @@ public class Routing_Homogene implements Routing_Calculator {
             //search in outgoing pipes.
             qsum = 0;
             for (Connection_Manhole_Pipe connection : mh.getConnections()) {
-                if (connection.getHeight() < h && connection.isFlowOutletFromPipe()) {
+                if (connection.getHeight() <= h && connection.isFlowOutletFromPipe()) {
                     //Water in this connection
                     qsum += Math.abs(connection.getPipe().getFlowActual());
                     if (qsum > threashold) {

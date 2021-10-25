@@ -870,6 +870,7 @@ public class LoadingCoordinator {
 
             start = System.currentTimeMillis();
             //load neighbour definitions
+            if(false)
             {
                 if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
                     surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
@@ -879,7 +880,13 @@ public class LoadingCoordinator {
                     fireLoadingActionUpdate();
                     File outNodeTriangles = new File(fileSurfaceCoordsDAT.getParent(), "NODE2TRIANGLE.dat");
                     if (!outNodeTriangles.exists()) {
-                        ArrayList<Integer>[] n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
+                        ArrayList<Integer>[] n2t = null;
+                        try {
+                            n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
+                        } catch (Error e) {
+                           e.printStackTrace();
+                           n2t=new ArrayList[0];
+                        }
                         HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
                         fileSufaceNode2Triangle = outNodeTriangles;
                         surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);

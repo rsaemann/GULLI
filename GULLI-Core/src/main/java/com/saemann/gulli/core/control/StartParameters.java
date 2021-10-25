@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,6 +49,9 @@ public class StartParameters {
     private static String startFilePath;
     private static String pathUndergroundVTU;
     private static String pathFirebirdDLL;
+    
+    private static String proxyURL=null;
+    private static String proxyPort=null;
 
     private static boolean autoLoadatStartup = true;
     private static boolean autoStartatStartup = false;
@@ -103,6 +107,12 @@ public class StartParameters {
                     autoLoadatStartup = Boolean.parseBoolean(line.substring(line.indexOf("=") + 1));
                 } else if (line.startsWith("startFirst=")) {
                     autoStartatStartup = Boolean.parseBoolean(line.substring(line.indexOf("=") + 1));
+                } else if (line.startsWith("proxyURL=")) {
+                    proxyURL = line.substring(line.indexOf("=") + 1);
+                    if(proxyURL==null||proxyURL.length()<2)proxyURL=null;
+                }else if (line.startsWith("proxyPort=")) {
+                    proxyPort = line.substring(line.indexOf("=") + 1);
+                    if(proxyPort==null||proxyPort.length()<2)proxyURL=null;
                 } else if (line.startsWith("mapFrame")) {
                     try {
                         String[] values = line.substring(line.indexOf("=") + 1).split(",");
@@ -189,6 +199,15 @@ public class StartParameters {
         } catch (IOException ex) {
             Logger.getLogger(StartParameters.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
+        if(proxyURL!=null&&proxyPort!=null){
+            Properties p=System.getProperties();
+            p.setProperty("http.proxyHost", proxyURL);
+            p.setProperty("https.proxyHost", proxyURL);
+            p.setProperty("http.proxyPort", proxyPort);
+            p.setProperty("https.proxyPort", proxyPort);     
+            System.out.println("Set Proxy configuration");
+        }
 
         return true;
     }
@@ -207,6 +226,13 @@ public class StartParameters {
             bw.newLine();
             bw.flush();
             bw.write("FirebirdDLL="+ (pathFirebirdDLL != null ? pathFirebirdDLL : ""));
+            bw.newLine();
+            bw.newLine();
+            bw.write("## COnnection Proxy");
+            bw.newLine();
+            bw.write("proxyURL="+(proxyURL!=null?proxyURL:""));
+                        bw.newLine();
+            bw.write("proxyPort="+(proxyPort!=null?proxyPort:""));
             bw.newLine();
             bw.newLine();
             bw.write("## Frame bounds");

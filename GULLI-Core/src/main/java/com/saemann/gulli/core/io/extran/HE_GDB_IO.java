@@ -23,10 +23,6 @@
  */
 package com.saemann.gulli.core.io.extran;
 
-import static com.saemann.gulli.core.io.extran.HE_Database.sqlRequestCount;
-import static com.saemann.gulli.core.io.extran.HE_Database.sqlRequestTime;
-import static com.saemann.gulli.core.io.extran.HE_Database.waitingForRequestCount;
-import static com.saemann.gulli.core.io.extran.HE_Database.waitingForRequestTime;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;

@@ -18,7 +18,14 @@ public class Manhole extends StorageVolume {
     protected int surfaceTriangleID = -1;
 
     protected Connection_ToSurface topConnection;
-    
+
+    /**
+     * If true, particles can pass even if the waterlevel is 0 in here
+     * (pumpsumps are handeled as zero if the active pump can handle the volume
+     * in the sump)
+     */
+    public boolean pumpsump = false;
+
     public Manhole(Position position, String name, Profile profile) {
         super(profile);
         if (!(position instanceof Position3D)) {
