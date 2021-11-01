@@ -404,6 +404,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     e.printStackTrace();
                     waterlevels[ID] = new float[numberOfTimestamps];
                 }
+            }else{
+                return 0;
             }
         }
         if (timeInterpolatedValues) {

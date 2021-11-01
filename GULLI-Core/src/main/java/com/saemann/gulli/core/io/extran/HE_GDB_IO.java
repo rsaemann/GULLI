@@ -59,6 +59,9 @@ import org.locationtech.jts.geom.GeometryFactory;
 public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader {
 
     public static boolean verbose = false;
+    
+    public boolean opened=false;
+    public boolean analysed=false;
 
     private File directory;
 
@@ -142,13 +145,15 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 //        GeoTable.verbose=true;
         this.directory = directory;
         this.db = FileGDBFactory.open(this.directory.toPath());
+        opened=true;
         analyseHEDatabase();
+        analysed=true;
 //        System.out.println(getClass() + "::created " + directory.getParentFile().getName() + " velocity timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps);
     }
 
     @Override
     public String toString() {
-        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps + ",@ " + directory.getAbsolutePath() + "}";
+        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps + ",@ " + directory.getAbsolutePath()+" opened:"+opened+", analysed:"+analysed + "}";
     }
 
     /**

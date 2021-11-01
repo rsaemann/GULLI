@@ -42,6 +42,7 @@ import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.SHP_IO_GULLI;
 import com.saemann.gulli.core.io.Setup_IO;
 import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
+import com.saemann.gulli.core.io.extran.GdalIO;
 import com.saemann.gulli.core.io.swmm.SWMM_IO;
 import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
 import com.saemann.gulli.core.io.extran.HE_GDB_IO;
@@ -82,6 +83,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.GraphSearch;
 import com.saemann.gulli.core.model.topology.graph.Pair;
+import main.java.io.zrz.jgdb.GeoDBException;
 import org.geotools.referencing.CRS;
 import org.opengis.referencing.operation.TransformException;
 
@@ -870,8 +872,7 @@ public class LoadingCoordinator {
 
             start = System.currentTimeMillis();
             //load neighbour definitions
-            if(false)
-            {
+            if (false) {
                 if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
                     surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
                 } else {
@@ -884,8 +885,8 @@ public class LoadingCoordinator {
                         try {
                             n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
                         } catch (Error e) {
-                           e.printStackTrace();
-                           n2t=new ArrayList[0];
+                            e.printStackTrace();
+                            n2t = new ArrayList[0];
                         }
                         HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
                         fileSufaceNode2Triangle = outNodeTriangles;
@@ -962,6 +963,7 @@ public class LoadingCoordinator {
                 }
                 SurfaceVelocityLoader velocityLoader = null;
                 SurfaceWaterlevelLoader waterlevelLoader = null;
+                boolean surfaceVelocitiescompletelyLoaded = false;
 
                 if (lowername.endsWith("shp")) {
                     SHP_IO_GULLI.readTriangleFileToSurface(fileSurfaceWaterlevels, surface, verbose);
@@ -970,35 +972,24 @@ public class LoadingCoordinator {
                 } else if (lowername.endsWith("gdb")) {
                     action.description = "Reading GDB surface";
                     fireLoadingActionUpdate();
-                    HE_GDB_IO gdb = new HE_GDB_IO(fileSurfaceWaterlevels);
-                    velocityLoader = gdb;
-                    waterlevelLoader = gdb;
-                    if (gdb.isResultDB()) {
-                        if (gdb.hasVelocities()) {
-                            long start = System.currentTimeMillis();
-                            action.description = "Reading GDB surface velocities";
-                            fireLoadingActionUpdate();
-                            if (sparseSurfaceLoading) {
-                                int numberTriangles = surface.getTriangleMids().length;
-                                int times = gdb.getNumberOfVelocityTimeSteps();
-                                surface.waterlevelLoader = gdb;
-                                surface.initVelocityArrayForSparseLoading(numberTriangles, times);
-                            } else {
-                                gdb.applyWaterlevelsToSurface(surface);
-                                surface.waterlevelLoader = gdb;
-                                if (verbose) {
-                                    System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                    try {
+                        HE_GDB_IO gdb = new HE_GDB_IO(fileSurfaceWaterlevels);
+                        velocityLoader = gdb;
+                        waterlevelLoader = gdb;
+                        System.out.println("GDB is: " + gdb + "  " + gdb.getLayerVelocity() + "  isresult? " + gdb.isResultDB() + " has velocities? " + gdb.hasVelocities());
+                        if (gdb.isResultDB()) {
+                            if (gdb.hasVelocities()) {
+                                if (gdb.getNumberOfVelocityTimeSteps() < 0) {
+                                    //This seems to be a database with unreadable velocity table (too big or decoded)
+                                    //We need to extract the data using GDAL and read the CSV instead.
+                                    throw new GeoDBException("version 9 or 10 hasvelocities, but number of timesteps is: " + gdb.getNumberOfVelocityTimeSteps());
                                 }
-                            }
-
-                        } else {
-                            if (gdb.hasWaterlevels()) {
                                 long start = System.currentTimeMillis();
-                                action.description = "Reading GDB surface waterlevels";
-                                System.err.println("Surface GDB does only provide waterlevels but no velocities.");
+                                action.description = "Reading GDB surface velocities";
+                                fireLoadingActionUpdate();
                                 if (sparseSurfaceLoading) {
                                     int numberTriangles = surface.getTriangleMids().length;
-                                    int times = gdb.getNumberOfWaterlevelTimeSteps();
+                                    int times = gdb.getNumberOfVelocityTimeSteps();
                                     surface.waterlevelLoader = gdb;
                                     surface.initVelocityArrayForSparseLoading(numberTriangles, times);
                                 } else {
@@ -1008,31 +999,85 @@ public class LoadingCoordinator {
                                         System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
                                     }
                                 }
+
                             } else {
-                                loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
-                                action.description = "GDB has no water levels";
-                                System.err.println(action.description);
+                                if (gdb.hasWaterlevels()) {
+                                    long start = System.currentTimeMillis();
+                                    action.description = "Reading GDB surface waterlevels";
+                                    System.err.println("Surface GDB does only provide waterlevels but no velocities.");
+                                    if (sparseSurfaceLoading) {
+                                        int numberTriangles = surface.getTriangleMids().length;
+                                        int times = gdb.getNumberOfWaterlevelTimeSteps();
+                                        surface.waterlevelLoader = gdb;
+                                        surface.initVelocityArrayForSparseLoading(numberTriangles, times);
+                                    } else {
+                                        gdb.applyWaterlevelsToSurface(surface);
+                                        surface.waterlevelLoader = gdb;
+                                        if (verbose) {
+                                            System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                                        }
+                                    }
+                                } else {
+                                    loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
+                                    action.description = "GDB has no water levels";
+                                    System.err.println(action.description);
+                                }
                             }
+                            if (cancelLoading) {
+                                System.out.println("   LoadingThread is interrupted -> break");
+                                loadingSurfaceVelocity = LOADINGSTATUS.REQUESTED;
+                                return false;
+                            }
+                            if (loadGDBVelocity && gdb.hasVelocities() && !sparseSurfaceLoading) {
+                                long start = System.currentTimeMillis();
+                                action.description = "Reading GDB surface velocities";
+                                fireLoadingActionUpdate();
+                                gdb.applyVelocitiesToSurface(surface);
+                                gdb.close();
+                                if (verbose) {
+                                    System.out.println("Loading GDB Velocities took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                                }
+                            }
+                        } else {
+                            loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
+                            action.description = "GDB has not a result database.";
+                            System.err.println(action.description);
                         }
-                        if (cancelLoading) {
-                            System.out.println("   LoadingThread is interrupted -> break");
-                            loadingSurfaceVelocity = LOADINGSTATUS.REQUESTED;
-                            return false;
-                        }
-                        if (loadGDBVelocity && gdb.hasVelocities() && !sparseSurfaceLoading) {
-                            long start = System.currentTimeMillis();
-                            action.description = "Reading GDB surface velocities";
+                    } catch (GeoDBException ioe) {
+                        System.out.println("Error while loading GDB velocity:" + ioe.getLocalizedMessage());
+                        if (ioe.getMessage().contains("version 9 or 10")) {
+                            //Malformed GDB file cannot be read wit the rGDB driver.
+                            //Need to fallback to CSV values.
+                            System.out.println("Problem with GDB detected.");
+                            File velocityFile = GdalIO.getCSVFileVelocity(fileSurfaceWaterlevels);
+                            System.out.println("  Read surface velocities from CSV " + velocityFile);
+                            if (velocityFile == null || velocityFile.length() < 100) {
+                                //Need to create file
+                                boolean installed = GdalIO.testGDALInstallation(true);
+                                if (!installed) {
+                                    action.description = "GDAL not installed";
+                                } else {
+                                    action.description = "Decode GDB to CSV...";
+                                    fireLoadingActionUpdate();
+                                    action.hasProgress = false;
+                                    velocityFile = GdalIO.exportVelocites(fileSurfaceWaterlevels, surface, false);
+                                    action.description = "CSV velocities complete";
+                                }
+                            }
+                            if (velocityFile != null) {
+                                System.out.println("Surface velocity reading in...");
+                                loadingSurfaceVelocity = LOADINGSTATUS.LOADING;
+                                action.description = "Load velocities from file...";
+                                fireLoadingActionUpdate();
+                                CSV_IO.readCellVelocities(surface, velocityFile);
+                                action.description = "Loading velocities complete";
+                                loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
+                                surfaceVelocitiescompletelyLoaded = true;
+                            } else {
+                                System.out.println("Surface velocity file not found.");
+                            }
                             fireLoadingActionUpdate();
-                            gdb.applyVelocitiesToSurface(surface);
-                            gdb.close();
-                            if (verbose) {
-                                System.out.println("Loading GDB Velocities took " + ((System.currentTimeMillis() - start) / 100) + " s.");
-                            }
                         }
-                    } else {
-                        loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
-                        action.description = "GDB has not a result database.";
-                        System.err.println(action.description);
                     }
                 } else {
 
@@ -1056,16 +1101,22 @@ public class LoadingCoordinator {
                     surface.calcNeighbourVelocityFromTriangleVelocity();
                 }
                 if (!sparseSurfaceLoading) {
-                    surface.calculateNeighbourVelocitiesFromWaterlevels();
-                    surface.calculateVelocities2d();
+                    try {
+                        surface.calculateNeighbourVelocitiesFromWaterlevels();
+                        surface.calculateVelocities2d();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                 } else {
                     // Sparse loading
                     // Prepare for surfacecomputing2D
                     surface.waterlevelLoader = waterlevelLoader;
-                    if (isLoadGDBVelocity()) {
-                        surface.initSparseTriangleVelocityLoading(velocityLoader, true, true);
-                    } else {
-                        surface.initSparseTriangleVelocityLoading(null, true, true);
+                    if (!surfaceVelocitiescompletelyLoaded) {
+                        if (isLoadGDBVelocity()) {
+                            surface.initSparseTriangleVelocityLoading(velocityLoader, true, true);
+                        } else {
+                            surface.initSparseTriangleVelocityLoading(null, true, true);
+                        }
                     }
                 }
                 if (scenario != null) {

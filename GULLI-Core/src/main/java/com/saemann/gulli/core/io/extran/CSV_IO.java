@@ -1,6 +1,7 @@
 package com.saemann.gulli.core.io.extran;
 
 import com.saemann.gulli.core.control.StartParameters;
+import com.saemann.gulli.core.io.NumberConverter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -62,7 +63,7 @@ public class CSV_IO {
             // global Position WGS84 system
             GeoTools gt = geoTools;
             if (gt == null) {
-                gt = new GeoTools("EPSG:4326", "EPSG:31467",StartParameters.JTS_WGS84_LONGITUDE_FIRST);// WGS84(lat,lon) <-> Gauss Krüger Zone 3(North,East)
+                gt = new GeoTools("EPSG:4326", "EPSG:31467", StartParameters.JTS_WGS84_LONGITUDE_FIRST);// WGS84(lat,lon) <-> Gauss Krüger Zone 3(North,East)
             }
             //Initialize Filereader manholes
             FileReader fr = new FileReader(manholeFile);
@@ -406,7 +407,163 @@ public class CSV_IO {
             surf.loadingWaterlevels = false;
         }
     }
-    
-    
+
+    /**
+     * Method to read Velocities stored in GDAL generated CSVs.
+     *
+     * @param surf
+     * @param csvFile
+     */
+    public static void readCellVelocities(Surface surf, File csvFile) throws FileNotFoundException, IOException, Exception {
+        surf.loadingWaterlevels = true;
+        try ( //Read header to detect timesteps
+                FileReader fr = new FileReader(csvFile); BufferedReader br = new BufferedReader(fr)) {
+            String line = "";
+            float[][][] velocities = null;
+            float[] maxVelocity = null;
+            int v0index = 3;
+            int vmaxIndex = 1;
+            String[] split;
+            boolean filteredSurface = false; //if true: IDs of triangles have to be mapped to the surface IDs.
+            int numberOfTimes = 0;
+            String splitchar = ",";
+            line = br.readLine();
+            System.out.println("Header: " + line);
+            if (line.startsWith("ID")) {
+                if (line.contains(";")) {
+                    splitchar = ";";
+                } else {
+                    splitchar = ",";
+                }
+                split = line.split(splitchar);
+                //reached header of simulation results.
+                //read number of timeresults
+
+                for (int i = 0; i < split.length; i++) {
+                    if (split[i].equals("V_X_0")) {
+                        v0index = i;
+                    }
+                    if (split[i].startsWith("V_X")) {
+                        numberOfTimes++;
+                    }
+
+                    if (split[i].equals("V_MAX")) {
+                        vmaxIndex = i;
+                    }
+
+                }
+                if (surf.mapIndizes != null && !surf.mapIndizes.isEmpty()) {
+                    //needs special treatment for ID mapping
+                    velocities = new float[surf.mapIndizes.size()][numberOfTimes][2];
+                    maxVelocity = new float[surf.mapIndizes.size()];
+                } else {
+                    //every triangle is on this surface:
+                    maxVelocity = new float[surf.triangleNodes.length];
+                    System.out.println("MaxVelocity array instantiated.");
+                    float[][] emptyArray = new float[numberOfTimes][2];
+
+                    velocities = new float[surf.triangleNodes.length][][];
+                    System.out.println("Dynamic velocity array instantiated, length: " + velocities.length);
+                    for (int i = 0; i < velocities.length; i++) {
+                        velocities[i] = emptyArray;
+                    }
+
+                }
+            }
+            if (velocities == null) {
+                throw new Exception("Number of 'V_X_*' could not be found. Velocities can not be initialized.");
+            }
+            System.out.println("Reading " + numberOfTimes + " timesteps.");
+
+            //Start going through all lines.
+            int linenumber = 0;
+            int index = 0;
+            NumberConverter nc = new NumberConverter(br);
+            nc.setBufferLength(1024);
+            nc.setSplitter(';');
+            float[] toFill = new float[numberOfTimes * 2];
+            int id = 0;
+            while (br.ready()) {
+                linenumber++;
+                try {
+                    id = nc.readNextInteger();
+                    if(id<0){
+                        //Error or last element detected.
+                        break;
+                    }
+                    if (filteredSurface) {
+                        if (!surf.mapIndizes.containsKey(id)) {
+                            //This triangle is not part of the Surface. 
+                            continue;
+                        }
+                        id = surf.mapIndizes.get(id); //Map triangle to surface's triangle id.
+                    }
+                    maxVelocity[id] = (float) nc.readNextDouble();//Float.parseFloat(split[vmaxIndex]);
+                    velocities[id] = new float[numberOfTimes][2]; //Only create this array at positions where it is necessary.
+
+                    nc.readNextLineFloats(toFill);
+                    for (int i = 0; i < numberOfTimes; i++) {
+                        velocities[id][i][0] = toFill[i * 2];
+                        velocities[id][i][1] = toFill[i * 2 + 1];
+                    }
+                    if (linenumber % 50000 == 1) {
+                        System.out.println("   " + (int) ((id * 100) / velocities.length) + " %");
+                        if (Thread.currentThread().isInterrupted()) {
+                            System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
+                            surf.loadingWaterlevels = false;
+                            return;
+                        }
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error reading information for cell " + id + "in line " + linenumber + " ");
+                    ex.printStackTrace();
+                    break;
+                }
+            }
+//            while (br.ready()) {
+//                line = br.readLine();
+//                linenumber++;
+//                split = line.split(splitchar);
+//                int id = Integer.parseInt(split[0].replaceAll("\"", ""));
+//                if (filteredSurface) {
+//                    if (!surf.mapIndizes.containsKey(id)) {
+//                        //This triangle is not part of the Surface. 
+//                        continue;
+//                    }
+//                    id = surf.mapIndizes.get(id); //Map triangle to surface's triangle id.
+//                }
+//                maxVelocity[id] = Float.parseFloat(split[vmaxIndex]);
+//                velocities[id] = new float[numberOfTimes][2]; //Only create this array at positions where it is necessary.
+//                for (int i = 0; i < numberOfTimes; i++) {
+//                    try {
+//                        index=i * 2 + v0index;
+//                        if(split.length>index){
+//                        velocities[id][i][0] = Float.parseFloat(split[index]);
+//                        velocities[id][i][1] = Float.parseFloat(split[index + 1]);
+//                        }else{
+//                            //Only empty values.
+//                            //This cell is completed.
+//                            break;
+//                        }
+//                    } catch (ArrayIndexOutOfBoundsException ae) {
+//                        System.err.println("Ask for index "+(i * 2 + v0index)+" and "+(i * 2 + v0index + 1)+" where there are only "+split.length+" elements.");
+//                        throw ae;
+//                    }
+//                }
+//                if (linenumber % 50000 == 1) {
+//                    System.out.println("   " + (int) ((id * 100) / velocities.length) + " %");
+//                }
+//            }
+            if (Thread.currentThread().isInterrupted()) {
+                System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
+                surf.loadingWaterlevels = false;
+                return;
+            }
+            surf.setTriangleMaxVelocity(maxVelocity);
+            surf.setTriangleVelocity(velocities);
+
+            surf.loadingWaterlevels = false;
+        }
+    }
 
 }

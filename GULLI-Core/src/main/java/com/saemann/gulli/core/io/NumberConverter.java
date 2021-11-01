@@ -112,6 +112,65 @@ public class NumberConverter {
         }
         return true;
     }
+    
+    public boolean readNextLineFloats(float[] toFill) throws IOException {
+
+        lastWasSplitter = true;
+
+        index = 0;
+        laststart = 0;
+        searchForNumbers = true;
+        for (int i = 0; i < buffer.length; i++) {
+            if (reader.ready()) {
+                c = (char) reader.read();
+                if (c == 10 || c == 13) {
+                    if (i == 0) {
+                        //this LF still is part of the old line. we need to skip this to get the next line
+                        i--;
+                        continue;
+                    }
+                    if (searchForNumbers) {
+                        toFill[index] = parseFloatFromToInclude(buffer, laststart, i - 1);
+                        index++;
+                    }
+                    break;//\n & \r
+                }
+                buffer[i] = c;
+                if (searchForNumbers) {
+                    if (c == splitter) {
+                        //found position to split the string
+                        if (lastWasSplitter == false) {
+                            //end a pattern here
+                            toFill[index] = parseFloatFromToInclude(buffer, laststart, i - 1);
+                            index++;
+                            if (index >= toFill.length) {
+                                searchForNumbers = false;
+                            }
+                            lastWasSplitter = true;
+                        }
+                        
+                    } else {
+                        if (lastWasSplitter) {
+                            laststart = i;
+                            lastWasSplitter = false;
+                        }
+                        
+                    }
+                }
+            }
+        }
+        if (index == 0) {
+            for (int i = 0; i < toFill.length; i++) {
+                toFill[i] = 0;
+            }
+            return false;
+        }
+        //fill all the non read values with zero
+        for (int i = index; i < toFill.length; i++) {
+            toFill[i] = 0;
+        }
+        return true;
+    }
 
     public boolean readNextLineInteger(int[] toFill) throws IOException {
 
@@ -172,6 +231,102 @@ public class NumberConverter {
             }
             return true;
         }
+    }
+    
+    /**
+     * Returns the Integer in the text until the next seperator
+     * @return -1 as error
+     */
+    public int readNextInteger() throws IOException{
+        lastWasSplitter = true;
+        index = 0;
+        searchForNumbers = true;
+        laststart = 0;
+        for (int i = 0; i < buffer.length; i++) {
+            if (reader.ready()) {
+                c = (char) reader.read();
+                if (c == 10 || c == 13) {
+                    if (i == 0) {
+                        //this LF still is part of the old line. we need to skip this to get the next line
+                        i--;
+                        continue;
+                    }
+                    if (searchForNumbers) {
+                        return  parseIntegerFromToInclude(buffer, laststart, i - 1);
+                        
+                    }
+                    break;//\n & \r
+                }
+                buffer[i] = c;
+
+                if (searchForNumbers) {
+                    if (c == splitter) {
+
+                        //found position to split the string
+                        if (lastWasSplitter == false) {
+                            //end a pattern here
+                            return parseIntegerFromToInclude(buffer, laststart, i - 1);
+                        }
+                        
+                    } else {
+                        if (lastWasSplitter) {
+                            laststart = i;
+                            lastWasSplitter = false;
+                        }
+                        
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+    
+    /**
+     * Returns the Integer in the text until the next seperator
+     * @return NaN as error
+     */
+    public double readNextDouble() throws IOException{
+        lastWasSplitter = true;
+        index = 0;
+        searchForNumbers = true;
+        laststart = 0;
+        for (int i = 0; i < buffer.length; i++) {
+            if (reader.ready()) {
+                c = (char) reader.read();
+                if (c == 10 || c == 13) {
+                    if (i == 0) {
+                        //this LF still is part of the old line. we need to skip this to get the next line
+                        i--;
+                        continue;
+                    }
+                    if (searchForNumbers) {
+                        return  parseDoubleFromToInclude(buffer, laststart, i - 1);
+                        
+                    }
+                    break;//\n & \r
+                }
+                buffer[i] = c;
+
+                if (searchForNumbers) {
+                    if (c == splitter) {
+
+                        //found position to split the string
+                        if (lastWasSplitter == false) {
+                            //end a pattern here
+                            return parseDoubleFromToInclude(buffer, laststart, i - 1);
+                        }
+                        
+                    } else {
+                        if (lastWasSplitter) {
+                            laststart = i;
+                            lastWasSplitter = false;
+                        }
+                        
+                    }
+                }
+            }
+        }
+        return Double.NaN;
     }
 
     /**
@@ -329,6 +484,37 @@ public class NumberConverter {
             return sum;
         }
         double result = sum / (double) digitindex;
+//        System.out.println("number=" + result);
+        return result;
+
+    }
+    
+    public static float parseFloatFromToInclude(char[] string, int fromIncluded, int toIncluded) {
+
+        long sum = 0;
+        long index = 1;
+        long digitindex = 0;
+
+        for (int i = toIncluded; i >= fromIncluded; i--) {
+            char c = string[i];
+            if (c == 46/*'.'*/) {
+                digitindex = index;
+                continue;
+            }
+
+            int d = c - 48;//Character.digit(c, 10);
+            if (d < 0 || d > 9) {
+                continue;
+            }
+            sum += index * d;
+            index *= 10;
+//            System.out.println("'" + c + "' : " + d + ", at index=" + i + ", factor: " + index + " ,\t sum=" + sum);
+        }
+        if (digitindex == 0) {
+            //is an integer without .
+            return sum;
+        }
+        float result = sum / (float) digitindex;
 //        System.out.println("number=" + result);
         return result;
 
