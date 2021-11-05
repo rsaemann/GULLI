@@ -8,6 +8,7 @@ package com.saemann.gulli.core.model.topology;
 import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.control.StartParameters;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +29,7 @@ public class Network {
 
     protected Collection<Pipe> pipes;
     protected HashSet<Manhole> manholes;
+    protected HashMap<Long,Manhole> manholeMap;
     protected Collection<Inlet> streetInlets;
     protected String name;
 
@@ -39,11 +41,23 @@ public class Network {
     public Network(Collection<Pipe> pipes, Collection<Manhole> manholes) {
         this.pipes = (pipes);
         this.manholes = new HashSet<>(manholes);
+        fillManholeMap();
     }
 
     public Network(HashSet<Pipe> pipes, HashSet<Manhole> manholes) {
         this.pipes = pipes;
         this.manholes = manholes;
+        fillManholeMap();
+    }
+    
+    protected void fillManholeMap(){
+        if(this.manholeMap==null){
+            manholeMap=new HashMap<>(manholes.size());
+        }
+        manholeMap.clear();
+        for (Manhole manhole : manholes) {
+            manholeMap.put(manhole.getManualID(), manhole);
+        }
     }
 
     public Collection<Pipe> getPipes() {
@@ -60,6 +74,7 @@ public class Network {
 
     public void setCapacities(HashSet<Manhole> capacities) {
         this.manholes = capacities;
+        fillManholeMap();
     }
 
     public void setStreetInlets(Collection<Inlet> streetInlets) {
@@ -136,6 +151,9 @@ public class Network {
      * @throws NullPointerException
      */
     public Manhole getManholeByManualID(long manualID) throws NullPointerException {
+        if(manholeMap!=null){
+            return manholeMap.get(manualID);
+        }
         for (Manhole capacity : manholes) {
             if (capacity.getManualID() == manualID) {
                 return capacity;
@@ -170,6 +188,15 @@ public class Network {
     public Pipe getPipeByID(long id) throws NullPointerException {
         for (Pipe capacity : pipes) {
             if (capacity.getAutoID() == id) {
+                return capacity;
+            }
+        }
+        return null;
+    }
+    
+     public Pipe getPipeByManualID(long id) throws NullPointerException {
+        for (Pipe capacity : pipes) {
+            if (capacity.getManualID() == id) {
                 return capacity;
             }
         }

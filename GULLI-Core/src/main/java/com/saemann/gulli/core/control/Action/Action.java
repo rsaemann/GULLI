@@ -23,6 +23,9 @@
  */
 package com.saemann.gulli.core.control.Action;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
 /**
  * Object to inform other processes about the progress, this process is doing.
  * Originally developed to display loading progress it is also usefull for
@@ -35,13 +38,15 @@ public class Action {
     public String description;
     public Action parent;
     public Action child;
-    
+
     public boolean hasProgress = true;
     /**
      * [0,1]
      */
     public float progress;
     public long startTime;
+
+    public ActionListener listener;
 
     /**
      *
@@ -71,14 +76,21 @@ public class Action {
             return description + (parent != null ? " of " + parent.description : "");
         }
     }
-    
-    
 
     public float getActiveProgress() {
         if (child != null) {
             return child.getActiveProgress();
         }
         return progress;
+    }
+
+    public void updateProgress() {
+        if (parent != null) {
+            parent.updateProgress();
+        }
+        if (listener != null) {
+            listener.actionPerformed(new ActionEvent(this, 0, description));
+        }
     }
 
 }

@@ -1,5 +1,6 @@
 package com.saemann.gulli.core.io.extran;
 
+import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.io.NumberConverter;
@@ -55,18 +56,19 @@ public class HE_SurfaceIO {
 
     public static boolean autoLoadNeumannNeighbours = false;
 
-    public static MultiPolygon initPolygon() {
-        GeometryFactory gf = new GeometryFactory();
-        Coordinate[] cs = new Coordinate[5];
-        cs[0] = new Coordinate(546041, 5800896);
-        cs[1] = cs[0];//new Coordinate(551126, 5800896);
-        cs[2] = new Coordinate(551126, 5797948);
-        cs[3] = new Coordinate(546041, 5797948);
-        cs[4] = cs[0];
-        Polygon polygon = gf.createPolygon(cs);
-        return gf.createMultiPolygon(new Polygon[]{polygon});
-    }
+    public static Action loadingAction = null;
 
+//    public static MultiPolygon initPolygon() {
+//        GeometryFactory gf = new GeometryFactory();
+//        Coordinate[] cs = new Coordinate[5];
+//        cs[0] = new Coordinate(546041, 5800896);
+//        cs[1] = cs[0];//new Coordinate(551126, 5800896);
+//        cs[2] = new Coordinate(551126, 5797948);
+//        cs[3] = new Coordinate(546041, 5797948);
+//        cs[4] = cs[0];
+//        Polygon polygon = gf.createPolygon(cs);
+//        return gf.createMultiPolygon(new Polygon[]{polygon});
+//    }
     public static Surface loadSurface(File directory) throws FileNotFoundException, IOException {
         if (!directory.isDirectory()) {
             if (directory.isFile()) {
@@ -346,7 +348,7 @@ public class HE_SurfaceIO {
      * @param fileCoordinates Vertex coordinates e.g. "X.dat"
      * @param fileTriangleIndizes Indices of verties to form triangles
      * "TRIMOD2.dat"
-     * @param fileNeighbours  Neighbours per triangle e.g. "TRIMOD1.dat"
+     * @param fileNeighbours Neighbours per triangle e.g. "TRIMOD1.dat"
      * @param coordReferenceXML File where the coordinate reference is defined
      * @param crs Manual override of CoordinateReference e.g. "EPSG:25832"
      * @return
@@ -354,11 +356,13 @@ public class HE_SurfaceIO {
      * @throws IOException
      */
     public static Surface loadSurface(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML, String crs) throws FileNotFoundException, IOException {
-//        if (testfilter != null) {
-//            return loadSurfaceFiltered(fileCoordinates, fileTriangleIndizes, fileNeighbours, coordReferenceXML, testfilter);
-//        }
 
-//        System.out.println("Load surface without filter");
+        if (loadingAction != null) {
+            loadingAction.progress = 0.f;
+            loadingAction.hasProgress = true;
+            loadingAction.description = "Init surface topography loading";
+            loadingAction.updateProgress();
+        }
 //Coordinates   //X.dat
 //        long start = System.currentTimeMillis();
         FileReader fr = new FileReader(fileCoordinates);
@@ -371,6 +375,13 @@ public class HE_SurfaceIO {
         int index = 0;
 
         //Here comes information about the coordinates
+        if (loadingAction != null) {
+            loadingAction.progress = 0.f;
+            loadingAction.hasProgress = true;
+            loadingAction.description = "Surface: "+numberofVertices+" Vertices...";
+            loadingAction.updateProgress();
+        }
+
         String seperator = " ";
         Pattern splitter = Pattern.compile(seperator);
         int lines = 0;
@@ -384,31 +395,33 @@ public class HE_SurfaceIO {
                 vertices[index][1] = dataparts[1];
                 vertices[index][2] = dataparts[2];
                 index++;
+                if(index%300==0&&loadingAction!=null){
+                    loadingAction.progress=index/(float)numberofVertices;
+                    loadingAction.updateProgress();
+                }
             }
         }
         br.close();
         fr.close();
 //        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
-//        start = System.currentTimeMillis();
         String epsgCode = crs;//"EPSG:25832"; //Use this standard code for Hannover
         if (coordReferenceXML != null && coordReferenceXML.exists() && coordReferenceXML.canRead()) {
             epsgCode = loadSpatialReferenceCode(coordReferenceXML);
             if (epsgCode.equals("102329")) {
                 epsgCode = "EPSG:4647";
-//                System.out.println("use EPSG:4647 instead of 102329");
-//                for (float[] vertice : verticesL) {
-//                    vertice[0] -= 32000000;
-//                }
             } else {
                 epsgCode = "EPSG:" + epsgCode;
             }
-            
+
         }
 //        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
 
         //fileTriangleIndizes  //TRIMOD2.dat
 //        start = System.currentTimeMillis();
+
+  
+
         fr = new FileReader(fileTriangleIndizes);
         br = new BufferedReader(fr);
         line = br.readLine();
@@ -420,6 +433,14 @@ public class HE_SurfaceIO {
         nc.setReader(br);
         int[] integerParts = new int[3];
         int first, second, third;
+        
+        if (loadingAction != null) {
+            loadingAction.progress = 0.f;
+            loadingAction.hasProgress = true;
+            loadingAction.description = "Surface: "+numberofTriangles+" Triangles...";
+            loadingAction.updateProgress();
+        }
+        
         while (br.ready()) {
 //            line = br.readLine();
 //            lines++;
@@ -442,12 +463,25 @@ public class HE_SurfaceIO {
                 triangleMidPoints[index][2] = (vertices[first][2] * oneThird + vertices[second][2] * oneThird + vertices[third][2] * oneThird);
 
                 index++;
+                
+                if(index%300==0&&loadingAction!=null){
+                    loadingAction.progress=index/(float)numberofTriangles;
+                    loadingAction.updateProgress();
+                }
             }
         }
         br.close();
         fr.close();
 //        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
+
+
         //fileNeighbours
+                if (loadingAction != null) {
+            loadingAction.progress = 0.f;
+            loadingAction.hasProgress = true;
+            loadingAction.description = "Surface: "+numberofTriangles+" Neighbours...";
+            loadingAction.updateProgress();
+        }
 //        start = System.currentTimeMillis();
         fr = new FileReader(fileNeighbours);
         br = new BufferedReader(fr);
@@ -488,6 +522,10 @@ public class HE_SurfaceIO {
                         }
                     }
                     index++;
+                    if(index%300==0&&loadingAction!=null){
+                    loadingAction.progress=index/(float)numberofTriangles;
+                    loadingAction.updateProgress();
+                }
                 }
             }
         } catch (Exception ex) {
@@ -499,9 +537,21 @@ public class HE_SurfaceIO {
 //        System.out.println("HE_SurfaceIO.loadSurface parsed " + lines + " into " + parts + " split parts.");
 //        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
 //        start = System.currentTimeMillis();
+if (loadingAction != null) {
+            loadingAction.progress =1f;
+            loadingAction.hasProgress = false;
+            loadingAction.description = "Finishing Surface Topography...";
+            loadingAction.updateProgress();
+        }
         Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
         surf.setTriangleMids(triangleMidPoints);
         surf.fileTriangles = fileCoordinates.getParentFile();
+         if (loadingAction != null) {
+            loadingAction.progress =1f;
+            loadingAction.hasProgress = true;
+            loadingAction.description = "Surface Topography completed";
+            loadingAction.updateProgress();
+        }
 //        System.out.println("  Building Surface Object took " + (System.currentTimeMillis() - start) + "ms.");
 //        System.out.println("Smallest: " + surf.calcSmallestTriangleArea() + "m²\t largest: " + surf.calcLargestTriangleArea() + "m²\t mean: " + surf.calcMeanTriangleArea() + "m²");
         return surf;

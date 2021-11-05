@@ -1,5 +1,6 @@
 package com.saemann.gulli.core.io.extran;
 
+import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.scenario.injection.HEInjectionInformation;
 import com.saemann.gulli.core.control.scenario.injection.HE_AreaInjection;
@@ -80,6 +81,8 @@ import org.sqlite.SQLiteConfig;
  * @author saemann
  */
 public class HE_Database implements SparseTimeLineDataProvider {
+
+    public Action loadingAction;
 
     public static boolean verbose = false;
 
@@ -587,7 +590,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             rs.next();
             crs = Integer.parseInt(rs.getString(1));
-            System.out.println("loaded from Firebird: " + crs);
+            //System.out.println("loaded from Firebird: " + crs);
         }
         return "EPSG:" + crs;
     }
@@ -1130,8 +1133,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                                 + "::Can not find upper manhole '" + nameoben + "' for pump " + name);
 
                         continue;
-                    }else{
-                        mhoben.pumpsump=true;
+                    } else {
+                        mhoben.pumpsump = true;
                     }
                     if (mhunten == null) {
                         System.err.println("Can not find lower manhole '" + nameunten + "' for pump " + name);
@@ -1404,14 +1407,47 @@ public class HE_Database implements SparseTimeLineDataProvider {
         ArrayTimeLineManholeContainer manholeContainer;
         try (Statement st = con.createStatement()) {
             ResultSet res;
-            res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL;");
+            int sampleElementID = 0;
+            if (loadingAction != null) {
+                loadingAction.progress = 0;
+                loadingAction.hasProgress = true;
+                loadingAction.description = "Read time-steps for pipes";
+                loadingAction.updateProgress();
+            }
+            if (isSQLite) {
+                res = st.executeQuery("SELECT ID FROM LAU_GL_EL LIMIT 1;");
+            } else {
+                //FIREBIRD 
+                res = st.executeQuery("SELECT FIRST 1 ID FROM LAU_GL_EL;");
+            }
+            while (res.next()) {
+                sampleElementID = res.getInt(1);
+            }
+
+            res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL WHERE ID=" + sampleElementID);
             res.next();
             int zeiteintraege = res.getInt(1);
+            if (zeiteintraege < 1) {
+                throw new NullPointerException("Database '" + databaseFile.getAbsolutePath() + "' has no timesteps for pipe elements.");
+            }
+//            
+//            
+//            
+//            res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL;");
+//            res.next();
+//            int zeiteintraege = res.getInt(1);
             res.close();
             // ArrayTimelinePipe muss neu initiiert werden
+
+            if (loadingAction != null) {
+                loadingAction.progress = 0;
+                loadingAction.hasProgress = true;
+                loadingAction.description = "Apply flow timeseries to manholes";
+                loadingAction.updateProgress();
+            }
             //Read timesteps
             long[] times = new long[zeiteintraege];
-            res = st.executeQuery("SELECT ZEITPUNKT FROM LAU_GL_EL GROUP BY ZEITPUNKT;");
+            res = st.executeQuery("SELECT ZEITPUNKT FROM LAU_GL_EL WHERE ID="+sampleElementID+" ORDER BY ZEITPUNKT;");
             int i = 0;
             while (res.next()) {
                 if (isSQLite) {
@@ -1426,6 +1462,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 times[i] -= timesubtraction;
                 i++;
             }
+
             times[times.length - 1] += additionalMilliseconds;
             container = new ArrayTimeLinePipeContainer(times, net.getPipes().size());
             manholeContainer = new ArrayTimeLineManholeContainer(times, net.getManholes().size());
@@ -1439,6 +1476,8 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 manhole.setStatusTimeline(new ArrayTimeLineManhole(manholeContainer, i));
                 i++;
             }
+
+            int counter = 0;
             //OLD SCHEME WITHOUT 2D SURFACE
             try {
                 res = st.executeQuery("SELECT ID,KNOTEN,ZUFLUSS,WASSERSTAND from LAU_GL_S ORDER BY ID,ZEITPUNKT;");
@@ -1446,6 +1485,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int timeIndex = 0;
                 Manhole mh = null;
                 while (res.next()) {
+                    counter++;
                     int heID = res.getInt(1);
 //                    String heName = res.getString(2);
                     float inflow = res.getFloat(3);
@@ -1463,12 +1503,23 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         }
                     }
                     timeIndex++;
+                    if (counter % 500 == 0 && loadingAction != null) {
+                        loadingAction.progress = (float) ( counter / (double) net.getManholes().size());
+                        loadingAction.updateProgress();
+                    }
                 }
             } catch (SQLException sQLException) {
                 throw new FileNotFoundException("File is not filled with measurements. " + sQLException.getLocalizedMessage());
             }
+
             //Finished Waterheight reading
             // Read Spillout Flow from Manhole to Surface
+            if (loadingAction != null) {
+                loadingAction.progress = 0.0f;
+                loadingAction.hasProgress = true;
+                loadingAction.description = "Apply overspill flow to manholes";
+                loadingAction.updateProgress();
+            }
             //NEW SCHEME INCLUDING 2D SURFACE
             try {
                 res = st.executeQuery("SELECT ID,"
@@ -1481,10 +1532,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int timeIndex = 0;
                 Manhole mh = null;
                 while (res.next()) {
+                    counter++;
                     int heID = res.getInt(1);
                     float outflow = res.getFloat(4);
                     if (id != heID) {
-                        mh = net.getManholeByManualID(heID);
+                        mh = net.getManholeByManualID((long) heID);
                         id = heID;
                         timeIndex = 0;
                     }
@@ -1492,6 +1544,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setFluxToSurface(outflow, timeIndex);
                     }
                     timeIndex++;
+
+                    if (counter % 500 == 0 && loadingAction != null) {
+                        loadingAction.progress = (float) ( counter / (double) net.getManholes().size());
+                        loadingAction.updateProgress();
+                    }
                 }
             } catch (SQLException sQLException) {
                 throw new FileNotFoundException("Could not apply HE<->2D exchange flow. " + sQLException.getLocalizedMessage());
@@ -1499,18 +1556,26 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
             res.close();
             ///////////////////////////////////////////////Timeseries in Pipes//////////////////
+            if (loadingAction != null) {
+                loadingAction.progress = 0.4f;
+                loadingAction.hasProgress = true;
+                loadingAction.description = "Apply flow timeseries to pipes";
+                loadingAction.updateProgress();
+            }
             // Zeitreihe in Rohren abfragen
             res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,DURCHFLUSS,GESCHWINDIGKEIT,WASSERSTAND from LAU_GL_EL ORDER BY ID,ZEITPUNKT;");
             int id = Integer.MIN_VALUE;
             Pipe pipe = null;
             int timeIndex = 0;
+            counter = 0;
             while (res.next()) {
+                counter++;
                 int heID = res.getInt(1);
-                String heName = res.getString(2);
+//                String heName = res.getString(2);
                 if (id != heID) {
                     id = heID;
                     try {
-                        pipe = net.getPipeByName(heName);
+                        pipe = net.getPipeByManualID(heID);
                         timeIndex = 0;
                     } catch (NullPointerException nullPointerException) {
                         nullPointerException.printStackTrace();
@@ -1533,19 +1598,30 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     tl.setWaterlevel(h, timeIndex);
                     tl.setDischarge(q, timeIndex);
                     tl.setVolume((float) (pipe.getProfile().getFlowArea(h) * pipe.getLength()), timeIndex);
+                    tl.calculateMaxMeanValues();
                 }
                 timeIndex++;
-            }
-            res.close();
-            //Timelines auf max und mean berechnen
-            for (Pipe p : net.getPipes()) {
-                if (p.getStatusTimeLine() != null && p.getStatusTimeLine() instanceof ArrayTimeLinePipe) {
-                    ((ArrayTimeLinePipe) p.getStatusTimeLine()).calculateMaxMeanValues();
+                if (counter % 500 == 0 && loadingAction != null) {
+                    loadingAction.progress = (float) (counter / (double) net.getPipes().size());
+                    loadingAction.updateProgress();
                 }
             }
+            res.close();
+//            Timelines auf max und mean berechnen
+//            for (Pipe p : net.getPipes()) {
+//                if (p.getStatusTimeLine() != null && p.getStatusTimeLine() instanceof ArrayTimeLinePipe) {
+//                    ((ArrayTimeLinePipe) p.getStatusTimeLine()).calculateMaxMeanValues();
+//                }
+//            }
             ///////////////FERTIG ROHRE
 
             //******************************BEGIN Schmutzfracht******************
+            if (loadingAction != null) {
+                loadingAction.progress = 0.9f;
+                loadingAction.hasProgress = false;
+                loadingAction.description = "Read pollutionload in pipes";
+                loadingAction.updateProgress();
+            }
             //Number of materials
             res = st.executeQuery("SELECT COUNT (*) FROM STOFFGROESSE");
             numberOfMaterials = 0;
@@ -1628,6 +1704,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
 
                 }
             }
+        }
+
+        if (loadingAction != null) {
+            loadingAction.progress = 1;
+            loadingAction.updateProgress();
         }
         return new Pair<>(container, manholeContainer);
     }
@@ -3319,17 +3400,17 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     velocity[index] = rs.getFloat(1);
                     flux[index] = rs.getFloat(2);
                     waterlevel[index] = rs.getFloat(3);
-                   if (p.getBuildType() != Pipe.TYPE.CONDUIT) {
+                    if (p.getBuildType() != Pipe.TYPE.CONDUIT) {
                         //Pumps do only have a flux but no velocity. Calculate substitute velocity.
-                        if (velocity[index] == 0 &&  flux[index] != 0) {
-                            velocity[index] = (float) ( flux[index] / p.getProfile().getTotalArea());
+                        if (velocity[index] == 0 && flux[index] != 0) {
+                            velocity[index] = (float) (flux[index] / p.getProfile().getTotalArea());
 //                            if(p.getEndConnection().getHeight()>p.getStartConnection().getHeight()){
 //                                velocity[index]=-velocity[index];
 //                            }
                             waterlevel[index] = 1f;
                         }
                     }
-                    
+
                     lastpipeTLset = true;
                     index++;
                     if (!rs.next()) {

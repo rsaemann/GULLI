@@ -59,9 +59,9 @@ import org.locationtech.jts.geom.GeometryFactory;
 public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader {
 
     public static boolean verbose = false;
-    
-    public boolean opened=false;
-    public boolean analysed=false;
+
+    public boolean opened = false;
+    public boolean analysed = false;
 
     private File directory;
 
@@ -70,6 +70,8 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
      */
     private String layerWaterHeight = null, layerVelocity = null;
     private String layerSpatialReference = null;
+
+    private boolean layerVelocityUnreadable = false;
 
     /**
      * Number of timesteps for velocity & waterheight output; -1 if not found.
@@ -145,15 +147,15 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 //        GeoTable.verbose=true;
         this.directory = directory;
         this.db = FileGDBFactory.open(this.directory.toPath());
-        opened=true;
+        opened = true;
         analyseHEDatabase();
-        analysed=true;
+        analysed = true;
 //        System.out.println(getClass() + "::created " + directory.getParentFile().getName() + " velocity timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps);
     }
 
     @Override
     public String toString() {
-        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps + ",@ " + directory.getAbsolutePath()+" opened:"+opened+", analysed:"+analysed + "}";
+        return getClass() + "{" + directory.getParentFile().getName() + " velocity_timesteps:" + velocityTimeSteps + "   wlTimesteps:" + waterheightTimeSteps + ",@ " + directory.getAbsolutePath() + "}";
     }
 
     /**
@@ -232,49 +234,55 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         }
         // 2) velocities
         if (layerVelocity != null) {
-            resultDB = true;
-            GeoLayer layer = db.layer(layerVelocity);
-            layerVelocities = layer;
+            try {
+                resultDB = true;
+                GeoLayer layer = db.layer(layerVelocity);
+                layerVelocities = layer;
 //            System.out.println("Layer velocities: "+layerVelocities.getClass());
-            int i = 0;
-            for (GeoField field : layer.getFields()) {
-                String name = field.getName();
-                if (name == null) {
-                    continue;
-                }
-                //Find indices for fast access
-                if (name.equals("V_Max")) {
-                    indexVMax = i;
-                } else if (name.equals("ID")) {
-                    indexVid = i;
-                } else if (name.equals("V_X_0")) {
-                    indexVX0 = i;
-                } else if (name.equals("V_X_1")) {
-                    indexVX1 = i;
-                } else if (name.equals("V_Y_0")) {
-                    indexVY0 = i;
-                }
-
-                if (name.startsWith("V_X_")) {
-                    try {
-                        int number = Integer.parseInt(name.substring(4)) + 1;
-                        velocityTimeSteps = Math.max(velocityTimeSteps, number);
-                    } catch (NumberFormatException numberFormatException) {
-                        numberFormatException.printStackTrace();
+                int i = 0;
+                for (GeoField field : layer.getFields()) {
+                    String name = field.getName();
+                    if (name == null) {
+                        continue;
                     }
-                }
-                i++;
-            }
-            int numberOfFeatures = layer.getFeatureCount();
-            if (maxTriangleID <= 0) {
-                maxTriangleID = layer.getFeature(layer.getFeatureCount()).getValue(indexVid).intValue();
-//                System.out.println("velocity maxID="+maxTriangleID);
-            }
+                    //Find indices for fast access
+                    if (name.equals("V_Max")) {
+                        indexVMax = i;
+                    } else if (name.equals("ID")) {
+                        indexVid = i;
+                    } else if (name.equals("V_X_0")) {
+                        indexVX0 = i;
+                    } else if (name.equals("V_X_1")) {
+                        indexVX1 = i;
+                    } else if (name.equals("V_Y_0")) {
+                        indexVY0 = i;
+                    }
 
-            if (this.numberOftriangles > 0 && this.numberOftriangles != numberOfFeatures) {
-                System.err.println("Number of Triangles in Waterlevels (" + this.numberOftriangles + ") is not equal to Number in Velocities (" + numberOfFeatures + ").");
-            } else {
-                this.numberOftriangles = numberOfFeatures;
+                    if (name.startsWith("V_X_")) {
+                        try {
+                            int number = Integer.parseInt(name.substring(4)) + 1;
+                            velocityTimeSteps = Math.max(velocityTimeSteps, number);
+                        } catch (NumberFormatException numberFormatException) {
+                            numberFormatException.printStackTrace();
+                        }
+                    }
+                    i++;
+                }
+                int numberOfFeatures = layer.getFeatureCount();
+                if (maxTriangleID <= 0) {
+                    maxTriangleID = layer.getFeature(layer.getFeatureCount()).getValue(indexVid).intValue();
+//                System.out.println("velocity maxID="+maxTriangleID);
+                }
+
+                if (this.numberOftriangles > 0 && this.numberOftriangles != numberOfFeatures) {
+                    System.err.println("Number of Triangles in Waterlevels (" + this.numberOftriangles + ") is not equal to Number in Velocities (" + numberOfFeatures + ").");
+                } else {
+                    this.numberOftriangles = numberOfFeatures;
+                }
+            } catch (Exception ex) {
+                if (ex.getLocalizedMessage().contains("Only support version 9 or 10")) {
+                    layerVelocityUnreadable = true;
+                }
             }
         }
 
@@ -304,6 +312,18 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
      */
     public boolean hasVelocities() {
         return layerVelocity != null;
+    }
+
+    /**
+     * Decoded, very large files cannot be read directly with this server.
+     * Instead, use the GdalIO class to extract and read the information.
+     *
+     * @return true if the velocities can be read in with this class, false if a
+     * prior extraction is necessary.
+     */
+    public boolean isLayerVelocityDirectlyReadable() {
+        //This is checked during the analyseDatabase step.
+        return !layerVelocityUnreadable;
     }
 
     /**
@@ -829,9 +849,9 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 }
                 System.out.println("done wl comparison");
                 System.out.println("calc velocities");
-                surf.calculateNeighbourVelocitiesFromWaterlevels();
+//                surf.calculateNeighbourVelocitiesFromWaterlevels();
                 start = System.currentTimeMillis();
-                surfCSV.calculateNeighbourVelocitiesFromWaterlevels();
+//                surfCSV.calculateNeighbourVelocitiesFromWaterlevels();
                 System.out.println("Calculating csv velocities took " + (System.currentTimeMillis() - start) + "ms.");
                 for (int i = 0; i < surf.getTriangleNodes().length; i++) {
                     for (int j = 0; j < 3; j++) {
@@ -1128,7 +1148,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
     }
 
     public static String getRequestbenchmarkString() {
-        return "HE GDB Benchmark: GDB Requests: " + sqlRequestCount + " with total " + sqlRequestTime/1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query) these can be parallel requests.";//\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime + "ms";
+        return "HE GDB Benchmark: GDB Requests: " + sqlRequestCount + " with total " + sqlRequestTime / 1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query) these can be parallel requests.";//\tWaiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime + "ms";
     }
 
 }

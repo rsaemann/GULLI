@@ -234,6 +234,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double lengthfactor = 1;
     private double temp_distance;
     private int bwindex = -1;
+    private int checkbwindex = -1;
     private int cellIDnew;
 
     private double dx, dy;
@@ -420,10 +421,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
                 // random walk step
                 if (decoupledDispersivity) {
-                    Dispersion2D_Dispersivity f=(Dispersion2D_Dispersivity) p.getMaterial().getDispersionCalculatorSurface();
-                    
-                    dx=Math.sqrt(2*particlevelocity[0]*f.getLongitudinalDispersivity()*dt)*z1+Math.sqrt(2*particlevelocity[1]*f.getTransversalDispersivity()*dt)*z2;
-                    dy=Math.sqrt(2*particlevelocity[0]*f.getTransversalDispersivity()*dt)*z1+Math.sqrt(2*particlevelocity[1]*f.getLongitudinalDispersivity()*dt)*z2;
+                    Dispersion2D_Dispersivity f = (Dispersion2D_Dispersivity) p.getMaterial().getDispersionCalculatorSurface();
+
+                    dx = Math.sqrt(2 * particlevelocity[0] * f.getLongitudinalDispersivity() * dt) * z1 + Math.sqrt(2 * particlevelocity[1] * f.getTransversalDispersivity() * dt) * z2;
+                    dy = Math.sqrt(2 * particlevelocity[0] * f.getTransversalDispersivity() * dt) * z1 + Math.sqrt(2 * particlevelocity[1] * f.getLongitudinalDispersivity() * dt) * z2;
                     posxneu = (posxalt + (particlevelocity[0] + dx / dt) * timeLeft);
                     posyneu = (posyalt + (particlevelocity[1] + dy / dt) * timeLeft);
                 } else {
@@ -937,29 +938,100 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
              */
             lengthfactor = 1;
             bwindex = -1;
+//            checkbwindex = -1;
 //            outOfTriangleCounter = 0;
-            st01 = GeometryTools.lineIntersectionST(st01, posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
-            st12 = GeometryTools.lineIntersectionST(st12, posxalt, posyalt, posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
-            st20 = GeometryTools.lineIntersectionST(st20, posxalt, posyalt, posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1]);
 
-            //if barycentric weight index 1 is negative, the partivle crossed edge opposite side 0-2 into neighbour no.1 and so on...
-            if (st12[0] >= 0 && st12[0] <= 1) {
-                //Search for intersection between travl path and first edge
-                lengthfactor = st12[0];
+            if (true) {
+                //New (more performant) version, where only one section is calculated.
+                /**
+                 * Only need to test those, where the barycentric weight is
+                 * lowest
+                 */
+                if (temp_barycentricWeights[0] < temp_barycentricWeights[1]) {
+                    if (temp_barycentricWeights[2] < temp_barycentricWeights[0]) {
+                        bwindex = 2;
+                    } else {
+                        bwindex = 0;
+                    }
+                } else {
+                    if (temp_barycentricWeights[2] < temp_barycentricWeights[1]) {
+                        bwindex = 2;
+                    } else {
+                        bwindex = 1;
+                    }
+                }
+                if (bwindex == 0) {
+                    lengthfactor= GeometryTools.lineIntersectionS( posxalt, posyalt, posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
+                    
+//                 double fraction0 = temp_barycentricWeights[2] / (temp_barycentricWeights[1] + temp_barycentricWeights[2]);
+//                System.out.println("Weightindex: "+bwindex+"   "+st12[0]+"/"+st12[1]+" <- "+fraction0+"   Weights:"+temp_barycentricWeights[0]+","+temp_barycentricWeights[1]+","+temp_barycentricWeights[2]);
+                } else if (bwindex == 1) {
+                    lengthfactor =GeometryTools.lineIntersectionS( posxalt, posyalt, posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1]);
+                    
+                } else {
+                    lengthfactor = GeometryTools.lineIntersectionS( posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
+                    
+                }
+            } else {
+                //Old (not so high performance version, wehere all sections were calculated
+                st01 = GeometryTools.lineIntersectionST(st01, posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
+                st12 = GeometryTools.lineIntersectionST(st12, posxalt, posyalt, posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
+                st20 = GeometryTools.lineIntersectionST(st20, posxalt, posyalt, posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1]);
                 bwindex = 0;
-            }
-            if (st20[0] >= 0 && st20[0] <= 1) {
-                if (lengthfactor > st20[0]) {
-                    bwindex = 1;
-                    lengthfactor = st20[0];
+                lengthfactor = 1;
+                //if barycentric weight index 1 is negative, the partivle crossed edge opposite side 0-2 into neighbour no.1 and so on...
+                if (st12[0] >= 0 && st12[0] <= 1) {
+                    //Search for intersection between travl path and first edge
+                    lengthfactor = st12[0];
+                    bwindex = 0;
+                }
+                if (st20[0] >= 0 && st20[0] <= 1) {
+                    if (lengthfactor > st20[0]) {
+                        bwindex = 1;
+                        lengthfactor = st20[0];
+                    }
+                }
+                if (st01[0] >= 0 && st01[0] <= 1) {
+                    if (lengthfactor > st01[0]) {
+                        lengthfactor = st01[0];
+                        bwindex = 2;
+                    }
                 }
             }
-            if (st01[0] >= 0 && st01[0] <= 1) {
-                if (lengthfactor > st01[0]) {
-                    lengthfactor = st01[0];
-                    bwindex = 2;
-                }
+//            if (bwindex != checkbwindex) {
+//                System.out.println(p.getId() + "  calc: " + bwindex + "  smallest: " + checkbwindex + "\t Weights:" + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+////           
+//                bwindex = checkbwindex;
+//                if (bwindex == 0) {
+//                    st12 = GeometryTools.lineIntersectionST(st12, posxalt, posyalt, posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
+//                    lengthfactor = st12[0];
+//                    double fraction0 = temp_barycentricWeights[2] / (temp_barycentricWeights[1] + temp_barycentricWeights[2]);
+//                    System.out.println("Weightindex: " + bwindex + "   " + st12[0] + "/" + st12[1] + " <- " + fraction0 + "   Weights:" + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+//                } else if (bwindex == 1) {
+//                    st20 = GeometryTools.lineIntersectionST(st20, posxalt, posyalt, posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1]);
+//                    lengthfactor = st20[0];
+//                } else {
+//                    st01 = GeometryTools.lineIntersectionST(st01, posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
+//                    lengthfactor = st01[0];
+//                }
+//
+//            }
+            if (lengthfactor < 1 && bwindex < 0) {
+                System.out.println("lengthfactor: " + lengthfactor + " bwindex:" + bwindex + "   Weights:" + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+
             }
+
+            //Test if the barycnetric weight are enough to calculate the position
+//            double fraction0 = temp_barycentricWeights[2] / (temp_barycentricWeights[1] + temp_barycentricWeights[2]);
+//            double fraction1 = temp_barycentricWeights[0] / (temp_barycentricWeights[0] + temp_barycentricWeights[2]);
+//            double fraction2 = temp_barycentricWeights[1] / (temp_barycentricWeights[1] + temp_barycentricWeights[0]);
+//            if (bwindex == 0) {
+//                System.out.println("BW Index 0: edgefactor: " + st12[1] + "   weights: " + fraction0 + " / " + fraction1 + " / " + fraction2 + " \tDiff: " + (fraction0 - st12[1]));
+//            } else if (bwindex == 1) {
+//                System.out.println("BW Index 1: edgefactor: " + st20[1] + "   weights: " + fraction0 + " / " + fraction1 + " / " + fraction2 + " \tDiff: " + (fraction1 - st20[1]));
+//            } else /*if (bwindex == 2)*/ {
+//                System.out.println("BW Index 2: edgefactor: " + st01[1] + "   weights: " + fraction0 + " / " + fraction1 + " / " + fraction2 + " \tDiff: " + (fraction2 - st01[1]));
+//            }
             if (lengthfactor >= 1) {
                 //No intersection. Particle can stay inside this cell.
                 //But Barycentric weighting said, it is outside the cell.
@@ -974,6 +1046,10 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 break;
             } else {
                 //The new cell can be easily found by checking the edgeindex, where the particle has left the cell.
+                if (cellID < 0 || bwindex < 0) {
+                    System.out.println("Cell" + cellID + "  lengthfactor: " + lengthfactor + " bwindex:" + bwindex + "   Weights:" + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
+                }
+
                 cellIDnew = surface.getNeighbours()[cellID][bwindex];//This only is correct, if the neighbours are constructed in the same order as the edges are defined. Otherwise comment in the section above.
 
 //                      status=2;
@@ -1003,8 +1079,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                             posxneu = posxalt + particlevelocity[0] * timeLeft;
                             posyneu = posyalt + particlevelocity[1] * timeLeft;
                             if (loopcounter > 5) {
-                                posxalt = posxneu * 0.0 + surface.getTriangleMids()[cellID][0] * 1.0;
-                                posyalt = posyneu * 0.0 + surface.getTriangleMids()[cellID][1] * 1.0;
+                                posxalt = /*posxneu * 0.0 +*/ surface.getTriangleMids()[cellID][0] * 1.0;
+                                posyalt = /*posyneu * 0.0 +*/ surface.getTriangleMids()[cellID][1] * 1.0;
                             }
                             lengthfactor = 1;
                             //This can be handled in the next loop

@@ -1115,6 +1115,27 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             this.panelShapes.add(panelVideo);
         }
 
+        Action action = control.getLoadingCoordinator().action;
+        if (action != null) {
+            while (action.parent != null) {
+                action = action.parent;
+            }
+            final Action ac = action;
+            ac.listener = new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    if (ac.hasProgress == progressLoading.isIndeterminate()) {
+                        progressLoading.setIndeterminate(!ac.hasProgress);
+                    }
+                    if (ac.hasProgress) {
+                        progressLoading.setValue((int) (ac.getActiveProgress() * 100));
+                    }
+                    labelCurrentAction.setText(e.getActionCommand());
+                }
+            };
+        }
+
 //        JPanel panelstretch = new JPanel(new BorderLayout());
 //        this.add(panelstretch);
         startGUIUpdateThread();
@@ -1160,13 +1181,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             });
             final JButton buttonDelete = new JButton();
             buttonDelete.setToolTipText("Remove this shape layer");
-            if(iconError!=null){
+            if (iconError != null) {
                 buttonDelete.setIcon(iconError);
-                buttonDelete.setPreferredSize(new Dimension(25,25));
-            }else{
+                buttonDelete.setPreferredSize(new Dimension(25, 25));
+            } else {
                 buttonDelete.setText("X");
             }
-            if(combo.getSelectedItem().equals(PaintManager.SURFACESHOW.NONE)){
+            if (combo.getSelectedItem().equals(PaintManager.SURFACESHOW.NONE)) {
                 buttonDelete.setEnabled(false);
             }
             buttonDelete.addActionListener(new ActionListener() {
@@ -1178,9 +1199,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     updatePanelShapes();
                 }
             });
-            
+
             panelRow.add(combo, BorderLayout.CENTER);
-            panelRow.add(buttonDelete,BorderLayout.WEST);
+            panelRow.add(buttonDelete, BorderLayout.WEST);
             panelShapesSurface.add(panelRow);
         }
         panelShapesSurface.add(checkTrianglesNodes);
@@ -1222,10 +1243,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     if (file.getName().endsWith("idbf") || file.getName().endsWith("idbr") || file.getName().endsWith("idbm")) {
                         try {
                             control.getLoadingCoordinator().requestDependentFiles(file, true, true);
+
                         } catch (SQLException ex) {
-                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(SingleControllPanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
+
                         } catch (IOException ex) {
-                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(SingleControllPanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
                         }
 
                     } else {
@@ -1302,8 +1327,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 if (button == buttonFileSurface) {
                     try {
                         control.getLoadingCoordinator().setSurfaceTopologyDirectory(null);
+
                     } catch (FileNotFoundException ex) {
-                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(SingleControllPanel.class
+                                .getName()).log(Level.SEVERE, null, ex);
                     }
                     control.loadSurface(null, SingleControllPanel.this);
                 } else if (button == buttonFileWaterdepths) {
@@ -1311,7 +1338,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         control.getLoadingCoordinator().setSurfaceFlowfieldFile(null);
 
                     } catch (Exception ex) {
-                        Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(SingleControllPanel.class
+                                .getName()).log(Level.SEVERE, null, ex);
                     }
 
                 } else {
@@ -1476,7 +1504,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             timelinePanel.getCollection().addSeries(ts);
 
                         } catch (Exception ex) {
-                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(SingleControllPanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
                         }
                     }
                 } else if (control.getLoadingCoordinator().getFiletype() == LoadingCoordinator.FILETYPE.SWMM_5_1) {
@@ -1485,8 +1514,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         try {
                             frame.setTitle("Cannot read Raingauge from " + file.getName());
                             timelinePanel.collection.removeAllSeries();
+
                         } catch (Exception ex) {
-                            Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                            Logger.getLogger(SingleControllPanel.class
+                                    .getName()).log(Level.SEVERE, null, ex);
                         }
                     }
                 }
@@ -1673,16 +1704,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         if (lc.isLoading()) {
 
             progressLoading.setVisible(true);
-            if (currentAction != null) {
-                labelCurrentAction.setText(currentAction.toString());
-                progressLoading.setIndeterminate(!currentAction.hasProgress);
-                if (currentAction.hasProgress) {
-                    progressLoading.setValue((int) (currentAction.progress * 100));
-                }
-            } else {
-                labelCurrentAction.setText("No Action. Still Loading.");
-                progressLoading.setIndeterminate(true);
-            }
+//            if (currentAction != null) {
+//                labelCurrentAction.setText(currentAction.toString());
+//                progressLoading.setIndeterminate(!currentAction.hasProgress);
+//                if (currentAction.hasProgress) {
+//                    progressLoading.setValue((int) (currentAction.progress * 100));
+//                }
+//            } else {
+//                labelCurrentAction.setText("No Action. Still Loading.");
+//                progressLoading.setIndeterminate(true);
+//            }
             if (!panelLoadingStatusStop.isShowing()) {
                 panelLoadingStatus.removeAll();
                 panelLoadingStatus.add(panelLoadingStatusStop);
@@ -1699,10 +1730,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //            }
         } else {
             //Reset the layout to non-working style
-            progressLoading.setIndeterminate(false);
-            progressLoading.setValue(0);
-            progressLoading.setStringPainted(false);
-            labelCurrentAction.setText("");
+//            progressLoading.setIndeterminate(false);
+//            progressLoading.setValue(0);
+//            progressLoading.setStringPainted(false);
+//            labelCurrentAction.setText("");
             progressLoading.setVisible(false);
             if (!panelLoadingStatusStart.isShowing()) {
                 panelLoadingStatus.removeAll();
@@ -2007,9 +2038,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             try {
                                 synchronized (lockSimulationThread) {
                                     lockSimulationThread.wait();
+
                                 }
                             } catch (InterruptedException ex) {
-                                Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
+                                Logger.getLogger(SingleControllPanel.class
+                                        .getName()).log(Level.SEVERE, null, ex);
                             }
                         }
                         try {

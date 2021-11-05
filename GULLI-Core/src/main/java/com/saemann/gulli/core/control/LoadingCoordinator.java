@@ -111,8 +111,8 @@ public class LoadingCoordinator {
     }
 
     private File fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT,
-            fileSurfaceReferenceSystem, fileSurfaceManholes, fileSurfaceInlets,
-            fileSufaceNode2Triangle, fileTriangleMooreNeighbours;
+            fileSurfaceReferenceSystem, fileSurfaceManholes, fileSurfaceInlets;
+//            fileSufaceNode2Triangle, fileTriangleMooreNeighbours;
     private File fileSurfaceWaterlevels;
     private LOADINGSTATUS loadingSurface = LOADINGSTATUS.NOT_REQUESTED;
     private LOADINGSTATUS loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
@@ -608,6 +608,7 @@ public class LoadingCoordinator {
                             resultDatabase = new HE_Database(fileMainPipeResult, true);
                         }
                     }
+                    resultDatabase.loadingAction=this.action;
                     ArrayList<HEInjectionInformation> he_injection = null;
                     resultName = resultDatabase.readResultname();
                     scenarioName = resultName;
@@ -867,33 +868,34 @@ public class LoadingCoordinator {
                 }
                 System.gc();
             }
+            HE_SurfaceIO.loadingAction=action;
             Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
             crsSurface = surf.getSpatialReferenceCode();
 
             start = System.currentTimeMillis();
             //load neighbour definitions
-            if (false) {
-                if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
-                    surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
-                } else {
-                    //Need to create this reference file
-                    action.description = "Create Node-Triangle reference File NODE2TRIANGLE.dat";
-                    fireLoadingActionUpdate();
-                    File outNodeTriangles = new File(fileSurfaceCoordsDAT.getParent(), "NODE2TRIANGLE.dat");
-                    if (!outNodeTriangles.exists()) {
-                        ArrayList<Integer>[] n2t = null;
-                        try {
-                            n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
-                        } catch (Error e) {
-                            e.printStackTrace();
-                            n2t = new ArrayList[0];
-                        }
-                        HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
-                        fileSufaceNode2Triangle = outNodeTriangles;
-                        surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
-                    }
-                }
-            }
+//            if (false) {
+//                if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
+////                    surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
+//                } else {
+//                    //Need to create this reference file
+//                    action.description = "Create Node-Triangle reference File NODE2TRIANGLE.dat";
+//                    fireLoadingActionUpdate();
+//                    File outNodeTriangles = new File(fileSurfaceCoordsDAT.getParent(), "NODE2TRIANGLE.dat");
+//                    if (!outNodeTriangles.exists()) {
+//                        ArrayList<Integer>[] n2t = null;
+//                        try {
+//                            n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
+//                        } catch (Error e) {
+//                            e.printStackTrace();
+//                            n2t = new ArrayList[0];
+//                        }
+//                        HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
+//                        fileSufaceNode2Triangle = outNodeTriangles;
+////                        surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
+//                    }
+//                }
+//            }
 //            start = System.currentTimeMillis();
 //            if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
 //                surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
@@ -972,13 +974,15 @@ public class LoadingCoordinator {
                 } else if (lowername.endsWith("gdb")) {
                     action.description = "Reading GDB surface";
                     fireLoadingActionUpdate();
-                    try {
-                        HE_GDB_IO gdb = new HE_GDB_IO(fileSurfaceWaterlevels);
-                        velocityLoader = gdb;
-                        waterlevelLoader = gdb;
-                        System.out.println("GDB is: " + gdb + "  " + gdb.getLayerVelocity() + "  isresult? " + gdb.isResultDB() + " has velocities? " + gdb.hasVelocities());
-                        if (gdb.isResultDB()) {
-                            if (gdb.hasVelocities()) {
+//                    try {
+                    HE_GDB_IO gdb = new HE_GDB_IO(fileSurfaceWaterlevels);
+                    
+                    velocityLoader = gdb;
+                    waterlevelLoader = gdb;
+                    //System.out.println("GDB is: " + gdb + "  " + gdb.getLayerVelocity() + "  isresult? " + gdb.isResultDB() + " has velocities? " + gdb.hasVelocities());
+                    if (gdb.isResultDB()) {
+                        if (gdb.hasVelocities()) {
+                            if (gdb.isLayerVelocityDirectlyReadable()) {
                                 if (gdb.getNumberOfVelocityTimeSteps() < 0) {
                                     //This seems to be a database with unreadable velocity table (too big or decoded)
                                     //We need to extract the data using GDAL and read the CSV instead.
@@ -999,86 +1003,93 @@ public class LoadingCoordinator {
                                         System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
                                     }
                                 }
-
                             } else {
-                                if (gdb.hasWaterlevels()) {
-                                    long start = System.currentTimeMillis();
-                                    action.description = "Reading GDB surface waterlevels";
-                                    System.err.println("Surface GDB does only provide waterlevels but no velocities.");
-                                    if (sparseSurfaceLoading) {
-                                        int numberTriangles = surface.getTriangleMids().length;
-                                        int times = gdb.getNumberOfWaterlevelTimeSteps();
-                                        surface.waterlevelLoader = gdb;
-                                        surface.initVelocityArrayForSparseLoading(numberTriangles, times);
+                                //File is not directly readable. Requires a transformation to CSV via the GDAL library
+                                System.out.println("Problem with GDB detected.");
+                                File velocityFile = GdalIO.getCSVFileVelocity(fileSurfaceWaterlevels);
+                                System.out.println("  Read surface velocities from CSV " + velocityFile);
+                                if (velocityFile == null || velocityFile.length() < 100) {
+                                    //Need to create file
+                                    boolean installed = GdalIO.testGDALInstallation(true);
+                                    if (!installed) {
+                                        action.description = "GDAL not installed";
                                     } else {
-                                        gdb.applyWaterlevelsToSurface(surface);
-                                        surface.waterlevelLoader = gdb;
-                                        if (verbose) {
-                                            System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
-                                        }
+                                        action.description = "Decode GDB to CSV...";
+                                        fireLoadingActionUpdate();
+                                        action.hasProgress = false;
+                                        velocityFile = GdalIO.exportVelocites(fileSurfaceWaterlevels, surface, false);
+                                        action.description = "CSV velocities complete";
                                     }
-                                } else {
-                                    loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
-                                    action.description = "GDB has no water levels";
-                                    System.err.println(action.description);
                                 }
-                            }
-                            if (cancelLoading) {
-                                System.out.println("   LoadingThread is interrupted -> break");
-                                loadingSurfaceVelocity = LOADINGSTATUS.REQUESTED;
-                                return false;
-                            }
-                            if (loadGDBVelocity && gdb.hasVelocities() && !sparseSurfaceLoading) {
-                                long start = System.currentTimeMillis();
-                                action.description = "Reading GDB surface velocities";
-                                fireLoadingActionUpdate();
-                                gdb.applyVelocitiesToSurface(surface);
-                                gdb.close();
-                                if (verbose) {
-                                    System.out.println("Loading GDB Velocities took " + ((System.currentTimeMillis() - start) / 100) + " s.");
-                                }
-                            }
-                        } else {
-                            loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
-                            action.description = "GDB has not a result database.";
-                            System.err.println(action.description);
-                        }
-                    } catch (GeoDBException ioe) {
-                        System.out.println("Error while loading GDB velocity:" + ioe.getLocalizedMessage());
-                        if (ioe.getMessage().contains("version 9 or 10")) {
-                            //Malformed GDB file cannot be read wit the rGDB driver.
-                            //Need to fallback to CSV values.
-                            System.out.println("Problem with GDB detected.");
-                            File velocityFile = GdalIO.getCSVFileVelocity(fileSurfaceWaterlevels);
-                            System.out.println("  Read surface velocities from CSV " + velocityFile);
-                            if (velocityFile == null || velocityFile.length() < 100) {
-                                //Need to create file
-                                boolean installed = GdalIO.testGDALInstallation(true);
-                                if (!installed) {
-                                    action.description = "GDAL not installed";
-                                } else {
-                                    action.description = "Decode GDB to CSV...";
+                                if (velocityFile != null) {
+                                    System.out.println("Surface velocity reading in...");
+                                    loadingSurfaceVelocity = LOADINGSTATUS.LOADING;
+                                    action.description = "Load velocities from file...";
+                                    fireLoadingActionUpdate();
+                                    CSV_IO.readCellVelocities(surface, velocityFile, action);
+                                    action.description = "Loading velocities complete";
+                                    loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
+                                    surfaceVelocitiescompletelyLoaded = true;
                                     fireLoadingActionUpdate();
                                     action.hasProgress = false;
-                                    velocityFile = GdalIO.exportVelocites(fileSurfaceWaterlevels, surface, false);
-                                    action.description = "CSV velocities complete";
+                                } else {
+                                    System.out.println("Surface velocity file not found.");
                                 }
-                            }
-                            if (velocityFile != null) {
-                                System.out.println("Surface velocity reading in...");
-                                loadingSurfaceVelocity = LOADINGSTATUS.LOADING;
-                                action.description = "Load velocities from file...";
                                 fireLoadingActionUpdate();
-                                CSV_IO.readCellVelocities(surface, velocityFile);
-                                action.description = "Loading velocities complete";
-                                loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
-                                surfaceVelocitiescompletelyLoaded = true;
-                            } else {
-                                System.out.println("Surface velocity file not found.");
                             }
-                            fireLoadingActionUpdate();
+
+                        } else {
+                            if (gdb.hasWaterlevels()) {
+                                long start = System.currentTimeMillis();
+                                action.description = "Reading GDB surface waterlevels";
+                                System.err.println("Surface GDB does only provide waterlevels but no velocities.");
+                                if (sparseSurfaceLoading) {
+                                    int numberTriangles = surface.getTriangleMids().length;
+                                    int times = gdb.getNumberOfWaterlevelTimeSteps();
+                                    surface.waterlevelLoader = gdb;
+                                    surface.initVelocityArrayForSparseLoading(numberTriangles, times);
+                                } else {
+                                    gdb.applyWaterlevelsToSurface(surface);
+                                    surface.waterlevelLoader = gdb;
+                                    if (verbose) {
+                                        System.out.println("Loading GDB Waterlevels took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                                    }
+                                }
+                            } else {
+                                loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
+                                action.description = "GDB has no water levels";
+                                System.err.println(action.description);
+                            }
                         }
+                        if (cancelLoading) {
+                            System.out.println("   LoadingThread is interrupted -> break");
+                            loadingSurfaceVelocity = LOADINGSTATUS.REQUESTED;
+                            return false;
+                        }
+                        if (loadGDBVelocity && gdb.hasVelocities() && !sparseSurfaceLoading) {
+                            long start = System.currentTimeMillis();
+                            action.description = "Reading GDB surface velocities";
+                            fireLoadingActionUpdate();
+                            gdb.applyVelocitiesToSurface(surface);
+                            gdb.close();
+                            if (verbose) {
+                                System.out.println("Loading GDB Velocities took " + ((System.currentTimeMillis() - start) / 100) + " s.");
+                            }
+                        }
+                    } else {
+                        loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
+                        action.description = "GDB has not a result database.";
+                        System.err.println(action.description);
                     }
+//                    }
+//                    catch (GeoDBException ioe) {
+//                        System.out.println("Error while loading GDB velocity:" + ioe.getLocalizedMessage());
+//                        if (ioe.getMessage().contains("version 9 or 10")) {
+//                            //Malformed GDB file cannot be read wit the rGDB driver.
+//                            //Need to fallback to CSV values.
+//                            
+//                        }
+//                    }
                 } else {
 
                     loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
@@ -1102,8 +1113,8 @@ public class LoadingCoordinator {
                 }
                 if (!sparseSurfaceLoading) {
                     try {
-                        surface.calculateNeighbourVelocitiesFromWaterlevels();
-                        surface.calculateVelocities2d();
+//                        surface.calculateNeighbourVelocitiesFromWaterlevels();
+//                        surface.calculateVelocities2d();
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -1113,9 +1124,9 @@ public class LoadingCoordinator {
                     surface.waterlevelLoader = waterlevelLoader;
                     if (!surfaceVelocitiescompletelyLoaded) {
                         if (isLoadGDBVelocity()) {
-                            surface.initSparseTriangleVelocityLoading(velocityLoader, true, true);
+                            surface.initSparseTriangleVelocityLoading(velocityLoader, true, false);
                         } else {
-                            surface.initSparseTriangleVelocityLoading(null, true, true);
+                            surface.initSparseTriangleVelocityLoading(null, true, false);
                         }
                     }
                 }
@@ -1275,7 +1286,7 @@ public class LoadingCoordinator {
                     //surface has already loaded triangle velocity
                     // calculate neighbour velocity from triangle velocity
 
-                    surface.calcNeighbourVelocityFromTriangleVelocity();
+                    //surface.calcNeighbourVelocityFromTriangleVelocity();
                 }
             } else {
                 //requested laoding of neighbour velocities from Waterlevels
@@ -1397,8 +1408,8 @@ public class LoadingCoordinator {
             this.fileSurfaceReferenceSystem = null;
             this.fileSurfaceInlets = null;
             this.fileSurfaceManholes = null;
-            this.fileSufaceNode2Triangle = null;
-            this.fileTriangleMooreNeighbours = null;
+//            this.fileSufaceNode2Triangle = null;
+//            this.fileTriangleMooreNeighbours = null;
             return;
         }
 
@@ -1429,23 +1440,23 @@ public class LoadingCoordinator {
         }
 
         // Files for calculating velocities on 2D surface ******
-        File fileNode2Triangle = new File(surfaceTopologyDirectory, "NODE2TRIANGLE.dat");
-        if (!fileNode2Triangle.exists()) {
-            System.err.println("File for Nodes' triangles could not be found: " + fileNode2Triangle.getAbsolutePath());
-            this.fileSufaceNode2Triangle = null;
-        } else {
-            this.fileSufaceNode2Triangle = fileNode2Triangle;
-        }
+//        File fileNode2Triangle = new File(surfaceTopologyDirectory, "NODE2TRIANGLE.dat");
+//        if (!fileNode2Triangle.exists()) {
+//            System.err.println("File for Nodes' triangles could not be found: " + fileNode2Triangle.getAbsolutePath());
+//            this.fileSufaceNode2Triangle = null;
+//        } else {
+//            this.fileSufaceNode2Triangle = fileNode2Triangle;
+//        }
 
-        File mooreFile = new File(surfaceTopologyDirectory, "MOORE.dat");
-        if (!mooreFile.exists()) {
-            if (verbose) {
-                System.err.println("File for triangles' neumann neighbours could not be found: " + mooreFile.getAbsolutePath());
-            }
-            this.fileTriangleMooreNeighbours = null;
-        } else {
-            this.fileTriangleMooreNeighbours = mooreFile;
-        }
+//        File mooreFile = new File(surfaceTopologyDirectory, "MOORE.dat");
+//        if (!mooreFile.exists()) {
+//            if (verbose) {
+//                System.err.println("File for triangles' neumann neighbours could not be found: " + mooreFile.getAbsolutePath());
+//            }
+//            this.fileTriangleMooreNeighbours = null;
+//        } else {
+//            this.fileTriangleMooreNeighbours = mooreFile;
+//        }
 
         //Files for merging Surface and Pipenetwork out-/inlets ******
         File fileStreetInlets = new File(surfaceTopologyDirectory, "SURF-SEWER_NODES.dat");
@@ -1652,6 +1663,7 @@ public class LoadingCoordinator {
     }
 
     private void fireLoadingActionUpdate() {
+        action.updateProgress();
         for (LoadingActionListener ll : listener) {
             ll.actionFired(action, this);
         }

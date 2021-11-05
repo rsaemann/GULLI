@@ -54,6 +54,12 @@ public class NumberConverter {
         this.reader = in;
     }
 
+    /**
+     * 
+     * @param toFill
+     * @return true if the line contained any values, false if it was empty
+     * @throws IOException 
+     */
     public boolean readNextLineDoubles(double[] toFill) throws IOException {
 
         lastWasSplitter = true;
@@ -100,17 +106,18 @@ public class NumberConverter {
                 }
             }
         }
-        if (index == 0) {
-            for (int i = 0; i < toFill.length; i++) {
-                toFill[i] = 0;
-            }
-            return false;
-        }
+//        if (index == 0) {
+//            for (int i = 0; i < toFill.length; i++) {
+//                toFill[i] = 0;
+//            }
+//            return false;
+//        }
         //fill all the non read values with zero
         for (int i = index; i < toFill.length; i++) {
             toFill[i] = 0;
         }
-        return true;
+        //only return true, if there were numbers to read
+        return index>0;
     }
     
     public boolean readNextLineFloats(float[] toFill) throws IOException {
@@ -159,17 +166,18 @@ public class NumberConverter {
                 }
             }
         }
-        if (index == 0) {
-            for (int i = 0; i < toFill.length; i++) {
-                toFill[i] = 0;
-            }
-            return false;
-        }
+//        if (index == 0) {
+//            for (int i = 0; i < toFill.length; i++) {
+//                toFill[i] = 0;
+//            }
+//            return false;
+//        }
         //fill all the non read values with zero
         for (int i = index; i < toFill.length; i++) {
             toFill[i] = 0;
         }
-        return true;
+        //Return true, if there were numbers to read.
+        return index>0;
     }
 
     public boolean readNextLineInteger(int[] toFill) throws IOException {
@@ -462,7 +470,7 @@ public class NumberConverter {
 
         long sum = 0;
         long index = 1;
-        long digitindex = 0;
+        double digitindex = 0;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
@@ -483,7 +491,7 @@ public class NumberConverter {
             //is an integer without .
             return sum;
         }
-        double result = sum / (double) digitindex;
+        double result = sum / digitindex;
 //        System.out.println("number=" + result);
         return result;
 
@@ -493,7 +501,7 @@ public class NumberConverter {
 
         long sum = 0;
         long index = 1;
-        long digitindex = 0;
+        double digitindex = 0;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
@@ -514,7 +522,7 @@ public class NumberConverter {
             //is an integer without .
             return sum;
         }
-        float result = sum / (float) digitindex;
+        float result =(float)(sum /  digitindex);
 //        System.out.println("number=" + result);
         return result;
 

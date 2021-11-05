@@ -1,5 +1,6 @@
 package com.saemann.gulli.core.io.extran;
 
+import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.io.NumberConverter;
 import java.io.BufferedReader;
@@ -414,10 +415,12 @@ public class CSV_IO {
      * @param surf
      * @param csvFile
      */
-    public static void readCellVelocities(Surface surf, File csvFile) throws FileNotFoundException, IOException, Exception {
+    public static void readCellVelocities(Surface surf, File csvFile, Action action) throws FileNotFoundException, IOException, Exception {
         surf.loadingWaterlevels = true;
-        try ( //Read header to detect timesteps
-                FileReader fr = new FileReader(csvFile); BufferedReader br = new BufferedReader(fr)) {
+        if (action == null) {
+            action = new Action("Load velocities from CSV", null, true);
+        }//Read header to detect timesteps
+        try (FileReader fr = new FileReader(csvFile); BufferedReader br = new BufferedReader(fr)) {
             String line = "";
             float[][][] velocities = null;
             float[] maxVelocity = null;
@@ -483,11 +486,12 @@ public class CSV_IO {
             nc.setSplitter(';');
             float[] toFill = new float[numberOfTimes * 2];
             int id = 0;
+            int counter=0;
             while (br.ready()) {
                 linenumber++;
                 try {
                     id = nc.readNextInteger();
-                    if(id<0){
+                    if (id < 0) {
                         //Error or last element detected.
                         break;
                     }
@@ -500,7 +504,7 @@ public class CSV_IO {
                     }
                     maxVelocity[id] = (float) nc.readNextDouble();//Float.parseFloat(split[vmaxIndex]);
                     velocities[id] = new float[numberOfTimes][2]; //Only create this array at positions where it is necessary.
-
+                    counter++;
                     nc.readNextLineFloats(toFill);
                     for (int i = 0; i < numberOfTimes; i++) {
                         velocities[id][i][0] = toFill[i * 2];
@@ -508,10 +512,12 @@ public class CSV_IO {
                     }
                     if (linenumber % 50000 == 1) {
                         System.out.println("   " + (int) ((id * 100) / velocities.length) + " %");
+                        action.progress=((id) / (float)velocities.length);
+                        action.updateProgress();
                         if (Thread.currentThread().isInterrupted()) {
                             System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
                             surf.loadingWaterlevels = false;
-                            return;
+                            break;
                         }
                     }
                 } catch (Exception ex) {
@@ -520,40 +526,8 @@ public class CSV_IO {
                     break;
                 }
             }
-//            while (br.ready()) {
-//                line = br.readLine();
-//                linenumber++;
-//                split = line.split(splitchar);
-//                int id = Integer.parseInt(split[0].replaceAll("\"", ""));
-//                if (filteredSurface) {
-//                    if (!surf.mapIndizes.containsKey(id)) {
-//                        //This triangle is not part of the Surface. 
-//                        continue;
-//                    }
-//                    id = surf.mapIndizes.get(id); //Map triangle to surface's triangle id.
-//                }
-//                maxVelocity[id] = Float.parseFloat(split[vmaxIndex]);
-//                velocities[id] = new float[numberOfTimes][2]; //Only create this array at positions where it is necessary.
-//                for (int i = 0; i < numberOfTimes; i++) {
-//                    try {
-//                        index=i * 2 + v0index;
-//                        if(split.length>index){
-//                        velocities[id][i][0] = Float.parseFloat(split[index]);
-//                        velocities[id][i][1] = Float.parseFloat(split[index + 1]);
-//                        }else{
-//                            //Only empty values.
-//                            //This cell is completed.
-//                            break;
-//                        }
-//                    } catch (ArrayIndexOutOfBoundsException ae) {
-//                        System.err.println("Ask for index "+(i * 2 + v0index)+" and "+(i * 2 + v0index + 1)+" where there are only "+split.length+" elements.");
-//                        throw ae;
-//                    }
-//                }
-//                if (linenumber % 50000 == 1) {
-//                    System.out.println("   " + (int) ((id * 100) / velocities.length) + " %");
-//                }
-//            }
+            action.progress=1;
+            action.updateProgress();
             if (Thread.currentThread().isInterrupted()) {
                 System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
                 surf.loadingWaterlevels = false;
@@ -561,9 +535,8 @@ public class CSV_IO {
             }
             surf.setTriangleMaxVelocity(maxVelocity);
             surf.setTriangleVelocity(velocities);
-
+            System.out.println("Loading velocities and adding to surface completed for "+counter+" cells.");
             surf.loadingWaterlevels = false;
         }
     }
-
 }
