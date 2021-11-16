@@ -27,7 +27,6 @@ import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.control.maths.RandomGenerator;
 import com.saemann.gulli.core.control.threads.ThreadController;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Dispersivity;
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Fischer;
 import com.saemann.gulli.core.model.particle.HistoryParticle;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -196,7 +195,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
     private double[] particlevelocity = new double[2];
     private final double[] temp_barycentricWeights = new double[3];
     private final double[] temp_barycentricWeightsOld = new double[3];
-    private final double[][] tempVertices = new double[3][3];
+//    private final double[][] tempVertices = new double[3][3];
     private double[] tempDiff = new double[2];
     private double[] tempProjection = new double[2];
     private float[] tempVelocity = new float[2];
@@ -1393,7 +1392,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     }
                 }
             }
-            p.addMovingLength(temp_distance);
+            p.addMovingLength(Math.abs(posxneu-posxalt)+Math.abs(posyneu-posyalt));
             posxalt = posxneu;
             posyalt = posyneu;
             oldCellID2 = oldCellID1;

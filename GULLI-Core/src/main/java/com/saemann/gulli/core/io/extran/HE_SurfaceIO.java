@@ -4,7 +4,6 @@ import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.io.NumberConverter;
-import static com.saemann.gulli.core.io.NumberConverter.parseIntegerFromToInclude;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -378,7 +377,7 @@ public class HE_SurfaceIO {
         if (loadingAction != null) {
             loadingAction.progress = 0.f;
             loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: "+numberofVertices+" Vertices...";
+            loadingAction.description = "Surface: " + numberofVertices + " Vertices...";
             loadingAction.updateProgress();
         }
 
@@ -395,8 +394,8 @@ public class HE_SurfaceIO {
                 vertices[index][1] = dataparts[1];
                 vertices[index][2] = dataparts[2];
                 index++;
-                if(index%300==0&&loadingAction!=null){
-                    loadingAction.progress=index/(float)numberofVertices;
+                if (index % 300 == 0 && loadingAction != null) {
+                    loadingAction.progress = index / (float) numberofVertices;
                     loadingAction.updateProgress();
                 }
             }
@@ -419,9 +418,6 @@ public class HE_SurfaceIO {
 
         //fileTriangleIndizes  //TRIMOD2.dat
 //        start = System.currentTimeMillis();
-
-  
-
         fr = new FileReader(fileTriangleIndizes);
         br = new BufferedReader(fr);
         line = br.readLine();
@@ -433,14 +429,14 @@ public class HE_SurfaceIO {
         nc.setReader(br);
         int[] integerParts = new int[3];
         int first, second, third;
-        
+
         if (loadingAction != null) {
             loadingAction.progress = 0.f;
             loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: "+numberofTriangles+" Triangles...";
+            loadingAction.description = "Surface: " + numberofTriangles + " Triangles...";
             loadingAction.updateProgress();
         }
-        
+
         while (br.ready()) {
 //            line = br.readLine();
 //            lines++;
@@ -463,9 +459,9 @@ public class HE_SurfaceIO {
                 triangleMidPoints[index][2] = (vertices[first][2] * oneThird + vertices[second][2] * oneThird + vertices[third][2] * oneThird);
 
                 index++;
-                
-                if(index%300==0&&loadingAction!=null){
-                    loadingAction.progress=index/(float)numberofTriangles;
+
+                if (index % 300 == 0 && loadingAction != null) {
+                    loadingAction.progress = index / (float) numberofTriangles;
                     loadingAction.updateProgress();
                 }
             }
@@ -474,12 +470,11 @@ public class HE_SurfaceIO {
         fr.close();
 //        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
 
-
         //fileNeighbours
-                if (loadingAction != null) {
+        if (loadingAction != null) {
             loadingAction.progress = 0.f;
             loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: "+numberofTriangles+" Neighbours...";
+            loadingAction.description = "Surface: " + numberofTriangles + " Neighbours...";
             loadingAction.updateProgress();
         }
 //        start = System.currentTimeMillis();
@@ -522,10 +517,10 @@ public class HE_SurfaceIO {
                         }
                     }
                     index++;
-                    if(index%300==0&&loadingAction!=null){
-                    loadingAction.progress=index/(float)numberofTriangles;
-                    loadingAction.updateProgress();
-                }
+                    if (index % 300 == 0 && loadingAction != null) {
+                        loadingAction.progress = index / (float) numberofTriangles;
+                        loadingAction.updateProgress();
+                    }
                 }
             }
         } catch (Exception ex) {
@@ -537,8 +532,8 @@ public class HE_SurfaceIO {
 //        System.out.println("HE_SurfaceIO.loadSurface parsed " + lines + " into " + parts + " split parts.");
 //        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
 //        start = System.currentTimeMillis();
-if (loadingAction != null) {
-            loadingAction.progress =1f;
+        if (loadingAction != null) {
+            loadingAction.progress = 1f;
             loadingAction.hasProgress = false;
             loadingAction.description = "Finishing Surface Topography...";
             loadingAction.updateProgress();
@@ -546,8 +541,8 @@ if (loadingAction != null) {
         Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
         surf.setTriangleMids(triangleMidPoints);
         surf.fileTriangles = fileCoordinates.getParentFile();
-         if (loadingAction != null) {
-            loadingAction.progress =1f;
+        if (loadingAction != null) {
+            loadingAction.progress = 1f;
             loadingAction.hasProgress = true;
             loadingAction.description = "Surface Topography completed";
             loadingAction.updateProgress();
@@ -1245,6 +1240,7 @@ if (loadingAction != null) {
             int neighbours;
             int index;
             char[] buffer = new char[256];
+            NumberConverter nc = new NumberConverter(br);
             while (br.ready()) {
                 neighbours = 0;
                 indexComma = -1;
@@ -1273,7 +1269,7 @@ if (loadingAction != null) {
                     if (linelength > 0) {
                         //return number of elements
                         int[][] retur = new int[1][1];
-                        retur[0][0] = parseIntegerFromToInclude(buffer, 0, linelength);
+                        retur[0][0] = nc.parseIntegerFromToInclude(buffer, 0, linelength);
                         return retur;
                     } else {
                         //no line here, it was the end of the file
@@ -1285,12 +1281,12 @@ if (loadingAction != null) {
                 index = 0;
                 for (int i = lastBlank + 1; i < linelength; i++) {
                     if (buffer[i] == splitNeighbours) {
-                        neighbourIDs[index] = parseIntegerFromToInclude(buffer, lastBlank + 1, i - 1);
+                        neighbourIDs[index] = nc.parseIntegerFromToInclude(buffer, lastBlank + 1, i - 1);
                         index++;
                         lastBlank = i;
                     }
                 }
-                int triangleID = parseIntegerFromToInclude(buffer, 0, indexComma - 1);
+                int triangleID = nc.parseIntegerFromToInclude(buffer, 0, indexComma - 1);
                 neumann[triangleID] = neighbourIDs;
             }
             fr.close();

@@ -61,6 +61,7 @@ import com.saemann.gulli.view.themelayer.SurfaceThemeLayer;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Analysisraster;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Cells;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_HeatMap;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_ParticleRemain;
 import com.saemann.rgis.control.LocationIDListener;
 import com.saemann.rgis.view.ColorHolder;
 import com.saemann.rgis.view.DoubleColorHolder;
@@ -220,8 +221,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     private Point2D.Double posTopLeftPipeCS, posBotRightPipeCS;
     private Coordinate posTopLeftSurfaceCS, posBotRightSurfaceCS;
-    private int[] shownSurfaceTriangles = new int[0];
-    private boolean[] showSurfaceTriangle = null;
+//    private int[] shownSurfaceTriangles = new int[0];
+//    private boolean[] showSurfaceTriangle = null;
     private GeoTools geoToolsNetwork, geoToolsSurface;
 
     public int repaintPerLoops = 300;
@@ -249,7 +250,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(null), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN, VELOCITY, SLOPE, VERTEX_HEIGHT;
+        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(null), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, SLOPE, VERTEX_HEIGHT;
         public SurfaceThemeLayer theme;
 
         SURFACESHOW() {
@@ -1585,10 +1586,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     return;
                 }
                 try {
-                    if (shownSurfaceTriangles == null) {
-                        surfaceShow = SURFACESHOW.NONE;
-                        return;
-                    }
+//                    if (shownSurfaceTriangles == null) {
+//                        surfaceShow = SURFACESHOW.NONE;
+//                        return;
+//                    }
                     Layer layer = mapViewer.getLayer(layerSurfaceWaterlevel);
                     if (layer != null && !layer.isEmpty()) {
                         //No need to update the layer if it already exists.
@@ -1606,7 +1607,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                                 layer = new Layer(layerSurfaceWaterlevel, chTrianglesWaterlevel);
                                 mapViewer.getLayers().add(layer);
                             }
-                            System.out.println("start Thread adding up to " + surface.getTriangleMids().length + " waterlevel shapes. " + (showSurfaceTriangle != null ? "triangleShow initialized" + shownSurfaceTriangles.length : " no shown triangle information") + "  " + (surface.getMaxWaterlvl() != null ? "hasMaxLevels" : "noMaxLevels"));
+                            System.out.println("start Thread adding up to " + surface.getTriangleMids().length + " waterlevel shapes. " + (surface.getMaxWaterlvl() != null ? "hasMaxLevels" : "noMaxLevels"));
 
 //                            for (int i = 0; i < shownSurfaceTriangles.length; i++) {
 //                            if (showSurfaceTriangle != null && showSurfaceTriangle[i] == false) {
@@ -1927,7 +1928,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            } else if (surfaceShow == SURFACESHOW.REMAIN && !updatedOnlyTime) {
+            } /*else if (surfaceShow == SURFACESHOW.REMAIN && !updatedOnlyTime) {
                 int numberOfTracerParticles = 0;
                 mapViewer.clearLayer(layerRemainOutlet);
                 mapViewer.clearLayer(layerRemainPipe);
@@ -2036,7 +2037,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 }
                 mapViewer.recalculateShapes();
                 mapViewer.repaint();
-            } else if (surfaceShow == SURFACESHOW.VELOCITY) {
+            
+            }*/ else if (surfaceShow == SURFACESHOW.VELOCITY) {
                 //Show Arrows of velocity
                 if (surface.getTimes() == null) {
                     surfaceShow = SURFACESHOW.NONE;
@@ -2055,10 +2057,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     }
                     if (surface.getTriangleVelocity() != null) {
                         for (int i = 0; i < surface.triangleNodes.length; i++) {
-                            if (showSurfaceTriangle != null && showSurfaceTriangle[i] == false) {
-
-                                continue;
-                            }
+//                            if (showSurfaceTriangle != null && showSurfaceTriangle[i] == false) {
+//
+//                                continue;
+//                            }
                             //Triangle Arrow
                             //on triangle
                             if (surface.getTriangleVelocity()[i] == null) {
@@ -3050,28 +3052,28 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 posTopLeftSurfaceCS = geoToolsSurface.toUTM(new Coordinate(tl.y, tl.x));
                 posBotRightSurfaceCS = geoToolsSurface.toUTM(new Coordinate(br.y, br.x));
 
-                if (surface != null) {
+//                if (surface != null) {
                     //make a list of all triangles, that are currently shown on the map.
-                    ArrayList<Integer> shownTriangleIDs = new ArrayList<>(surface.getMaxTriangleID() + 1);
-                    this.showSurfaceTriangle = new boolean[surface.getTriangleMids().length];
-                    for (int i = 0; i < surface.getTriangleMids().length; i++) {
-                        double[] triangleMid = surface.getTriangleMids()[i];
-                        if (triangleMid[0] > posBotRightSurfaceCS.x || triangleMid[1] < posBotRightSurfaceCS.y || triangleMid[0] < posTopLeftSurfaceCS.x || triangleMid[1] > posTopLeftSurfaceCS.y) {
-                            continue;
-                        } else {
-                            shownTriangleIDs.add(i);
-                            showSurfaceTriangle[i] = true;
-                        }
-                    }
-                    int[] tris = new int[shownTriangleIDs.size()];
-                    int index = 0;
-                    for (Integer shownTriangleID : shownTriangleIDs) {
-                        tris[index] = shownTriangleID;
-                        index++;
-                    }
-                    this.shownSurfaceTriangles = tris;
+//                    ArrayList<Integer> shownTriangleIDs = new ArrayList<>(surface.getMaxTriangleID() + 1);
+//                    this.showSurfaceTriangle = new boolean[surface.getTriangleMids().length];
+//                    for (int i = 0; i < surface.getTriangleMids().length; i++) {
+//                        double[] triangleMid = surface.getTriangleMids()[i];
+//                        if (triangleMid[0] > posBotRightSurfaceCS.x || triangleMid[1] < posBotRightSurfaceCS.y || triangleMid[0] < posTopLeftSurfaceCS.x || triangleMid[1] > posTopLeftSurfaceCS.y) {
+//                            continue;
+//                        } else {
+////                            shownTriangleIDs.add(i);
+//                            showSurfaceTriangle[i] = true;
+//                        }
+//                    }
+//                    int[] tris = new int[shownTriangleIDs.size()];
+//                    int index = 0;
+//                    for (Integer shownTriangleID : shownTriangleIDs) {
+//                        tris[index] = shownTriangleID;
+//                        index++;
+//                    }
+//                    this.shownSurfaceTriangles = tris;
 
-                }
+//                }
             }
 
         } catch (TransformException ex) {

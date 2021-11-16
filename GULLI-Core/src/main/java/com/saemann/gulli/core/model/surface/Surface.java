@@ -67,7 +67,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      */
     //private int[][] NodeNeighbours;
 //    public double[][] weight;
-
     public float[][] triangle_downhilldirection;
     public float[] triangle_downhillIntensity;
 
@@ -87,7 +86,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * meter.
      */
     //private float[][] edgeLength;
-
     private float[] triangleArea;
 
     public SurfaceTriangle[] triangleCapacitys;
@@ -233,7 +231,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        this.triangleCapacity = new HashMap<>(100);
 //        
 //        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
-        this.paths = new HashMap<>(100);
+        this.paths = new HashMap<>(0);
         if (triangleNodes != null) {
             actualVelocity = new float[triangleNodes.length][2];
             actualVelocitySet = new boolean[actualVelocity.length];
@@ -403,7 +401,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     e.printStackTrace();
                     waterlevels[ID] = new float[numberOfTimestamps];
                 }
-            }else{
+            } else {
                 return 0;
             }
         }
@@ -417,11 +415,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     public double getkst() {
         return kst;
     }
-    
+
     /**
      * Return the surface roughness (kst) in the cell of ID.
+     *
      * @param cellID
-     * @return 
+     * @return
      */
     public double getkst(int cellID) {
         return kst;
@@ -434,7 +433,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //    private float[][] getEdgeLength() {
 //        return edgeLength;
 //    }
-
 //    /**
 //     * @deprecated 
 //     */
@@ -477,7 +475,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //            }
 //        }
 //    }
-
     /**
      * Calculates the negative gradient direction (normalised) for each triangle
      * This can be used for a flow direction under dry weather condition.
@@ -486,7 +483,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         triangle_downhilldirection = new float[triangleNodes.length][2];
         triangle_downhillIntensity = new float[triangle_downhilldirection.length];
         double[] v0, v1, v2, a = new double[2], b = new double[2];
-        double sumlength = 0;
+        double a2, b2;
+        double x, y;
+//        double sumlength = 0;
         for (int i = 0; i < triangleNodes.length; i++) {
             try {
                 v0 = vertices[triangleNodes[i][0]];
@@ -498,19 +497,24 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 b[0] = v1[0] - v0[0];
                 b[1] = v1[1] - v0[1];
 
-                double asquare = a[0] * a[0] + a[1] * a[1];
-                double bsquare = b[0] * b[0] + b[1] * b[1];
+                a2 = a[0] * a[0] + a[1] * a[1];
+                b2 = b[0] * b[0] + b[1] * b[1];
 
-                double x = (0.5) * (((v2[2] - v0[2]) * a[0] / asquare) + (v1[2] - v0[2]) * b[0] / bsquare);
-                double y = (0.5) * (((v2[2] - v0[2]) * a[1] / asquare) + (v1[2] - v0[2]) * b[1] / bsquare);
+                x = (0.5) * (((v2[2] - v0[2]) * a[0] / a2) + (v1[2] - v0[2]) * b[0] / b2);
+                y = (0.5) * (((v2[2] - v0[2]) * a[1] / a2) + (v1[2] - v0[2]) * b[1] / b2);
 
-                double length = Math.sqrt((x * x) + (y * y));
-                sumlength += length;
+                float length = (float) Math.sqrt((x * x) + (y * y));
+//                sumlength += length;
                 triangle_downhilldirection[i][0] = (float) (-x / length);
                 triangle_downhilldirection[i][1] = (float) (-y / length);
-                triangle_downhillIntensity[i] = (float) length;
+                triangle_downhillIntensity[i] = length;
 
-//                System.out.println(i+": asquare:"+asquare+" b^2:"+bsquare);
+                if (Float.isNaN(triangle_downhilldirection[i][0])) {
+                    triangle_downhilldirection[i][0] = 0;
+                }
+                if (Float.isNaN(triangle_downhilldirection[i][1])) {
+                    triangle_downhilldirection[i][1] = 0;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -667,7 +671,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     /**
-     * @deprecated 
+     * @deprecated
      */
     public void calculateNeighbourVelocitiesFromWaterlevels() {
 //        System.out.println(getClass() + "::CalculateNeighborVelocityFromWaterlevels");
@@ -849,8 +853,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
     }
 
-    /** 
-     * @param triangleIndex 
+    /**
+     * @param triangleIndex
      */
     private void initVelocityToNeighbours(int triangleIndex) {
         //Load velocitiy values
@@ -1249,9 +1253,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     /**
-     * @deprecated 
-     * Converts triangle centered velocities to neighbour velocities. overrides
-     * neighbour velocities if existant.
+     * @deprecated Converts triangle centered velocities to neighbour
+     * velocities. overrides neighbour velocities if existant.
      */
     public void calcNeighbourVelocityFromTriangleVelocity() {
 //        this.numberOfTimestamps = this.triangleVelocity[0].length;
@@ -1308,7 +1311,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        }
 //        //getmeanvelo2dNodes(velocityNodes);
 //    }
-
     /**
      * Get the velocity for this triangle. if it is not yet known. the
      * information is loaded via the velocityloader connected for this surface.
@@ -1333,12 +1335,22 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public float[] getTriangleVelocity(int triangleID, double indexDouble, float[] tofill) {
-//        if (tofill == null) {
-//            System.out.println("create new float[2] to return interpolated velocity.");
-//            tofill = new float[2];
-//        }
-        float[] lower = getTriangleVelocity(triangleID)[(int) indexDouble];
-        float[] upper = getTriangleVelocity(triangleID)[(int) indexDouble + 1];
+
+        float[][] tv = getTriangleVelocity(triangleID);
+        int index = (int) indexDouble;
+        if (index >= tv.length) {
+            tofill[0] = 0;
+            tofill[1] = 0;
+            return tofill;
+        }
+        float[] lower = tv[index];
+//        float[] upper = tv[index + 1];
+        float[] upper;
+        if (index + 1 >= tv.length) {
+            upper = zeroVelocity;
+        } else {
+            upper = tv[index + 1];
+        }
         float frac = (float) (indexDouble % 1f);
         tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
         tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
@@ -1346,21 +1358,34 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public void getTriangleVelocity(int triangleID, double indexDouble, double[] tofill) {
-
-        float[] lower = getTriangleVelocity(triangleID)[(int) indexDouble];
-        float[] upper = getTriangleVelocity(triangleID)[(int) indexDouble + 1];
+        float[][] tv = getTriangleVelocity(triangleID);
+        int index = (int) indexDouble;
+        if (index >= tv.length) {
+            tofill[0] = 0;
+            tofill[1] = 0;
+            return;
+        }
+        float[] lower = tv[(int) indexDouble];
+        float[] upper;
+        if (index + 1 >= tv.length) {
+            upper = zeroVelocity;
+        } else {
+            upper = tv[(int) indexDouble + 1];
+        }
         float frac = (float) (indexDouble % 1f);
         tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
         tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
     }
 
     public float[] getTriangleVelocity(int triangleID, int timeindexInt, float frac, float[] tofill) {
-//        if (tofill == null) {
-//            System.out.println("create new float[2] to return interpolated velocity.");
-//            tofill = new float[2];
-//        }
-        float[] lower = getTriangleVelocity(triangleID)[timeindexInt];
-        float[] upper = getTriangleVelocity(triangleID)[timeindexInt + 1];
+        float[][] tv = getTriangleVelocity(triangleID);
+        if (timeindexInt >= tv.length) {
+            tofill[0] = 0;
+            tofill[1] = 0;
+            return tofill;
+        }
+        float[] lower = tv[timeindexInt];
+        float[] upper = tv[timeindexInt + 1];
         tofill[0] = (lower[0] + (upper[0] - lower[0]) * frac);
         tofill[1] = (lower[1] + (upper[1] - lower[1]) * frac);
         return tofill;
@@ -1374,59 +1399,12 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return float[2] 0:x; 1:y velocity (m/s)
      */
     public float[] getTriangleVelocity(int triangleID, int indexInteger) {
-        return getTriangleVelocity(triangleID)[indexInteger];
+        float[][] v = getTriangleVelocity(triangleID);
+        if (indexInteger >= v.length) {
+            return zeroVelocity;
+        }
+        return v[indexInteger];
     }
-
-    /**
-     * get velocities at the triangle nodes via neighbouring weights
-     *
-     * @param nodeID
-     */
-//    public void loadSparseNodeVelocity2D(int nodeID) {
-//        if (velocityNodes == null) {
-//            velocityNodes = new float[NodeNeighbours.length][][];
-//        }
-//        for (int n = 0; n < NodeNeighbours[nodeID].length; n++) {        //welches triangle an vertice
-//            if (NodeNeighbours[nodeID][n] >= 0) {
-//                int triangleID;
-//                if (this.mapIndizes == null) {
-//                    triangleID = NodeNeighbours[nodeID][n];
-//                } else {
-//                    Integer ninteger = mapIndizes.get(NodeNeighbours[nodeID][n]);
-//                    if (ninteger == null) {
-//                        continue;
-//                    }
-//                    triangleID = ninteger.intValue();
-//                    if (triangleID < 0) {
-//                        continue;
-//                    }
-//                }
-//                if (triangleVelocity[triangleID] == null) {
-//
-//                    if (velocityLoader != null) {
-//                        getTriangleVelocity(triangleID);
-//                    } else if (waterlevelLoader != null) {
-//                        //Load waterlevel and calculate velocity
-//                        initVelocityToNeighbours(triangleID);
-//                        calcTriangleVelocityFromNeighbourVelocity(triangleID);
-//                    }
-//                }
-//                velocityNodes[nodeID] = new float[numberOfTimestamps][2];
-//                for (int t = 0; t < numberOfTimestamps; t++) {//wann
-//                    for (int k = 0; k < 2; k++) {  //x und y         
-////                        System.out.println("weight.length="+weight[nodeID].length);
-////                        System.out.println("velocitynodes.length1: "+velocityNodes[nodeID].length+"\t 2: "+velocityNodes[nodeID][0].length);
-////                        System.out.println("triangleVelocity[triangleID][t][k]:"+triangleVelocity[triangleID].length+"\t2: "+triangleVelocity[triangleID][t].length);
-////                        System.out.println("triangleNode "+nodeID+"  ="+velocityNodes[nodeID][t][k]+" + "+triangleVelocity[triangleID][t][k]+" * "+weight[nodeID][n]);
-//                        velocityNodes[nodeID][t][k] += triangleVelocity[triangleID][t][k] * weight[nodeID][n]; //triangleVelo: [triangle][timeindex][direction(0:x,1:y)]
-//                    }
-//                }
-//            }
-//        }
-//
-////        }
-//        //getmeanvelo2dNodes(velocityNodes);
-//    }
 
     /**
      * Project the Traingle velocity on the neighbour-normal vector by using
@@ -1711,7 +1689,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             capacityNames = buildNamedCapacityMap(network);
         }
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
-        manholes = new Manhole[triangleNodes.length];
+//        manholes = new Manhole[triangleNodes.length];
         inletArray = new Inlet[manholes.length];
         for (HE_InletReference inletRef : inletRefs) {
             String capacityName = inletRef.capacityName;
@@ -1732,6 +1710,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             Coordinate tposUTM = new Coordinate(tpos[0], tpos[1], tpos[2]);
             Coordinate tposWGS84 = geotools.toGlobal(tposUTM, true);
 
+//            System.out.println("Inlet "+inletRef.inlet_Name+"  "+tposWGS84.x+"  "+tposWGS84.y+" <-- "+tposUTM.x+" / "+tposUTM.y+" <-- "+tpos[0]+" / "+tpos[1]);
             if (cap instanceof Pipe) {
 
                 Pipe pipe = (Pipe) cap;
@@ -2211,7 +2190,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 //if (mooreNeighbours != null) {
                 //    neighbours = mooreNeighbours[istID];
                 //} else {
-                    neighbours = this.neumannNeighbours[istID];
+                neighbours = this.neumannNeighbours[istID];
                 //}
                 double bestDist = Double.POSITIVE_INFINITY;
                 int bestID = -1;
@@ -2938,7 +2917,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        //id = -1;
 //        throw new BoundHitException(id, xold, yold);
 //    }
-
 //    /**
 //     * @deprecated @param p
 //     * @param id
@@ -3109,7 +3087,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //        //id = -1;
 //        throw new BoundHitException(id, xold, yold);
 //    }
-
 //    private double[] getParticleBoundaryIntersection(double[] a, double bx, double by, double[] c, double dx, double dy) {
 //        double t = ((dx - bx) * (by - a[1]) + (dy - by) * (bx - a[0])) / ((c[1] - a[1]) * (dx - bx) - (c[0] - a[0]) * (dy - by));
 ////        double t = ((dx - bx) * (by - a[1]) + (dy - by) * (a[0] - bx)) / ((c[1] - a[1]) * (dx - bx) - (c[0] - a[0]) * (dy - by));
@@ -3296,7 +3273,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //            }
 //        }
 //    }
-
     public void setTimeContainer(TimeIndexContainer times) {
 //        System.err.println("Surface.setTimeContainer: "+times);
         this.times = times;
@@ -3443,22 +3419,19 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         if (this.paths != null) {
             this.paths.clear();
         }
-        this.waterlevels=null;
-        
-        
-        if(velocityLoader!=null){
-            if(velocityLoader instanceof HE_GDB_IO){
-                HE_GDB_IO io=(HE_GDB_IO)waterlevelLoader;
+        this.waterlevels = null;
+
+        if (velocityLoader != null) {
+            if (velocityLoader instanceof HE_GDB_IO) {
+                HE_GDB_IO io = (HE_GDB_IO) waterlevelLoader;
                 io.close();
             }
         }
-        this.velocityLoader=null;
+        this.velocityLoader = null;
     }
 
     public String getSpatialReferenceCode() {
         return spatialReferenceCode;
     }
-    
-    
 
 }

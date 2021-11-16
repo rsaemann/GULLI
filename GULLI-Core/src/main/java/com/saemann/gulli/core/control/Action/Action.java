@@ -23,8 +23,8 @@
  */
 package com.saemann.gulli.core.control.Action;
 
+import com.saemann.gulli.core.control.listener.LoadingActionAdapter;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 /**
  * Object to inform other processes about the progress, this process is doing.
@@ -46,7 +46,7 @@ public class Action {
     public float progress;
     public long startTime;
 
-    public ActionListener listener;
+    public LoadingActionAdapter listener;
 
     /**
      *
@@ -83,13 +83,17 @@ public class Action {
         }
         return progress;
     }
+    
+    public void setDescription(String description){
+        
+    }
 
     public void updateProgress() {
         if (parent != null) {
             parent.updateProgress();
         }
         if (listener != null) {
-            listener.actionPerformed(new ActionEvent(this, 0, description));
+            listener.actionFired(this, this);
         }
     }
 

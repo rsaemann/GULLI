@@ -47,18 +47,23 @@ public class NumberConverter {
     private int index, laststart;
     private boolean lastWasSplitter;
     private boolean searchForNumbers;
-    
-    public static boolean verbose=false;
+
+    public static boolean verbose = false;
+
+    long sum = 0;
+    long indexl = 1;
+    double digitindex = 0;
+    private boolean negative;
 
     public NumberConverter(Reader in) {
         this.reader = in;
     }
 
     /**
-     * 
+     *
      * @param toFill
      * @return true if the line contained any values, false if it was empty
-     * @throws IOException 
+     * @throws IOException
      */
     public boolean readNextLineDoubles(double[] toFill) throws IOException {
 
@@ -68,7 +73,7 @@ public class NumberConverter {
         laststart = 0;
         searchForNumbers = true;
         for (int i = 0; i < buffer.length; i++) {
-            if (reader.ready()) {
+//            if (reader.ready()) {
                 c = (char) reader.read();
                 if (c == 10 || c == 13) {
                     if (i == 0) {
@@ -95,16 +100,16 @@ public class NumberConverter {
                             }
                             lastWasSplitter = true;
                         }
-                        
+
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
                             lastWasSplitter = false;
                         }
-                        
+
                     }
                 }
-            }
+//            }
         }
 //        if (index == 0) {
 //            for (int i = 0; i < toFill.length; i++) {
@@ -117,10 +122,16 @@ public class NumberConverter {
             toFill[i] = 0;
         }
         //only return true, if there were numbers to read
-        return index>0;
+        return index > 0;
     }
-    
-    public boolean readNextLineFloats(float[] toFill) throws IOException {
+
+    /**
+     * 
+     * @param toFill
+     * @return number of values read. if 0 -> no values contained
+     * @throws IOException 
+     */
+    public int readNextLineFloats(float[] toFill) throws IOException {
 
         lastWasSplitter = true;
 
@@ -155,13 +166,13 @@ public class NumberConverter {
                             }
                             lastWasSplitter = true;
                         }
-                        
+
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
                             lastWasSplitter = false;
                         }
-                        
+
                     }
                 }
             }
@@ -177,7 +188,7 @@ public class NumberConverter {
             toFill[i] = 0;
         }
         //Return true, if there were numbers to read.
-        return index>0;
+        return index;
     }
 
     public boolean readNextLineInteger(int[] toFill) throws IOException {
@@ -187,7 +198,7 @@ public class NumberConverter {
         searchForNumbers = true;
         laststart = 0;
         for (int i = 0; i < buffer.length; i++) {
-            if (reader.ready()) {
+//            if (reader.ready()) {
                 c = (char) reader.read();
                 if (c == 10 || c == 13) {
                     if (i == 0) {
@@ -216,42 +227,45 @@ public class NumberConverter {
                             }
                             lastWasSplitter = true;
                         }
-                        
+
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
                             lastWasSplitter = false;
                         }
-                        
+
                     }
                 }
-            }
+//            }
         }
-        if (index == 0) {
-            for (int i = 0; i < toFill.length; i++) {
-                toFill[i] = 0;
-            }
-            return false;
-        } else {
+//        if (index == 0) {
+//            for (int i = 0; i < toFill.length; i++) {
+//                toFill[i] = 0;
+//            }
+//            return false;
+//        } else {
             //fill all the non read values with zero
             for (int i = index; i < toFill.length; i++) {
-                toFill[i] = 0;
+//                if (toFill[i] != 0) {
+                    toFill[i] = 0;
+//                }
             }
-            return true;
-        }
+            return index!=0;//true;
+//        }
     }
-    
+
     /**
      * Returns the Integer in the text until the next seperator
+     *
      * @return -1 as error
      */
-    public int readNextInteger() throws IOException{
+    public int readNextInteger() throws IOException {
         lastWasSplitter = true;
         index = 0;
         searchForNumbers = true;
         laststart = 0;
         for (int i = 0; i < buffer.length; i++) {
-            if (reader.ready()) {
+//            if (reader.ready()) {
                 c = (char) reader.read();
                 if (c == 10 || c == 13) {
                     if (i == 0) {
@@ -260,8 +274,8 @@ public class NumberConverter {
                         continue;
                     }
                     if (searchForNumbers) {
-                        return  parseIntegerFromToInclude(buffer, laststart, i - 1);
-                        
+                        return parseIntegerFromToInclude(buffer, laststart, i - 1);
+
                     }
                     break;//\n & \r
                 }
@@ -275,31 +289,32 @@ public class NumberConverter {
                             //end a pattern here
                             return parseIntegerFromToInclude(buffer, laststart, i - 1);
                         }
-                        
+
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
                             lastWasSplitter = false;
                         }
-                        
+
                     }
                 }
-            }
+//            }
         }
         return -1;
     }
-    
+
     /**
      * Returns the Integer in the text until the next seperator
+     *
      * @return NaN as error
      */
-    public double readNextDouble() throws IOException{
+    public double readNextDouble() throws IOException {
         lastWasSplitter = true;
         index = 0;
         searchForNumbers = true;
         laststart = 0;
         for (int i = 0; i < buffer.length; i++) {
-            if (reader.ready()) {
+//            if (reader.ready()) {
                 c = (char) reader.read();
                 if (c == 10 || c == 13) {
                     if (i == 0) {
@@ -308,8 +323,8 @@ public class NumberConverter {
                         continue;
                     }
                     if (searchForNumbers) {
-                        return  parseDoubleFromToInclude(buffer, laststart, i - 1);
-                        
+                        return parseDoubleFromToInclude(buffer, laststart, i - 1);
+
                     }
                     break;//\n & \r
                 }
@@ -323,16 +338,16 @@ public class NumberConverter {
                             //end a pattern here
                             return parseDoubleFromToInclude(buffer, laststart, i - 1);
                         }
-                        
+
                     } else {
                         if (lastWasSplitter) {
                             laststart = i;
                             lastWasSplitter = false;
                         }
-                        
+
                     }
                 }
-            }
+//            }
         }
         return Double.NaN;
     }
@@ -458,24 +473,27 @@ public class NumberConverter {
         return retur;
     }
 
-    public static double parseDoubleLength(char[] string, int fromIncluded, int length) {
+    public double parseDoubleLength(char[] string, int fromIncluded, int length) {
         return parseDoubleFromToInclude(string, fromIncluded, fromIncluded + length - 1);
     }
 
-    public static double parseDoubleFromToExluded(char[] string, int fromIncluded, int toexcluded) {
+    public double parseDoubleFromToExluded(char[] string, int fromIncluded, int toexcluded) {
         return parseDoubleFromToInclude(string, fromIncluded, toexcluded - 1);
     }
 
-    public static double parseDoubleFromToInclude(char[] string, int fromIncluded, int toIncluded) {
+    public double parseDoubleFromToInclude(char[] string, int fromIncluded, int toIncluded) {
 
-        long sum = 0;
-        long index = 1;
-        double digitindex = 0;
+//        long sum = 0;
+//        long indexl = 1;
+//        double digitindex = 0;
+        sum = 0;
+        indexl = 1;
+        digitindex = 0;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
             if (c == 46/*'.'*/) {
-                digitindex = index;
+                digitindex = indexl;
                 continue;
             }
 
@@ -483,8 +501,8 @@ public class NumberConverter {
             if (d < 0 || d > 9) {
                 continue;
             }
-            sum += index * d;
-            index *= 10;
+            sum += indexl * d;
+            indexl *= 10;
 //            System.out.println("'" + c + "' : " + d + ", at index=" + i + ", factor: " + index + " ,\t sum=" + sum);
         }
         if (digitindex == 0) {
@@ -496,17 +514,20 @@ public class NumberConverter {
         return result;
 
     }
-    
-    public static float parseFloatFromToInclude(char[] string, int fromIncluded, int toIncluded) {
 
-        long sum = 0;
-        long index = 1;
-        double digitindex = 0;
+    public float parseFloatFromToInclude(char[] string, int fromIncluded, int toIncluded) {
+
+//        long sum = 0;
+//        long indexl = 1;
+//        double digitindex = 0;
+        sum = 0;
+        indexl = 1;
+        digitindex = 0;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
             if (c == 46/*'.'*/) {
-                digitindex = index;
+                digitindex = indexl;
                 continue;
             }
 
@@ -514,32 +535,38 @@ public class NumberConverter {
             if (d < 0 || d > 9) {
                 continue;
             }
-            sum += index * d;
-            index *= 10;
+            sum += indexl * d;
+            indexl *= 10;
 //            System.out.println("'" + c + "' : " + d + ", at index=" + i + ", factor: " + index + " ,\t sum=" + sum);
         }
         if (digitindex == 0) {
             //is an integer without .
             return sum;
         }
-        float result =(float)(sum /  digitindex);
+        float result = (float) (sum / digitindex);
 //        System.out.println("number=" + result);
         return result;
 
     }
 
-    public static int parseIntegerFromToInclude(char[] string, int fromIncluded, int toIncluded) {
+    public int parseIntegerFromToInclude(char[] string, int fromIncluded, int toIncluded) {
 
-        long sum = 0;
-        long index = 1;
-        long digitindex = -1;
-        boolean negative = false;
+//        long sum = 0;
+//        long indexl = 1;
+//        long digitindex = -1;
+//        boolean negative = false;
+        sum = 0;
+        indexl = 1;
+        digitindex = -1;
+        negative = false;
 
         for (int i = toIncluded; i >= fromIncluded; i--) {
             char c = string[i];
             if (c == 46/*'.'*/) {
-                digitindex = index;
-                if(verbose)System.err.println("Integer String to parse has '.' character.");
+                digitindex = indexl;
+                if (verbose) {
+                    System.err.println("Integer String to parse has '.' character.");
+                }
                 continue;
             }
 
@@ -550,17 +577,17 @@ public class NumberConverter {
                 }
                 continue;
             }
-            sum += index * d;
-            index *= 10;
+            sum += indexl * d;
+            indexl *= 10;
         }
-        if (digitindex <1) {
+        if (digitindex < 1) {
             //is an integer without .
             if (negative) {
                 return (int) -sum;
             }
             return (int) sum;
         }
-       
+
         int result = (int) (sum / digitindex);
         if (negative) {
             return -result;
@@ -590,14 +617,15 @@ public class NumberConverter {
     }
 
     public static void main0(String[] args) throws FileNotFoundException, IOException {
-        parseDoubleFromToInclude(new char[]{'8', '7', ',', '6', '5'}, 0, 4);
+
+        FileReader fr = new FileReader("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\2DModell_10cm_3m2_ohne_BK.model\\X.dat");
+        NumberConverter nc = new NumberConverter(fr);
+
+        nc.parseDoubleFromToInclude(new char[]{'8', '7', ',', '6', '5'}, 0, 4);
         System.out.println('.' == 46);
         System.out.println("'0'=" + (int) '0');
         System.out.println("'\r'=" + (int) '\r');
         System.out.println("' '=" + (int) ' ');
-
-        FileReader fr = new FileReader("L:\\GULLI_Input\\Modell2017Mai\\2D_Model\\2DModell_10cm_3m2_ohne_BK.model\\X.dat");
-        NumberConverter nc = new NumberConverter(fr);
 
         double[] numbers = new double[3];
         for (int i = 0; i < 3; i++) {

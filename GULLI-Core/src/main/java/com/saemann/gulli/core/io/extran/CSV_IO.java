@@ -486,7 +486,7 @@ public class CSV_IO {
             nc.setSplitter(';');
             float[] toFill = new float[numberOfTimes * 2];
             int id = 0;
-            int counter=0;
+            int counter = 0;
             while (br.ready()) {
                 linenumber++;
                 try {
@@ -512,7 +512,7 @@ public class CSV_IO {
                     }
                     if (linenumber % 50000 == 1) {
                         System.out.println("   " + (int) ((id * 100) / velocities.length) + " %");
-                        action.progress=((id) / (float)velocities.length);
+                        action.progress = ((id) / (float) velocities.length);
                         action.updateProgress();
                         if (Thread.currentThread().isInterrupted()) {
                             System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
@@ -526,7 +526,7 @@ public class CSV_IO {
                     break;
                 }
             }
-            action.progress=1;
+            action.progress = 1;
             action.updateProgress();
             if (Thread.currentThread().isInterrupted()) {
                 System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
@@ -535,7 +535,140 @@ public class CSV_IO {
             }
             surf.setTriangleMaxVelocity(maxVelocity);
             surf.setTriangleVelocity(velocities);
-            System.out.println("Loading velocities and adding to surface completed for "+counter+" cells.");
+            System.out.println("Loading velocities and adding to surface completed for " + counter + " cells.");
+            surf.loadingWaterlevels = false;
+        }
+    }
+
+    /**
+     * Method to read Velocities stored in GDAL generated CSVs. the timeseries
+     * have individual length. 0 values are not build at the tails
+     *
+     * @param surf
+     * @param csvFile
+     */
+    public static void readCellVelocitiesVariableLength(Surface surf, File csvFile, Action action) throws FileNotFoundException, IOException, Exception {
+        surf.loadingWaterlevels = true;
+        if (action == null) {
+            action = new Action("Load velocities from CSV", null, true);
+        }//Read header to detect timesteps
+        try (FileReader fr = new FileReader(csvFile); BufferedReader br = new BufferedReader(fr)) {
+            String line = "";
+            float[][][] velocities = null;
+            float[] maxVelocity = null;
+            int v0index = 3;
+            int vmaxIndex = 1;
+            String[] split;
+            boolean filteredSurface = false; //if true: IDs of triangles have to be mapped to the surface IDs.
+            int numberOfTimes = 0;
+            String splitchar = ",";
+            line = br.readLine();
+            System.out.println("Header: " + line);
+            if (line.startsWith("ID")) {
+                if (line.contains(";")) {
+                    splitchar = ";";
+                } else {
+                    splitchar = ",";
+                }
+                split = line.split(splitchar);
+                //reached header of simulation results.
+                //read number of timeresults
+
+                for (int i = 0; i < split.length; i++) {
+                    if (split[i].equals("V_X_0")) {
+                        v0index = i;
+                    }
+                    if (split[i].startsWith("V_X")) {
+                        numberOfTimes++;
+                    }
+
+                    if (split[i].equals("V_MAX")) {
+                        vmaxIndex = i;
+                    }
+
+                }
+                if (surf.mapIndizes != null && !surf.mapIndizes.isEmpty()) {
+                    //needs special treatment for ID mapping
+                    velocities = new float[surf.mapIndizes.size()][numberOfTimes][2];
+                    maxVelocity = new float[surf.mapIndizes.size()];
+                } else {
+                    //every triangle is on this surface:
+                    maxVelocity = new float[surf.triangleNodes.length];
+                    System.out.println("MaxVelocity array instantiated.");
+                    float[][] emptyArray = new float[numberOfTimes][2];
+
+                    velocities = new float[surf.triangleNodes.length][][];
+                    System.out.println("Dynamic velocity array instantiated, length: " + velocities.length);
+                    for (int i = 0; i < velocities.length; i++) {
+                        velocities[i] = emptyArray;
+                    }
+
+                }
+            }
+            if (velocities == null) {
+                throw new Exception("Number of 'V_X_*' could not be found. Velocities can not be initialized.");
+            }
+            System.out.println("Reading " + numberOfTimes + " timesteps.");
+
+            //Start going through all lines.
+            int linenumber = 0;
+            int index = 0;
+            NumberConverter nc = new NumberConverter(br);
+            nc.setBufferLength(1024);
+            nc.setSplitter(';');
+            float[] toFill = new float[numberOfTimes * 2];
+            int id = 0;
+            int counter = 0;
+            int lastInterestingIndex = 0;
+            while (br.ready()) {
+                linenumber++;
+                try {
+                    id = nc.readNextInteger();
+                    if (id < 0) {
+                        //Error or last element detected.
+                        break;
+                    }
+                    if (filteredSurface) {
+                        if (!surf.mapIndizes.containsKey(id)) {
+                            //This triangle is not part of the Surface. 
+                            continue;
+                        }
+                        id = surf.mapIndizes.get(id); //Map triangle to surface's triangle id.
+                    }
+                    maxVelocity[id] = (float) nc.readNextDouble();//Float.parseFloat(split[vmaxIndex]);
+                    counter++;
+                    lastInterestingIndex = nc.readNextLineFloats(toFill)/2;
+                    velocities[id] = new float[lastInterestingIndex][2]; //Only create this array at positions where it is necessary.
+                    for (int i = 0; i < lastInterestingIndex; i++) {
+                        velocities[id][i][0] = toFill[i * 2];
+                        velocities[id][i][1] = toFill[i * 2 + 1];
+                    }
+                    if (linenumber % 50000 == 1) {
+                        System.out.println("   " + (int) ((id * 100) / velocities.length) + " %");
+                        action.progress = ((id) / (float) velocities.length);
+                        action.updateProgress();
+                        if (Thread.currentThread().isInterrupted()) {
+                            System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
+                            surf.loadingWaterlevels = false;
+                            break;
+                        }
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Error reading information for cell " + id + "in line " + linenumber + " ");
+                    ex.printStackTrace();
+                    break;
+                }
+            }
+            action.progress = 1;
+            action.updateProgress();
+            if (Thread.currentThread().isInterrupted()) {
+                System.out.println("   LoadingThread is interrupted -> break CSV_IO for velocities");
+                surf.loadingWaterlevels = false;
+                return;
+            }
+            surf.setTriangleMaxVelocity(maxVelocity);
+            surf.setTriangleVelocity(velocities);
+            System.out.println("Loading velocities and adding to surface completed for " + counter + " cells.");
             surf.loadingWaterlevels = false;
         }
     }

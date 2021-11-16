@@ -411,6 +411,26 @@ public class LoadingCoordinator {
                             }
                             fileSurfaceWaterlevels = fileSurfaceCoordsDAT;
                             loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
+                        } else {
+                            long start = 0;
+                            long end = 0;
+                            TimeIndexContainer ticsurf = createTimeContainer(start, end, 2);
+                            surface.setTimeContainer(ticsurf);
+                            surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 1, ticsurf, control.getThreadController().getNumberOfParallelThreads()));
+                            if (scenario != null) {
+                                scenario.setStatusTimesSurface(surface);
+                                scenario.setMeasurementsSurface(surface.getMeasurementRaster());
+                            }
+                            surface.initSparseTriangleVelocityLoading(new SurfaceVelocityLoader() {
+                                @Override
+                                public float[][] loadVelocity(int triangleID) {
+                                    float[][] f = new float[2][2];
+                                    f[0] = surface.triangle_downhilldirection[triangleID];
+                                    f[1] = f[0];
+                                    return f;
+                                }
+                            }, true, false);
+
                         }
                     }
 
@@ -608,7 +628,7 @@ public class LoadingCoordinator {
                             resultDatabase = new HE_Database(fileMainPipeResult, true);
                         }
                     }
-                    resultDatabase.loadingAction=this.action;
+                    resultDatabase.loadingAction = this.action;
                     ArrayList<HEInjectionInformation> he_injection = null;
                     resultName = resultDatabase.readResultname();
                     scenarioName = resultName;
@@ -868,7 +888,7 @@ public class LoadingCoordinator {
                 }
                 System.gc();
             }
-            HE_SurfaceIO.loadingAction=action;
+            HE_SurfaceIO.loadingAction = action;
             Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
             crsSurface = surf.getSpatialReferenceCode();
 
@@ -976,7 +996,7 @@ public class LoadingCoordinator {
                     fireLoadingActionUpdate();
 //                    try {
                     HE_GDB_IO gdb = new HE_GDB_IO(fileSurfaceWaterlevels);
-                    
+
                     velocityLoader = gdb;
                     waterlevelLoader = gdb;
                     //System.out.println("GDB is: " + gdb + "  " + gdb.getLayerVelocity() + "  isresult? " + gdb.isResultDB() + " has velocities? " + gdb.hasVelocities());
@@ -1026,7 +1046,7 @@ public class LoadingCoordinator {
                                     loadingSurfaceVelocity = LOADINGSTATUS.LOADING;
                                     action.description = "Load velocities from file...";
                                     fireLoadingActionUpdate();
-                                    CSV_IO.readCellVelocities(surface, velocityFile, action);
+                                    CSV_IO.readCellVelocitiesVariableLength(surface, velocityFile, action);
                                     action.description = "Loading velocities complete";
                                     loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
                                     surfaceVelocitiescompletelyLoaded = true;
@@ -1447,7 +1467,6 @@ public class LoadingCoordinator {
 //        } else {
 //            this.fileSufaceNode2Triangle = fileNode2Triangle;
 //        }
-
 //        File mooreFile = new File(surfaceTopologyDirectory, "MOORE.dat");
 //        if (!mooreFile.exists()) {
 //            if (verbose) {
@@ -1457,7 +1476,6 @@ public class LoadingCoordinator {
 //        } else {
 //            this.fileTriangleMooreNeighbours = mooreFile;
 //        }
-
         //Files for merging Surface and Pipenetwork out-/inlets ******
         File fileStreetInlets = new File(surfaceTopologyDirectory, "SURF-SEWER_NODES.dat");
         if (!fileStreetInlets.exists()) {

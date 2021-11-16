@@ -5,6 +5,7 @@ import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
+import com.saemann.gulli.core.control.listener.LoadingActionAdapter;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.particlecontrol.ParticleSurfaceComputing2D;
@@ -1121,17 +1122,17 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 action = action.parent;
             }
             final Action ac = action;
-            ac.listener = new ActionListener() {
+            ac.listener = new LoadingActionAdapter(){
                 @Override
-                public void actionPerformed(ActionEvent e) {
-
+                public void actionFired(Action ac, Object source) {
+                    
                     if (ac.hasProgress == progressLoading.isIndeterminate()) {
                         progressLoading.setIndeterminate(!ac.hasProgress);
                     }
                     if (ac.hasProgress) {
                         progressLoading.setValue((int) (ac.getActiveProgress() * 100));
                     }
-                    labelCurrentAction.setText(e.getActionCommand());
+                    labelCurrentAction.setText(ac.description);
                 }
             };
         }

@@ -21,6 +21,7 @@ import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.NoninvertibleTransformException;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -164,7 +165,12 @@ public class GeoTools {
         targetCRS = af.createCoordinateReferenceSystem(targetCRScode_metric);
 
         transform_wgs2utm = CRS.findMathTransform(sourceCRS, targetCRS);
-        transform_utm2wgs = CRS.findMathTransform(targetCRS, sourceCRS);
+        try {
+            transform_utm2wgs = transform_wgs2utm.inverse();//CRS.findMathTransform(targetCRS, sourceCRS);
+        } catch (NoninvertibleTransformException ex) {
+            Logger.getLogger(GeoTools.class.getName()).log(Level.SEVERE, null, ex);
+            transform_utm2wgs=CRS.findMathTransform(targetCRS, sourceCRS);
+        }
         this.globalLongitudeFirst = testIsLongitudeFirst(sourceCRS);
 
     }
