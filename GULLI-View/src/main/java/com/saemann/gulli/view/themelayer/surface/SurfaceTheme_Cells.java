@@ -46,7 +46,7 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class SurfaceTheme_Cells extends SurfaceThemeLayer {
 
-    public final static String layerSurfaceGrid = "SURFGRID";
+    public final static String layerSurfaceGrid = PaintManager.layerTriangle+"_SURFGRID";
     private final DoubleColorHolder chTrianglesGrid = new DoubleColorHolder(Color.orange, new Color(1f, 1f, 1f, 0f), "Surface Triangles");
 
     @Override

@@ -26,28 +26,26 @@ package com.saemann.gulli.view.themelayer.surface;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.particlecontrol.injection.ArealInjection;
 import com.saemann.gulli.core.control.particlecontrol.injection.SurfaceInjection;
-import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
-import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectangleRaster;
-import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
-import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
 import com.saemann.gulli.view.PaintManager;
 import com.saemann.gulli.view.themelayer.SurfaceThemeLayer;
+import com.saemann.rgis.model.GeoPosition;
+import com.saemann.rgis.model.GeoPosition2D;
 import com.saemann.rgis.view.DoubleColorHolder;
 import com.saemann.rgis.view.GradientColorHolder;
 import com.saemann.rgis.view.MapViewer;
-import com.saemann.rgis.view.shapes.AreaPainting;
 import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.NodePainting;
 import com.saemann.rgis.view.shapes.PaintInfo;
+import com.saemann.rgis.view.shapes.TrianglePainting;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.LinearRing;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -57,9 +55,9 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class SurfaceTheme_ParticleRemain extends SurfaceThemeLayer {
 
-    public final String layerkeyPIPE = "REMAIN_PIPE";
-    public final String layerkeyLEFT = "REMAIN_OUT";
-    public final String layerkeySURF = "REMAIN_SURFACE";
+    public final String layerkeyPIPE = PaintManager.layerTriangle+"_REMAIN_PIPE";
+    public final String layerkeyLEFT = PaintManager.layerTriangle+"_REMAIN_OUT";
+    public final String layerkeySURF = PaintManager.layerTriangle+"_REMAIN_SURFACE";
     public final DoubleColorHolder chLeft = new DoubleColorHolder(Color.GREEN.darker(), Color.GREEN, "Left catchment");
     public final DoubleColorHolder chReachedPipe = new DoubleColorHolder(Color.BLUE.darker(), Color.BLUE, "Reached pipe");
     public final GradientColorHolder chstayOnSurface = new GradientColorHolder(0, 2000, Color.RED, Color.YELLOW, 5, "Stay on surface");
@@ -96,6 +94,9 @@ public class SurfaceTheme_ParticleRemain extends SurfaceThemeLayer {
             public void run() {
                 progress = 0;
 
+                double[] tempUTMcoordstorage = new double[2];
+                double[] tempWGScoordstorage = new double[2];
+                Coordinate tempWGScoordinate = new Coordinate();
                 /////////////////////////////////////
                 int numberOfTracerParticles = 0;
                 mapViewer.clearLayer(layerkeyLEFT);
@@ -165,7 +166,11 @@ public class SurfaceTheme_ParticleRemain extends SurfaceThemeLayer {
                             PaintInfo pi = null;
                             if (asNodes) {
                                 try {
-                                    pi = new NodePainting(id, surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[id][0], surface.getTriangleMids()[id][1])), chLeft) {
+                                    tempUTMcoordstorage[0] = surface.getTriangleMids()[id][0];
+                                    tempUTMcoordstorage[1] = surface.getTriangleMids()[id][1];
+                                    surface.getGeotools().toGlobal(tempUTMcoordstorage, tempWGScoordstorage, true);
+
+                                    pi = new NodePainting(id, tempWGScoordstorage[0], tempWGScoordstorage[1], chLeft) {
                                         @Override
                                         public boolean paint(Graphics2D g2) {
                                             if (this.getColor() == chstayOnSurface) {
@@ -180,32 +185,45 @@ public class SurfaceTheme_ParticleRemain extends SurfaceThemeLayer {
                                     Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                                 }
                             } else {
-                                int[] nodes = surface.getTriangleNodes()[id];
-                                Coordinate[] coords = new Coordinate[4];
-                                for (int n = 0; n < 3; n++) {
-                                    try {
-                                        coords[n] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[n]][0], surface.getVerticesPosition()[nodes[n]][1]));
-
-                                    } catch (TransformException ex) {
-                                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                                try {
+                                    int[] nodes = surface.getTriangleNodes()[id];
+//                                Coordinate[] coords = new Coordinate[4];
+//                                for (int n = 0; n < 3; n++) {
+//                                    try {
+//                                        coords[n] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[n]][0], surface.getVerticesPosition()[nodes[n]][1]));
+//
+//                                    } catch (TransformException ex) {
+//                                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+//                                    }
+//
+//                                }
+//                                coords[3] = coords[0];//Close ring
+//                                LinearRing ring = surface.getGeotools().gf.createLinearRing(coords);
+                                    ArrayList<GeoPosition2D> liste = new ArrayList<>(4);
+                                    for (int n = 0; n < 3; n++) {
+                                        tempUTMcoordstorage[0] = surface.getVerticesPosition()[nodes[n]][0];
+                                        tempUTMcoordstorage[1] = surface.getVerticesPosition()[nodes[n]][1];
+                                        surface.getGeotools().toGlobal(tempUTMcoordstorage, tempWGScoordstorage, true);
+                                        liste.add(new GeoPosition(tempWGScoordstorage[1], tempWGScoordstorage[0]));
                                     }
+                                    liste.add(liste.get(0));
 
-                                }
-                                coords[3] = coords[0];//Close ring
-                                LinearRing ring = surface.getGeotools().gf.createLinearRing(coords);
-//                                System.out.println("GF: " + gf + "  ring: " + ring);
-                                AreaPainting ap = new AreaPainting(id, chLeft, ring) {
-                                    @Override
-                                    public boolean paint(Graphics2D g2) {
-                                        if (this.getColor() == chstayOnSurface) {
-                                            g2.setColor(chstayOnSurface.getColorsGradient()[this.getGradientColorIndex()]);
-                                            g2.fill(outlineShape);
-                                            return true;
+                                    TrianglePainting ap = new TrianglePainting(id, chLeft, liste);/* {
+                                        @Override
+                                        public boolean paint(Graphics2D g2) {
+                                            if (this.getColor() == chstayOnSurface) {
+                                                g2.setColor(chstayOnSurface.getColorsGradient()[this.getGradientColorIndex()]);
+                                                g2.fill(outlineShape);
+                                                return true;
+                                            }
+                                            return super.paint(g2);
                                         }
-                                        return super.paint(g2);
-                                    }
-                                };
-                                pi = ap;
+                                    };*/
+                                    //ap.setGradientColorIndex(id);
+                                    pi = ap;
+                                } catch (TransformException ex) {
+                                    Logger.getLogger(SurfaceTheme_ParticleRemain.class.getName()).log(Level.SEVERE, null, ex);
+                                }
                             }
                             if (pi != null) {
                                 //Sort and put the shape to the right color and layer
@@ -215,11 +233,11 @@ public class SurfaceTheme_ParticleRemain extends SurfaceThemeLayer {
                                 } else if (j == 1) {
                                     pi.setColor(chReachedPipe);
                                     pi.setGradientColorIndex(j);
-                                     layerPipe.add(pi, false);
+                                    layerPipe.add(pi, false);
                                 } else if (j > 1) {
                                     pi.setColor(chstayOnSurface);
                                     pi.setGradientColorIndex(j - 2);
-                                   layerSurf.add(pi, false);
+                                    layerSurf.add(pi, false);
                                 }
                             }
                             break;//only use the lowest index and do not paint it like the other categories

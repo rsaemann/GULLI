@@ -1423,13 +1423,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 //FIREBIRD 
                 res = st.executeQuery("SELECT FIRST 1 ID FROM LAU_GL_EL;");
             }
-            System.out.println("Query first ID: " + (System.currentTimeMillis() - start));
+//            System.out.println("Query first ID: " + (System.currentTimeMillis() - start));
             while (res.next()) {
                 sampleElementID = res.getInt(1);
             }
             start = System.currentTimeMillis();
             res = st.executeQuery("SELECT COUNT(DISTINCT ZEITPUNKT) FROM LAU_GL_EL WHERE ID=" + sampleElementID);
-            System.out.println("Query number timesteps: " + (System.currentTimeMillis() - start));
+//            System.out.println("Query number timesteps: " + (System.currentTimeMillis() - start));
             res.next();
             int zeiteintraege = res.getInt(1);
             if (zeiteintraege < 1) {
@@ -1454,7 +1454,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             long[] times = new long[zeiteintraege];
             start = System.currentTimeMillis();
             res = st.executeQuery("SELECT ZEITPUNKT FROM LAU_GL_EL WHERE ID=" + sampleElementID + " ORDER BY ZEITPUNKT;");
-            System.out.println("Query timesteps :"+(System.currentTimeMillis()-start));
+//            System.out.println("Query timesteps :"+(System.currentTimeMillis()-start));
             int i = 0;
             while (res.next()) {
                 if (isSQLite) {
@@ -1489,7 +1489,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             try {
                 start=System.currentTimeMillis();
                 res = st.executeQuery("SELECT ID,KNOTEN,ZUFLUSS,WASSERSTAND from LAU_GL_S ORDER BY ID,ZEITPUNKT;");
-                System.out.println("Query flow timeseries: "+(System.currentTimeMillis()-start));
+//                System.out.println("Query flow timeseries: "+(System.currentTimeMillis()-start));
                 
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
@@ -1539,7 +1539,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         + "(ABFLUSS-ZUFLUSS) AS NETTO "
                         + "FROM KNOTENLAUFEND2D "
                         + "ORDER BY ID, ZEITPUNKT;");
-                System.out.println("query spillout : "+(System.currentTimeMillis()-start));
+//                System.out.println("Query spillout : "+(System.currentTimeMillis()-start));
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
@@ -1577,7 +1577,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             // Zeitreihe in Rohren abfragen
             start=System.currentTimeMillis();
             res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,DURCHFLUSS,GESCHWINDIGKEIT,WASSERSTAND from LAU_GL_EL ORDER BY ID,ZEITPUNKT;");
-            System.out.println("Query pipe timeseries: "+(System.currentTimeMillis()-start));
+//            System.out.println("Query pipe timeseries: "+(System.currentTimeMillis()-start));
             int id = Integer.MIN_VALUE;
             Pipe pipe = null;
             int timeIndex = 0;
@@ -1639,7 +1639,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             //Number of materials
             start=System.currentTimeMillis();
             res = st.executeQuery("SELECT COUNT (*) FROM STOFFGROESSE");
-            System.out.println("Query number pollutants: "+(System.currentTimeMillis()-start));
+//            System.out.println("Query number pollutants: "+(System.currentTimeMillis()-start));
             numberOfMaterials = 0;
             if (res.isBeforeFirst()) {
                 res.next();
@@ -1659,7 +1659,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int index = 0;
                 start=System.currentTimeMillis();
                 res = st.executeQuery("SELECT Name, Gesamtabflussmasse FROM STOFFGROESSE order by id");
-                System.out.println("Query poll. names: "+(System.currentTimeMillis()-start));
+//                System.out.println("Query poll. names: "+(System.currentTimeMillis()-start));
                 while (res.next()) {
                     names[index] = res.getString(1);
                     nameMap.put(names[index], index);
@@ -1673,7 +1673,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION/1000, AUSLASTUNG, STOFF\n"
                         + "                         FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT where KONZENTRATION>0\n"
                         + "                         ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
-                System.out.println("Query poll. timeseries: "+(System.currentTimeMillis()-start));
+//                System.out.println("Query poll. timeseries: "+(System.currentTimeMillis()-start));
 //                    res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000. AS FRACHTKGPS,KONZENTRATION/1000., AUSLASTUNG, STOFF"
 //                            + " FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT"
 //                            + " ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");

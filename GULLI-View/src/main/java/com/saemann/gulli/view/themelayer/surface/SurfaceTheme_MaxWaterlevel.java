@@ -48,7 +48,7 @@ public class SurfaceTheme_MaxWaterlevel extends SurfaceThemeLayer {
 //    public final DoubleColorHolder chTrianglesWaterlevel = new DoubleColorHolder(Color.white, Color.blue, "Max Waterlevel");
     public final GradientColorHolder chTrianglesWaterlevel = new GradientColorHolder(0, 0.5, Color.white, Color.blue, 255, "Max Waterlevel");
 
-    public final String layerSurfaceWaterlevel = "TRI_WLMax";
+    public final String layerSurfaceWaterlevel = PaintManager.layerTriangle+"_WLMax";
 
     public final String layerLabelWaterlevel = "TXT_WLMax";
 

@@ -32,7 +32,8 @@ import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriang
 import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
 import com.saemann.gulli.view.PaintManager;
 import com.saemann.gulli.view.themelayer.SurfaceThemeLayer;
-import com.saemann.rgis.view.DoubleColorHolder;
+import com.saemann.rgis.model.GeoPosition;
+import com.saemann.rgis.model.GeoPosition2D;
 import com.saemann.rgis.view.GradientColorHolder;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.shapes.AreaPainting;
@@ -40,11 +41,8 @@ import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.NodePainting;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.ArrayList;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.LinearRing;
-import org.opengis.referencing.operation.TransformException;
 
 /**
  * Coloring the surface cells by the intensity of the contamination
@@ -53,7 +51,7 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class SurfaceTheme_HeatMap extends SurfaceThemeLayer {
 
-    public final String layerSurfaceContaminated = "SURFHEAT";
+    public final String layerSurfaceContaminated = PaintManager.layerTriangle+"HEAT";
     public final GradientColorHolder chSurfaceHeatMap = new GradientColorHolder(0, 1, Color.yellow, Color.red, 255, "HeatMap");
 
     private boolean logarithmic = false;
@@ -101,7 +99,9 @@ public class SurfaceTheme_HeatMap extends SurfaceThemeLayer {
 
                 /////////////////////////////////////
                 try {
-
+                    double[] tempUTMcoordstorage = new double[2];
+                    double[] tempWGScoordstorage = new double[2];
+                    Coordinate tempWGScoordinate = new Coordinate();
                     if (raster instanceof SurfaceMeasurementTriangleRaster) {
                         SurfaceMeasurementTriangleRaster raster = (SurfaceMeasurementTriangleRaster) surface.getMeasurementRaster();
                         synchronized (raster) {
@@ -169,9 +169,12 @@ public class SurfaceTheme_HeatMap extends SurfaceThemeLayer {
                                 }
 
                                 if (asNodes) {
-                                    Coordinate c = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]));
+//                                    Coordinate c = surface.getGeotools().toGlobal(new Coordinate(surface.getTriangleMids()[i][0], surface.getTriangleMids()[i][1]));
+                                    tempUTMcoordstorage[0] = surface.getTriangleMids()[i][0];
+                                    tempUTMcoordstorage[1] = surface.getTriangleMids()[i][1];
+                                    surface.getGeotools().toGlobal(tempUTMcoordstorage, tempWGScoordstorage, true);
 
-                                    NodePainting np = new NodePainting(i, c, chSurfaceHeatMap) {
+                                    NodePainting np = new NodePainting(i, tempWGScoordstorage[0], tempWGScoordstorage[1], chSurfaceHeatMap) {
                                         @Override
                                         public boolean paint(Graphics2D g2) {
 
@@ -189,12 +192,15 @@ public class SurfaceTheme_HeatMap extends SurfaceThemeLayer {
                                     //Convert Coordinates
                                     try {
                                         int[] nodes = surface.getTriangleNodes()[i];
-                                        Coordinate[] coords = new Coordinate[4];
+//                                        Coordinate[] coords = new Coordinate[4];
+                                        ArrayList<GeoPosition2D> liste = new ArrayList<>(4);
                                         for (int j = 0; j < 3; j++) {
-                                            coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+                                            surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]), tempWGScoordinate, tempWGScoordstorage, false);
+                                            liste.add(new GeoPosition(tempWGScoordinate.x, tempWGScoordinate.y));
                                         }
-                                        coords[3] = coords[0];//Close ring
-                                        AreaPainting ap = new AreaPainting(i, chSurfaceHeatMap, surface.getGeotools().gf.createLinearRing(coords)) {
+//                                        coords[3] = coords[0];//Close ring
+                                        liste.add(liste.get(0));
+                                        AreaPainting ap = new AreaPainting(i, chSurfaceHeatMap, liste) {
 
                                             @Override
                                             public boolean paint(Graphics2D g2) {
@@ -305,12 +311,19 @@ public class SurfaceTheme_HeatMap extends SurfaceThemeLayer {
                                         //Convert Coordinates
                                         try {
                                             Coordinate[] coordsUTM = raster.getRectangleBound(x, y);
-                                            Coordinate[] coordsWGS = new Coordinate[5];
+//                                            Coordinate[] coordsWGS = new Coordinate[5];
+//                                            for (int j = 0; j < 4; j++) {
+//                                                coordsWGS[j] = surface.getGeotools().toGlobal(coordsUTM[j]);
+//                                            }
+//                                            coordsWGS[4] = coordsWGS[0];//Close ring
+
+                                            ArrayList<GeoPosition2D> liste = new ArrayList<>(5);
                                             for (int j = 0; j < 4; j++) {
-                                                coordsWGS[j] = surface.getGeotools().toGlobal(coordsUTM[j]);
+                                                surface.getGeotools().toGlobal(coordsUTM[j], tempWGScoordinate, tempWGScoordstorage, false);
+                                                liste.add(new GeoPosition(tempWGScoordinate.x, tempWGScoordinate.y));
                                             }
-                                            coordsWGS[4] = coordsWGS[0];//Close ring
-                                            AreaPainting ap = new AreaPainting(id, chSurfaceHeatMap, surface.getGeotools().gf.createLinearRing(coordsWGS)) {
+
+                                            AreaPainting ap = new AreaPainting(id, chSurfaceHeatMap, liste){//surface.getGeotools().gf.createLinearRing(coordsWGS)) {
                                                 @Override
                                                 public boolean paint(Graphics2D g2) {
                                                     g2.setColor(chSurfaceHeatMap.getGradientColor(frac));
@@ -335,6 +348,7 @@ public class SurfaceTheme_HeatMap extends SurfaceThemeLayer {
 
                     mapViewer.recalculateShapes();
                     mapViewer.recomputeLegend();
+                    mapViewer.repaint();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

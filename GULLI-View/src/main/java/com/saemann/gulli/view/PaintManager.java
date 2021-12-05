@@ -7,8 +7,6 @@ import com.saemann.gulli.core.control.listener.CapacitySelectionListener;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.ParticleListener;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
-import com.saemann.gulli.core.control.particlecontrol.injection.ArealInjection;
-import com.saemann.gulli.core.control.particlecontrol.injection.SurfaceInjection;
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
@@ -43,7 +41,6 @@ import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
 import com.saemann.gulli.core.model.surface.SurfacePathStatistics;
 import com.saemann.gulli.core.model.surface.SurfaceTriangle;
-import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRaster;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementRectangleRaster;
 import com.saemann.gulli.core.model.surface.measurement.TriangleMeasurement;
 import com.saemann.gulli.core.model.timeline.array.ArrayTimeLinePipe;
@@ -69,12 +66,11 @@ import com.saemann.rgis.view.GradientColorHolder;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
 import com.saemann.rgis.view.shapes.AreaPainting;
-import com.saemann.rgis.view.shapes.ArrowPainting;
+//import com.saemann.rgis.view.shapes.ArrowPainting;
 import com.saemann.rgis.view.shapes.LabelPainting;
 import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.LinePainting;
 import com.saemann.rgis.view.shapes.NodePainting;
-import com.saemann.rgis.view.shapes.PaintInfo;
 import java.util.HashMap;
 import java.util.Random;
 import org.geotools.referencing.CRS;
@@ -134,7 +130,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public static final String layerTriangle = "TRI";
     public static final String layerTraingleMeasurement = layerTriangle + "M";
-
+   
     public static final String layerInjectionLocation = "INJ_LOC";
     private final ColorHolder chInjectionLocation = new ColorHolder(Color.green, "Injection");
     public static final String layerManholesOverspilling = "SPILL";
@@ -463,7 +459,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             Coordinate c0 = inlet.getPosition().lonLatCoordinate();
                             Coordinate c1 = target.lonLatCoordinate();
 
-                            ArrowPainting ap = new ArrowPainting(i, new Coordinate[]{c0, c1}, chinletPipe);
+                            LinePainting ap = new LinePainting(i, new Coordinate[]{c0, c1}, chinletPipe);
                             mapViewer.addPaintInfoToLayer(layerInletsPipe, ap);
 
                         }
@@ -488,52 +484,63 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 Coordinate[] list = new Coordinate[2];
                 list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
                 list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
-
+                LinePainting ap = null;
                 if (pipeShow == pipeShow.GREY) {
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes);
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes);
+                    if (drawPipesAsArrows) {
+                        ap.arrowheadvisibleFromZoom = 0;
+                    } else {
+                        ap.arrowheadvisibleFromZoom = Integer.MAX_VALUE;
                     }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
                 } else if (pipeShow == pipeShow.WATERTYPE) {
-                    {
-                        try {
-                            int w = 0;//Integer.parseInt(pipe.tags.get("Water"));
-                            if (pipe.getWaterType() == Capacity.SEWER_TYPE.DRAIN) {
-                                w = 1;
-                            }
-                            if (pipe.getWaterType() == Capacity.SEWER_TYPE.MIX) {
-                                w = 2;
-                            }
-                            if (pipe.getWaterType() == Capacity.SEWER_TYPE.SEWER) {
-                                w = 3;
-                            }
 
-                            if (w == 1) {
-                                LinePainting ap;
-                                if (drawPipesAsArrows) {
-                                    ap = new ArrowPainting(pipe.getAutoID(), list, chPipes1);
-                                } else {
-                                    ap = new LinePainting(pipe.getAutoID(), list, chPipes1);
-                                }
-                                mapViewer.addPaintInfoToLayer(layerPipes1, ap);
-                            } else if (w == 2) {
-                                LinePainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes2);
-                                mapViewer.addPaintInfoToLayer(layerPipes2, ap);
-                            } else if (w == 3) {
-                                LinePainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes3);
-                                mapViewer.addPaintInfoToLayer(layerPipes3, ap);
-                            } else if (w == 8) {
-                                LinePainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes2);
-                                mapViewer.addPaintInfoToLayer(layerPipes4, ap);
+                    try {
+                        int w = 0;//Integer.parseInt(pipe.tags.get("Water"));
+                        if (pipe.getWaterType() == Capacity.SEWER_TYPE.DRAIN) {
+                            w = 1;
+                        }
+                        if (pipe.getWaterType() == Capacity.SEWER_TYPE.MIX) {
+                            w = 2;
+                        }
+                        if (pipe.getWaterType() == Capacity.SEWER_TYPE.SEWER) {
+                            w = 3;
+                        }
+
+                        if (w == 1) {
+                            ap = new LinePainting(pipe.getAutoID(), list, chPipes1);;
+                            if (drawPipesAsArrows) {
+                                ap.arrowheadvisibleFromZoom = 0;
+//                                    ap = new ArrowPainting(pipe.getAutoID(), list, chPipes1);
+                            } else {
+                                ap.arrowheadvisibleFromZoom = Integer.MAX_VALUE;
+//                                    ap = new LinePainting(pipe.getAutoID(), list, chPipes1);
                             }
-                        } catch (Exception exception) {
-                            LinePainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes);
-                            mapViewer.addPaintInfoToLayer(layerPipes, ap);
+                            mapViewer.addPaintInfoToLayer(layerPipes1, ap);
+                        } else if (w == 2) {
+                            ap = new LinePainting(pipe.getAutoID(), list, chPipes2);
+                            mapViewer.addPaintInfoToLayer(layerPipes2, ap);
+                        } else if (w == 3) {
+                            ap = new LinePainting(pipe.getAutoID(), list, chPipes3);
+                            mapViewer.addPaintInfoToLayer(layerPipes3, ap);
+                        } else if (w == 8) {
+                            ap = new LinePainting(pipe.getAutoID(), list, chPipes2);
+                            mapViewer.addPaintInfoToLayer(layerPipes4, ap);
+                        }
+                    } catch (Exception exception) {
+                        ap = new LinePainting(pipe.getAutoID(), list, chPipes);
+                        mapViewer.addPaintInfoToLayer(layerPipes, ap);
+                    }
+                    if (ap != null) {
+                        if (drawPipesAsArrows) {
+                            ap.arrowheadvisibleFromZoom = 0;
+                        } else {
+                            ap.arrowheadvisibleFromZoom = Integer.MAX_VALUE;
                         }
                     }
+
                 } else if (pipeShow == PIPESHOW.CONCENTRATION) {
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             if (control.getScenario().getMeasurementsPipe().getActualTimeIndex() > 1) {
@@ -554,13 +561,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
+//                    if (!drawPipesAsArrows) {
+//                        ap.arrowheadvisibleFromZoom = 200;
+//                    }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
                 } else if (pipeShow == PIPESHOW.CONTAMINATED) {
 
-                    LinePainting ap;
                     {
                         final ColorHolder ch = chPipesOverlay;
                         chPipesOverlay.setColor(Color.red);
@@ -590,12 +596,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         };
                         mapViewer.addPaintInfoToLayer(layerPipeOverly, ap);
 //                    }
-                        if (!drawPipesAsArrows) {
-                            ap.arrowheadvisibleFromZoom = 200;
-                        }
+//                        if (!drawPipesAsArrows) {
+//                            ap.arrowheadvisibleFromZoom = 200;
+//                        }
                     }
                 } else if (pipeShow == PIPESHOW.MASS) {
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             int index = pipe.getMeasurementTimeLine().getContainer().getActualTimeIndex();
@@ -617,9 +623,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
+//                    if (!drawPipesAsArrows) {
+//                        ap.arrowheadvisibleFromZoom = 200;
+//                    }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
 
                     try {
@@ -633,7 +639,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     } catch (Exception e) {
                     }
                 } else if (pipeShow == PIPESHOW.VELOCITY) {
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             double refV = 1;
@@ -652,12 +658,9 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
                 } else if (pipeShow == PIPESHOW.WATERLEVEL) {
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             double h = pipe.getStatusTimeLine().getWaterlevel();
@@ -675,9 +678,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
                 } else if (pipeShow == PIPESHOW.DIRECTION) {
                     float max = Float.NEGATIVE_INFINITY;
@@ -700,7 +700,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         layer = layerPipesDirChange;
                     }
 
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, ch) {
+                    ap = new LinePainting(pipe.getAutoID(), list, ch) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             g2.setColor(this.getColor().getColor());
@@ -709,9 +709,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
                     mapViewer.addPaintInfoToLayer(layer, ap);
                 } else if (pipeShow == PIPESHOW.STABILITAETSINDEX) {
 
@@ -730,7 +727,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         color = Color.red;
                     }
                     final Color c = color;
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             g2.setColor(c);
@@ -739,13 +736,11 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
+
                     mapViewer.addPaintInfoToLayer(layer, ap);
                 } else if (pipeShow == PIPESHOW.SPARSETIMELINE) {
                     String layer = layerPipes;
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes) {
                         @Override
                         public boolean paint(Graphics2D g2) {
                             if (pipe.getStatusTimeLine() instanceof SparseTimelinePipe) {
@@ -763,16 +758,19 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             return true;
                         }
                     };
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
+
                     mapViewer.addPaintInfoToLayer(layer, ap);
                 } else {
-                    ArrowPainting ap = new ArrowPainting(pipe.getAutoID(), list, chPipes);
-                    if (!drawPipesAsArrows) {
-                        ap.arrowheadvisibleFromZoom = 200;
-                    }
+                    ap = new LinePainting(pipe.getAutoID(), list, chPipes);
+
                     mapViewer.addPaintInfoToLayer(layerPipes, ap);
+                }
+                if (ap != null) {
+                    if (drawPipesAsArrows) {
+                        ap.arrowheadvisibleFromZoom = 0;
+                    } else {
+                        ap.arrowheadvisibleFromZoom = Integer.MAX_VALUE;
+                    }
                 }
             }
 
@@ -1858,7 +1856,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         if (hp.getPositionTrace().size() < 2) {
                             continue;
                         }
-                        ArrowPainting ap = new ArrowPainting(p.getId(), hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]), chTravelPath);
+                        LinePainting ap = new LinePainting(p.getId(), hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]), chTravelPath);
                         layer.add(ap, false);
                     }
 
@@ -1921,7 +1919,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             }
                         }
 
-                        ArrowPainting ap = new ArrowPainting(p.getId(), hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]), ch);
+                        LinePainting ap = new LinePainting(p.getId(), hp.getPositionTrace().toArray(new Coordinate[hp.getPositionTrace().size()]), ch);
                         mapViewer.addPaintInfoToLayer(key, ap);
                     }
                     mapViewer.recalculateShapes();
@@ -2077,7 +2075,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             double[] mid = surface.getTriangleMids()[i];
                             Coordinate midPoint = surface.getGeotools().toGlobal(new Coordinate(mid[0], mid[1]));
                             Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(mid[0] + velocityFactor * vx, mid[1] + velocityFactor * vy));
-                            ArrowPainting av = new ArrowPainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
+                            LinePainting av = new LinePainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
                             mapViewer.addPaintInfoToLayer(layerArrow, av);
                         }
                     } else {
@@ -2120,7 +2118,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
                                     Coordinate wlStart = surface.getGeotools().toGlobal(new Coordinate(startX, startY));
                                     Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(startX + velocityFactor * v * dTN[0], startY + velocityFactor * v * dTN[1]));
-                                    ArrowPainting av = new ArrowPainting(i, new Coordinate[]{wlStart, vTtarget}, chDirectionPRO);
+                                    LinePainting av = new LinePainting(i, new Coordinate[]{wlStart, vTtarget}, chDirectionPRO);
                                     mapViewer.addPaintInfoToLayer(layerHistory, av);
                                 }
                             }
@@ -2155,7 +2153,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                             double[] mid = surface.getTriangleMids()[i];
                             Coordinate midPoint = surface.getGeotools().toGlobal(new Coordinate(mid[0], mid[1]));
                             Coordinate vTtarget = surface.getGeotools().toGlobal(new Coordinate(mid[0] + slopeFactor * v[0], mid[1] + slopeFactor * v[1]));
-                            ArrowPainting av = new ArrowPainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
+                            LinePainting av = new LinePainting(i, new Coordinate[]{midPoint, vTtarget}, chSurfaceVelocity);
                             mapViewer.addPaintInfoToLayer(layerArrow, av);
                         } catch (Exception exception) {
                         }
@@ -2800,10 +2798,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             Coordinate[] list = new Coordinate[2];
             list[0] = pipe.getFlowInletConnection().getPosition().lonLatCoordinate();
             list[1] = pipe.getFlowOutletConnection().getPosition().lonLatCoordinate();
-            ArrowPainting p;
+            LinePainting p;
 
             if (f < 1) {
-                p = new ArrowPainting(pipe.getAutoID(), list, chPipes) {
+                p = new LinePainting(pipe.getAutoID(), list, chPipes) {
                     @Override
                     public boolean paint(Graphics2D g2) {
                         try {
@@ -2824,7 +2822,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 };
             } else {
                 ColorHolder c = chFillrate[Math.min(101, Math.max((int) f, 0))];
-                p = new ArrowPainting(pipe.getAutoID(), list, c) {
+                p = new LinePainting(pipe.getAutoID(), list, c) {
                     @Override
                     public boolean paint(Graphics2D g2) {
                         try {
@@ -3053,7 +3051,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 posBotRightSurfaceCS = geoToolsSurface.toUTM(new Coordinate(br.y, br.x));
 
 //                if (surface != null) {
-                    //make a list of all triangles, that are currently shown on the map.
+                //make a list of all triangles, that are currently shown on the map.
 //                    ArrayList<Integer> shownTriangleIDs = new ArrayList<>(surface.getMaxTriangleID() + 1);
 //                    this.showSurfaceTriangle = new boolean[surface.getTriangleMids().length];
 //                    for (int i = 0; i < surface.getTriangleMids().length; i++) {
@@ -3072,7 +3070,6 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 //                        index++;
 //                    }
 //                    this.shownSurfaceTriangles = tris;
-
 //                }
             }
 
@@ -3082,7 +3079,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         }
     }
 
-    public ArrowPainting calcArrowPainting(double triangleMidX, double triangleMidY, double vX, double vY, long id, ColorHolder ch) {
+    public LinePainting calcArrowPainting(double triangleMidX, double triangleMidY, double vX, double vY, long id, ColorHolder ch) {
         Coordinate start = null;
         try {
             start = geoToolsSurface.toGlobal(new Coordinate(triangleMidX, triangleMidY));
@@ -3100,7 +3097,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     .getLogger(PaintManager.class
                             .getName()).log(Level.SEVERE, null, ex);
         }
-        ArrowPainting ap = new ArrowPainting(id, new Coordinate[]{start, target}, ch);
+        LinePainting ap = new LinePainting(id, new Coordinate[]{start, target}, ch);
+        if (drawPipesAsArrows) {
+            ap.arrowheadvisibleFromZoom = 0;
+        } else {
+            ap.arrowheadvisibleFromZoom = Integer.MAX_VALUE;
+        }
         return ap;
     }
 
@@ -3179,7 +3181,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     System.out.println(" outs: " + outs + " vx:" + vx);
                 }
 
-                ArrowPainting ap = calcArrowPainting(posX, posY, vxn, vyn, i, ch);
+                LinePainting ap = calcArrowPainting(posX, posY, vxn, vyn, i, ch);
                 ap.arrowheadvisibleFromZoom = 40;
                 mapViewer.addPaintInfoToLayer(layerPipes3, ap);
 //                break;
@@ -3248,7 +3250,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     } else {
                         continue;
                     }
-                    ArrowPainting ap = new ArrowPainting(s.id, new Coordinate[]{c0, c1}, chShortcut);
+                    LinePainting ap = new LinePainting(s.id, new Coordinate[]{c0, c1}, chShortcut);
                     mapViewer.addPaintInfoToLayer(layerShortcut, ap);
 
                 } catch (TransformException ex) {
