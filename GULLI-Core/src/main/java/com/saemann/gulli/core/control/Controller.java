@@ -67,8 +67,6 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurementSection;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;

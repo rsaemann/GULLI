@@ -51,11 +51,26 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class HE_SurfaceIO {
 
+    /**
+     * @deprecated A polygon filter. If it is set, only parts of the surfac,e
+     * that lay inside the polygon will be loaded. For Debug processes!
+     */
     private static MultiPolygon testfilter = null;//initPolygon();
 
     public static boolean autoLoadNeumannNeighbours = false;
 
+    /**
+     * Object, which indicates the current status of loading. This can be set by
+     * the GUI to receive information of the current loading state.
+     */
     public static Action loadingAction = null;
+
+    /**
+     * Reorder the array of vertices, if there are unused ones. Exclude them and
+     * set new indices in the triangle reference. This is performed in the
+     * loadSurface step.
+     */
+    public static boolean condenseUnusedVertices = true;
 
 //    public static MultiPolygon initPolygon() {
 //        GeometryFactory gf = new GeometryFactory();
@@ -68,6 +83,16 @@ public class HE_SurfaceIO {
 //        Polygon polygon = gf.createPolygon(cs);
 //        return gf.createMultiPolygon(new Polygon[]{polygon});
 //    }
+    /**
+     * Create the complete surface topography and topology (neighbour
+     * references) The required files will be searched from the given directory.
+     * The directory should include the X.dat, trimod1.dat and trimad2.dat
+     *
+     * @param directory
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
     public static Surface loadSurface(File directory) throws FileNotFoundException, IOException {
         if (!directory.isDirectory()) {
             if (directory.isFile()) {
@@ -381,10 +406,10 @@ public class HE_SurfaceIO {
             loadingAction.updateProgress();
         }
 
-        String seperator = " ";
-        Pattern splitter = Pattern.compile(seperator);
+//        String seperator = " ";
+//        Pattern splitter = Pattern.compile(seperator);
         int lines = 0;
-        int parts = 0;
+//        int parts = 0;
 
         NumberConverter nc = new NumberConverter(br);
         double[] dataparts = new double[3];
@@ -424,6 +449,7 @@ public class HE_SurfaceIO {
         int numberofTriangles = Integer.parseInt(line.split(" ")[0]);
         int[][] triangleIndizes = new int[numberofTriangles][3];
         double[][] triangleMidPoints = new double[numberofTriangles][3];
+        boolean[] verticesUsed = new boolean[numberofVertices];
         index = 0;
         double oneThird = 1. / 3.;
         nc.setReader(br);
@@ -438,17 +464,20 @@ public class HE_SurfaceIO {
         }
 
         while (br.ready()) {
-//            line = br.readLine();
-//            lines++;
-//            values = splitter.split(line);//line.split(seperator);
-//            parts += values.length;
-//            int first = Integer.parseInt(values[0]);
-//            int second = Integer.parseInt(values[1]);
-//            int third = Integer.parseInt(values[2]);
             if (nc.readNextLineInteger(integerParts)) {
                 first = integerParts[0];
                 second = integerParts[1];
                 third = integerParts[2];
+
+                if (first >= 0) {
+                    verticesUsed[first] = true;
+                }
+                if (second >= 0) {
+                    verticesUsed[second] = true;
+                }
+                if (third >= 0) {
+                    verticesUsed[third] = true;
+                }
 
                 triangleIndizes[index][0] = first;
                 triangleIndizes[index][1] = second;
@@ -470,6 +499,60 @@ public class HE_SurfaceIO {
         fr.close();
 //        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
 
+        int used = 0;
+        for (int i = 0; i < verticesUsed.length; i++) {
+            if (verticesUsed[i]) {
+                used++;
+            }
+        }
+        System.out.println(used + " / " + verticesUsed.length + " Vertices are used by triangles ("+((int)(used*100/(double)verticesUsed.length))+"%)");
+        if (used < verticesUsed.length && condenseUnusedVertices) {
+            long start = System.currentTimeMillis();
+            if (loadingAction != null) {
+                loadingAction.progress = 0.f;
+                loadingAction.hasProgress = true;
+                loadingAction.description = "Surface: Exclude " + (verticesUsed.length - used) + " unused Vertices...";
+                loadingAction.updateProgress();
+            }
+            double[][] verticesNew = new double[used][3];
+            HashMap<Integer, Integer> oldToNew = new HashMap<>(used);
+            int newIndex = 0;
+            //Reorder Vertices
+            for (int i = 0; i < verticesUsed.length; i++) {
+                if (verticesUsed[i]) {
+                    oldToNew.put(i, newIndex);
+                    verticesNew[newIndex] = vertices[i];
+                    newIndex++;
+                }
+                if (i % 10000 == 0 && loadingAction != null) {
+                    loadingAction.progress = i / (verticesUsed.length * 0.5f);
+                    loadingAction.updateProgress();
+                }
+            }
+
+            //Reorder Triangle indices
+            for (int i = 0; i < triangleIndizes.length; i++) {
+                triangleIndizes[i][0] = oldToNew.get(triangleIndizes[i][0]);
+                triangleIndizes[i][1] = oldToNew.get(triangleIndizes[i][1]);
+                triangleIndizes[i][2] = oldToNew.get(triangleIndizes[i][2]);
+                if (i % 10000 == 0 && loadingAction != null) {
+                    loadingAction.progress = 0.5f + i / (numberofTriangles * 0.5f);
+                    loadingAction.updateProgress();
+                }
+            }
+            numberofVertices=used;
+            vertices=null;
+            vertices = verticesNew;
+            verticesUsed=null;
+            oldToNew.clear();
+            oldToNew=null;
+            System.out.println("Reordering vertices took " + ((System.currentTimeMillis() - start)) + " ms.");
+            if (loadingAction != null) {
+                loadingAction.progress = 1;
+                loadingAction.updateProgress();
+            }
+        }
+
         //fileNeighbours
         if (loadingAction != null) {
             loadingAction.progress = 0.f;
@@ -484,22 +567,17 @@ public class HE_SurfaceIO {
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
         integerParts = new int[9];
+        lines = 0;
         try {
             nc.setReader(br);
             while (br.ready()) {
-//                line = br.readLine();
                 lines++;
-//                values = splitter.split(line);//line.split(seperator);
-//                parts += values.length;
-//                int first = Integer.parseInt(values[0]);
-//                int second = Integer.parseInt(values[1]);
-//                int third = Integer.parseInt(values[2]);
                 if (nc.readNextLineInteger(integerParts)) {
                     neighbours[index][0] = integerParts[0];
                     neighbours[index][1] = integerParts[1];
                     neighbours[index][2] = integerParts[2];
 
-                    // -1 = House no flow boundary
+                    // -1 = House: no flow boundary
                     // -2 = outflow boundary / trespassable
                     if (integerParts[0] < 0) {
                         if (integerParts[6] == 1) {

@@ -60,12 +60,12 @@ public class Dispersion2D_Dispersivity implements Dispersion2D_Calculator {
     @Override
     public void calculateDiffusionSQRT(double vx, double vy, Surface surface, int triangleID, double[] tofill) {
 
-        double h = surface.getActualWaterlevel(triangleID);
-        if (h == 0) {
-            tofill[0] = 0;
-            tofill[1] = 0;
-            return;
-        }
+//        double h = surface.getActualWaterlevel(triangleID);
+//        if (h == 0) {
+//            tofill[0] = 0;
+//            tofill[1] = 0;
+//            return;
+//        }
         
         double v=(Math.sqrt(vx * vx + vy * vy) );
         double Dl=v*al;

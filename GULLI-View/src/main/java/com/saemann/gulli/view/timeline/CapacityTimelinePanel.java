@@ -2,6 +2,7 @@ package com.saemann.gulli.view.timeline;
 
 import com.itextpdf.awt.PdfGraphics2D;
 import com.itextpdf.text.Document;
+import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -66,6 +67,7 @@ import com.saemann.gulli.core.model.timeline.array.TimeLinePipe;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
+import com.saemann.rgis.view.PDFFontmapper;
 import org.freehep.graphicsio.emf.EMFGraphics2D;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -86,7 +88,7 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
 import com.saemann.gulli.view.timeline.customCell.StrokeEditor;
-import java.awt.geom.Ellipse2D;
+import java.awt.event.ContainerAdapter;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import javax.swing.JOptionPane;
@@ -129,14 +131,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     public static Locale FormatLocale = StartParameters.formatLocale;
 
     protected DecimalFormat numberFormat;
-    protected SimpleDateFormat dateFormat=new SimpleDateFormat();
+    protected SimpleDateFormat dateFormat = new SimpleDateFormat();
     protected XYToolTipGenerator tooltipGenerator = new StandardXYToolTipGenerator() {
         @Override
         public String generateToolTip(XYDataset dataset, int series, int item) {
 //            System.out.println("search for tooltip in ");
 //            return "Toll";
-                return "<html>"+numberFormat.format(dataset.getYValue(series, item))+" "+((SeriesKey)dataset.getSeriesKey(series)).unit+"<br>"+
-                        ((SeriesKey)dataset.getSeriesKey(series)).name+"<br>"+dateFormat.format(dataset.getXValue(series, item))+"</html>";
+            return "<html>" + numberFormat.format(dataset.getYValue(series, item)) + " " + ((SeriesKey) dataset.getSeriesKey(series)).unit + "<br>"
+                    + ((SeriesKey) dataset.getSeriesKey(series)).name + "<br>" + dateFormat.format(dataset.getXValue(series, item)) + "</html>";
 //            return "Series " + series + " Item: " + item + " Value: "
 //                    + dataset.getXValue(series, item) + ";"
 //                    + dataset.getYValue(series, item);
@@ -299,11 +301,27 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                panelChart.setMaximumDrawHeight(getHeight());
-                panelChart.setMaximumDrawWidth(getWidth());
+                
+                try {
+                    panelChart.setMaximumDrawHeight(getHeight());
+                    panelChart.setMaximumDrawWidth(getWidth());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            @Override
+            public void componentShown(ComponentEvent e) {
+                try {
+                    panelChart.setMaximumDrawHeight(getHeight());
+                    panelChart.setMaximumDrawWidth(getWidth());
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
             }
 
         });
+        
 
     }
 
@@ -696,7 +714,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         // other TimeLinePipe implementation
         if (tl != null && tl.getTimeContainer() != null) {
-            
+
             String[] materialnames = tl.getMaterialNames();
             if (materialnames != null) {
 //                System.out.println("Build pipe timelines for " + tl.getMaterialNames().length + " materials");
@@ -960,17 +978,17 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         if (!Double.isFinite(cE)) {
                             cE = 0;
                         }
-                        float mft=tlm.getMassFlux(i, m);
+                        float mft = tlm.getMassFlux(i, m);
 //                        if(mft>0)System.out.println("Massflux "+time+"\t "+mft+" kg/s"+tlm.getReferenceLength());
-                        mes_massFlux_Type.get(m).addOrUpdate(time,mft);// cE * dischargeE);
+                        mes_massFlux_Type.get(m).addOrUpdate(time, mft);// cE * dischargeE);
                         mes_concentration_Type.get(m).addOrUpdate(time, cE);
 
                         massFluxSum += (cS * dischargeS + cE * dischargeE) * 0.5;
                         massSum += cE * vol_c;
                     }
-                    mass_total_accumulation += dt*tlm.getMassFlux(i);
+                    mass_total_accumulation += dt * tlm.getMassFlux(i);
                 }
-                float mftotal=tlm.getMassFlux(i);
+                float mftotal = tlm.getMassFlux(i);
 //                System.out.println("massflux direct: "+mftotal+" \t assembled: "+massFluxSum);
                 m_massflux.addOrUpdate(time, mftotal);
                 m_m.addOrUpdate(time, massSum);
@@ -1018,7 +1036,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.collection.addSeries(hpipe);
         this.collection.addSeries(vol);
 
-        if ((refMassfluxTotal.getMaxY() > 0||refMassfluxTotal.getMinY()<0 )&& ref_massFlux_Type.size() > 1) {
+        if ((refMassfluxTotal.getMaxY() > 0 || refMassfluxTotal.getMinY() < 0) && ref_massFlux_Type.size() > 1) {
             this.collection.addSeries(refMassfluxTotal);
         }
         for (int i = 0; i < ref_massFlux_Type.size(); i++) {
@@ -1511,7 +1529,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
         int indexDataset = 0;
         int indexSeries = 0;
-        int showncounter=0;
+        int showncounter = 0;
 //        System.out.println("checkboxes: "+checkboxes.length);
         for (int i = 0; i < checkboxes.length; i++) {
             try {
@@ -1544,7 +1562,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         axis2.setAutoRangeIncludesZero(false);
                         plot.setRangeAxis(indexDataset, axis2);
                         plot.mapDatasetToRangeAxis(indexDataset, indexDataset);
-                        if(key.isVisible()){
+                        if (key.isVisible()) {
                             showncounter++;
                         }
                     } else {
@@ -1693,16 +1711,14 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         JFreeChart chart;
         if (showSimulationTime) {
             chart = ChartFactory.createTimeSeriesChart(title, "Time [hrs:min]", "", collection, true, true, false);
-            dateFormat=new SimpleDateFormat("HH:mm:ss");
+            dateFormat = new SimpleDateFormat("HH:mm:ss");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         } else {
             chart = ChartFactory.createTimeSeriesChart(title, "Day time", "", collection, true, true, false);
-            dateFormat=new SimpleDateFormat("dd.MM.YYYY HH:mm:ss");
+            dateFormat = new SimpleDateFormat("dd.MM.YYYY HH:mm:ss");
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         }
 
-        
-        
         XYPlot plot = chart.getXYPlot();
 
         try {
@@ -1821,15 +1837,22 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             panelChart.getChart().setBackgroundPaint(Color.white);
                             Rectangle rec = new Rectangle(0, 0, panelChart.getMaximumDrawWidth(), panelChart.getMaximumDrawHeight());
 
-                            System.out.println("craw in size " + rec + " instead of " + panelChart.getMaximumSize());
-
+//                            System.out.println("draw in size " + rec + " instead of " + panelChart.getMaximumSize());
                             Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
                             FileOutputStream fos = new FileOutputStream(output);
                             PdfWriter writer = PdfWriter.getInstance(doc, fos);
+//                            writer.setPDFXConformance(PdfWriter.PDFX32002);
+                            writer.setPdfVersion(PdfWriter.VERSION_1_5);
+//                            System.out.println("Create PDF/X3 - PDF 1.5");
                             doc.open();
                             PdfContentByte cb = writer.getDirectContent();
                             PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
-                            PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
+                            FontFactory.defaultEmbedding = true;
+                            PDFFontmapper.forceEmbeddedFonts = true;
+                            PDFFontmapper fontmapper = new PDFFontmapper();
+
+                            PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight(), fontmapper);
+
                             g2d.translate(-surroundingContainer.getX(), 0);// -surroundingContainer.getY());
                             panelChart.getChart().draw(g2d, rec);
                             cb.addTemplate(tp, 25, 200);

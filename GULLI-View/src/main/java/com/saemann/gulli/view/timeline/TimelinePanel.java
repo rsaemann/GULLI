@@ -3,6 +3,7 @@ package com.saemann.gulli.view.timeline;
 import com.itextpdf.awt.PdfGraphics2D;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -381,6 +382,7 @@ public class TimelinePanel extends JPanel {
     private void addPDFexport() {
         JPopupMenu menu = this.panelChart.getPopupMenu();
         try {
+            
             for (int i = 0; i < menu.getComponentCount(); i++) {
                 if (menu.getComponent(i) instanceof JMenu) {
                     JMenu m = (JMenu) menu.getComponent(i);
@@ -415,12 +417,16 @@ public class TimelinePanel extends JPanel {
                                         panelChart.getChart().setBackgroundPaint(Color.white);
                                         Rectangle rec = TimelinePanel.this.getBounds();
                                         Document doc = new Document(new com.itextpdf.text.Rectangle(0, 0, rec.width, rec.height));
+                                        
                                         FileOutputStream fos = new FileOutputStream(output);
                                         PdfWriter writer = PdfWriter.getInstance(doc, fos);
+                                        
                                         doc.open();
                                         PdfContentByte cb = writer.getDirectContent();
                                         PdfTemplate tp = cb.createTemplate((float) rec.getWidth(), (float) rec.getHeight());
+                                        
                                         PdfGraphics2D g2d = new PdfGraphics2D(cb, (float) rec.getWidth(), (float) rec.getHeight());
+                                        
                                         g2d.translate(-getX(), -getY());
                                         panelChart.getChart().draw(g2d, rec);
                                         cb.addTemplate(tp, 25, 200);
@@ -449,7 +455,7 @@ public class TimelinePanel extends JPanel {
             }
         } catch (java.lang.NoClassDefFoundError e) {
             //If itexpPDF libraries are not loaded. do not break creation of this panel.
-            System.err.println("Missing libraries for enabling plot pdf export: itextpdf_5.5.1.jar");
+            System.err.println("Missing libraries for enabling plot pdf export: itextpdf_5.5.13.2.jar");
             e.printStackTrace();
         }
     }
