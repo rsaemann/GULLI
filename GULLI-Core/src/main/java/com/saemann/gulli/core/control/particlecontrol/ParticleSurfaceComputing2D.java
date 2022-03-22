@@ -364,8 +364,14 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 break;
             case STEPSPLICIT:
                 actualisedTime = surfaceTimeIndexDoubleEnd + (surfaceTimeIndexDoubleStart - surfaceTimeIndexDoubleEnd) * (timeLeft / dt);
-                tempVelocity = surface.getTriangleVelocity(cellID, (int) actualisedTime);
-                tempVelocity2 = surface.getTriangleVelocity(cellID, (int) actualisedTime + 1);
+                try {
+                    tempVelocity = surface.getTriangleVelocity(cellID, (int) actualisedTime);
+                    tempVelocity2 = surface.getTriangleVelocity(cellID, (int) actualisedTime + 1);
+
+                } catch (Exception e) {
+                    System.err.println("Problem when calculating the intermediate timestep. DT=" + dt + "  timeleft=" + timeLeft + "   -> factor=" + timeLeft / dt + "  ");
+                    throw e;
+                }
                 particlevelocity[0] = tempVelocity[0] + (tempVelocity2[0] - tempVelocity[0]) * (actualisedTime % 1.);
                 particlevelocity[1] = tempVelocity[1] + (tempVelocity2[1] - tempVelocity[1]) * (actualisedTime % 1.);
                 break;
@@ -915,6 +921,12 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     washToPipesystem(p, cellID);
                 }
                 break;
+            } else {
+                if (temp_barycentricWeights[0] < -1000) {
+                    System.err.println("something is wrong reset the particle " + p);
+                    moveToSurroundingCell(p, vertex0, vertex1, vertex2);
+                    break;
+                }
             }
             /**
              * The lengthfactor multiplied with the movement vector hits exactly
@@ -929,17 +941,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
 
             }
 
-            //Test if the barycnetric weight are enough to calculate the position
-//            double fraction0 = temp_barycentricWeights[2] / (temp_barycentricWeights[1] + temp_barycentricWeights[2]);
-//            double fraction1 = temp_barycentricWeights[0] / (temp_barycentricWeights[0] + temp_barycentricWeights[2]);
-//            double fraction2 = temp_barycentricWeights[1] / (temp_barycentricWeights[1] + temp_barycentricWeights[0]);
-//            if (bwindex == 0) {
-//                System.out.println("BW Index 0: edgefactor: " + st12[1] + "   weights: " + fraction0 + " / " + fraction1 + " / " + fraction2 + " \tDiff: " + (fraction0 - st12[1]));
-//            } else if (bwindex == 1) {
-//                System.out.println("BW Index 1: edgefactor: " + st20[1] + "   weights: " + fraction0 + " / " + fraction1 + " / " + fraction2 + " \tDiff: " + (fraction1 - st20[1]));
-//            } else /*if (bwindex == 2)*/ {
-//                System.out.println("BW Index 2: edgefactor: " + st01[1] + "   weights: " + fraction0 + " / " + fraction1 + " / " + fraction2 + " \tDiff: " + (fraction2 - st01[1]));
-//            }
             if (lengthfactor >= 1) {
                 //No intersection. Particle can stay inside this cell.
                 //But Barycentric weighting said, it is outside the cell.
@@ -1086,6 +1087,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                                         surface.getMeasurementRaster().measureParticle(simulationtime, p, lengthfactor * timeLeft, threadindex);
                                     }
                                     timeLeft -= (1. - lengthfactor);
+                                    if (timeLeft > dt) {
+                                        System.err.println("10: lengthfactor=" + lengthfactor + "  timeleft->" + timeLeft);
+                                    }
                                     break;
                                 }
                             } else {
@@ -1125,14 +1129,6 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                         }
                     }
 
-                    //test if new cell contains position
-//                    node0 = surface.getTriangleNodes()[cellIDnew][0];
-//                    node1 = surface.getTriangleNodes()[cellIDnew][1];
-//                    node2 = surface.getTriangleNodes()[cellIDnew][2];
-//
-//                    vertex0 = surface.getVerticesPosition()[node0];
-//                    vertex1 = surface.getVerticesPosition()[node1];
-//                    vertex2 = surface.getVerticesPosition()[node2];
                     internal.readGeometries(cellIDnew);
                     GeometryTools.fillBarycentricWeighting(temp_barycentricWeights, vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], posxneu, posyneu);
                     if (temp_barycentricWeights[0] < 0 || temp_barycentricWeights[1] < 0 || temp_barycentricWeights[2] < 0) {
@@ -1169,25 +1165,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     }
                     //PArticle tries to move over the edge into an undefined area
                     if (slidealongEdges && !isprojecting) {
-//                        double f;
-//                        status = 120;
                         internal.projectToEdge();
-//                        if (bwindex == 0) {
-//                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex1[0], vertex1[1], vertex2[0], vertex2[1], tempProjection);
-//                            tempPosLow = vertex1;
-//                            tempPosUp = vertex2;
-//                        } else if (bwindex == 1) {
-//                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex2[0], vertex2[1], vertex0[0], vertex0[1], tempProjection);
-//                            tempPosLow = vertex2;
-//                            tempPosUp = vertex0;
-//                        } else if (bwindex == 2) {
-//                            f = GeometryTools.projectPointToLine(posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1], tempProjection);
-//                            tempPosLow = vertex0;
-//                            tempPosUp = vertex1;
-//                        } else {
-//                            System.err.println("wrong edge index " + bwindex);
-//                            f = 0;
-//                        }
                         if (f < 0) {
                             cellIDnew = surface.getNeighbours()[cellID][(bwindex + 2) % 3];
 
@@ -1493,6 +1471,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         }
     }
 
+    /**
+     * @deprecated
+     */
     private void calculateLengthfactorOld() {
         //Old (not so high performance version, wehere all sections were calculated
         st01 = GeometryTools.lineIntersectionST(st01, posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
@@ -1584,6 +1565,9 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             } else {
                 lengthfactor = GeometryTools.lineIntersectionS(posxalt, posyalt, posxneu, posyneu, vertex0[0], vertex0[1], vertex1[0], vertex1[1]);
             }
+//            if (lengthfactor > 10000) {
+//                System.out.println("bwindex: "+bwindex+" weights={"+temp_barycentricWeights[0]+", "+temp_barycentricWeights[0]+", "+temp_barycentricWeights[0]+"} ");
+//            }
         }
 
         public void zigzagMovement() {

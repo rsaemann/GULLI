@@ -3434,4 +3434,15 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         return spatialReferenceCode;
     }
 
+    public boolean cellContainsPosition(int cellID, double x, double y) {
+        int node0 = getTriangleNodes()[cellID][0];
+        int node1 = getTriangleNodes()[cellID][1];
+        int node2 = getTriangleNodes()[cellID][2];
+
+        double[] vertex0 = getVerticesPosition()[node0];
+        double[] vertex1 = getVerticesPosition()[node1];
+        double[] vertex2 = getVerticesPosition()[node2];
+
+        return GeometryTools.triangleContainsPoint(vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], x, y);
+    }
 }

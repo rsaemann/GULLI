@@ -74,6 +74,13 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
     private boolean layerVelocityUnreadable = false;
 
     /**
+     * In new versions, there is no x/y velocity component. Then, we need to
+     * calculate the X/Y components from the velocity intensity and the
+     * direction.
+     */
+    private boolean velocities_directed_only = false;
+
+    /**
      * Number of timesteps for velocity & waterheight output; -1 if not found.
      */
     private int velocityTimeSteps = -1, waterheightTimeSteps = -1;
@@ -87,10 +94,14 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
     private int indexVX0 = -1, indexVY0 = -1, indexWL0 = -1, indexWLZ = -1, indexVX1 = -1;
 
+    private int indexV_0 = -1, indexV_DIR_0 = -1;
+
     private int indexVid = -1, indexWLid = -1;
 
     private int numberOftriangles = -1;
     private long maxTriangleID = -1;
+
+    private double degtoRad = Math.PI / 180.;
 
     private boolean resultDB = false, modelDB = false;
 
@@ -239,9 +250,12 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 GeoLayer layer = db.layer(layerVelocity);
                 layerVelocities = layer;
 //            System.out.println("Layer velocities: "+layerVelocities.getClass());
+                int numberDirectionVelocity = -1;
+                int numberComponentVelocity = -1;
                 int i = 0;
                 for (GeoField field : layer.getFields()) {
                     String name = field.getName();
+//                    System.out.println("Field " + i + ": " + name);
                     if (name == null) {
                         continue;
                     }
@@ -256,18 +270,40 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                         indexVX1 = i;
                     } else if (name.equals("V_Y_0")) {
                         indexVY0 = i;
+                    } else if (name.equals("V_0")) {
+                        indexV_0 = i;
+                    } else if (name.equals("V_DIR_0")) {
+                        indexV_DIR_0 = i;
                     }
 
                     if (name.startsWith("V_X_")) {
                         try {
                             int number = Integer.parseInt(name.substring(4)) + 1;
-                            velocityTimeSteps = Math.max(velocityTimeSteps, number);
+                            numberComponentVelocity = Math.max(numberComponentVelocity, number);
+                        } catch (NumberFormatException numberFormatException) {
+                            numberFormatException.printStackTrace();
+                        }
+                    }
+                    if (name.startsWith("V_DIR_")) {
+                        try {
+                            int number = Integer.parseInt(name.substring(6)) + 1;
+                            numberDirectionVelocity = Math.max(numberDirectionVelocity, number);
                         } catch (NumberFormatException numberFormatException) {
                             numberFormatException.printStackTrace();
                         }
                     }
                     i++;
                 }
+//                System.out.println("Velocities XY:" + numberComponentVelocity + "   Dirs:" + numberDirectionVelocity);
+                if (numberComponentVelocity < 1 && numberDirectionVelocity > 0) {
+                    velocities_directed_only = true;
+                    velocityTimeSteps = numberDirectionVelocity;
+                } else {
+                    velocityTimeSteps = numberComponentVelocity;
+                }
+
+//                System.out.println("directed velocities only? " + velocities_directed_only);
+
                 int numberOfFeatures = layer.getFeatureCount();
                 if (maxTriangleID <= 0) {
                     maxTriangleID = layer.getFeature(layer.getFeatureCount()).getValue(indexVid).intValue();
@@ -575,9 +611,13 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 if (surf.mapIndizes.containsKey(id)) {
                     int index = surf.mapIndizes.get(id);
                     vmax[index] = (float) f.getValue(indexVMax).doubleValue();
-                    for (int t = 0; t < velocityTimeSteps; t++) {
-                        v[index][t][0] = (float) f.getValue(indexVX0 + t * jump).doubleValue();
-                        v[index][t][1] = (float) f.getValue(indexVY0 + t * jump).doubleValue();
+                    if (velocities_directed_only) {
+                        fillVelocityByDirectedVelocity(v, f, id);
+                    } else {
+                        for (int t = 0; t < velocityTimeSteps; t++) {
+                            v[index][t][0] = (float) f.getValue(indexVX0 + t * jump).doubleValue();
+                            v[index][t][1] = (float) f.getValue(indexVY0 + t * jump).doubleValue();
+                        }
                     }
 
                     //Z position not needed for velocities because they do not need to be calculated.
@@ -598,13 +638,48 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                     throw new UnsatisfiedLinkError("Id of read v.id (" + id + ") is higher than max surface.id(" + (v[0].length - 1) + ")");
                 }
                 vmax[id] = (float) f.getValue(indexVMax).doubleValue();
-                for (int t = 0; t < velocityTimeSteps; t++) {
-                    v[id][t][0] = (float) f.getValue(indexVX0 + t * jump).doubleValue();
-                    v[id][t][1] = (float) f.getValue(indexVY0 + t * jump).doubleValue();
+                if (velocities_directed_only) {
+                    fillVelocityByDirectedVelocity(v, f, id);
+                } else {
+                    for (int t = 0; t < velocityTimeSteps; t++) {
+                        v[id][t][0] = (float) f.getValue(indexVX0 + t * jump).doubleValue();
+                        v[id][t][1] = (float) f.getValue(indexVY0 + t * jump).doubleValue();
+                    }
                 }
             }
             surf.setTriangleVelocity(v);
             surf.setTriangleMaxVelocity(vmax);
+        }
+    }
+
+    public void fillVelocityByDirectedVelocity(float[][][] v, GeoFeature f, int id) {
+        double v_total = 0;
+        double dir1 = 0, dir2 = 0;
+        for (int t = 0; t < velocityTimeSteps; t++) {
+            v_total = f.getValue(indexV_0 + t * 2).doubleValue();
+            dir1 = f.getValue(indexV_DIR_0 + t * 2).doubleValue();
+            dir2 = dir1 * degtoRad;
+            v[id][t][0] = (float) (Math.cos(dir2) * v_total);
+            v[id][t][1] = (float) (Math.sin(dir2) * v_total);
+
+//            System.out.println(dir1+"° v="+v_total+"   -> v="+v[id][t][0]+"    / "+v[id][t][1]);
+        }
+    }
+
+    public void fillVelocityByDirectedVelocity(float[][] v, GeoFeature f) {
+        double v_total = 0;
+        double dir1, dir2;
+        for (int t = 0; t < velocityTimeSteps; t++) {
+            try {
+                v_total = f.getValue(indexV_0 + t * 2).doubleValue();
+                dir1 = f.getValue(indexV_DIR_0 + t * 2).doubleValue();
+                dir2 = dir1 * degtoRad;
+                v[t][0] = (float) (Math.cos(dir2) * v_total);
+                v[t][1] = (float) (Math.sin(dir2) * v_total);
+//                System.out.println(dir1 + "° v=" + v_total + "   -> v=" + v[t][0] + "    / " + v[t][1]);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -1062,10 +1137,18 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
             GeoFeature feature = getFeature(handle.table, indexVid, triangleID);
             handle.busy = false;
             float[][] v = new float[velocityTimeSteps][2];
-            for (int i = 0; i < v.length; i++) {
-                v[i][0] = (float) feature.getValue(indexVX0 + i * 4).doubleValue();
-                v[i][1] = (float) feature.getValue(indexVX0 + i * 4 + 1).doubleValue();
+//            System.out.println("loadvelocity directed velocities only? "+velocities_directed_only);
+
+            if (velocities_directed_only) {
+//                System.out.println("fill");
+                fillVelocityByDirectedVelocity(v, feature);
+            } else {
+                for (int i = 0; i < v.length; i++) {
+                    v[i][0] = (float) feature.getValue(indexVX0 + i * 4).doubleValue();
+                    v[i][1] = (float) feature.getValue(indexVX0 + i * 4 + 1).doubleValue();
+                }
             }
+
             sqlRequestCount++;
             sqlRequestTime += System.currentTimeMillis() - starttime;
             return v;

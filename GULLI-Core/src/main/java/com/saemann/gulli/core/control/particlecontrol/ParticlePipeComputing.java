@@ -46,6 +46,7 @@ import com.saemann.gulli.core.model.topology.StorageVolume;
  */
 public class ParticlePipeComputing {
 
+    public static boolean verbose = false;
     private static int autoIncrement = 0;
 
     protected int id = autoIncrement++;
@@ -55,29 +56,23 @@ public class ParticlePipeComputing {
 //
 //        RANDOMWALK
 //    };
-
 //    public enum TURBULENT_DIFFUSION {
 //
 //        FIX_DIFFUSION_COEFFICIENT, FIX_DIFFUSIVE_COEFFICIENT;
 //    }
-
 //    public COMPUTING computing = COMPUTING.RANDOMWALK;
-
 //    public static boolean useDynamicDispersion = false;
-
     public static boolean measureOnlyFinalCapacity = false;
 
     /**
      * Replace Dispersion by varying advective velocity [0,1.25]*meanVelocity.
      */
 //    public static boolean useStreamlineVelocity = false;
-
     protected static float sqrt2dt;
 
     private RandomGenerator rand;
 
 //    public static int[] passedPipesCounter;
-
     /**
      * If set to false, particles will not leave the pipe system towards the
      * surface domain.
@@ -91,13 +86,11 @@ public class ParticlePipeComputing {
 //     * velocities.
 //     */
 //    public boolean useDeposition = false;
-
 //    /**
 //     * Only measure a particle in the capacity at the end of a timestep.
 //     * Otherwise measure in every passed capacity.
 //     */
 //    public boolean measureOnlyInDestination = true;
-
     public int status = -1;
 
     public ParticlePipeComputing() {
@@ -542,8 +535,8 @@ public class ParticlePipeComputing {
 //                    return;
 //                }
 //            } else {
-                adv = Math.abs(((Pipe) c).getVelocity()) * (dt/*-timeSpend*/);
-                diff = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p) * sqrt2dt * rand.nextGaussian();//diff = calcDistanceTurbulentDiffusion(p.getVelocity1d(), rand);
+            adv = Math.abs(((Pipe) c).getVelocity()) * (dt/*-timeSpend*/);
+            diff = p.getMaterial().getDispersionCalculatorPipe().getSQRTDispersionCoefficient(p) * sqrt2dt * rand.nextGaussian();//diff = calcDistanceTurbulentDiffusion(p.getVelocity1d(), rand);
 //            }
 
         } else {
@@ -1113,7 +1106,16 @@ public class ParticlePipeComputing {
                                 p.setSurrounding_actual(surface);
                                 c = surface;
 //                                double[] tripos = surface.getTriangleMids()[mh.getSurfaceTriangleID()];
-                                p.setPosition3D(mh.getPosition3D(0));
+//                                if (surface.cellContainsPosition(mh.getSurfaceTriangleID(), mh.getPosition().x, mh.getPosition().y)) {
+//                                    //Can place the particle directly at this manhole position
+//                                    p.setPosition3D(mh.getPosition3D(0));
+//                                } else {
+                                    //Positions are not consistent
+                                    p.setPosition3D(surface.getTriangleMids()[mh.getSurfaceTriangleID()]);
+//                                    System.out.println("Position of Manhole " + mh + " does not match the surface cell " + mh.getSurfaceTriangleID() + "  " + mh.getPosition() + " <-> " + p.getPosition3d());
+
+//                                }
+
 //                                p.setPosition3D(tripos[0], tripos[1]);
                                 p.setOnSurface();
                                 p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
@@ -1505,7 +1507,17 @@ public class ParticlePipeComputing {
                         p.surfaceCellID = mh.getSurfaceTriangleID();
                         p.setSurrounding_actual(surface);
                         c = surface;
-                        p.setPosition3D(mh.getPosition3D(0));
+//                        if (surface.cellContainsPosition(mh.getSurfaceTriangleID(), mh.getPosition().x, mh.getPosition().y)) {
+//                            //Can place the particle directly at this manhole position
+//                            p.setPosition3D(mh.getPosition3D(0));
+//                        } else {
+                            //Positions are not consistent
+                            p.setPosition3D(surface.getTriangleMids()[mh.getSurfaceTriangleID()]);
+//                            if (verbose) {
+//                                System.out.println("Position of Manhole " + mh + " does not match the surface cell " + mh.getSurfaceTriangleID() + "  " + mh.getPosition() + " <-> " + p.getPosition3d());
+//                            }
+//
+//                        }
                         p.setOnSurface();
                         p.toSurfaceTimestamp = ThreadController.getSimulationTimeMS();
                         p.toSurface = mh;

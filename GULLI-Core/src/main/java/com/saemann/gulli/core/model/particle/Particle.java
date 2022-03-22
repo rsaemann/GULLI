@@ -16,7 +16,7 @@ import org.locationtech.jts.geom.Coordinate;
  *
  * @author saemann
  */
-public class Particle{
+public class Particle {
 
     /**
      * invisible Counter that is used to give every particle a unique ID
@@ -85,7 +85,6 @@ public class Particle{
 
     public Capacity toSurface, toPipenetwork, toSoil;
 
-
     /**
      * When the particle was spilled to the surface.
      */
@@ -100,8 +99,8 @@ public class Particle{
      * If particle stays on this cell, do not count it again.
      */
     public int lastSurfaceCellID = -1;
-    public boolean blocked=false;
-    public double blockVelocity=-1;
+    public boolean blocked = false;
+    public double blockVelocity = -1;
 
     public Particle(Material material, ParticleInjection injectionInformation, float mass, long injectionTime) {
         this(material, injectionInformation, mass);
@@ -258,12 +257,6 @@ public class Particle{
     }
 
     public void setVelocity1d(double velocity1d) {
-//        if (velocity1d > 30) {
-//            try {
-//                throw new IllegalArgumentException("Velocity of " + velocity1d + " m/s is too much, I think");
-//            } catch (IllegalArgumentException illegalArgumentException) {
-//            }
-//        }
         this.velocity1d = (float) velocity1d;
     }
 
@@ -305,7 +298,6 @@ public class Particle{
     public double getTravelledPathLength() {
         return moveLengthCummulative;
     }
-
 
     public void addMovingLength(double ds) {
         this.moveLengthCummulative += (ds);
@@ -353,7 +345,7 @@ public class Particle{
     public void resetMovementLengths() {
 //        this.moveLengthAbsolute = 0;
         this.moveLengthCummulative = 0;
-        blocked=false;
+        blocked = false;
     }
 
     public void setPosition3D(Coordinate c) {

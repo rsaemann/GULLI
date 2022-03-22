@@ -631,13 +631,13 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (Network.crsUTM == null) {
 //                    System.out.println("Axis: "+crsDB.getCoordinateSystem().getAxis(0).toString());
                     try {
-                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.") || crsDB.getCoordinateSystem().toString().contains("UTM")) {
+                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.") || crsDB.getCoordinateSystem().toString().contains("UTM")|| crsDB.toString().contains("UNIT[\"m\", 1.0]")) {
                             if (verbose) {
                                 System.out.println(this.getClass() + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
                             }
                             Network.crsUTM = crsDB;
                         } else {
-                            System.out.println("tested Sring:'" + crsDB.getCoordinateSystem().toString() + "'");
+//                            System.out.println("tested Sring:'" + crsDB.getCoordinateSystem().toString() + "'");
                             System.out.println(this.getClass() + "::loadNetwork: Coordinatensystem der Datenbank ist nicht cartesisch: " + crsDB);
                             Network.crsUTM = CRS.decode("EPSG:25832");
                         }
