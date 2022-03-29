@@ -33,6 +33,7 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
+import org.locationtech.jts.geom.CoordinateXY;
 import org.opengis.referencing.operation.TransformException;
 
 /**
@@ -1690,7 +1691,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         }
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
 //        manholes = new Manhole[triangleNodes.length];
-        inletArray = new Inlet[manholes.length];
+        inletArray = new Inlet[manholes.length];//=getMaxTriangleID() + 1
+        Coordinate pipestart=new CoordinateXY(),pipeend=new CoordinateXY();
         for (HE_InletReference inletRef : inletRefs) {
             String capacityName = inletRef.capacityName;
             int triangleID = inletRef.triangleID;
@@ -1711,6 +1713,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             Coordinate tposWGS84 = geotools.toGlobal(tposUTM, true);
 
 //            System.out.println("Inlet "+inletRef.inlet_Name+"  "+tposWGS84.x+"  "+tposWGS84.y+" <-- "+tposUTM.x+" / "+tposUTM.y+" <-- "+tpos[0]+" / "+tpos[1]);
+//            System.out.println("Inlet " + inletRef.inlet_Name + " at cell " + inletRef.triangleID + "  connects to " + cap);
             if (cap instanceof Pipe) {
 
                 Pipe pipe = (Pipe) cap;
@@ -1720,16 +1723,42 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 distancealongPipe = GeometryTools.distancePointAlongLine(start.x, start.y, end.x, end.y, tposUTM.x, tposUTM.y);
 
             } else if (cap instanceof Manhole) {
-                //MAp inlet to manholes pipe
+                //MAp inlet pipe
                 Manhole mh = (Manhole) cap;
                 boolean found = false;
+                Pipe bestPipe = null;
+                double bestdistance = Double.POSITIVE_INFINITY;
+                //Find pipe next to inlet
+                
                 for (Connection_Manhole_Pipe connection : mh.getConnections()) {
-                    if (connection.isEndOfPipe()) {
-                        cap = connection.getPipe();
-                        distancealongPipe = connection.getPipe().getLength();
+                    Pipe p = connection.getPipe();
+                    pipestart = geotools.toUTM(p.getStartConnection().getPosition().lonLatCoordinate(),true);
+                    pipeend = geotools.toUTM(p.getEndConnection().getPosition().lonLatCoordinate(),true);
+                    double dist = GeometryTools.distancePointToLineSegment(pipestart.x,pipestart.y,pipeend.x,pipeend.y, tposUTM.x, tposUTM.y);
+                    if(inletRef.triangleID==327176){
+                            System.out.println("distance of "+p+" is "+dist+"   refCap is "+inletRef.capacityName+" pipestart:"+pipestart);
+                        }
+                    if (dist < bestdistance) {
+                        bestPipe = p;
+                        bestdistance = dist;
                         found = true;
+                        
                     }
                 }
+                if (bestPipe != null) {
+                    cap = bestPipe;
+                    distancealongPipe = bestPipe.getLength()*0.5;
+//                found = true;
+                }
+                
+
+//                for (Connection_Manhole_Pipe connection : mh.getConnections()) {
+//                    if (connection.isEndOfPipe()) {
+//                        cap = connection.getPipe();
+//                        distancealongPipe = connection.getPipe().getLength();
+//                        found = true;
+//                    }
+//                }
                 if (found == false) {
                     for (Connection_Manhole_Pipe connection : mh.getConnections()) {
                         if (connection.isStartOfPipe()) {
@@ -1747,6 +1776,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             try {
                 Inlet inlet = new Inlet(new Position3D(tposWGS84.x, tposWGS84.y, tposUTM.x, tposUTM.y, tposUTM.z), cap, distancealongPipe);
                 inletList.add(inlet);
+                inlet.originalDestination=inletRef.capacityName;
 //                inlets.put(triangleID, inlet);
                 inletArray[triangleID] = inlet;
             } catch (Exception e) {

@@ -9,6 +9,7 @@ public class Inlet {
     protected Position position;
     protected Capacity pipe;
     protected double pipeposition1d;
+    public String originalDestination;
 
     public Inlet(Position pos, Capacity pipe, double pipeposition1d) {
         this.position = pos;

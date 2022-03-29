@@ -41,6 +41,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
@@ -716,14 +717,28 @@ public class SHP_IO_GULLI {
             System.err.println("Do not create SHP file for empty collection. @" + filePathName);
             return;
         }
+
         try {
+            boolean hasUserdata = false;
+            boolean hasCatchmentAreaInformation = false;
+            for (Geometry geometry : collection) {
+                if (geometry.getUserData() != null) {
+                    
+                    if (geometry.getUserData() instanceof CatchmentAreaInformation) {
+                        hasCatchmentAreaInformation = true;
+                    }else{
+                        hasUserdata=true;
+                    }
+                    break;
+                }
+            }
+
 //            String name = filePathName;
 //            if (name.contains(".")) {
 //                name = name.substring(0, name.indexOf("."));
 //                collectionDirectory = new File(collectionDirectory.getParent() + File.separator + name);
 //                System.out.println("New Directory '" + collectionDirectory.getAbsolutePath() + "'");
 //            }
-
             File directory = new File(filePathName).getParentFile();
             if (!directory.exists()) {
                 directory.mkdirs();
@@ -752,9 +767,42 @@ public class SHP_IO_GULLI {
                 type = LineString.class;
             }
 
+            boolean hasmultipolygon = false;
+            boolean hasPolygon = false;
+            boolean hasLinestring = false;
+            for (Geometry geometry : collection) {
+                if (geometry.getClass().equals(MultiPolygon.class)) {
+                    hasmultipolygon = true;
+                    continue;
+                }
+                if (geometry.getClass().equals(Polygon.class)) {
+                    hasPolygon = true;
+                    continue;
+                }
+                if (geometry.getClass().equals(LineString.class)) {
+                    hasLinestring = true;
+                    continue;
+                }
+                if (geometry.getClass().equals(LinearRing.class)) {
+                    hasLinestring = true;
+                    continue;
+                }
+            }
+            if (hasmultipolygon) {
+                type = MultiPolygon.class;
+            } else if (hasPolygon) {
+                type = Polygon.class;
+            } else if (hasLinestring) {
+                type = LineString.class;
+            } else {
+                //Stay as it was before;
+            }
+
             //Manhole Schema
             final SimpleFeatureType FEATURE = DataUtilities.createType(layername,
                     "the_geom:" + type.getSimpleName() + ":srid=4326" // <- the geometry attribute: Polygon type in WGS84 Latlon
+                    + (hasUserdata ? ",data:string" : "")
+                    + (hasCatchmentAreaInformation ? ",area:float,targetID:int,target:string" : "")
             );
 
             datastore.createSchema(FEATURE);
@@ -763,6 +811,7 @@ public class SHP_IO_GULLI {
             SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(FEATURE);
 
             DefaultFeatureCollection dfcollection = new DefaultFeatureCollection();
+            int counter = 0;
             for (Geometry g : collection) {
                 //Change coords from lat/long to long/lat
                 if (!type.isAssignableFrom(g.getClass())) {
@@ -778,7 +827,16 @@ public class SHP_IO_GULLI {
                     g.geometryChanged();
                 }
                 sfb.add(g);
-                SimpleFeature f = sfb.buildFeature(null);
+                if (hasUserdata) {
+                    sfb.add(g.getUserData());
+                }
+                if (hasCatchmentAreaInformation) {
+                    CatchmentAreaInformation cai = (CatchmentAreaInformation) g.getUserData();
+                    sfb.add(cai.area);
+                    sfb.add(cai.targetObjectID);
+                    sfb.add(cai.targetObjectName);
+                }
+                SimpleFeature f = sfb.buildFeature("" + counter++);
                 dfcollection.add(f);
             }
             String typeName = datastore.getTypeNames()[0];
@@ -1253,5 +1311,25 @@ public class SHP_IO_GULLI {
         } catch (IOException ex) {
             Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    public static class CatchmentAreaInformation {
+
+        /**
+         * m^2
+         */
+        double area;
+
+        int targetObjectID;
+
+        String targetObjectName;
+
+        public CatchmentAreaInformation(double area, int targetObjectID, String targetObjectName) {
+            this.area = area;
+            this.targetObjectID = targetObjectID;
+            this.targetObjectName = targetObjectName;
+        }
+        
+        
     }
 }

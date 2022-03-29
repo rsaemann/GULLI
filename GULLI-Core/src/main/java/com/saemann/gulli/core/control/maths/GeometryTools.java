@@ -531,11 +531,34 @@ public class GeometryTools {
         return Math.abs((ax * by - ay * bx) / Math.sqrt(ax * ax + ay * ay));
     }
 
+//    public static double distancePointToLineSegment(double x1, double y1, double x2, double y2, double xp, double yp) {
+//        double seg = distancePointToLine(x1, y1, x2, y2, xp, yp);
+//        double dp1 = Math.sqrt((xp - x1) * (xp - x1) - (yp - y1) * (yp - y1));
+//        double dp2 = Math.sqrt((xp - x2) * (xp - x2) - (yp - y2) * (yp - y2));
+//        return Math.min(seg, Math.min(dp2, dp1));
+//    }
     public static double distancePointToLineSegment(double x1, double y1, double x2, double y2, double xp, double yp) {
-        double seg = distancePointToLine(x1, y1, x2, y2, xp, yp);
-        double dp1 = Math.sqrt((xp - x1) * (xp - x1) - (yp - y1) * (yp - y1));
-        double dp2 = Math.sqrt((xp - x2) * (xp - x2) - (yp - y2) * (yp - y2));
-        return Math.min(seg, Math.min(dp2, dp1));
+        double x12 = x2 - x1;
+        double y12 = y2 - y1;
+
+        double x2p = xp - x2;
+        double y2p = yp - y2;
+
+        double x1p = xp - x1;
+        double y1p = yp - y1;
+
+        double dot1 = x12 * x1p + y12 * y1p;
+        double dot2 = x12 * x2p + y12 * y2p;
+
+        if (dot2 > 0) {
+            //Somewhere behind the end of the segment
+            return Math.sqrt(x2p * x2p + y2p * y2p);
+        } else if (dot1 < 0) {
+            //Somewhere befor the start of the segment
+            return Math.sqrt(x1p * x1p + y1p * y1p);
+        }
+        //Is in between the start and end. Can calculate via the standard function
+        return distancePointToLine(x1, y1, x2, y2, xp, yp);
     }
 
     public static double distancePointAlongLine(double x1, double y1, double x2, double y2, double xp, double yp) {
@@ -671,7 +694,7 @@ public class GeometryTools {
                 intersection = gf.buildGeometry(geomt).union();
             }
         }
-        resultUnions[resultUnions.length-1]=intersection;
+        resultUnions[resultUnions.length - 1] = intersection;
 
         return resultUnions;
     }

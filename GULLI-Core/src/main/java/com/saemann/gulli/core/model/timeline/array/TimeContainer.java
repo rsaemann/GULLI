@@ -23,6 +23,9 @@ public class TimeContainer {
             this.duration = Integer.MAX_VALUE;
         } else {
             this.duration = (int) (times[times.length - 1] - times[0]);
+            if (duration == 0) {
+                duration = 1;
+            }
         }
     }
 
@@ -38,6 +41,9 @@ public class TimeContainer {
             times[i] = (long) (starttime + (endtime - starttime) * (double) (i / timespots));
         }
         this.duration = (int) (endtime - starttime);
+        if (duration == 0) {
+            duration = 1;
+        }
     }
 
     public static TimeContainer byIntervallMilliseconds(long starttime, long endtime, long intervallMS) {

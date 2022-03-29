@@ -130,7 +130,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public static final String layerTriangle = "TRI";
     public static final String layerTraingleMeasurement = layerTriangle + "M";
-   
+
     public static final String layerInjectionLocation = "INJ_LOC";
     private final ColorHolder chInjectionLocation = new ColorHolder(Color.green, "Injection");
     public static final String layerManholesOverspilling = "SPILL";
@@ -2626,6 +2626,26 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         mapViewer.recalculateShapes();
                         mapViewer.repaint();
                         break;
+                    }
+                }
+            } else if (string.equals(layerInlets)) {
+                if (surface != null && surface.getInlets() != null) {
+                    Inlet inlet = surface.getInlets()[(int) id];
+
+                    if (inlet != null) {
+                        StringBuilder str = new StringBuilder("Inlet on Cell ").append(id);
+
+                        str.append("; ").append(inlet.getNetworkCapacity());
+                        str.append("; @ ").append(df3.format(inlet.getPipeposition1d()));
+                        if (inlet.originalDestination != null) {
+                            str.append("; #" + inlet.originalDestination);
+                        }
+                        LabelPainting lp = new LabelPainting(0, MapViewer.COLORHOLDER_LABEL, new com.saemann.rgis.model.GeoPosition(inlet.getPosition().getLatitude(), inlet.getPosition().getLongitude()), str.toString().split(";"));
+                        mapViewer.addPaintInfoToLayer(mapViewer.LAYER_KEY_LABEL, lp);
+                        selectedLayer = string;
+                        selectedID = id;
+                        mapViewer.recalculateShapes();
+                        mapViewer.repaint();
                     }
                 }
             }

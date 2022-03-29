@@ -1951,20 +1951,6 @@ public class LoadingCoordinator {
         this.loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
     }
 
-//    /**
-//     * Dataprovider for reading information about the current network elements.
-//     *
-//     * @return
-//     */
-//    public SparseTimeLineDataProvider getSparsePipeDataProvider() {
-//        if (!sparsePipeLoading) {
-//            return null;
-//        }
-//        if (resultDatabase != null) {
-//            return resultDatabase;
-//        }
-//        return tempFBDB;
-//    }
     public boolean loadSetup(File file) {
         try {
             Setup setup = Setup_IO.load(file);
