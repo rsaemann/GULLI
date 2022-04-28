@@ -385,6 +385,7 @@ public class InjectionInflowInformation implements InjectionInfo {
             return;
         }
         this.startSeconds = s;
+        System.out.println(getClass()+"::setStart to "+s+" seconds after start.");
         changed = true;
     }
 

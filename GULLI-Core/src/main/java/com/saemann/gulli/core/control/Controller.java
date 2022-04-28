@@ -23,7 +23,6 @@
  */
 package com.saemann.gulli.core.control;
 
-import com.google.common.collect.Lists;
 import com.saemann.gulli.core.control.listener.SimulationActionListener;
 import com.saemann.gulli.core.control.Action.Action;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
@@ -381,7 +380,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario != null) {
             scenarioStarttime = scenario.getStartTime();
         }
-        Particle[] list = new Particle[numberOfParticles];
+        scenarioStarttime+=starttimeAfterScenarioStart*1000;
+        ArrayList<Particle> list = new ArrayList(numberOfParticles);
         {
 //            double dt = duration / (Math.max(1, numberOfParticles - 1));
 //            double t = 0;
@@ -397,12 +397,12 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 }
 //                p.setMaterial(material);
                 p.setWaiting();
-                list[i] = p;
+                list.add(p);
 //                t += dt;
             }
         }
 
-        return Lists.newArrayList(list);
+        return list;
     }
 
     /**
