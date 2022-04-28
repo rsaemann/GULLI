@@ -78,6 +78,8 @@ import com.saemann.gulli.view.timeline.SeriesKey;
 import com.saemann.gulli.view.timeline.TimeSeriesEditorTablePanel;
 import com.saemann.gulli.view.video.GIFVideoCreator;
 import com.saemann.rgis.view.MapViewer;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
 import javax.swing.JSeparator;
 import javax.swing.border.LineBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -91,7 +93,8 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class SingleControllPanel extends JPanel implements LoadingActionListener, SimulationActionListener {
 
     public static boolean advancedOpions = false;
-
+  
+    
     private MapViewer mapViewer;
     private PaintManager paintManager;
     private final ThreadController controler;
@@ -116,8 +119,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //    private JCheckBox checkVelocityFunction;
     private JTextField textDispersionPipe, textDispersionSurface;
     private JFormattedTextField textSeed;
-    private JButton buttonSetupSave, buttonSetupLoad;
-    private JLabel labelSetupName;
+//    private JButton buttonSetupSave, buttonSetupLoad;
+//    private JLabel labelSetupName;
     private JButton buttonFileNetwork, buttonFilePipeResult;
     private JCheckBox checkSparsePipeLoading, checkLoadFileSpills;
     private JButton buttonStartLoading, buttonStartReloadingAll, buttonCancelLoading;
@@ -404,79 +407,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         panelTabSimulation.add(panelCalculation);
 
+        
         /////////////////////
         ///// ACTION Listener
-        buttonSetupSave.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                buttonSetupSave.setForeground(Color.darkGray);
-                String folder = "";
-                if (control.getLoadingCoordinator().getFileNetwork() != null) {
-                    folder = control.getLoadingCoordinator().getFileNetwork().getAbsolutePath();
-                }
-                JFileChooser fc = new JFileChooser(folder);
-                fc.setFileFilter(new FileNameExtensionFilter("Project file (*.xml)", "xml"));
-                int n = fc.showSaveDialog(SingleControllPanel.this);
-                if (n == JFileChooser.APPROVE_OPTION) {
-                    File f = fc.getSelectedFile();
-                    if (!f.getName().endsWith(".xml")) {
-                        f = new File(f.getAbsolutePath() + ".xml");
-                    }
-                    if (f.exists()) {
-                        n = JOptionPane.showConfirmDialog(buttonSetupSave, "Override existing file?", f.getName() + " already exists", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-                        if (n != JOptionPane.OK_OPTION) {
-                            return;
-                        }
-                    }
-                    try {
-                        if (control.getLoadingCoordinator().saveSetup(f)) {
-                            buttonSetupSave.setForeground(Color.green.darker());
-                            StartParameters.setStartFilePath(f.getAbsolutePath());
-                            labelSetupName.setText(f.getName());
-                            labelSetupName.setToolTipText(f.getAbsolutePath());
-                        } else {
-                            buttonSetupSave.setForeground(Color.red.darker());
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        buttonSetupSave.setForeground(Color.red.darker());
-                    }
-                }
-            }
-        });
-
-        buttonSetupLoad.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                buttonSetupLoad.setForeground(Color.darkGray);
-                String folder = "";
-                if (control.getLoadingCoordinator().getFileNetwork() != null) {
-                    folder = control.getLoadingCoordinator().getFileNetwork().getAbsolutePath();
-                }
-                JFileChooser fc = new JFileChooser(folder);
-                fc.setFileFilter(new FileNameExtensionFilter("Project file (*.xml)", "xml"));
-                int n = fc.showOpenDialog(SingleControllPanel.this);
-                if (n == JFileChooser.APPROVE_OPTION) {
-                    File f = fc.getSelectedFile();
-                    if (!f.getName().endsWith(".xml")) {
-                        f = new File(f.getAbsolutePath() + ".xml");
-                    }
-                    try {
-                        Setup setup = Setup_IO.load(f);
-                        if (setup != null) {
-                            control.getLoadingCoordinator().applySetup(setup);
-                            buttonSetupLoad.setForeground(Color.green.darker());
-                            StartParameters.setStartFilePath(f.getAbsolutePath());
-                            labelSetupName.setText(f.getName());
-                            labelSetupName.setToolTipText(f.getAbsolutePath());
-                        }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        buttonSetupLoad.setForeground(Color.red.darker());
-                    }
-                }
-            }
-        });
+        
 
         buttonFileNetwork.addActionListener(new ActionListener() {
 
@@ -1368,17 +1302,17 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         //Buttons to select files
         //Setup
-        JPanel panelSetup = new JPanel(new BorderLayout());
-        panelLoading.add(panelSetup);
-        buttonSetupLoad = new JButton("Load Project...");
-        buttonSetupSave = new JButton("Save Project...");
-        panelSetup.add(buttonSetupLoad, BorderLayout.WEST);
-        panelSetup.add(buttonSetupSave, BorderLayout.EAST);
-        labelSetupName = new JLabel();
-        if (control != null && control.getScenario() != null) {
-            labelSetupName.setText(control.getScenario().getName());
-        }
-        panelSetup.add(labelSetupName, BorderLayout.CENTER);
+//        JPanel panelSetup = new JPanel(new BorderLayout());
+//        panelLoading.add(panelSetup);
+//        buttonSetupLoad = new JButton("Load Project...");
+//        buttonSetupSave = new JButton("Save Project...");
+//        panelSetup.add(buttonSetupLoad, BorderLayout.WEST);
+//        panelSetup.add(buttonSetupSave, BorderLayout.EAST);
+//        labelSetupName = new JLabel();
+//        if (control != null && control.getScenario() != null) {
+//            labelSetupName.setText(control.getScenario().getName());
+//        }
+//        panelSetup.add(labelSetupName, BorderLayout.CENTER);
 
         //Pipe Network 
         JPanel panelNetwork = new JPanel(new GridLayout(3, 1));
@@ -1647,9 +1581,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         updateSimulationRunInformation();
 
         updateScenarioLabel();
-        if (control != null && control.getScenario() != null) {
-            labelSetupName.setText(control.getScenario().getName());
-        }
+//        if (control != null && control.getScenario() != null) {
+//            labelSetupName.setText(control.getScenario().getName());
+//        }
     }
 
     public void updateLoadingState() {
@@ -2063,5 +1997,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             updateSimulationThread.start();
         }
     }
+    
+    
 
 }

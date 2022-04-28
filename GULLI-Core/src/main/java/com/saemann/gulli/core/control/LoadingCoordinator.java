@@ -117,6 +117,8 @@ public class LoadingCoordinator {
     private LOADINGSTATUS loadingSurface = LOADINGSTATUS.NOT_REQUESTED;
     private LOADINGSTATUS loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
 
+    private String setupFile = null;
+
     private File fileNetwork;
     private String crsNetwork = null, crsSurface = null;
 
@@ -1962,7 +1964,7 @@ public class LoadingCoordinator {
                 for (LoadingActionListener lal : listener) {
                     lal.actionFired(new Action("Setup load", null, false), this);
                 }
-
+                setupFile = file.getAbsolutePath();
                 return true;
             }
         } catch (Exception ex) {
@@ -2145,8 +2147,11 @@ public class LoadingCoordinator {
 
         setup.setSparsePipeVelocity(control.getLoadingCoordinator().sparsePipeLoading);
 
-        return Setup_IO.saveScenario(file, setup);
-
+        if (Setup_IO.saveScenario(file, setup)) {
+            setupFile = file.getAbsolutePath();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -2164,6 +2169,10 @@ public class LoadingCoordinator {
 
     public String getCrsNetwork() {
         return crsNetwork;
+    }
+
+    public String getCurrentSetupFilepath() {
+        return setupFile;
     }
 
     public void setCrsNetwork(String crsNetwork) {
