@@ -221,10 +221,15 @@ public class InjectionOrganisatorPanel extends JPanel {
     }
 
     public void updatePanels() {
+        int numberOfmaterials = 0;
         for (Component component : panelMaterials.getComponents()) {
             if (component instanceof MaterialPanel) {
                 ((MaterialPanel) component).updateValues();
+                numberOfmaterials++;
             }
+        }
+        if (borderMaterials != null) {
+            borderMaterials.setTitle(numberOfmaterials + " Materials");
         }
 //        for (Component component : panelInjections.getComponents()) {
 //            if(component instanceof InjectionPanelPointlocation){

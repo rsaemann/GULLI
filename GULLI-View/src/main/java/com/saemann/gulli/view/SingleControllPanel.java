@@ -250,16 +250,16 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelButtons = new JPanel(new GridLayout(3, 1, 5, 5));
         panelButtons.setBorder(new TitledBorder("Control"));
 
-        JPanel panelFirstRow = new JPanel(new GridLayout(1, 2, 5, 5));
+        JPanel panelFirstRow = new JPanel(new GridLayout(1, 3, 5, 5));
         panelButtons.add(panelFirstRow);
         panelFirstRow.add(buttonRun);
-        panelFirstRow.add(buttonStep);
+//        panelFirstRow.add(buttonStep);
         buttonStep.setEnabled(false);
 
-        JPanel panelSecondRow = new JPanel(new GridLayout(1, 2, 5, 5));
-        panelSecondRow.add(buttonPause);
-        panelSecondRow.add(buttonReset);
-        panelButtons.add(panelSecondRow);
+//        JPanel panelSecondRow = new JPanel(new GridLayout(1, 2, 5, 5));
+        panelFirstRow.add(buttonPause);
+        panelFirstRow.add(buttonReset);
+//        panelButtons.add(panelSecondRow);
         this.add(panelButtons, BorderLayout.NORTH);
 
         this.add(tabs, BorderLayout.CENTER);
@@ -353,7 +353,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         this.progressSimulation.setValue(0);
         JPanel panelTimes = new JPanel(new GridLayout(1, 3));
         this.progressSimulation.setStringPainted(true);
-        this.labelSimulationTime = new JLabel();
+        this.labelSimulationTime = new JLabel("Simulation stopped");
 //        this.panelTimeSlide.add(progressSimulation, BorderLayout.NORTH);
         this.panelTimeSlide.add(panelTimeLabels, BorderLayout.NORTH);
         panelButtons.add(progressSimulation);
@@ -362,7 +362,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         panelTimes.add(labelEndtime, BorderLayout.EAST);
 
         this.panelTimeSlide.add(panelTimes);
-        this.panelTimeSlide.add(labelSimulationTime, BorderLayout.SOUTH);
+        this.panelButtons.add(labelSimulationTime, BorderLayout.SOUTH);
 
         this.panelTabSimulation.add(panelTimeSlide);
 
@@ -1122,10 +1122,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                 action = action.parent;
             }
             final Action ac = action;
-            ac.listener = new LoadingActionAdapter(){
+            ac.listener = new LoadingActionAdapter() {
                 @Override
                 public void actionFired(Action ac, Object source) {
-                    
+
                     if (ac.hasProgress == progressLoading.isIndeterminate()) {
                         progressLoading.setIndeterminate(!ac.hasProgress);
                     }
@@ -1837,7 +1837,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             }
             int percent = (int) (0.5 + 100 * (controler.getSimulationTime() - controler.getSimulationStartTime()) / (double) ((controler.getSimulationTimeEnd() - controler.getSimulationStartTime())));
             progressSimulation.setValue(percent);
-            timeelapsed.append(" = ").append(seconds).append("s");
+            if (seconds > 0) {
+                timeelapsed.append(" = ").append(seconds).append("s");
+            }
             labelSimulationTime.setText(timeelapsed.toString());
 
             calActual.setTimeInMillis(controler.getSimulationTime());

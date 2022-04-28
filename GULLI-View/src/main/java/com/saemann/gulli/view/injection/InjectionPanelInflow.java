@@ -107,7 +107,7 @@ public class InjectionPanelInflow extends JPanel {
 
         //Concentration        
         this.add(new JLabel("Concentration [kg/m^3]"));
-        modelConcentration = new SpinnerNumberModel(info.getConcentration(), 0, Double.POSITIVE_INFINITY, 0.001);
+        modelConcentration = new SpinnerNumberModel(info.getConcentration(), 0, Double.POSITIVE_INFINITY, 0.1);
 
         spinnerCOncentration = new JSpinner(modelConcentration);
         JSpinner.NumberEditor loadEditor = new JSpinner.NumberEditor(spinnerCOncentration, "0.####");
@@ -122,12 +122,18 @@ public class InjectionPanelInflow extends JPanel {
         this.add(spinnerCOncentration);
 
         //Load
-        modelLoad = new SpinnerNumberModel(0., 0., Double.POSITIVE_INFINITY, 0.001);
-        modelLoad.setValue(info.getLoad());
+        modelLoad = new SpinnerNumberModel(0., 0., Double.POSITIVE_INFINITY, 1);
+        modelLoad.setValue(info.getLoad()*10000.);
+        
         spinnerLoad = new JSpinner(modelLoad);
         spinnerLoad.setPreferredSize(new Dimension(60, 12));
-        spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
-        this.add(new JLabel("Load [kg/m^2]"));
+        spinnerLoad.setToolTipText((info.getLoad()) + " kg/m²");
+        if(info.getTotalvolume()<0){
+            spinnerLoad.setEnabled(false);
+        }else{
+            spinnerLoad.setEnabled(true);
+        }
+        this.add(new JLabel("Load [kg/ha]"));
         this.add(spinnerLoad);
 
         //Mass    
@@ -138,7 +144,7 @@ public class InjectionPanelInflow extends JPanel {
         } catch (Exception e) {
         }
         this.add(lm);
-        modelMass = new SpinnerNumberModel(info.getMass(), 0, Double.POSITIVE_INFINITY, 10.);
+        modelMass = new SpinnerNumberModel(info.getMass(), 0, Double.POSITIVE_INFINITY, 1);
 
         spinnerMass = new JSpinner(modelMass);
         JSpinner.NumberEditor massEditor = new JSpinner.NumberEditor(spinnerMass, "0.###");
@@ -237,12 +243,13 @@ public class InjectionPanelInflow extends JPanel {
                     return;
                 }
                 selfChanging = true;
-                info.setLoad(modelLoad.getNumber().doubleValue());
+                info.setLoad(modelLoad.getNumber().doubleValue()*0.0001);
                 if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                     spinnerMass.setValue(info.getMass());
                     spinnerCOncentration.setValue(info.getConcentration());
-                    spinnerLoad.setValue(info.getLoad());
+                    spinnerLoad.setValue(info.getLoad()*10000.);
+                    spinnerLoad.setToolTipText((info.getLoad()) + " kg/m²");
                 }
                 selfChanging = false;
             }
@@ -260,7 +267,8 @@ public class InjectionPanelInflow extends JPanel {
                     setBorder(new TitledBorder("changed"));
                     spinnerMass.setValue(info.getMass());
                     spinnerCOncentration.setValue(info.getConcentration());
-                    spinnerLoad.setValue(info.getLoad());
+                    spinnerLoad.setValue(info.getLoad()*10000);
+                    spinnerLoad.setToolTipText((info.getLoad()) + " kg/m²");
                 }
                 selfChanging = false;
             }
@@ -278,7 +286,8 @@ public class InjectionPanelInflow extends JPanel {
                     setBorder(new TitledBorder("changed"));
                     spinnerMass.setValue(info.getMass());
                     spinnerCOncentration.setValue(info.getConcentration());
-                    spinnerLoad.setValue(info.getLoad());
+                    spinnerLoad.setValue(info.getLoad()*10000);
+                    spinnerLoad.setToolTipText((info.getLoad()) + " kg/m²");
                 }
                 selfChanging = false;
             }

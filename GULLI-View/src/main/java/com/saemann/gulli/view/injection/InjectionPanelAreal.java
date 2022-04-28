@@ -97,12 +97,12 @@ public class InjectionPanelAreal extends JPanel {
         this.add(spinnerParticles);
 
         //Load        
-        this.add(new JLabel("Areal load [kg/m^2]"));
-        modelLoad = new SpinnerNumberModel(info.getLoad(), 0, Double.POSITIVE_INFINITY, 0.001);
+        this.add(new JLabel("Areal load [kg/ha]"));
+        modelLoad = new SpinnerNumberModel(info.getLoad()*10000., 0, Double.POSITIVE_INFINITY, 1);
 
         spinnerLoad = new JSpinner(modelLoad);
         JSpinner.NumberEditor loadEditor = new JSpinner.NumberEditor(spinnerLoad, "0.####");
-        spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
+        spinnerLoad.setToolTipText((int) (info.getLoad() ) + " kg/m²");
         f = loadEditor.getFormat();
         f.setDecimalFormatSymbols(new DecimalFormatSymbols(StartParameters.formatLocale));
         f.setGroupingUsed(true);
@@ -220,12 +220,12 @@ public class InjectionPanelAreal extends JPanel {
                     return;
                 }
                 selfChanging = true;
-                info.setLoad(modelLoad.getNumber().doubleValue());
+                info.setLoad(modelLoad.getNumber().doubleValue()*0.0001);
                 if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                     spinnerMass.setValue(info.getMass());
                 }
-                spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
+                spinnerLoad.setToolTipText( (info.getLoad()) + " kg/m²");
 
                 selfChanging = false;
             }
@@ -241,8 +241,8 @@ public class InjectionPanelAreal extends JPanel {
                 info.setMass(modelMass.getNumber().doubleValue());
                 if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
-                    spinnerLoad.setValue(info.getLoad());
-                    spinnerLoad.setToolTipText((int) (info.getLoad() * 10000) + " kg/ha");
+                    spinnerLoad.setValue(info.getLoad()*10000);
+                    spinnerLoad.setToolTipText( (info.getLoad() ) + " kg/m²");
 
                 }
                 selfChanging = false;
