@@ -631,7 +631,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 if (Network.crsUTM == null) {
 //                    System.out.println("Axis: "+crsDB.getCoordinateSystem().getAxis(0).toString());
                     try {
-                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.") || crsDB.getCoordinateSystem().toString().contains("UTM")|| crsDB.toString().contains("UNIT[\"m\", 1.0]")) {
+                        if (crsDB != null && crsDB.getCoordinateSystem().toString().contains("UoM: m.") || crsDB.getCoordinateSystem().toString().contains("UTM") || crsDB.toString().contains("UNIT[\"m\", 1.0]")) {
                             if (verbose) {
                                 System.out.println(this.getClass() + "::loadNetwork: Datenbank speichert als UTM " + crsDB.getCoordinateSystem().getName());
                             }
@@ -1487,10 +1487,10 @@ public class HE_Database implements SparseTimeLineDataProvider {
             int counter = 0;
             //OLD SCHEME WITHOUT 2D SURFACE
             try {
-                start=System.currentTimeMillis();
+                start = System.currentTimeMillis();
                 res = st.executeQuery("SELECT ID,KNOTEN,ZUFLUSS,WASSERSTAND from LAU_GL_S ORDER BY ID,ZEITPUNKT;");
 //                System.out.println("Query flow timeseries: "+(System.currentTimeMillis()-start));
-                
+
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
@@ -1532,7 +1532,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             }
             //NEW SCHEME INCLUDING 2D SURFACE
             try {
-                start=System.currentTimeMillis();
+                start = System.currentTimeMillis();
                 res = st.executeQuery("SELECT ID,"
                         + "KNOTEN, "
                         + "ZEITPUNKT, "
@@ -1575,7 +1575,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 loadingAction.updateProgress();
             }
             // Zeitreihe in Rohren abfragen
-            start=System.currentTimeMillis();
+            start = System.currentTimeMillis();
             res = st.executeQuery("SELECT ID,KANTE,ZEITPUNKT,DURCHFLUSS,GESCHWINDIGKEIT,WASSERSTAND from LAU_GL_EL ORDER BY ID,ZEITPUNKT;");
 //            System.out.println("Query pipe timeseries: "+(System.currentTimeMillis()-start));
             int id = Integer.MIN_VALUE;
@@ -1637,7 +1637,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 loadingAction.updateProgress();
             }
             //Number of materials
-            start=System.currentTimeMillis();
+            start = System.currentTimeMillis();
             res = st.executeQuery("SELECT COUNT (*) FROM STOFFGROESSE");
 //            System.out.println("Query number pollutants: "+(System.currentTimeMillis()-start));
             numberOfMaterials = 0;
@@ -1657,7 +1657,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 String[] names = new String[numberOfMaterials];
                 HashMap<String, Integer> nameMap = new HashMap<>(numberOfMaterials);
                 int index = 0;
-                start=System.currentTimeMillis();
+                start = System.currentTimeMillis();
                 res = st.executeQuery("SELECT Name, Gesamtabflussmasse FROM STOFFGROESSE order by id");
 //                System.out.println("Query poll. names: "+(System.currentTimeMillis()-start));
                 while (res.next()) {
@@ -1669,7 +1669,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 res.close();
 
 //                if (isSQLite) {
-                start=System.currentTimeMillis();
+                start = System.currentTimeMillis();
                 res = st.executeQuery("SELECT KANTESTOFFLAUFEND.ID,KANTESTOFFLAUFEND.KANTE, KANTESTOFFLAUFEND.ZEITPUNKT,(KONZENTRATION * DURCHFLUSS)/ 1000 AS FRACHTKGPS,KONZENTRATION/1000, AUSLASTUNG, STOFF\n"
                         + "                         FROM KANTESTOFFLAUFEND INNER JOIN LAU_GL_EL ON KANTESTOFFLAUFEND.KANTE = LAU_GL_EL.KANTE AND KANTESTOFFLAUFEND.ZEITPUNKT = LAU_GL_EL.ZEITPUNKT where KONZENTRATION>0\n"
                         + "                         ORDER BY KANTESTOFFLAUFEND.KANTE,STOFF,LAU_GL_EL.ZEITPUNKT");
@@ -4023,6 +4023,55 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return tv;
     }
 
+    public ArrayList<String> readWashoffParametersets() throws SQLException, IOException {
+        if (con == null || con.isClosed()) {
+            con = getConnection();
+        }
+        ResultSet rs = con.createStatement().executeQuery("SELECT Name FROM ABFLUSSPARAMETER");
+        if (!rs.isBeforeFirst()) {
+            return null;
+        }
+        ArrayList<String> list = new ArrayList<>();
+        while (rs.next()) {
+            list.add(rs.getString(1));
+        }
+        rs.close();
+        return list;
+    }
+
+    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset) throws SQLException, IOException {
+        if (con == null || con.isClosed()) {
+            con = getConnection();
+        }
+        ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
+        rs.next();
+        double fractionUpper = (100 - rs.getDouble(1)) / 100.;
+
+        rs = con.createStatement().executeQuery("SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,Abfluss,BEFESTIGTEFLAECHE,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID " + (washoff_parameterset != null ? "WHERE PARAMETERSATZ='" + washoff_parameterset + "'" : ""));
+        //typ:0= Waterheight [m aSl], 1 = Zufluss [L/s], 2: Discharge [cbm/s]
+        if (!rs.isBeforeFirst()) {
+            if (verbose) {
+                System.err.println("No Values for Flaeche with Parametersatz '" + washoff_parameterset + "'");
+            }
+            rs.close();
+            return null;
+        }
+        ArrayList<AreaRunoffSplit> list = new ArrayList<>();
+        while (rs.next()) {
+            AreaRunoffSplit ars = new AreaRunoffSplit();
+            ars.areaName = rs.getString(2);
+            ars.washoffParameter = rs.getString(9);
+            ars.volume = rs.getDouble(5);//m^3
+            ars.effectiveRunoffArea = rs.getDouble(6) * 10000; //ha->m^2
+            ars.lowerManholeName = rs.getString(8);
+            ars.upperManholeName = rs.getString(7);
+            ars.fractionUpper = fractionUpper;
+            list.add(ars);
+        }
+        rs.close();
+        return list;
+    }
+
     public static long byteToDate(long t) {
         long time = t - 621355968000000000L;
         return time / 10000L - 3600000L;
@@ -4111,5 +4160,26 @@ public class HE_Database implements SparseTimeLineDataProvider {
             sqlMHRequestCount = 1;
         }
         return "HE SQL Benchmark: SQL Requests Pipes: " + sqlRequestCount + " with total " + sqlRequestTime / 1000 + " s (" + (sqlRequestTime / sqlRequestCount) + "ms/query) ##  Manholes: " + sqlMHRequestCount + " with total " + sqlMHRequestTime / 1000 + " s (" + (sqlMHRequestTime / sqlMHRequestCount) + "ms/query)\tPipe Waiting threads: " + waitingForRequestCount + " with total pausing time:" + waitingForRequestTime / 1000 + " s ## Manhole Waiting threads: " + waitingForMHRequestCount + " with total pausing time:" + waitingForMHRequestTime + "ms";
+    }
+
+    public class AreaRunoffSplit {
+
+        public String areaName;
+
+        public String washoffParameter;
+        /**
+         * m^2
+         */
+        public double effectiveRunoffArea;
+
+        public double fractionUpper;
+
+        public String upperManholeName, lowerManholeName;
+
+        public double massUpper, massLower;
+        /**
+         * m^3 during whole period
+         */
+        public double volume;
     }
 }

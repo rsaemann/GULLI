@@ -32,6 +32,7 @@ import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.scenario.Setup;
+import com.saemann.gulli.core.control.scenario.injection.HEAreaInflow1DInformation;
 import com.saemann.gulli.core.control.scenario.injection.HEInjectionInformation;
 import com.saemann.gulli.core.control.scenario.injection.HE_MessdatenInjection;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
@@ -623,7 +624,7 @@ public class LoadingCoordinator {
 
                 if (fileMainPipeResult.getName().endsWith(".idbf") || fileMainPipeResult.getName().endsWith(".idbr")) {
                     action.description = "Open HE Database";
-                    if (resultDatabase == null || !resultDatabase.getDatabaseFile().getAbsolutePath().equals(fileMainPipeResult.getAbsolutePath())) {
+                    if (resultDatabase == null || resultDatabase.getDatabaseFile() == null || !resultDatabase.getDatabaseFile().getAbsolutePath().equals(fileMainPipeResult.getAbsolutePath())) {
                         if (tempFBDB != null && tempFBDB.getDatabaseFile().equals(fileMainPipeResult)) {
                             resultDatabase = tempFBDB;
                         } else {
@@ -637,6 +638,21 @@ public class LoadingCoordinator {
                     action.description = "Load spill events";
 //                    System.out.println("load file injections? " + loadResultInjections);
                     totalInjections.clear();
+                    //Read definition of washoff parameters as they might be needed for the injection definition (e.g. HEAreaInflow1D)
+                    try {
+                        ArrayList<String> washoffList = resultDatabase.readWashoffParametersets();
+                        String[] washoffParameters = new String[washoffList.size() + 1];
+                        washoffParameters[0] = "All";
+                        int i = 1;
+                        for (String string : washoffList) {
+                            washoffParameters[i] = string;
+                            i++;
+                        }
+                        HEAreaInflow1DInformation.runoffParameterList = washoffParameters;
+                    } catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+
                     if (this.loadResultInjections) {
                         he_injection = resultDatabase.readInjectionInformation(startAtZeroTime);
                         System.out.println("loaded " + he_injection.size() + " injections from HE Result DB file.");
@@ -647,13 +663,6 @@ public class LoadingCoordinator {
                     long[] times = resultDatabase.loadTimeStepsNetwork(startAtZeroTime);
                     long scenariostart = times[0];
                     long scenarioEnd = times[times.length - 1];
-//                    if (startAtZeroTime) {
-//                        for (int i = 0; i < times.length; i++) {
-//                            times[i] -= scenariostart;
-//                        }
-//                        scenarioEnd -= scenariostart;
-//                        scenariostart = 0;
-//                    }
 
                     long starttime = System.currentTimeMillis();
                     int materialnumber = 0;
@@ -895,44 +904,7 @@ public class LoadingCoordinator {
             crsSurface = surf.getSpatialReferenceCode();
 
             start = System.currentTimeMillis();
-            //load neighbour definitions
-//            if (false) {
-//                if (fileSufaceNode2Triangle != null && fileSufaceNode2Triangle.exists()) {
-////                    surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
-//                } else {
-//                    //Need to create this reference file
-//                    action.description = "Create Node-Triangle reference File NODE2TRIANGLE.dat";
-//                    fireLoadingActionUpdate();
-//                    File outNodeTriangles = new File(fileSurfaceCoordsDAT.getParent(), "NODE2TRIANGLE.dat");
-//                    if (!outNodeTriangles.exists()) {
-//                        ArrayList<Integer>[] n2t = null;
-//                        try {
-//                            n2t = HE_SurfaceIO.findNodesTriangleIDs(surf.triangleNodes, surf.vertices.length);
-//                        } catch (Error e) {
-//                            e.printStackTrace();
-//                            n2t = new ArrayList[0];
-//                        }
-//                        HE_SurfaceIO.writeNodesTraingleIDs(n2t, outNodeTriangles);
-//                        fileSufaceNode2Triangle = outNodeTriangles;
-////                        surf.setNodeNeighbours(HE_SurfaceIO.loadNodesTriangleIDs(fileSufaceNode2Triangle), weightedSurfaceVelocities);
-//                    }
-//                }
-//            }
-//            start = System.currentTimeMillis();
-//            if (fileTriangleMooreNeighbours != null && fileTriangleMooreNeighbours.exists()) {
-//                surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
-//            } else {
-//                //Create moore neighbours
-//                action.description = "Create Moore Neighbours File MOORE.dat";
-//                fireLoadingActionUpdate();
-//                fileTriangleMooreNeighbours = new File(fileSurfaceCoordsDAT.getParent(), "MOORE.dat");
-//                if (!fileTriangleMooreNeighbours.exists()) {
-//                    System.out.println("Create new Moore Neighbours File @" + fileTriangleMooreNeighbours);
-//                    HE_SurfaceIO.writeMooreTriangleNeighbours(surf.getTriangleNodes(), surf.getVerticesPosition().length, fileTriangleMooreNeighbours);
-//                    System.out.println("Created new Moore Neighbours File " + fileTriangleMooreNeighbours);
-//                    surf.mooreNeighbours = HE_SurfaceIO.readMooreNeighbours(fileTriangleMooreNeighbours);
-//                }
-//            }
+
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInfo injection : manualInjections) {
                 if (injection.getPosition() != null) {
@@ -2205,6 +2177,13 @@ public class LoadingCoordinator {
         this.crsSurface = crsS;
         this.requestLoading = true;
         this.loadingSurface = LOADINGSTATUS.REQUESTED;
+    }
+
+    public HE_Database requestHE_ResultDatabase() {
+        if (resultDatabase != null) {
+            return resultDatabase;
+        }
+        return null;
     }
 
 }

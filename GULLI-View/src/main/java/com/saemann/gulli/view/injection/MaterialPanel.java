@@ -18,7 +18,6 @@ import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Consta
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Calculator;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Dispersivity;
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Fischer;
 import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Waterlevel;
 import java.awt.BorderLayout;
 import java.text.DecimalFormatSymbols;
@@ -160,7 +159,7 @@ public class MaterialPanel extends JPanel {
 
     public void updateValues() {
         textname.setText(material.getName());
-        labelIndex.setText("Index: " + material.materialIndex);
+        labelIndex.setText("Index: " + material.materialIndex+" : ");
 
         //Pipe dispersion
         Dispersion1D_Calculator pc = material.getDispersionCalculatorPipe();

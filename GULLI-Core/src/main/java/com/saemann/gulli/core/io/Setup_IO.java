@@ -29,6 +29,7 @@ import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Cal
 import com.saemann.gulli.core.control.scenario.Scenario;
 import com.saemann.gulli.core.control.scenario.Setup;
 import com.saemann.gulli.core.control.scenario.SpillScenario;
+import com.saemann.gulli.core.control.scenario.injection.HEAreaInflow1DInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
@@ -328,6 +329,18 @@ public class Setup_IO {
                     bw.newLine();
                     bw.write("\t\t<Load unit='kg/m^2'>" + ai.getLoad() + "</>");
                     bw.newLine();
+                } else if (inj instanceof HEAreaInflow1DInformation) {
+                    HEAreaInflow1DInformation ai = (HEAreaInflow1DInformation) inj;
+                    bw.write("\t\t<Diffusive>false</>");
+                    bw.newLine();
+                    bw.write("\t\t<Substance_Parameter>" + ai.getSubstanceParameterName() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<Runoff_Parameter>" + ai.getRunoffParameterName() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<Load unit='kg/m^2'>" + ai.getMassload() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<Washoff unit='1/mm'>" + ai.getWashoffConstant() + "</>");
+                    bw.newLine();
                 } else if (inj instanceof InjectionInflowInformation) {
                     InjectionInflowInformation ai = (InjectionInflowInformation) inj;
                     bw.write("\t\t<Diffusive>false</>");
@@ -398,6 +411,11 @@ public class Setup_IO {
         String injectionCapacityName = null;
         String injectionFilterString = null;
         int injection_materialID = 0;
+        double injection_washoff = 0;
+        String injection_substance = null;
+        String injection_runoff = null;
+        double injection_load = 0;
+
         double injectionStart = 0;
         double injectionDuration = 0;
         double injectionMass = 1000;
@@ -668,6 +686,13 @@ public class Setup_IO {
                                         ainj.setDuration(injectionDuration);
                                         ainj.setMass(injectionMass);
                                         inj = ainj;
+                                    } else if (injectionType != null && injectionType.equals(HEAreaInflow1DInformation.class.getSimpleName())) {
+                                        HEAreaInflow1DInformation ainj = new HEAreaInflow1DInformation(injection_runoff, mat, injectionParticles);
+                                        ainj.setActive(injectionActive);
+                                        ainj.setWashoffConstant(injection_washoff);
+                                        ainj.setSubstanceParameterName(injection_substance);
+                                        ainj.setMassload(injection_load);
+                                        inj = ainj;
                                     } else {
                                         if (injectionOnSurface) {
 
@@ -743,7 +768,16 @@ public class Setup_IO {
                                 }
                             } else if (line.contains("Active")) {
                                 injectionActive = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Load")) {
+                                injection_load = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Washoff")) {
+                                injection_washoff = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Substance_Parameter")) {
+                                injection_substance = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                            } else if (line.contains("Runoff_Parameter")) {
+                                injection_runoff = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                             }
+
                         }
                     }
 

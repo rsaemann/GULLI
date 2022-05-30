@@ -36,12 +36,14 @@ import com.saemann.gulli.core.control.particlecontrol.injection.SubArealInjectio
 import com.saemann.gulli.core.control.particlecontrol.injection.SurfaceInjection;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInformation;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.injection.HEAreaInflow1DInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import com.saemann.gulli.core.control.scenario.injection.InjectionSubArealInformation;
 import com.saemann.gulli.core.control.threads.ParticleThread;
 import com.saemann.gulli.core.control.threads.ThreadController;
+import com.saemann.gulli.core.io.extran.HE_Database;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -66,6 +68,8 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.Position;
 import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.measurement.ParticleMeasurementSection;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Comparator;
 import org.locationtech.jts.geom.Coordinate;
 import org.opengis.referencing.operation.TransformException;
@@ -380,7 +384,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         if (scenario != null) {
             scenarioStarttime = scenario.getStartTime();
         }
-        scenarioStarttime+=starttimeAfterScenarioStart*1000;
+        scenarioStarttime += starttimeAfterScenarioStart * 1000;
         ArrayList<Particle> list = new ArrayList(numberOfParticles);
         {
 //            double dt = duration / (Math.max(1, numberOfParticles - 1));
@@ -789,6 +793,44 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 } else {
                     injection_.setActive(false);
                 }
+            } else if (injection_ instanceof HEAreaInflow1DInformation) {
+//                System.out.println("Create particles of " + injection_);
+                HEAreaInflow1DInformation injection = (HEAreaInflow1DInformation) injection_;
+
+                if (injection.isActive()) {
+                    if (!injection.isInitilized()) {
+                        if (network != null) {
+                            injection.network = network;
+                        }
+                        HE_Database he = loadingCoordinator.requestHE_ResultDatabase();
+                        if (he != null) {
+                            try {
+                                    injection.areaRunoffSplit = he.readRunoffSplit(null);
+                            } catch (SQLException ex) {
+                                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                            } catch (IOException ex) {
+                                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                            } catch (Exception ex) {
+
+                            }
+                            he.verbose = false;
+                            if (injection.effectiveRunoffArea != null) {
+                                injection.calculateManholesArea();
+                            }
+                        }
+                    }else{
+//                        System.out.println("is initialized");
+                    }
+
+                    ArrayList<Particle> particles = injection.createParticles();
+                    System.out.println("Created " + particles.size() + " particles for washoff '"+injection.runoffParameterName+"'");
+//                        ArealInjection ai = new ArealInjection(surface);
+//                        ArrayList<Particle> particles = createParticlesOverTimespan(injection.getNumberOfParticles(), injection.getMass() / (double) injection.getNumberOfParticles(), ai, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
+                    allParticles.addAll(particles);
+//                        ai.setParticleIDs(particles.get(0).getId(), particles.get(particles.size() - 1).getId());
+                }
+                injection.resetChanged();
+
             } else if (injection_ instanceof InjectionSubArealInformation) {
                 if (surface != null) {
                     InjectionSubArealInformation injection = (InjectionSubArealInformation) injection_;

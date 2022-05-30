@@ -83,7 +83,7 @@ public class Routing_Homogene implements Routing_Calculator {
     @Override
     public Connection_Manhole whichConnection(Manhole mh, RandomGenerator probability, boolean forward) {
 
-        if (mh.getWaterlevel() < dryWaterlevel&&!mh.pumpsump) {
+        if (mh.getWaterlevel() < dryWaterlevel && !mh.pumpsump) {
             if (verbose) {
                 System.out.println("waterlevel<" + dryWaterlevel + "m\t wL:" + mh.getWaterlevel() + "\t h:" + mh.getWaterHeight() + " --> null");
             }
@@ -222,6 +222,16 @@ public class Routing_Homogene implements Routing_Calculator {
     public boolean useDeposition() {
         return false;
     }
-    
-    
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj.getClass() != this.getClass()) {
+            return false;
+        }
+        return true;
+    }
+
 }

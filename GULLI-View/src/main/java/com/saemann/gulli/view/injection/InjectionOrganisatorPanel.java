@@ -28,6 +28,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.listener.LoadingActionListener;
 import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
 import com.saemann.gulli.core.control.scenario.Scenario;
+import com.saemann.gulli.core.control.scenario.injection.HEAreaInflow1DInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionArealInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInflowInformation;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
@@ -73,6 +74,7 @@ public class InjectionOrganisatorPanel extends JPanel {
     private JButton buttonNewInjectionArea;
     private JButton buttonNewInjectionSubArea;
     private JButton buttonNewInjectionInflow;
+    private JButton buttonNewInjectionAreaWashoff;
 
     protected Controller control;
     protected MapViewer map;
@@ -107,7 +109,7 @@ public class InjectionOrganisatorPanel extends JPanel {
 //        scrollInjection.setPreferredSize(new Dimension(100, 900));
         panelInjectionSurrounding.add(scrollInjection, BorderLayout.CENTER);
         this.add(panelInjectionSurrounding, BorderLayout.CENTER);
-        panelInjectionButtons = new JPanel(new GridLayout(2, 2, 3, 5));
+        panelInjectionButtons = new JPanel(new GridLayout(2, 3, 3, 5));
         panelInjectionSurrounding.add(panelInjectionButtons, BorderLayout.NORTH);
 
         control.addActioListener(new LoadingActionListener() {
@@ -183,6 +185,22 @@ public class InjectionOrganisatorPanel extends JPanel {
                     //Create a default value of 10 kg/ha 
                     ininfo.setMass(control.getNetwork().getInflowArea() * 0.001);
                 }
+                control.getLoadingCoordinator().addManualInjection(ininfo);
+                control.recalculateInjections();
+            }
+        });
+
+        buttonNewInjectionAreaWashoff = new JButton("Area washoff ");
+        panelInjectionButtons.add(buttonNewInjectionAreaWashoff, BorderLayout.EAST);
+        buttonNewInjectionAreaWashoff.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                Material m = new Material("Washoff", 1000, true);
+                m.travellengthToMeasure = 1;
+                HEAreaInflow1DInformation ininfo = new HEAreaInflow1DInformation("Street", m, 100000);//(m, control.getNetwork(), 0.1, 50000);
+                ininfo.massload = 0.001;
+                ininfo.setWashoffConstant(0.2);
                 control.getLoadingCoordinator().addManualInjection(ininfo);
                 control.recalculateInjections();
             }
@@ -278,6 +296,7 @@ public class InjectionOrganisatorPanel extends JPanel {
         }
         panelMaterials.revalidate();
         panelMaterials.repaint();
+
     }
 
     private void createInjectionPanels() {
@@ -309,15 +328,14 @@ public class InjectionOrganisatorPanel extends JPanel {
 
             } else if (inj instanceof InjectionInformation) {
                 InjectionInformation in = (InjectionInformation) inj;
-//                if (in.spilldistributed) {
-//                    InjectionPanelAreal ia = new InjectionPanelAreal(in, paintManager);
-//                    panel = ia;
-//                    panelInjections.add(ia);
-//                } else {
                 InjectionPanelPointlocation ip = new InjectionPanelPointlocation(in, map, paintManager);
                 panel = ip;
                 panelInjections.add(ip);
-//                }
+            } else if (inj instanceof HEAreaInflow1DInformation) {
+                InjectionPanelAreaWashoff ia = new InjectionPanelAreaWashoff((HEAreaInflow1DInformation) inj, paintManager);
+                panel = ia;
+                panelInjections.add(ia);
+
             }
             if (panel != null) {
                 JPopupMenu popup = new JPopupMenu();
