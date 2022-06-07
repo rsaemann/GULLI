@@ -805,7 +805,16 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         HE_Database he = loadingCoordinator.requestHE_ResultDatabase();
                         if (he != null) {
                             try {
-                                    injection.areaRunoffSplit = he.readRunoffSplit(null);
+                                    injection.areaRunoffSplit = he.readRunoffSplit(null,null);
+                            } catch (SQLException ex) {
+                                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                            } catch (IOException ex) {
+                                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                            } catch (Exception ex) {
+
+                            }
+                            try {
+                                    injection.setPrecipitation(he.readRegenreihe());
                             } catch (SQLException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (IOException ex) {
@@ -823,7 +832,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     }
 
                     ArrayList<Particle> particles = injection.createParticles();
-                    System.out.println("Created " + particles.size() + " particles for washoff '"+injection.runoffParameterName+"'");
+                    float mass=0;
+                    for (Particle particle : particles) {
+                        mass+=particle.getParticleMass();
+                    }
+                    System.out.println("Created " + particles.size() + " particles for washoff '"+injection.runoffParameterName+"' with "+mass+"kg");
 //                        ArealInjection ai = new ArealInjection(surface);
 //                        ArrayList<Particle> particles = createParticlesOverTimespan(injection.getNumberOfParticles(), injection.getMass() / (double) injection.getNumberOfParticles(), ai, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
                     allParticles.addAll(particles);

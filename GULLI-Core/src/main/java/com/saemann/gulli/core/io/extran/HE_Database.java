@@ -1941,7 +1941,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 einleiter.add(eze);
             }
             rs.close();
-            //Request the time lines for volume and solute injection intensity
+            //Request the time lines for runoffVolume and solute injection intensity
             for (EinzelStoffeinleiter ele : einleiter) {
 
                 if (ele.refIDMessdaten > 0) {
@@ -3800,11 +3800,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
                         Statement st = c.createStatement();
                         ResultSet rs = st.executeQuery("SELECT GESCHWINDIGKEIT,DURCHFLUSS,WASSERSTAND FROM LAU_GL_EL WHERE ID=" + pipeManualID + " ORDER BY ZEITPUNKT ")) {
                     int times = timeline.getNumberOfTimes();
-                    float[] velocity, flux, waterlevel;//, volume;
+                    float[] velocity, flux, waterlevel;//, runoffVolume;
                     velocity = new float[times];
                     flux = new float[times];
                     waterlevel = new float[times];
-//                    volume = new float[times];
+//                    runoffVolume = new float[times];
                     int index = 0;
                     while (rs.next()) {
                         velocity[index] = rs.getFloat(1);
@@ -4039,15 +4039,35 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return list;
     }
 
-    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset) throws SQLException, IOException {
+    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset,String substancename) throws SQLException, IOException {
         if (con == null || con.isClosed()) {
             con = getConnection();
         }
         ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
         rs.next();
         double fractionUpper = (100 - rs.getDouble(1)) / 100.;
-
-        rs = con.createStatement().executeQuery("SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,Abfluss,BEFESTIGTEFLAECHE,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID " + (washoff_parameterset != null ? "WHERE PARAMETERSATZ='" + washoff_parameterset + "'" : ""));
+        String query="SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,STOFFGROESSE,GESAMTFRACHT,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN FRACHTABFLUSSOBERFLAECHE ON ROHR.ID=FRACHTABFLUSSOBERFLAECHE.ROHRREF INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
+        boolean where_used=false;
+        boolean runofffilter=false;
+        boolean substancefilter=false;
+       
+        if(washoff_parameterset!=null&&!washoff_parameterset.isEmpty()){
+            query +="WHERE Parametersatz='"+washoff_parameterset+"'";
+            where_used=true;
+            runofffilter=true;
+        }
+        if(substancename!=null&&!substancename.isEmpty()){
+            if(where_used){
+                query+="AND ";
+            }else{
+                query+="WHERE ";
+            }
+            query+="AND STOFFGROESSE='"+substancename+"'";
+            where_used=true;
+            substancefilter=true;
+        }
+        rs=con.createStatement().executeQuery(query);
+//        rs = con.createStatement().executeQuery("SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,Abfluss,BEFESTIGTEFLAECHE,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID " + (washoff_parameterset != null ? "WHERE PARAMETERSATZ='" + washoff_parameterset + "'" : ""));
         //typ:0= Waterheight [m aSl], 1 = Zufluss [L/s], 2: Discharge [cbm/s]
         if (!rs.isBeforeFirst()) {
             if (verbose) {
@@ -4060,12 +4080,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
         while (rs.next()) {
             AreaRunoffSplit ars = new AreaRunoffSplit();
             ars.areaName = rs.getString(2);
+            ars.pipename=rs.getString(3);
             ars.washoffParameter = rs.getString(9);
-            ars.volume = rs.getDouble(5);//m^3
-            ars.effectiveRunoffArea = rs.getDouble(6) * 10000; //ha->m^2
+            ars.runoffVolume = rs.getDouble(5);//m^3
+            ars.area = rs.getDouble(6) * 10000; //ha->m^2
             ars.lowerManholeName = rs.getString(8);
             ars.upperManholeName = rs.getString(7);
             ars.fractionUpper = fractionUpper;
+            ars.substance=rs.getString(10);
+            ars.washoffMass=rs.getDouble(11);
+            ars.runofffraction=rs.getDouble(12)/100f;
+            ars.totalPrecipitationMM=rs.getDouble(13);
+//            System.out.println("Abflussbeiwert "+ars.areaName+", "+ars.washoffParameter+" : "+((int)(ars.runofffraction*100))+"% von "+(int)(rs.getDouble(13)+0.1)+"mm => "+ars.runoffVolume +"m³ bei "+ars.area+"m²");
             list.add(ars);
         }
         rs.close();
@@ -4170,7 +4196,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         /**
          * m^2
          */
-        public double effectiveRunoffArea;
+        public double area;
 
         public double fractionUpper;
 
@@ -4180,6 +4206,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
         /**
          * m^3 during whole period
          */
-        public double volume;
+        public double runoffVolume;
+        public double washoffMass;
+        public String substance;
+        public String pipename;
+        public double runofffraction;
+        public double totalPrecipitationMM;
     }
 }

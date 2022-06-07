@@ -177,7 +177,7 @@ public class StorageVolume extends Capacity {
 
     @Override
     public double getWaterlevel() {
-        return timelineStatus.getActualWaterLevel();//timelineStatus.getActualWaterZ()-this.getSole_height();
+        return timelineStatus.getActualWaterZ()-this.getSole_height();//timelineStatus.getActualWaterZ()-this.getSole_height();
     }
 
 }

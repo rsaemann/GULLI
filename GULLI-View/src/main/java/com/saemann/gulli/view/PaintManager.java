@@ -66,7 +66,6 @@ import com.saemann.rgis.view.GradientColorHolder;
 import com.saemann.rgis.view.MapViewer;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
 import com.saemann.rgis.view.shapes.AreaPainting;
-//import com.saemann.rgis.view.shapes.ArrowPainting;
 import com.saemann.rgis.view.shapes.LabelPainting;
 import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.LinePainting;

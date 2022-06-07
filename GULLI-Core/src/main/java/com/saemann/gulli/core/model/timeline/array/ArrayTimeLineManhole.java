@@ -56,21 +56,22 @@ public class ArrayTimeLineManhole implements TimeLineManhole {
      */
     @Override
     public float getActualWaterZ() {
-        try {
-            if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.LINEAR_INTERPOLATE) {
-                return (float) this.getValue_DoubleIndex(container.waterZ, (float) container.getActualTimeIndex_double());
-            } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.STEPS) {
-                return this.getWaterZ(container.getActualTimeIndex());
-            } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.MAXIMUM) {
-                return h_max;
-            } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.MEAN) {
-                return h_max;
-            }
-            return this.getWaterZ(container.getActualTimeIndex());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
+        return (float) this.getValue_DoubleIndex(container.waterZ, (float) container.getActualTimeIndex_double());
+//        try {
+//            if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.LINEAR_INTERPOLATE) {
+//                return (float) this.getValue_DoubleIndex(container.waterZ, (float) container.getActualTimeIndex_double());
+//            } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.STEPS) {
+//                return this.getWaterZ(container.getActualTimeIndex());
+//            } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.MAXIMUM) {
+//                return h_max;
+//            } else if (container.calculaion_Method == ArrayTimeLinePipeContainer.CALCULATION.MEAN) {
+//                return h_max;
+//            }
+//            return this.getWaterZ(container.getActualTimeIndex());
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        return 0;
     }
 
     @Override

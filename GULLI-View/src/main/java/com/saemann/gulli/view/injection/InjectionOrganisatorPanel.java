@@ -198,7 +198,7 @@ public class InjectionOrganisatorPanel extends JPanel {
             public void actionPerformed(ActionEvent ae) {
                 Material m = new Material("Washoff", 1000, true);
                 m.travellengthToMeasure = 1;
-                HEAreaInflow1DInformation ininfo = new HEAreaInflow1DInformation("Street", m, 100000);//(m, control.getNetwork(), 0.1, 50000);
+                HEAreaInflow1DInformation ininfo = new HEAreaInflow1DInformation(null, m, 100000);//(m, control.getNetwork(), 0.1, 50000);
                 ininfo.massload = 0.001;
                 ininfo.setWashoffConstant(0.2);
                 control.getLoadingCoordinator().addManualInjection(ininfo);

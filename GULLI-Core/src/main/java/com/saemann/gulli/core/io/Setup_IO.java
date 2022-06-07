@@ -337,6 +337,8 @@ public class Setup_IO {
                     bw.newLine();
                     bw.write("\t\t<Runoff_Parameter>" + ai.getRunoffParameterName() + "</>");
                     bw.newLine();
+                    bw.write("\t\t<Washoff_type>" + ai.inflowtype + "</>");
+                    bw.newLine();
                     bw.write("\t\t<Load unit='kg/m^2'>" + ai.getMassload() + "</>");
                     bw.newLine();
                     bw.write("\t\t<Washoff unit='1/mm'>" + ai.getWashoffConstant() + "</>");
@@ -412,6 +414,7 @@ public class Setup_IO {
         String injectionFilterString = null;
         int injection_materialID = 0;
         double injection_washoff = 0;
+        String injection_washofftype = null;
         String injection_substance = null;
         String injection_runoff = null;
         double injection_load = 0;
@@ -690,6 +693,11 @@ public class Setup_IO {
                                         HEAreaInflow1DInformation ainj = new HEAreaInflow1DInformation(injection_runoff, mat, injectionParticles);
                                         ainj.setActive(injectionActive);
                                         ainj.setWashoffConstant(injection_washoff);
+                                        if (injection_washofftype != null) {
+                                            ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.valueOf(injection_washofftype));
+                                        }else{
+                                            ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.INFLOW_WASHOFF);
+                                        }
                                         ainj.setSubstanceParameterName(injection_substance);
                                         ainj.setMassload(injection_load);
                                         inj = ainj;
@@ -770,8 +778,10 @@ public class Setup_IO {
                                 injectionActive = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Load")) {
                                 injection_load = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-                            } else if (line.contains("Washoff")) {
+                            } else if (line.contains("Washoff ")) {
                                 injection_washoff = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Washoff_Type")) {
+                                injection_washofftype =(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Substance_Parameter")) {
                                 injection_substance = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                             } else if (line.contains("Runoff_Parameter")) {
