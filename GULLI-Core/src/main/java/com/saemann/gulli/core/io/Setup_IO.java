@@ -695,8 +695,10 @@ public class Setup_IO {
                                         ainj.setWashoffConstant(injection_washoff);
                                         if (injection_washofftype != null) {
                                             ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.valueOf(injection_washofftype));
-                                        }else{
+                                        } else {
                                             ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.INFLOW_WASHOFF);
+                                            System.out.println("Washoff type not recognised. use standard " + ainj.inflowtype);
+
                                         }
                                         ainj.setSubstanceParameterName(injection_substance);
                                         ainj.setMassload(injection_load);
@@ -780,8 +782,8 @@ public class Setup_IO {
                                 injection_load = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Washoff ")) {
                                 injection_washoff = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
-                            } else if (line.contains("Washoff_Type")) {
-                                injection_washofftype =(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("Washoff_type")) {
+                                injection_washofftype = (line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             } else if (line.contains("Substance_Parameter")) {
                                 injection_substance = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                             } else if (line.contains("Runoff_Parameter")) {

@@ -250,6 +250,8 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                     double masstorelease = 0;
                     double released = 0;
                     if (inflowtype == RUNOFF_CONTROL.INFLOW_WASHOFF) {
+                        //Calculates the particles based on the inflow timeline of the connected manholes (uses the inflow of the upper manhole.
+                        //Sends particles to both manholes.
                         TimeLineManhole tl = mhUP.getStatusTimeLine();
                         for (int i = 0; i < tl.getNumberOfTimes() - 1; i++) {
                             if (massreservoir < 0) {
@@ -344,11 +346,11 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                                 } else {
                                     //Create a single particle, carrying the emitted mass of this interval
                                     long insertiontime = (long) (0.5 * (precipitation.getTimes()[i] + precipitation.getTimes()[i]) - precipitation.getTimes()[0]);
-                                    Particle p = new Particle(material, mhiUP, (float) ( masstorelease*ars.fractionUpper), insertiontime);
+                                    Particle p = new Particle(material, mhiUP, (float) (masstorelease * ars.fractionUpper), insertiontime);
                                     particles.add(p);
                                     massreservoir -= p.getParticleMass();
                                     masstorelease -= p.getParticleMass();
-                                    p = new Particle(material, mhiDW, (float) ( masstorelease*(1-ars.fractionUpper)), insertiontime);
+                                    p = new Particle(material, mhiDW, (float) (masstorelease * (1 - ars.fractionUpper)), insertiontime);
                                     particles.add(p);
                                     massreservoir -= p.getParticleMass();
                                     masstorelease -= p.getParticleMass();
@@ -363,14 +365,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
 
             }
             System.out.println("Releasemass=" + totalrelesemass + " kg for " + runoffParameterName);
-//            System.out.println("precipitation.time [0] = " + precipitation.getTimes()[0] + "   beginn=" + precipitation.getBeginn()+" -> offset:");
-//            for (int i = 0; i < precipitation.getPrecipitation().length; i++) {
-//                System.out.println("Niederschlag ["+i+"]="+precipitation.getPrecipitation()[i]);
-//                
-//            }
-//            if (particles != null && !particles.isEmpty()) {
-//                System.out.println("First particle to be released at " + particles.get(0).getInsertionTime() + " ms after simulation start");
-//            }
+
             return particles;
         }
         System.err.println("Inflow type " + inflowtype + " not yet implemented");
