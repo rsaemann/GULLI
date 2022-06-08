@@ -4046,7 +4046,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
         rs.next();
         double fractionUpper = (100 - rs.getDouble(1)) / 100.;
-        String query="SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,STOFFGROESSE,GESAMTFRACHT,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN FRACHTABFLUSSOBERFLAECHE ON ROHR.ID=FRACHTABFLUSSOBERFLAECHE.ROHRREF INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
+        String query="SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,STOFFGROESSE,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN FRACHTABFLUSSOBERFLAECHE ON ROHR.ID=FRACHTABFLUSSOBERFLAECHE.ROHRREF INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
         boolean where_used=false;
         boolean runofffilter=false;
         boolean substancefilter=false;
@@ -4082,15 +4082,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
             ars.areaName = rs.getString(2);
             ars.pipename=rs.getString(3);
             ars.washoffParameter = rs.getString(9);
-            ars.runoffVolume = rs.getDouble(5);//m^3
+            ars.runoffVolume = rs.getDouble(5);//m^3 to pipe
             ars.area = rs.getDouble(6) * 10000; //ha->m^2
             ars.lowerManholeName = rs.getString(8);
             ars.upperManholeName = rs.getString(7);
             ars.fractionUpper = fractionUpper;
             ars.substance=rs.getString(10);
-            ars.washoffMass=rs.getDouble(11);
-            ars.runofffraction=rs.getDouble(12)/100f;
-            ars.totalPrecipitationMM=rs.getDouble(13);
+//            ars.washoffMass=rs.getDouble(11);
+            ars.runofffraction=rs.getDouble(11)/100f;
+            ars.totalPrecipitationMM=rs.getDouble(12);
 //            System.out.println("Abflussbeiwert "+ars.areaName+", "+ars.washoffParameter+" : "+((int)(ars.runofffraction*100))+"% von "+(int)(rs.getDouble(13)+0.1)+"mm => "+ars.runoffVolume +"m³ bei "+ars.area+"m²");
             list.add(ars);
         }
@@ -4207,7 +4207,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
          * m^3 during whole period
          */
         public double runoffVolume;
-        public double washoffMass;
+//        public double washoffMass;
         public String substance;
         public String pipename;
         public double runofffraction;

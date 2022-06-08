@@ -90,7 +90,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
 
     public int numberOfParticles;
 
-    public HashMap<String, Double> effectiveRunoffArea;
+    public HashMap<String, Double> effectiveRunoffVolume;
     /**
      * HE Parameter: Abflussparameter
      */
@@ -133,26 +133,26 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
     }
 
     public void calculateManholesArea() {
-        if (effectiveRunoffArea != null) {
-            effectiveRunoffArea.clear();
+        if (effectiveRunoffVolume != null) {
+            effectiveRunoffVolume.clear();
         } else {
-            effectiveRunoffArea = new HashMap<>(30);
+            effectiveRunoffVolume = new HashMap<>(30);
         }
         for (AreaRunoffSplit ars : areaRunoffSplit) {
-            double upper = ars.area * ars.fractionUpper;
-            double lower = ars.area * (1. - ars.fractionUpper);
+            double upper = ars.runoffVolume * ars.fractionUpper;
+            double lower = ars.runoffVolume * (1. - ars.fractionUpper);
 
-            Double up = effectiveRunoffArea.get(ars.upperManholeName);
+            Double up = effectiveRunoffVolume.get(ars.upperManholeName);
             if (up == null) {
-                effectiveRunoffArea.put(ars.upperManholeName, upper);
+                effectiveRunoffVolume.put(ars.upperManholeName, upper);
             } else {
-                effectiveRunoffArea.put(ars.upperManholeName, upper + up);
+                effectiveRunoffVolume.put(ars.upperManholeName, upper + up);
             }
-            Double low = effectiveRunoffArea.get(ars.lowerManholeName);
+            Double low = effectiveRunoffVolume.get(ars.lowerManholeName);
             if (low == null) {
-                effectiveRunoffArea.put(ars.lowerManholeName, lower);
+                effectiveRunoffVolume.put(ars.lowerManholeName, lower);
             } else {
-                effectiveRunoffArea.put(ars.lowerManholeName, lower + low);
+                effectiveRunoffVolume.put(ars.lowerManholeName, lower + low);
             }
         }
         initilized = true;
@@ -240,11 +240,13 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
 
                     double massreservoir = ars.massUpper + ars.massLower;
                     totalrelesemass += massreservoir;
-                    double areafraction = 0;
+                    double areafractionUP = 0;
+                    double areafractionLOW = 0;
                     try {
-                        areafraction = ars.area * ars.fractionUpper / effectiveRunoffArea.get(ars.upperManholeName);
+                        areafractionUP = ars.runoffVolume * ars.fractionUpper / effectiveRunoffVolume.get(ars.upperManholeName);
+                        areafractionLOW = ars.runoffVolume * (1 - ars.fractionUpper) / effectiveRunoffVolume.get(ars.lowerManholeName);
                     } catch (Exception e) {
-                        System.err.println("Cannot find area of " + ars.upperManholeName);
+                        System.err.println("Cannot find area of " + ars.upperManholeName + " or " + ars.lowerManholeName);
                         continue;
                     }
                     double masstorelease = 0;
@@ -252,20 +254,26 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                     if (inflowtype == RUNOFF_CONTROL.INFLOW_WASHOFF) {
                         //Calculates the particles based on the inflow timeline of the connected manholes (uses the inflow of the upper manhole.
                         //Sends particles to both manholes.
-                        TimeLineManhole tl = mhUP.getStatusTimeLine();
-                        for (int i = 0; i < tl.getNumberOfTimes() - 1; i++) {
+                        TimeLineManhole tlUP = mhUP.getStatusTimeLine();
+                        TimeLineManhole tlLOW = mhDW.getStatusTimeLine();
+                        for (int i = 0; i < tlUP.getNumberOfTimes() - 1; i++) {
                             if (massreservoir < 0) {
                                 break;
                             }
                             // m^3/s
-                            float inflowCurrent = tl.getInflow(i);
-                            float inflowNext = tl.getInflow(i + 1);
+                            float inflowUPCurrent = tlUP.getInflow(i);
+                            float inflowUPNext = tlUP.getInflow(i + 1);
+                            float inflowLOWCurrent = tlLOW.getInflow(i);
+                            float inflowLOWNext = tlLOW.getInflow(i + 1);
                             //Intervallduration [s]
-                            double duration = (tl.getTimeContainer().getTimeMilliseconds(i + 1) - tl.getTimeContainer().getTimeMilliseconds(i)) / 1000.;
+                            double duration = (tlUP.getTimeContainer().getTimeMilliseconds(i + 1) - tlUP.getTimeContainer().getTimeMilliseconds(i)) / 1000.;
                             //m^3
-                            double volume = (inflowCurrent + inflowNext) * 0.5 * duration;
-                            double volumeOnArea = volume * areafraction;
-                            double eff_precipitation = volumeOnArea * 1000. / (ars.area * ars.fractionUpper); // m->mm
+                            double volumeUP = (inflowUPCurrent + inflowUPNext) * 0.5 * duration * areafractionUP;
+                            double volumeLOW = (inflowLOWCurrent + inflowLOWNext) * 0.5 * duration * areafractionLOW;
+
+                            double volumeOnArea = (volumeUP + volumeLOW) * 0.5;
+                            double eff_precipitation = volumeOnArea * 1000. / (ars.area /** ars.fractionUpper*/); // m->mm
+//                            System.out.println("Inflow "+volumeUP+"m³ / "+volumeLOW+"m³  -> "+eff_precipitation+"mm"+"\t Abweichung Upper/lower: "+(int)(((volumeUP-volumeLOW)*100)/volumeUP)+"%");
 //                            System.out.println("Vol="+volumeOnArea+"m^3  / "+ars.area+"m^2 = "+eff_precipitation+"mm");
                             double masswashoffinInterval = massreservoir * washoffConstant * eff_precipitation;
                             if (masswashoffinInterval > massreservoir) {
@@ -281,7 +289,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                                     float massperparticle = (float) (masswashoffinInterval / particles_toRelease);
                                     double timedistance = duration / (double) particles_toRelease;
                                     for (int j = 0; j < particles_toRelease; j++) {
-                                        long insertiontime = (long) (tl.getTimeContainer().getTimeMilliseconds(i) + (j + 0.5) * timedistance * 1000);
+                                        long insertiontime = (long) (tlUP.getTimeContainer().getTimeMilliseconds(i) + (j + 0.5) * timedistance * 1000);
                                         Particle p = new Particle(material, mhiUP, (float) (massperparticle * ars.fractionUpper), insertiontime);
                                         particles.add(p);
                                         masstorelease -= p.getParticleMass();
@@ -294,7 +302,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                                     }
                                 } else {
                                     //Create a single particle, carrying the emitted mass of this interval
-                                    long insertiontime = (long) (0.5 * (tl.getTimeContainer().getTimeMilliseconds(i) + tl.getTimeContainer().getTimeMilliseconds(i + 1)));
+                                    long insertiontime = (long) (0.5 * (tlUP.getTimeContainer().getTimeMilliseconds(i) + tlUP.getTimeContainer().getTimeMilliseconds(i + 1)));
                                     Particle p = new Particle(material, mhiUP, (float) (masstorelease * ars.fractionUpper), insertiontime);
                                     particles.add(p);
                                     masstorelease -= p.getParticleMass();

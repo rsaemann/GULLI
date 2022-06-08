@@ -823,7 +823,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
                             }
                             he.verbose = false;
-                            if (injection.effectiveRunoffArea != null) {
+                            if (injection.effectiveRunoffVolume != null) {
                                 injection.calculateManholesArea();
                             }
                         }
