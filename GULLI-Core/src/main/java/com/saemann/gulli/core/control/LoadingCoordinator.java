@@ -2186,4 +2186,63 @@ public class LoadingCoordinator {
         return null;
     }
 
+    public void createNewSetup() {
+        this.setupFile = null;
+        this.FileTriangleNeumannNeighboursDAT = null;
+        this.crsNetwork = null;
+        this.crsSurface = null;
+        this.fileMainPipeResult = null;
+        this.fileNetwork = null;
+        this.fileStreetInletsSHP = null;
+        this.fileSurfaceCoordsDAT = null;
+        this.fileSurfaceInlets = null;
+        this.fileSurfaceManholes = null;
+        this.fileSurfaceReferenceSystem = null;
+        this.fileSurfaceTriangleIndicesDAT = null;
+        this.fileSurfaceWaterlevels = null;
+
+        loadingPipeResult = LOADINGSTATUS.NOT_REQUESTED;
+        loadingStreetInlets = LOADINGSTATUS.NOT_REQUESTED;
+        loadingSurface = LOADINGSTATUS.NOT_REQUESTED;
+        loadingSurfaceVelocity = LOADINGSTATUS.NOT_REQUESTED;
+        loadingpipeNetwork = LOADINGSTATUS.NOT_REQUESTED;
+
+        this.inletRefs = null;
+        this.manhRefs = null;
+
+        this.isLoading = false;
+        this.list_loadingPipeResults = null;
+
+        this.manualInjections.clear();
+        if (this.modelDatabase != null) {
+            try {
+                this.modelDatabase.close();
+            } catch (Exception ex) {
+                Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        this.modelDatabase = null;
+        this.network = null;
+        this.requestLoading = false;
+        if (this.resultDatabase != null) {
+            try {
+                this.resultDatabase.close();
+            } catch (Exception ex) {
+                Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            this.resultDatabase = null;
+        }
+        this.resultName = "";
+        if (this.scenario != null) {
+            this.scenario.reset();
+            this.scenario.setMeasurementsPipe(null);
+            this.scenario.setMeasurementsSurface(null);
+            this.scenario.setMaterials(null);
+        }
+        this.scenario = null;
+        this.surface=null;
+        this.totalInjections.clear();
+        System.gc();
+    }
+
 }

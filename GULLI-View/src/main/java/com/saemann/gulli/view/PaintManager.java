@@ -3408,6 +3408,29 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         .getName()).log(Level.SEVERE, null, ex);
             }
         }
+        if (action.description.equals(Controller.ACTION_KEY_NEWSETUP)) {
+            clearInjectionLocations();
+            clearParticles();
+            clearSurfaceShows();
+            this.arrayNetwork = null;
+            this.arraySurface = null;
+
+            if (this.affectedManholes != null) {
+                this.affectedManholes.clear();
+            }
+            this.injections.clear();
+            this.network = null;
+            this.surface = null;
+            this.particlePaintings = null;
+            this.selectedID = -1;
+            this.selectedLayer = null;
+            this.mapViewer.clearLayer(null);
+            this.mapViewer.recalculateMapScale();
+            this.mapViewer.recomputeLegend();
+            this.mapViewer.recalculateShapes();
+            resetSurfaceShapes();
+            this.mapViewer.repaint();
+        }
     }
 
     @Override

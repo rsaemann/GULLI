@@ -121,6 +121,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     protected boolean traceParticles = false;
 
     protected int tracerParticleCount = 0;
+    
+    public static final String ACTION_KEY_NEWSETUP="CleanProject";
 
     /**
      * Create all basic classes needed for the calculation. Automatically uses
@@ -805,7 +807,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         HE_Database he = loadingCoordinator.requestHE_ResultDatabase();
                         if (he != null) {
                             try {
-                                    injection.areaRunoffSplit = he.readRunoffSplit(null,null);
+                                injection.areaRunoffSplit = he.readRunoffSplit(null, null);
                             } catch (SQLException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (IOException ex) {
@@ -814,7 +816,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
                             }
                             try {
-                                    injection.setPrecipitation(he.readRegenreihe());
+                                injection.setPrecipitation(he.readRegenreihe());
                             } catch (SQLException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (IOException ex) {
@@ -827,16 +829,16 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                                 injection.calculateManholesArea();
                             }
                         }
-                    }else{
+                    } else {
 //                        System.out.println("is initialized");
                     }
 
                     ArrayList<Particle> particles = injection.createParticles();
-                    float mass=0;
+                    float mass = 0;
                     for (Particle particle : particles) {
-                        mass+=particle.getParticleMass();
+                        mass += particle.getParticleMass();
                     }
-                    System.out.println("Created " + particles.size() + " particles for washoff '"+injection.runoffParameterName+"' with "+mass+"kg");
+                    System.out.println("Created " + particles.size() + " particles for washoff '" + injection.runoffParameterName + "' with " + mass + "kg");
 //                        ArealInjection ai = new ArealInjection(surface);
 //                        ArrayList<Particle> particles = createParticlesOverTimespan(injection.getNumberOfParticles(), injection.getMass() / (double) injection.getNumberOfParticles(), ai, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
                     allParticles.addAll(particles);
@@ -1210,4 +1212,21 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         return tracerParticleCount;
     }
 
+    public void cleanSetup() {
+        threadController.stop();
+        for (ParticleListener pl : particleListener) {
+            pl.clearParticles(this);
+        }
+        this.network = null;
+        this.pipeResultData = null;
+        this.scenario = null;
+        this.storingCoordinator.getFinalOutputs().clear();
+        this.surface = null;
+        threadController.cleanFromParticles();
+        loadingCoordinator.createNewSetup();
+
+        for (LoadingActionListener al : actionListener) {
+            al.actionFired(new Action(ACTION_KEY_NEWSETUP, currentAction, false), this);
+        }
+    }
 }

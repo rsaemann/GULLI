@@ -22,9 +22,7 @@ import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Network;
-import java.awt.Color;
 import java.io.File;
-import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
@@ -186,7 +184,13 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
         menuProject.add(menuitem_saveasProject);
 
         //New operation clears the current project. not yet implemented
-        menuitem_newProject.setEnabled(false);
+//        menuitem_newProject.setEnabled(false);
+        menuitem_newProject.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                controller.cleanSetup();
+            }
+        });
 
         menuitem_openProject.addActionListener(new ActionListener() {
             @Override
@@ -214,6 +218,10 @@ public class ControllFrame extends JFrame implements ActionListener, LoadingActi
 
     public void saveSetup() {
         String path = controller.getLoadingCoordinator().getCurrentSetupFilepath();
+        if(path==null||path.isEmpty()){
+            saveAsSetup();
+            return;
+        }
         File f = new File(path);
         if (f.exists() && f.canWrite()) {
             try {

@@ -89,8 +89,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class SingleControllPanel extends JPanel implements LoadingActionListener, SimulationActionListener {
 
     public static boolean advancedOpions = false;
-  
-    
+
     private MapViewer mapViewer;
     private PaintManager paintManager;
     private final ThreadController controler;
@@ -403,11 +402,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         panelTabSimulation.add(panelCalculation);
 
-        
         /////////////////////
         ///// ACTION Listener
-        
-
         buttonFileNetwork.addActionListener(new ActionListener() {
 
             @Override
@@ -648,7 +644,13 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             public void actionPerformed(ActionEvent ae) {
                 buttonRun.setSelected(true);
                 buttonPause.setSelected(false);
-                control.start();
+                try {
+                    control.start();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    buttonPause.setSelected(true);
+                    buttonRun.setSelected(false);
+                }
             }
         });
 
@@ -688,7 +690,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             e.printStackTrace();
                         }
                         buttonReset.setSelected(false);
-                        buttonRun.setEnabled(true);
+                        if (control.getScenario() != null) {
+                            buttonRun.setEnabled(true);
+                        } else {
+                            buttonRun.setEnabled(false);
+                        }
                     }
 
                 }.start();
@@ -1309,7 +1315,6 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 //            labelSetupName.setText(control.getScenario().getName());
 //        }
 //        panelSetup.add(labelSetupName, BorderLayout.CENTER);
-
         //Pipe Network 
         JPanel panelNetwork = new JPanel(new GridLayout(3, 1));
         panelNetwork.setPreferredSize(new Dimension(500, 120));
@@ -1993,7 +1998,5 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
             updateSimulationThread.start();
         }
     }
-    
-    
 
 }
