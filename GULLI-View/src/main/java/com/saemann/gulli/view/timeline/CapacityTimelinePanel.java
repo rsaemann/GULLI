@@ -88,7 +88,6 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
 import com.saemann.gulli.view.timeline.customCell.StrokeEditor;
-import java.awt.event.ContainerAdapter;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import javax.swing.JOptionPane;
@@ -238,8 +237,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final ArrayList<TimeSeries> mes_concentration_Type = new ArrayList<>(2);
 
     //Manhole only
-    private final TimeSeries inflow = new TimeSeries(new SeriesKey("Inflow", "q", "m³/s", Color.green, new AxisKey("Q", "Inflow [m³/s]"), 0), "Time", "m³/s");
-
+//    private final TimeSeries inflow = new TimeSeries(new SeriesKey("Inflow", "q", "m³/s", Color.green, new AxisKey("Q", "Inflow [m³/s]"), 0), "Time", "m³/s");
     public static final ValueMarker zero_Marker = new ValueMarker(0, Color.LIGHT_GRAY, new BasicStroke(1));
 
     public CapacityTimelinePanel(String title, Controller c/*, PipeResultData... input*/) {
@@ -301,7 +299,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                
+
                 try {
                     panelChart.setMaximumDrawHeight(getHeight());
                     panelChart.setMaximumDrawWidth(getWidth());
@@ -321,7 +319,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
 
         });
-        
 
     }
 
@@ -443,12 +440,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             return;
         }
         this.actualShown = c;
-//        if (container == null || (container.length == 1 && container[0] == null)) {
-//            this.container = new ArrayTimeLinePipeContainer[]{ArrayTimeLinePipeContainer.instance};
-//        }
+
         container = new ArrayList<PipeResultData>(1);
         container.add(controller.getPipeResultData());
-//        container = controller.getMultiInputData();
+
         if (t != null && t.isAlive()) {
             System.out.println(this.getClass() + ":: interrupt TimelineThread " + t.toString());
             try {
@@ -461,9 +456,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             public void run() {
 
                 try {
-//                    if (CapacityTimelinePanel.this.collection != null) {
-//                        CapacityTimelinePanel.this.collection.removeAllSeries();
-//                    }
                     CapacityTimelinePanel.this.title = title;
                     if (c == null) {
 
@@ -477,13 +469,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                             CapacityTimelinePanel.this.buildManholeTimeline((StorageVolume) c);
                         } else if (c instanceof SurfaceTriangle) {
                             SurfaceTriangle st = (SurfaceTriangle) c;
-//                            if (st.measurement != null) {
-//                                CapacityTimelinePanel.this.buildTriangleMeasurementTimeline(st.measurement);
-//                            } else {
+
                             CapacityTimelinePanel.this.collection.removeAllSeries();
                             CapacityTimelinePanel.this.title = "Triangle " + st.getManualID() + " has no measurements.";
 
-//                            }
                         } else {
                             System.out.println(this.getClass() + "::setStorage() : Type " + c.getClass() + "is not known to handle for building Timelines.");
                         }
@@ -699,7 +688,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         m_p_l.clear();
         m_vol.clear();
         ref_m_sum.clear();
-//        n_sampl.clear();
 
         moment0_particleMass.clear();
         moment1_messung.clear();
@@ -829,14 +817,20 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                     name = "" + j;
                 }
                 if (mes_massFlux_Type.size() < j + 1) {
-                    SeriesKey key = new SeriesKey("p. " + name + " Massflux [" + j + "]", "mf", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
+                    SeriesKey key = new SeriesKey(name + " Massflux [" + j + "]", "mf", "kg/s", Color.orange.darker(), keymassFlux, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 1) % StrokeEditor.availableStrokes.length]);
                     key.setVisible(((SeriesKey) m_massflux.getKey()).isVisible());
                     mes_massFlux_Type.add(new TimeSeries(key, "Time", "kg/s"));
+                } else if (!((SeriesKey) mes_massFlux_Type.get(j).getKey()).label.contains(name)) {
+                    ((SeriesKey) mes_massFlux_Type.get(j).getKey()).label = name + " Massflux [" + j + "]";
+
                 }
                 if (mes_concentration_Type.size() < j + 1) {
-                    SeriesKey key = new SeriesKey("p. " + name + " Concentration [" + j + "]", "c", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]);
+                    SeriesKey key = new SeriesKey(name + " Concentration [" + j + "]", "c", "kg/m³", Color.darkGray, keyConcentration, StrokeEditor.availableStrokes[(j + StrokeEditor.availableStrokes.length + 4) % StrokeEditor.availableStrokes.length]);
                     key.setVisible(((SeriesKey) m_c.getKey()).isVisible());
                     mes_concentration_Type.add(new TimeSeries(key, "Time", "kg/m³"));
+                } else if (!((SeriesKey) mes_concentration_Type.get(j).getKey()).label.contains(name)) {
+                    ((SeriesKey) mes_concentration_Type.get(j).getKey()).label = name + " Concentration [" + j + "]";
+
                 }
             }
 
@@ -981,6 +975,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                         float mft = tlm.getMassFlux(i, m);
 //                        if(mft>0)System.out.println("Massflux "+time+"\t "+mft+" kg/s"+tlm.getReferenceLength());
                         mes_massFlux_Type.get(m).addOrUpdate(time, mft);// cE * dischargeE);
+
                         mes_concentration_Type.get(m).addOrUpdate(time, cE);
 
                         massFluxSum += (cS * dischargeS + cE * dischargeE) * 0.5;

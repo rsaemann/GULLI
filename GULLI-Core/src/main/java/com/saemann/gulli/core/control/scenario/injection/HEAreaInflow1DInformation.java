@@ -47,7 +47,7 @@ import java.util.Locale;
  *
  * @author saemann
  */
-public class HEAreaInflow1DInformation implements InjectionInfo {
+public class HEAreaInflow1DInformation implements InjectionInfo{
 
 //    public final String capacityName;
 //    public final long stattime, endtime;

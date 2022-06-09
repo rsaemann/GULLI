@@ -655,7 +655,9 @@ public class LoadingCoordinator {
 
                     if (this.loadResultInjections) {
                         he_injection = resultDatabase.readInjectionInformation(startAtZeroTime);
-                        System.out.println("loaded " + he_injection.size() + " injections from HE Result DB file.");
+                        ArrayList<HEAreaInflow1DInformation> areainjections = resultDatabase.readInjectionFrom1DArea();
+                        totalInjections.addAll(areainjections);
+                        System.out.println("loaded " + (he_injection.size() + areainjections.size()) + " injections from HE Result DB file.");
                     } else {
                         he_injection = new ArrayList<>(0);
                     }
@@ -1958,6 +1960,7 @@ public class LoadingCoordinator {
     public void applySetup(Setup setup) throws SQLException, FileNotFoundException, IOException {
 
         this.setFilesToLoad(setup.getFiles());
+        this.loadResultInjections = setup.isLoadResultInjections();
 
         this.manualInjections.clear();
         if (setup.injections != null && setup.injections.size() > 0) {
@@ -1976,7 +1979,6 @@ public class LoadingCoordinator {
                 SurfaceMeasurementRaster sr = surface.getMeasurementRaster();
                 sr.spatialConsistency = setup.isSurfaceMeasurementSpatialConsistent();
                 sr.continousMeasurements = setup.isSurfaceMeasurementTimeContinuous();
-
             }
         }
         SurfaceMeasurementRaster.synchronizeMeasures = setup.isSurfaceMeasurementSynchronize();
@@ -2081,6 +2083,8 @@ public class LoadingCoordinator {
         }
         setup.files.setCrsPipes(crsNetwork);
         setup.files.setCrsSurface(crsSurface);
+
+        setup.setLoadResultInjections(loadResultInjections);
 
         setup.injections = manualInjections;
         setup.scenario = scenario;
@@ -2240,7 +2244,7 @@ public class LoadingCoordinator {
             this.scenario.setMaterials(null);
         }
         this.scenario = null;
-        this.surface=null;
+        this.surface = null;
         this.totalInjections.clear();
         System.gc();
     }
