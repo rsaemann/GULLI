@@ -802,7 +802,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 if (injection.isActive()) {
                     if (!injection.isInitilized()) {
                         if (network != null) {
-                            injection.network = network;
+                            injection.setNetwork(network);
                         }
                         HE_Database he = loadingCoordinator.requestHE_ResultDatabase();
                         if (he != null) {

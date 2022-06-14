@@ -351,6 +351,9 @@ public class LoadingCoordinator {
                             if (inj.spillInManhole()) {
                                 inj.setCapacity(null);
                             }
+                            if (inj instanceof HEAreaInflow1DInformation) {
+                                ((HEAreaInflow1DInformation) inj).setNetwork(network);
+                            }
                         }
                     }
                     if (isInterrupted()) {

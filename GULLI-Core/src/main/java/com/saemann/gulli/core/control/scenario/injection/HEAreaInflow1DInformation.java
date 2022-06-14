@@ -24,15 +24,19 @@
 package com.saemann.gulli.core.control.scenario.injection;
 
 import com.saemann.gulli.core.control.particlecontrol.injection.ManholeInjection;
+import com.saemann.gulli.core.control.particlecontrol.injection.ParticleInjection;
+import com.saemann.gulli.core.control.particlecontrol.injection.PipeInjection;
 import com.saemann.gulli.core.io.extran.HE_Database.AreaRunoffSplit;
 import com.saemann.gulli.core.model.GeoPosition2D;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.timeline.RainGauge;
+import com.saemann.gulli.core.model.timeline.array.TimeContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeLineManhole;
 import com.saemann.gulli.core.model.topology.Capacity;
 import com.saemann.gulli.core.model.topology.Manhole;
 import com.saemann.gulli.core.model.topology.Network;
+import com.saemann.gulli.core.model.topology.Pipe;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -47,7 +51,7 @@ import java.util.Locale;
  *
  * @author saemann
  */
-public class HEAreaInflow1DInformation implements InjectionInfo{
+public class HEAreaInflow1DInformation implements InjectionInfo {
 
 //    public final String capacityName;
 //    public final long stattime, endtime;
@@ -57,6 +61,8 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
      * opening the HE Database. (set by LoadingCoordinator)
      */
     public static String[] runoffParameterList = new String[]{"All"};
+
+    public static boolean verbose = false;
 
     public enum RUNOFF_CONTROL {
         /**
@@ -73,7 +79,8 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
          * Use the information of the inflow at the manholes to calculate the
          * precipitation and a washoff with the given initial massload.
          */
-        INFLOW_WASHOFF
+        INFLOW_WASHOFF,
+        Anh1_UP_LOW, Anh1_CENTER
     };
 
     public RUNOFF_CONTROL inflowtype = RUNOFF_CONTROL.PRECIPITATION;
@@ -86,11 +93,14 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
     private RainGauge precipitation;
 
 //    public HashMap<String, Manhole> manholeMap;
-    public Network network;
+    private Network network;
 
     public int numberOfParticles;
 
     public HashMap<String, Double> effectiveRunoffVolume;
+
+    public HashMap<String, Double> areaPerPipe;
+    public HashMap<String, Double> areaPerManhole;
     /**
      * HE Parameter: Abflussparameter
      */
@@ -126,6 +136,9 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
     public double effectiveArea = 0;
     public double effectiveVolume = 0;
 
+    DecimalFormat df3 = new DecimalFormat("0.000", DecimalFormatSymbols.getInstance(Locale.US));
+    DecimalFormat df5 = new DecimalFormat("0.00000", DecimalFormatSymbols.getInstance(Locale.US));
+
     public HEAreaInflow1DInformation(String runoffParameter, Material mat, int numberofparticles) {
         this.runoffParameterName = runoffParameter;
         this.numberOfParticles = numberofparticles;
@@ -138,10 +151,21 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
         } else {
             effectiveRunoffVolume = new HashMap<>(30);
         }
+        if (areaPerPipe != null) {
+            areaPerPipe.clear();
+        } else {
+            areaPerPipe = new HashMap<>(30);
+        }
+        if (areaPerManhole != null) {
+            areaPerManhole.clear();
+        } else {
+            areaPerManhole = new HashMap<>(30);
+        }
+        this.mass = 0;
         for (AreaRunoffSplit ars : areaRunoffSplit) {
             double upper = ars.runoffVolume * ars.fractionUpper;
             double lower = ars.runoffVolume * (1. - ars.fractionUpper);
-
+            mass += ars.area * this.massload;
             Double up = effectiveRunoffVolume.get(ars.upperManholeName);
             if (up == null) {
                 effectiveRunoffVolume.put(ars.upperManholeName, upper);
@@ -153,6 +177,27 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
                 effectiveRunoffVolume.put(ars.lowerManholeName, lower);
             } else {
                 effectiveRunoffVolume.put(ars.lowerManholeName, lower + low);
+            }
+
+            Double area = areaPerPipe.get(ars.pipename);
+            if (area == null) {
+                areaPerPipe.put(ars.pipename, ars.area);
+            } else {
+                areaPerPipe.put(ars.pipename, area + ars.area);
+            }
+
+            Double areaUp = areaPerManhole.get(ars.upperManholeName);
+            if (areaUp == null) {
+                areaPerManhole.put(ars.upperManholeName, ars.area * ars.fractionUpper);
+            } else {
+                areaPerManhole.put(ars.upperManholeName, areaUp + ars.area * ars.fractionUpper);
+            }
+
+            Double areaLow = areaPerManhole.get(ars.lowerManholeName);
+            if (areaLow == null) {
+                areaPerManhole.put(ars.lowerManholeName, ars.area * (1 - ars.fractionUpper));
+            } else {
+                areaPerManhole.put(ars.lowerManholeName, areaLow + ars.area * (1 - ars.fractionUpper));
             }
         }
         initilized = true;
@@ -171,55 +216,44 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
         if (!initilized) {
             calculateManholesArea();
         }
+        //Statistics counter (for tooltips in GUI)
+
+        effectiveArea = 0;
+        effectiveVolume = 0;
+        numberAreaObjects = 0;
+        //Calculate total washed off mass
+        double totalwashoffMass = 0;
+        boolean considerwashofftype = false;
+        if (runoffParameterName == null || runoffParameterName.isEmpty() || runoffParameterName.equals("All")) {
+            considerwashofftype = false;
+        } else {
+            considerwashofftype = true;
+        }
+        for (AreaRunoffSplit ars : areaRunoffSplit) {
+            if (considerwashofftype) {
+                if (!ars.washoffParameter.equals(runoffParameterName)) {
+                    continue;
+                }
+            }
+            double areamasspotential = ars.area * massload;
+            double washoffFraction = (Math.min(1, washoffConstant * ars.runofffraction * ars.totalPrecipitationMM));
+            double washoffMass = areamasspotential * washoffFraction;
+            totalwashoffMass += washoffMass;
+            ars.massUpper = areamasspotential * ars.fractionUpper;
+            ars.massLower = areamasspotential * (1 - ars.fractionUpper);
+            effectiveArea += ars.area;
+            effectiveVolume += ars.runoffVolume;
+            numberAreaObjects++;
+        }
+        mass = totalwashoffMass;
         if (inflowtype == RUNOFF_CONTROL.INFLOW_WASHOFF || inflowtype == RUNOFF_CONTROL.PRECIPITATION) {
 
-            //Statistics counter (for tooltips in GUI)
-            effectiveArea = 0;
-            effectiveVolume = 0;
-            numberAreaObjects = 0;
-
             ArrayList<Particle> particles = new ArrayList<>(numberOfParticles);
-            //Calculate total washed off mass
-            double totalwashoffMass = 0;
-            boolean considerwashofftype = false;
-            if (runoffParameterName == null || runoffParameterName.isEmpty() || runoffParameterName.equals("All")) {
-                considerwashofftype = false;
-            } else {
-                considerwashofftype = true;
-            }
-//            System.out.println("Check runoff type " + considerwashofftype + " for " + runoffParameterName);
-            DecimalFormat df3 = new DecimalFormat("0.000", DecimalFormatSymbols.getInstance(Locale.US));
-            for (AreaRunoffSplit ars : areaRunoffSplit) {
-                if (considerwashofftype) {
-                    if (!ars.washoffParameter.equals(runoffParameterName)) {
-                        continue;
-                    }
-                }
-//            totalwashoffarea += ars.area;
-//            double totalprecipitation = ars.runoffVolume / ars.area * 1000;//-> mm precipitation
-//            
-                double areamasspotential = ars.area * massload;
-                double washoffFraction = (Math.min(1, washoffConstant * ars.runofffraction * ars.totalPrecipitationMM));
-                double washoffMass = areamasspotential * washoffFraction;// = areamass * washoffFraction;
-                totalwashoffMass += washoffMass;//ars.washoffMass;
-//                System.out.println("Potential mass:"+areamasspotential+"kg /"+ars.washoffMass+"kg \t washoff:"+washoffMass);
-                ars.massUpper = /*washoffMass*/ areamasspotential * ars.fractionUpper;
-                ars.massLower = /*washoffMass*/ areamasspotential * (1 - ars.fractionUpper);
-                effectiveArea += ars.area;
-                effectiveVolume += ars.runoffVolume;
-                numberAreaObjects++;
 
-//                System.out.println(ars.areaName + "/" + ars.pipename + ": calculated mass= " + df3.format(washoffMass) + " \t<database: " + df3.format(ars.washoffMass) + " bei " + (int) (ars.runofffraction * 100) + "%  volumen= " + df3.format(ars.runoffVolume) + "m³ to " + ars.upperManholeName + " & " + ars.lowerManholeName);
-            }
-//            System.out.println("total washoff="+totalwashoffMass);
-            mass = totalwashoffMass;
-//        System.out.println("Mass for washoff: " + washoffMass + "  on " + totalwashoffarea + " m² (" + areaRunoffSplit.size() + " areas)");
+//            System.out.println("Check runoff type " + considerwashofftype + " for " + runoffParameterName);
             //Calculate fraction of mass per particle
-            //@TODO check integration of washed off mass 
             double massperParticle = totalwashoffMass / (double) numberOfParticles;
-//        System.out.println("Mass per particle: " + massperParticle);
             //Create particles for each area by considering the linkes area as a fraction of the whole inflow
-//        System.out.println("Runoff areas defined for " + area.size() + " manholes.");
             float totalrelesemass = 0;
             for (AreaRunoffSplit ars : areaRunoffSplit) {
                 if (considerwashofftype) {
@@ -272,7 +306,10 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
                             double volumeLOW = (inflowLOWCurrent + inflowLOWNext) * 0.5 * duration * areafractionLOW;
 
                             double volumeOnArea = (volumeUP + volumeLOW) * 0.5;
-                            double eff_precipitation = volumeOnArea * 1000. / (ars.area /** ars.fractionUpper*/); // m->mm
+                            double eff_precipitation = volumeOnArea * 1000. / (ars.area /**
+                                     * ars.fractionUpper
+                                     */
+                                    ); // m->mm
 //                            System.out.println("Inflow "+volumeUP+"m³ / "+volumeLOW+"m³  -> "+eff_precipitation+"mm"+"\t Abweichung Upper/lower: "+(int)(((volumeUP-volumeLOW)*100)/volumeUP)+"%");
 //                            System.out.println("Vol="+volumeOnArea+"m^3  / "+ars.area+"m^2 = "+eff_precipitation+"mm");
                             double masswashoffinInterval = massreservoir * washoffConstant * eff_precipitation;
@@ -372,11 +409,151 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
                 }
 
             }
-            System.out.println("Releasemass=" + totalrelesemass + " kg for " + runoffParameterName);
+            if (verbose) {
+                System.out.println("Releasemass=" + totalrelesemass + " kg for " + runoffParameterName);
+            }
 
             return particles;
+        } else if (inflowtype == RUNOFF_CONTROL.Anh1_UP_LOW || inflowtype == RUNOFF_CONTROL.Anh1_CENTER) {
+           
+            double totalmass = 0;
+            for (AreaRunoffSplit ars : areaRunoffSplit) {
+                totalmass += ars.area * massload;
+            }
+
+            double massperParticle = mass / numberOfParticles;
+            if (verbose) {
+                System.out.println("Anh1 totalmass:" + totalmass + "kg --> ~" + massperParticle + " kg/Particle");
+            }
+            ArrayList<Particle> particles = new ArrayList<>(numberOfParticles);
+            for (AreaRunoffSplit ars : areaRunoffSplit) {
+                if (considerwashofftype) {
+                    if (!ars.washoffParameter.equals(runoffParameterName)) {
+                        continue;
+                    }
+                }
+                if (verbose) {
+                    System.out.println("Area " + ars.areaName + " A=" + ars.area + "m^2");
+                }
+                Pipe pipe = network.getPipeByName(ars.pipename);
+                //erst oben
+                Manhole mh = network.getManholeByName(ars.upperManholeName);
+                if (mh == null) {
+                    System.out.println("Can not find Manhole " + ars.upperManholeName);
+                    continue;
+                }
+                ParticleInjection inj = null;
+                if (inflowtype == RUNOFF_CONTROL.Anh1_UP_LOW) {
+                    inj = new ManholeInjection(mh);
+                } else if (inflowtype == RUNOFF_CONTROL.Anh1_CENTER) {
+                    inj = new PipeInjection(pipe, pipe.getLength() * 0.5);
+                } else {
+                    System.err.println("unknown inflow Type " + inflowtype);
+                    inj = new ManholeInjection(mh);
+                }
+                TimeLineManhole tlUP = mh.getStatusTimeLine();
+                TimeContainer times = tlUP.getTimeContainer();
+                double pollutantreservoirUP = ars.area * massload * ars.fractionUpper; //kg pollutat mass
+                double pollutantreservoirLOW = ars.area * massload * (1 - ars.fractionUpper); //kg pollutat mass
+                if (verbose) {
+
+                    System.out.println("Mass to upper manhole: " + pollutantreservoirUP + " kg (" + ars.fractionUpper + " of total area), Lower Manhole:" + pollutantreservoirLOW + " kg");
+                }
+                // Calculate pollutant washoff at UPPER manhole: 
+
+                double Nup = 0;
+                for (int i = 0; i < tlUP.getNumberOfTimes() - 1; i++) {
+                    double inflow = (tlUP.getInflow(i) + tlUP.getInflow(i + 1)) * 0.5; // m^3/s
+                    double duration = (times.getTimeMilliseconds(i + 1) - times.getTimeMilliseconds(i)) / 1000; // s
+                    double inflowVolume = inflow * duration; //m^3
+                    double effectivePrecipitation = inflowVolume / areaPerManhole.get(ars.upperManholeName) * 1000; // mm
+                    Nup += effectivePrecipitation;
+                    double washoffMass = effectivePrecipitation * washoffConstant * pollutantreservoirUP;
+                    if (verbose) {
+                        int pindex = i / 5;
+                        double realprecipitation = -1;
+                        try {
+                            realprecipitation = precipitation.getPrecipitation()[pindex] / 5.;
+                        } catch (Exception e) {
+                        }
+                        System.out.println(i + ": InflowUP:" + df3.format(inflow) + " m^3/s-> volume=" + df3.format(inflowVolume) + " m³ =>\tNw=" + df3.format(effectivePrecipitation) + " mm / N= " + realprecipitation + " mm ->\tmPab=" + df3.format(washoffMass) + "kg , Pv=" + df5.format(pollutantreservoirUP) + "kg");
+                    }
+                    if (washoffMass > 0) {
+                        int particles_toRelease = (int) (washoffMass / massperParticle);
+                        if (particles_toRelease > 0) {
+                            float massperparticle = (float) (washoffMass / particles_toRelease);
+                            double timedistance = duration / (double) particles_toRelease;
+                            for (int j = 0; j < particles_toRelease; j++) {
+                                long insertiontime = (long) (times.getTimeMilliseconds(i) - times.getTimeMilliseconds(0) + (j + 0.5) * timedistance * 1000);
+                                Particle p = new Particle(material, inj, (float) (massperparticle), insertiontime);
+                                particles.add(p);
+                            }
+                        } else {
+                            //Create a single particle, carrying the emitted mass of this interval
+                            long insertiontime = (long) (0.5 * (times.getTimeMilliseconds(i) + times.getTimeMilliseconds(i)) - precipitation.getTimes()[0]);
+                            Particle p = new Particle(material, inj, (float) (washoffMass), insertiontime);
+                            particles.add(p);
+                        }
+                        pollutantreservoirUP -= washoffMass;
+                    }
+                }
+                // Calculate pollutant washoff at LOWER manhole: 
+                //jetzt unteres Manhole 
+                mh = network.getManholeByName(ars.lowerManholeName);
+                if (mh == null) {
+                    System.out.println("Can not find Manhole " + ars.lowerManholeName);
+                    continue;
+                }
+                if (inflowtype == RUNOFF_CONTROL.Anh1_UP_LOW) {
+                    inj = new ManholeInjection(mh);
+                } else if (inflowtype == RUNOFF_CONTROL.Anh1_CENTER) {
+//                    inj = new PipeInjection(pipe, pipe.getLength() * 0.5);
+                } else {
+                    System.err.println("unknown inflow Type " + inflowtype);
+                    inj = new ManholeInjection(mh);
+                }
+                TimeLineManhole tlLOW = mh.getStatusTimeLine();
+                times = tlLOW.getTimeContainer();
+                double Nlow = 0;
+                for (int i = 0; i < tlLOW.getNumberOfTimes() - 1; i++) {
+                    double inflow = (tlLOW.getInflow(i) + tlLOW.getInflow(i + 1)) * 0.5; // m^3/s
+                    double duration = (times.getTimeMilliseconds(i + 1) - times.getTimeMilliseconds(i)) / 1000; // s
+                    double inflowVolume = inflow * duration; //m^3
+                    double effectivePrecipitation = inflowVolume / areaPerManhole.get(ars.lowerManholeName) * 1000; // mm
+                    Nlow += effectivePrecipitation;
+                    double washoffMass = effectivePrecipitation * washoffConstant * pollutantreservoirLOW;
+                    if (verbose) {
+                        System.out.println(i + ": InflowLOW:" + df3.format(inflow) + " m^3/s-> volume=" + df3.format(inflowVolume) + " m³ =>\tNw=" + df3.format(effectivePrecipitation) + "mm ->\tmPab=" + df3.format(washoffMass) + "kg , Pv=" + df5.format(pollutantreservoirLOW) + "kg");
+                    }
+
+                    if (washoffMass > 0) {
+                        int particles_toRelease = (int) (washoffMass / massperParticle);
+                        if (particles_toRelease > 0) {
+                            float massperparticle = (float) (washoffMass / particles_toRelease);
+                            double timedistance = duration / (double) particles_toRelease;
+                            for (int j = 0; j < particles_toRelease; j++) {
+                                long insertiontime = (long) (times.getTimeMilliseconds(i) - times.getTimeMilliseconds(0) + (j + 0.5) * timedistance * 1000);
+                                Particle p = new Particle(material, inj, (float) (massperparticle), insertiontime);
+                                particles.add(p);
+                            }
+                        } else {
+                            //Create a single particle, carrying the emitted mass of this interval
+                            long insertiontime = (long) (0.5 * (times.getTimeMilliseconds(i) + times.getTimeMilliseconds(i)) - precipitation.getTimes()[0]);
+                            Particle p = new Particle(material, inj, (float) (washoffMass), insertiontime);
+                            particles.add(p);
+                        }
+                        pollutantreservoirLOW -= washoffMass;
+                    }
+                }
+                if (verbose) {
+                    System.out.println("Effective Precipitation: Upper: " + Nup + " mm, Lower: " + Nlow + " mm");
+                }
+            }
+            return particles;
         }
-        System.err.println("Inflow type " + inflowtype + " not yet implemented");
+        if (verbose) {
+            System.err.println("Inflow type " + inflowtype + " not yet implemented");
+        }
 
         return null;
     }
@@ -427,50 +604,42 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
     }
 
     @Override
-    public double getIntervalStart(int interval
-    ) {
+    public double getIntervalStart(int interval) {
         return 0;
     }
 
     @Override
-    public double getIntervalEnd(int interval
-    ) {
+    public double getIntervalEnd(int interval) {
         return 0;
     }
 
     @Override
-    public double getIntervalDuration(int interval
-    ) {
+    public double getIntervalDuration(int interval) {
         return 0;
     }
 
     @Override
-    public double massInInterval(int interval
-    ) {
+    public double massInInterval(int interval) {
         return 0;
     }
 
     @Override
-    public int particlesInInterval(int interval
-    ) {
+    public int particlesInInterval(int interval) {
         return 0;
     }
 
     @Override
-    public double getIntensity(int intervalIndex
-    ) {
+    public double getIntensity(int intervalIndex) {
         return 0;
     }
 
     @Override
-    public void setCapacity(Capacity capacity
-    ) {
+    public void setCapacity(Capacity capacity) {
 
     }
 
     @Override
-    public void setId(int i
-    ) {
+    public void setId(int i) {
         this.id = i;
     }
 
@@ -485,14 +654,14 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
     }
 
     @Override
-    public void setActive(boolean active
-    ) {
+    public void setActive(boolean active) {
         this.active = active;
+        changed = true;
     }
 
     @Override
     public int getMaterialID() {
-        return material.materialIndex;
+        return this.materialID;//material.materialIndex;
     }
 
     public void setMaterialID(int materialID) {
@@ -506,6 +675,11 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
     @Override
     public void setMaterial(Material material) {
         this.material = material;
+        if (material != null) {
+            this.materialID = material.materialIndex;
+        } else {
+            this.materialID = -1;
+        }
         changed = true;
     }
 
@@ -584,6 +758,12 @@ public class HEAreaInflow1DInformation implements InjectionInfo{
 
     public void setInflowtype(RUNOFF_CONTROL inflowtype) {
         this.inflowtype = inflowtype;
+        changed = true;
+    }
+
+    public void setNetwork(Network network) {
+        this.network = network;
+        this.initilized = false;
         changed = true;
     }
 
