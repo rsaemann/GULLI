@@ -90,6 +90,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     private float[] triangleArea;
 
     public SurfaceTriangle[] triangleCapacitys;
+    
+    /**
+     * When cells are excluded, the 
+     */
     public final HashMap<Integer, Integer> mapIndizes;
 
     private int numberOfTimestamps;

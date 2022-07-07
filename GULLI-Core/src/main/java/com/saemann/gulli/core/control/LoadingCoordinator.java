@@ -84,6 +84,8 @@ import com.saemann.gulli.core.model.topology.Pipe;
 import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.GraphSearch;
 import com.saemann.gulli.core.model.topology.graph.Pair;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import main.java.io.zrz.jgdb.GeoDBException;
 import org.geotools.referencing.CRS;
 import org.opengis.referencing.operation.TransformException;
@@ -228,6 +230,8 @@ public class LoadingCoordinator {
 
     protected Network network;
 
+    public static DecimalFormat df1k;
+
     /**
      * If true, each event starts at 0 ms if false, the real time of the event
      * is used;
@@ -236,6 +240,12 @@ public class LoadingCoordinator {
 
     public LoadingCoordinator(Controller control) {
         this.control = control;
+
+        DecimalFormatSymbols dfsymb = new DecimalFormatSymbols(StartParameters.formatLocale);
+        dfsymb.setGroupingSeparator(' ');
+        df1k = new DecimalFormat("#,##0", dfsymb);
+        df1k.setGroupingSize(3);
+
         this.addActioListener(control);
 
     }

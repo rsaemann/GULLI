@@ -303,7 +303,6 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
                 }
 
 //                System.out.println("directed velocities only? " + velocities_directed_only);
-
                 int numberOfFeatures = layer.getFeatureCount();
                 if (maxTriangleID <= 0) {
                     maxTriangleID = layer.getFeature(layer.getFeatureCount()).getValue(indexVid).intValue();
@@ -536,6 +535,50 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         }
 
         return h;
+    }
+
+    /**
+     *
+     * @param surf
+     * @param arraylength size of the output array.
+     * @return
+     */
+    public double[] loadMaxWaterlevels(Surface surf) {
+        if (layerWaterHeight == null) {
+            throw new UnsupportedOperationException("GDB '" + directory.getAbsolutePath() + "' does not contain Waterlevel information.");
+        }
+        GeoLayer layer = db.layer(layerWaterHeight);
+//        int number = (int) (getMaxTriangleID() + 1);
+        double[] waterlevel = new double[surf.getTriangleNodes().length];
+//        System.out.println("surface.indexmapping:" + (surf.mapIndizes != null ? surf.mapIndizes.size() : "null"));
+        //Normal Surface with all triangles.
+        for (GeoFeature f : layer) {
+            int idf = f.getValue(indexWLid).intValue();
+            int id=idf;
+            if (surf.mapIndizes != null) {
+                try {
+                    id = surf.mapIndizes.get(idf);
+                    if (id < 0) {
+                        continue;
+                    }
+                } catch (NullPointerException e) {
+                    //If it is not found, it was not included in the indexMap
+                    continue;
+                }
+            }
+
+            if (id >= waterlevel.length) {
+                try {
+                    throw new ArrayIndexOutOfBoundsException("Id of read id (" + idf + "->"+id+") is higher than array length(" + (waterlevel.length) + ")");
+                    
+                } catch (ArrayIndexOutOfBoundsException es) {
+                    System.out.println(es.getLocalizedMessage());
+                    continue;
+                }
+}
+            waterlevel[id] = f.getValue(indexWLmax).doubleValue();
+        }
+        return waterlevel;
     }
 
     public void applyWaterlevelsToSurface(Surface surf) {

@@ -62,7 +62,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
      */
     public static String[] runoffParameterList = new String[]{"All"};
 
-    public static boolean verbose = false;
+    public static boolean verbose = true;
 
     public enum RUNOFF_CONTROL {
         /**
@@ -92,7 +92,6 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
 
     private RainGauge precipitation;
 
-//    public HashMap<String, Manhole> manholeMap;
     private Network network;
 
     public int numberOfParticles;
@@ -121,10 +120,6 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
      */
     public double washoffConstant;
 
-//    /**
-//     * [mm]
-//     */
-//    public double totalprecipitation;
     public Collection<AreaRunoffSplit> areaRunoffSplit;
     private int id;
     private boolean active = true;

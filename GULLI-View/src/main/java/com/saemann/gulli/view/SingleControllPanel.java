@@ -1492,14 +1492,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         Scenario sc = control.getScenario();
         if (control.getNetwork() != null) {
             Network nw = control.getNetwork();
-            str.append("Pipes:    " + nw.getPipes().size() + "<br>");
-            str.append("Manholes: " + nw.getManholes().size() + "<br>");
+            str.append("Pipes:    " + dfParticles.format(nw.getPipes().size()) + "<br>");
+            str.append("Manholes: " + dfParticles.format(nw.getManholes().size()) + "<br>");
             if (sc != null && sc.getStatusTimesPipe() != null) {
                 str.append("Timestep: " + ((sc.getStatusTimesPipe().getEndTime() - sc.getStatusTimesPipe().getStartTime()) / (sc.getStatusTimesPipe().getNumberOfTimes() - 1) / 1000) + " s<br><br>");
             }
         }
         if (control.getSurface() != null) {
-            str.append("Surface:  " + control.getSurface().getTriangleMids().length + " cells<br>");
+            str.append("Surface:  " + dfParticles.format(control.getSurface().getTriangleMids().length) + " cells<br>");
             if (sc != null && sc.getStatusTimesSurface() != null) {
                 str.append("Timestep: " + ((sc.getStatusTimesSurface().getEndTime() - sc.getStatusTimesSurface().getStartTime()) / (sc.getStatusTimesSurface().getNumberOfTimes() - 1) / 1000) + " s<br><br>");
             }

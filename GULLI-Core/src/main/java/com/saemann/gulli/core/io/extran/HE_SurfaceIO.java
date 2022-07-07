@@ -1,6 +1,7 @@
 package com.saemann.gulli.core.io.extran;
 
 import com.saemann.gulli.core.control.Action.Action;
+import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.maths.GeometryTools;
 import com.saemann.gulli.core.io.NumberConverter;
@@ -402,7 +403,7 @@ public class HE_SurfaceIO {
         if (loadingAction != null) {
             loadingAction.progress = 0.f;
             loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: " + numberofVertices + " Vertices...";
+            loadingAction.description = "Surface: " + LoadingCoordinator.df1k.format(numberofVertices) + " Vertices...";
             loadingAction.updateProgress();
         }
 
@@ -459,7 +460,7 @@ public class HE_SurfaceIO {
         if (loadingAction != null) {
             loadingAction.progress = 0.f;
             loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: " + numberofTriangles + " Triangles...";
+            loadingAction.description = "Surface: " + LoadingCoordinator.df1k.format(numberofTriangles) + " Triangles...";
             loadingAction.updateProgress();
         }
 
@@ -506,16 +507,18 @@ public class HE_SurfaceIO {
             }
         }
         System.out.println(used + " / " + verticesUsed.length + " Vertices are used by triangles ("+((int)(used*100/(double)verticesUsed.length))+"%)");
+       
         if (used < verticesUsed.length && condenseUnusedVertices) {
             long start = System.currentTimeMillis();
+            HashMap<Integer, Integer> oldToNew=null;
             if (loadingAction != null) {
                 loadingAction.progress = 0.f;
                 loadingAction.hasProgress = true;
-                loadingAction.description = "Surface: Exclude " + (verticesUsed.length - used) + " unused Vertices...";
+                loadingAction.description = "Surface: Exclude " + LoadingCoordinator.df1k.format(verticesUsed.length - used) + " unused Vertices...";
                 loadingAction.updateProgress();
             }
             double[][] verticesNew = new double[used][3];
-            HashMap<Integer, Integer> oldToNew = new HashMap<>(used);
+            oldToNew = new HashMap<>(used);
             int newIndex = 0;
             //Reorder Vertices
             for (int i = 0; i < verticesUsed.length; i++) {
@@ -557,7 +560,7 @@ public class HE_SurfaceIO {
         if (loadingAction != null) {
             loadingAction.progress = 0.f;
             loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: " + numberofTriangles + " Neighbours...";
+            loadingAction.description = "Surface: " + LoadingCoordinator.df1k.format(numberofTriangles) + " Neighbours...";
             loadingAction.updateProgress();
         }
 //        start = System.currentTimeMillis();
@@ -613,7 +616,7 @@ public class HE_SurfaceIO {
         if (loadingAction != null) {
             loadingAction.progress = 1f;
             loadingAction.hasProgress = false;
-            loadingAction.description = "Finishing Surface Topography...";
+            loadingAction.description = "Completing Surface Topography...";
             loadingAction.updateProgress();
         }
         Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
