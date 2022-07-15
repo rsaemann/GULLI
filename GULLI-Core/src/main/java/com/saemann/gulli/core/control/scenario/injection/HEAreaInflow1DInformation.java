@@ -83,7 +83,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
         Anh1_UP_LOW, Anh1_CENTER
     };
 
-    public RUNOFF_CONTROL inflowtype = RUNOFF_CONTROL.PRECIPITATION;
+    public RUNOFF_CONTROL inflowtype = RUNOFF_CONTROL.Anh1_UP_LOW;
 
     public Material material;
     public double relativePosition;
@@ -485,7 +485,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                             }
                         } else {
                             //Create a single particle, carrying the emitted mass of this interval
-                            long insertiontime = (long) (0.5 * (times.getTimeMilliseconds(i) + times.getTimeMilliseconds(i)) - precipitation.getTimes()[0]);
+                            long insertiontime = (long) (0.5 * (times.getTimeMilliseconds(i) + times.getTimeMilliseconds(i)) - times.getTimeMilliseconds(0));
                             Particle p = new Particle(material, inj, (float) (washoffMass), insertiontime);
                             particles.add(p);
                         }

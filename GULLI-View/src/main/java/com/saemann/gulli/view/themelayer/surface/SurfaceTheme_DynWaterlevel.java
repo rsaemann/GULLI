@@ -56,6 +56,7 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
     public final String layerLabelWaterlevel = "TXT_WLDYN";
 
     public final float maxWaterlevel = 0.5f;
+    public static double minWaterlevel = 0.1;
 
     private Layer layer;
 
@@ -101,16 +102,28 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
                             System.out.println("Unsupported Waterlevelloader for surface: " + surface.waterlevelLoader.getClass() + ". Cannot load Max Waterlevels");
                         }
                     }
+                    int sizeLayerElements = 0;
+                    PaintInfo[] elements = null;
+                    if (maxWL != null) {
+                        System.out.println("Check number of shapes required for " + nCells + " cells (min waterlevel: " + minWaterlevel + "m)");
+                        for (int i = 0; i < nCells; i++) {
+                            if (maxWL[i] >= minWaterlevel) {
+                                sizeLayerElements++;
+                            }
+                        }
+                        elements = new PaintInfo[sizeLayerElements];
+                    }
 //            System.out.println("add Surface shapes max waterlevels: " + lvls.length);
                     double lvl = 0;
-                    System.out.println("Prepare shapes for " + nCells + " cells with dynamic waterlevel colouring.");
+                    int elementindex = 0;
+                    System.out.println("Prepare shapes for " + sizeLayerElements + "/" + nCells + " cells with dynamic waterlevel colouring.");
                     for (int i = 0; i < nCells; i++) {
                         if (this.isInterrupted()) {
                             System.out.println(this.getName() + " is interrupted and terminates.");
                             return;
                         }
                         try {
-                            if (maxWL != null && maxWL[i] < 0.01) {
+                            if (maxWL != null && maxWL[i] < minWaterlevel) {
                                 continue;
                                 //Do not need to create a shape for almost dry cell.
                             }
@@ -124,8 +137,12 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
                             NodePainting np = new NodePainting(i, surface.getGeotools().toGlobal(new Coordinate(pos[0], pos[1])), chTrianglesWaterlevel);
                             np.setGradientColorIndex((int) (lvl * chTrianglesWaterlevel.getColorArray().length / maxWaterlevel));
                             np.setRadius(2);
-                            layer.add(np);
-//                            mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, np);
+                            if (elements != null) {
+                                layer.add(np);
+                            } else {
+                                elements[elementindex] = np;
+                                elementindex++;
+                            }
                         } else {
                             //Convert Coordinates
                             int[] nodes = null;
@@ -148,8 +165,12 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
 //                                    return super.paint(g2);
                                     }
                                 };
-                                layer.add(ap);
-//                                mapViewer.addPaintInfoToLayer(layerSurfaceWaterlevel, ap);
+                                if (elements != null) {
+                                    layer.add(ap);
+                                } else {
+                                    elements[elementindex] = ap;
+                                    elementindex++;
+                                }
                             } catch (Exception exception) {
                                 System.err.println("Exception in " + getClass() + "::addSurafcePaint for triangle:" + i);
 
@@ -159,22 +180,9 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
                                 throw exception;
                             }
                         }
-
-//                double[] p = surface.getTriangleMids()[i];
-//                Coordinate longlat = surface.getGeotools().toGlobal(new Coordinate(p[0], p[1]));
-//                LabelPainting lp = new LabelPainting(i, MapViewer.COLORHOLDER_LABEL, new com.saemann.rgis.model.GeoPosition(longlat), 20, -5, -5, PaintManager.df3.format(lvl)) {
-//
-//                    @Override
-//                    public boolean paint(Graphics2D g2) {
-//                        if (mapViewer.getZoom() < this.getMinZoom()) {
-//                            return false;
-//                        }
-//                        return super.paint(g2); //To change body of generated methods, choose Tools | Templates.
-//                    }
-//
-//                };
-//                lp.setCoronaBackground(true);
-//                mapViewer.addPaintInfoToLayer(layerLabelWaterlevel, lp);
+                    }
+                    if(elements!=null){
+                        layer.setPaintElements(elements);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -223,7 +231,7 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
                     }
                     int id = (int) pi.getId();
                     double lvl = surf.getWaterlevels()[id][t];
-                    pi.setGradientColorIndex((int) (lvl * 255 / maxWaterlevel));
+                    pi.setGradientColorIndex(Math.min(254,(int) (lvl * 255 / maxWaterlevel)));
                 }
 
             }

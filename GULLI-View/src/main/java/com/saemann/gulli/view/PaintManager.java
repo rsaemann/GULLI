@@ -422,6 +422,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         if (PaintManager.timeToShow == timeToShow) {
             return;
         }
+        if (surfaceShows != null) {
+            for (SURFACESHOW ss : surfaceShows) {
+                if (ss.theme == null) {
+                    continue;
+                }
+                if (ss.theme.isDynamic()) {
+                    ss.theme.setDisplayTime(timeToShow);
+                }
+            }
+        }
         PaintManager.timeToShow = timeToShow;
         mapViewer.repaint();
     }
