@@ -4082,14 +4082,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return list;
     }
 
-    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset, String substancename) throws SQLException, IOException {
+    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset) throws SQLException, IOException {
         if (con == null || con.isClosed()) {
             con = getConnection();
         }
         ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
         rs.next();
         double fractionUpper = (100 - rs.getDouble(1)) / 100.;
-        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,STOFFGROESSE,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN FRACHTABFLUSSOBERFLAECHE ON ROHR.ID=FRACHTABFLUSSOBERFLAECHE.ROHRREF INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
+        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
         boolean where_used = false;
         boolean runofffilter = false;
         boolean substancefilter = false;
@@ -4099,22 +4099,21 @@ public class HE_Database implements SparseTimeLineDataProvider {
             where_used = true;
             runofffilter = true;
         }
-        if (substancename != null && !substancename.isEmpty()) {
-            if (where_used) {
-                query += "AND ";
-            } else {
-                query += "WHERE ";
-            }
-            query += "AND STOFFGROESSE='" + substancename + "'";
-            where_used = true;
-            substancefilter = true;
-        }
+//        if (substancename != null && !substancename.isEmpty()) {
+//            if (where_used) {
+//                query += "AND ";
+//            } else {
+//                query += "WHERE ";
+//            }
+//            query += "AND STOFFGROESSE='" + substancename + "'";
+//            where_used = true;
+//            substancefilter = true;
+//        }
         rs = con.createStatement().executeQuery(query);
-//        rs = con.createStatement().executeQuery("SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,Abfluss,BEFESTIGTEFLAECHE,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID " + (washoff_parameterset != null ? "WHERE PARAMETERSATZ='" + washoff_parameterset + "'" : ""));
         //typ:0= Waterheight [m aSl], 1 = Zufluss [L/s], 2: Discharge [cbm/s]
         if (!rs.isBeforeFirst()) {
             if (verbose) {
-                System.err.println("No Values for Flaeche with Parametersatz '" + washoff_parameterset + "'");
+                System.err.println("No Values for Flaeche with Parametersatz '" + washoff_parameterset + "' runoff filter=" + runofffilter + "/" + washoff_parameterset);
             }
             rs.close();
             return null;
@@ -4130,14 +4129,17 @@ public class HE_Database implements SparseTimeLineDataProvider {
             ars.lowerManholeName = rs.getString(8);
             ars.upperManholeName = rs.getString(7);
             ars.fractionUpper = fractionUpper;
-            ars.substance = rs.getString(10);
+//            ars.substance = rs.getString(10);
 //            ars.washoffMass=rs.getDouble(11);
-            ars.runofffraction = rs.getDouble(11) / 100f;
-            ars.totalPrecipitationMM = rs.getDouble(12);
+            ars.runofffraction = rs.getDouble(10) / 100f;
+            ars.totalPrecipitationMM = rs.getDouble(11);
 //            System.out.println("Abflussbeiwert "+ars.areaName+", "+ars.washoffParameter+" : "+((int)(ars.runofffraction*100))+"% von "+(int)(rs.getDouble(13)+0.1)+"mm => "+ars.runoffVolume +"m³ bei "+ars.area+"m²");
             list.add(ars);
         }
         rs.close();
+        if (verbose) {
+            System.out.println("returned " + list.size() + " area-manhole-relations");
+        }
         return list;
     }
 
@@ -4251,7 +4253,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
          */
         public double runoffVolume;
 //        public double washoffMass;
-        public String substance;
+//        public String substance;
         public String pipename;
         public double runofffraction;
         public double totalPrecipitationMM;

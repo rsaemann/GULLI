@@ -217,11 +217,14 @@ public class Setup_IO {
                     bw.write("\t\t<Flowcalculator>" + m.getRoutingCalculator().getClass().getName() + "</>");
                     bw.newLine();
                     Dispersion1D_Calculator disp1d = m.getDispersionCalculatorPipe();
-                    if (disp1d != null) {
-                        bw.write("\t\t<Network>");
+                    bw.write("\t\t<Network>");
+                    bw.newLine();
+                    bw.write("\t\t\t<Dispersion>");
+                    bw.newLine();
+                    if (disp1d == null) {
+                        bw.write("\t\t\t\t<Type Parameters=0>NONE</>");
                         bw.newLine();
-                        bw.write("\t\t\t<Dispersion>");
-                        bw.newLine();
+                    } else {
                         bw.write("\t\t\t\t<Type Parameters=" + disp1d.getNumberOfParameters() + ">" + disp1d.getClass().getName() + "</>");
                         bw.newLine();
                         String[] descriptions = disp1d.getParameterDescription();
@@ -231,22 +234,26 @@ public class Setup_IO {
                             bw.write("\t\t\t\t<" + descriptions[i] + " unit='" + units[i] + "'>" + paramValues[i] + "</>");
                             bw.newLine();
                         }
-                        bw.write("\t\t\t</Dispersion>");
-                        bw.newLine();
-                        bw.write("\t\t</Network>");
-                        bw.newLine();
                     }
+                    bw.write("\t\t\t</Dispersion>");
+                    bw.newLine();
+                    bw.write("\t\t</Network>");
+                    bw.newLine();
+
                     bw.write("\t\t<Surface>");
                     bw.newLine();
+                    bw.write("\t\t\t<Dispersion>");
+                    bw.newLine();
                     Dispersion2D_Calculator disp2d = m.getDispersionCalculatorSurface();
-                    if (disp2d != null) {
-                        bw.write("\t\t\t<Dispersion>");
+                    if (disp2d == null) {
+                        bw.write("\t\t\t\t<Type Parameters=0>NONE</>");
                         bw.newLine();
+                    } else {
+
                         String[] descriptions = disp2d.getParameterOrderDescription();
                         String[] units = disp2d.getParameterUnits();
                         double[] paramValues = disp2d.getParameterValues();
-                        bw.write("\t\t\t\t<Type Parameters=" + descriptions.length + ">" + disp2d.getClass().getName() + "</>"
-                        );
+                        bw.write("\t\t\t\t<Type Parameters=" + descriptions.length + ">" + disp2d.getClass().getName() + "</>");
                         bw.newLine();
 
                         for (int i = 0; i < paramValues.length; i++) {
@@ -571,12 +578,12 @@ public class Setup_IO {
                             materialFlowCalculator = new Routing_Homogene();
 //                            System.err.println("Created default " + materialFlowCalculator.getClass().getSimpleName() + " for material " + materialName + " (" + materialID + ")");
                         }
-                        if (materialDispersionCalculatorPipe == null) {
-                            materialDispersionCalculatorPipe = new Dispersion1D_Constant();
-                        }
-                        if (materialDispersionCalculatorSurface == null) {
-                            materialDispersionCalculatorSurface = new Dispersion2D_Constant();
-                        }
+//                        if (materialDispersionCalculatorPipe == null) {
+//                            materialDispersionCalculatorPipe = new Dispersion1D_Constant();
+//                        }
+//                        if (materialDispersionCalculatorSurface == null) {
+//                            materialDispersionCalculatorSurface = new Dispersion2D_Constant();
+//                        }
 
                         Material mat = new Material(materialName, 1000, materialID, materialFlowCalculator, materialDispersionCalculatorPipe, materialDispersionCalculatorSurface);
                         materials.put(mat.materialIndex, mat);
@@ -612,11 +619,15 @@ public class Setup_IO {
                                 line = br.readLine();
                                 paramvalues[i] = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             }
-                            try {
-                                materialDispersionCalculatorPipe = (Dispersion1D_Calculator) Class.forName(type).newInstance();
-                                materialDispersionCalculatorPipe.setParameterValues(paramvalues);
-                            } catch (Exception ex) {
-                                Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
+                            if (type.equals("NONE")) {
+                                materialDispersionCalculatorPipe = null;
+                            } else {
+                                try {
+                                    materialDispersionCalculatorPipe = (Dispersion1D_Calculator) Class.forName(type).newInstance();
+                                    materialDispersionCalculatorPipe.setParameterValues(paramvalues);
+                                } catch (Exception ex) {
+                                    Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
+                                }
                             }
                         }
                         if (surfaceRelation) {
@@ -628,11 +639,15 @@ public class Setup_IO {
                                 line = br.readLine();
                                 paramvalues[i] = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             }
-                            try {
-                                materialDispersionCalculatorSurface = (Dispersion2D_Calculator) Class.forName(type).newInstance();
-                                materialDispersionCalculatorSurface.setParameterValues(paramvalues);
-                            } catch (Exception ex) {
-                                Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
+                            if (type.equals("NONE")) {
+                                materialDispersionCalculatorSurface = null;
+                            } else {
+                                try {
+                                    materialDispersionCalculatorSurface = (Dispersion2D_Calculator) Class.forName(type).newInstance();
+                                    materialDispersionCalculatorSurface.setParameterValues(paramvalues);
+                                } catch (Exception ex) {
+                                    Logger.getLogger(Setup_IO.class.getName()).log(Level.SEVERE, null, ex);
+                                }
                             }
                         }
                     }

@@ -60,11 +60,16 @@ class InjectionPanelAreaWashoff extends JPanel {
 
     private HEAreaInflow1DInformation info;
     private PaintManager paintManager;
+
+    private LineBorder lb;
+    private TitledBorder tb;
     private final JSpinner spinnerMaterial;
     private final SpinnerDateModel modelInjection;
 //    private final JSpinner spinnerInjection;
 //    private final JSpinner.DateEditor dateEditorInjection;
     private final JCheckBox checkInjection;
+
+    private JLabel labelRunoffParameter;
     private final JComboBox<HEAreaInflow1DInformation.RUNOFF_CONTROL> comboInflowControl;
 //    private final SpinnerNumberModel modelDuration;
 //    private final JSpinner spinnerDuration;
@@ -83,13 +88,15 @@ class InjectionPanelAreaWashoff extends JPanel {
     protected InjectionPanelAreaWashoff(final HEAreaInflow1DInformation info, PaintManager paintManager) {
         super();
         setLayout(new GridLayout(6, 2));
-        this.setBorder(new TitledBorder(new LineBorder(Color.green.darker(), 1, true), "Area Washoff 1D"));
+        lb = new LineBorder(Color.green.darker(), 1, true);
+        tb = new TitledBorder(lb, "Area Washoff 1D");
+        this.setBorder(tb);
 
         this.info = info;
         this.paintManager = paintManager;
-        
+
         //Statistics string used for tooltip
-        String tooltip=new String("<html>"+info.getRunoffParameterName()+"<br>"+info.numberAreaObjects+" Area elements<br>"+(int)(info.effectiveArea)+"m² <br>"+(int)info.effectiveVolume+"m³ volume");
+        String tooltip = new String("<html>" + info.getRunoffParameterName() + "<br>" + info.numberAreaObjects + " Area elements<br>" + (int) (info.effectiveArea) + "m² <br>" + (int) info.effectiveVolume + "m³ volume");
         this.setToolTipText(tooltip);
         //Name
         spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, -1, Integer.MAX_VALUE, 1));
@@ -101,11 +108,28 @@ class InjectionPanelAreaWashoff extends JPanel {
         //Parameter
         comboRunoffParameter = new JComboBox<String>(HEAreaInflow1DInformation.runoffParameterList);
         if (info.getRunoffParameterName() != null) {
-            comboRunoffParameter.setSelectedItem(info.getRunoffParameterName());
+            int index = -1;
+            for (int i = 0; i < HEAreaInflow1DInformation.runoffParameterList.length; i++) {
+                if (info.runoffParameterName.equals(HEAreaInflow1DInformation.runoffParameterList[i])) {
+                    index = i;
+                }
+
+            }
+            if (index < 0) {
+                if (info.isActive()) {
+                    System.out.println("Cannot find Runoff parameter '" + info.runoffParameterName + "' in list of available values. Deactive " + info.getClass().getSimpleName() + ".");
+                    info.setActive(false);
+                }
+                comboRunoffParameter.setSelectedIndex(-1);
+
+            } else {
+                comboRunoffParameter.setSelectedIndex(index);
+            }
         } else {
             comboRunoffParameter.setSelectedItem("All");
         }
-        this.add(new JLabel("Runoff parameter"));
+        labelRunoffParameter = new JLabel("Runoff parameter");
+        this.add(labelRunoffParameter);
         this.add(comboRunoffParameter);
         comboRunoffParameter.addItemListener(new ItemListener() {
             @Override
@@ -121,8 +145,8 @@ class InjectionPanelAreaWashoff extends JPanel {
             }
         });
         //Runoffcontrol
-        comboInflowControl=new JComboBox<>(HEAreaInflow1DInformation.RUNOFF_CONTROL.values());
-        if(info!=null){
+        comboInflowControl = new JComboBox<>(HEAreaInflow1DInformation.RUNOFF_CONTROL.values());
+        if (info != null) {
             comboInflowControl.setSelectedItem(info.inflowtype);
         }
         this.add(new JLabel("Washoff relation"));
@@ -131,7 +155,7 @@ class InjectionPanelAreaWashoff extends JPanel {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 info.setInflowtype((HEAreaInflow1DInformation.RUNOFF_CONTROL) e.getItem());
-                 if (info.hasChanged()) {
+                if (info.hasChanged()) {
                     setBorder(new TitledBorder("changed"));
                 }
             }
@@ -199,9 +223,7 @@ class InjectionPanelAreaWashoff extends JPanel {
                     return;
                 }
                 info.setMaterialID((int) spinnerMaterial.getValue());
-                if (info.hasChanged()) {
-                    setBorder(new TitledBorder("changed"));
-                }
+                checkActiveAndChangeState();
             }
         });
 
@@ -212,10 +234,7 @@ class InjectionPanelAreaWashoff extends JPanel {
                     return;
                 }
                 info.setActive(checkInjection.isSelected());
-
-                if (info.hasChanged()) {
-                    setBorder(new TitledBorder("changed"));
-                }
+                checkActiveAndChangeState();
             }
         });
 
@@ -226,9 +245,7 @@ class InjectionPanelAreaWashoff extends JPanel {
                     return;
                 }
                 info.setNumberOfParticles(modelParticles.getNumber().intValue());
-                if (info.hasChanged()) {
-                    setBorder(new TitledBorder("changed"));
-                }
+                checkActiveAndChangeState();
             }
         });
 
@@ -240,9 +257,7 @@ class InjectionPanelAreaWashoff extends JPanel {
                 }
                 selfChanging = true;
                 info.setMassload(modelLoad.getNumber().doubleValue() * 0.0001);
-                if (info.hasChanged()) {
-                    setBorder(new TitledBorder("changed"));
-                }
+                checkActiveAndChangeState();
                 spinnerLoad.setToolTipText((info.getMassload()) + " kg/m²");
 
                 selfChanging = false;
@@ -257,9 +272,7 @@ class InjectionPanelAreaWashoff extends JPanel {
                 }
                 selfChanging = true;
                 info.setWashoffConstant(modelWashoff.getNumber().doubleValue());
-                if (info.hasChanged()) {
-                    setBorder(new TitledBorder("changed"));
-                }
+                checkActiveAndChangeState();
                 selfChanging = false;
             }
         });
@@ -267,6 +280,38 @@ class InjectionPanelAreaWashoff extends JPanel {
         this.setPreferredSize(new Dimension(160, 120));
         this.setMinimumSize(new Dimension(160, 110));
 
+        checkActiveAndChangeState();
+    }
+
+    public void checkActiveAndChangeState() {
+        if (!info.isInitilized()) {
+            tb.setTitle("Area Washoff 1D (Reset scenario to initialize)");
+        } else {
+            if (info.hasChanged()) {
+                tb.setTitle("changed");
+
+            } else {
+                tb.setTitle("Area Washoff 1D");
+            }
+        }
+//        System.out.println("selected element="+comboRunoffParameter);
+        if (comboRunoffParameter.getSelectedIndex() < 0) {
+            labelRunoffParameter.setText("Select Runoff parameter ");
+            labelRunoffParameter.setForeground(Color.RED);
+            labelRunoffParameter.setToolTipText("Cannot find requested Parameter '"+info.runoffParameterName+"' in model.");
+        } else {
+            labelRunoffParameter.setText("Runoff parameter ");
+            labelRunoffParameter.setForeground(Color.black);
+            labelRunoffParameter.setToolTipText(null);
+        }
+
+        if (info.isActive()) {
+            tb.setTitleColor(Color.black);
+        } else {
+            tb.setTitleColor(Color.lightGray);
+
+        }
+        repaint();
     }
 
 }

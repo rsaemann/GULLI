@@ -62,7 +62,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
      */
     public static String[] runoffParameterList = new String[]{"All"};
 
-    public static boolean verbose = true;
+    public static boolean verbose = false;
 
     public enum RUNOFF_CONTROL {
         /**
@@ -120,7 +120,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
      */
     public double washoffConstant;
 
-    public Collection<AreaRunoffSplit> areaRunoffSplit;
+    private Collection<AreaRunoffSplit> areaRunoffSplit;
     private int id;
     private boolean active = true;
     private double mass = 0;
@@ -410,7 +410,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
 
             return particles;
         } else if (inflowtype == RUNOFF_CONTROL.Anh1_UP_LOW || inflowtype == RUNOFF_CONTROL.Anh1_CENTER) {
-           
+
             double totalmass = 0;
             for (AreaRunoffSplit ars : areaRunoffSplit) {
                 totalmass += ars.area * massload;
@@ -471,7 +471,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                             realprecipitation = precipitation.getPrecipitation()[pindex] / 5.;
                         } catch (Exception e) {
                         }
-                        System.out.println(i + ": InflowUP:" + df3.format(inflow) + " m^3/s-> volume=" + df3.format(inflowVolume) + " m³ =>\tNw=" + df3.format(effectivePrecipitation) + " mm / N= " + realprecipitation + " mm ->\tmPab=" + df3.format(washoffMass) + "kg , Pv=" + df5.format(pollutantreservoirUP) + "kg");
+//                        System.out.println(i + ": InflowUP:" + df3.format(inflow) + " m^3/s-> volume=" + df3.format(inflowVolume) + " m³ =>\tNw=" + df3.format(effectivePrecipitation) + " mm / N= " + realprecipitation + " mm ->\tmPab=" + df3.format(washoffMass) + "kg , Pv=" + df5.format(pollutantreservoirUP) + "kg");
                     }
                     if (washoffMass > 0) {
                         int particles_toRelease = (int) (washoffMass / massperParticle);
@@ -759,6 +759,12 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
     public void setNetwork(Network network) {
         this.network = network;
         this.initilized = false;
+        changed = true;
+    }
+
+    public void setAreaRunoffSplit(Collection<AreaRunoffSplit> areaRunoffSplit) {
+        this.areaRunoffSplit = areaRunoffSplit;
+        initilized = false;
         changed = true;
     }
 
