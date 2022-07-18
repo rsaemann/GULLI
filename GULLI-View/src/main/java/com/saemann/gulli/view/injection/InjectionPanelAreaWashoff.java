@@ -83,11 +83,14 @@ class InjectionPanelAreaWashoff extends JPanel {
     private final SpinnerNumberModel modelWashoff;
     private final JSpinner spinnerWashoff;
 
+    private final JLabel labelTotalMass;
+    private static final DecimalFormat df2 = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(StartParameters.formatLocale));
+
     private boolean selfChanging = false;
 
     protected InjectionPanelAreaWashoff(final HEAreaInflow1DInformation info, PaintManager paintManager) {
         super();
-        setLayout(new GridLayout(6, 2));
+        setLayout(new GridLayout(7, 2));
         lb = new LineBorder(Color.green.darker(), 1, true);
         tb = new TitledBorder(lb, "Area Washoff 1D");
         this.setBorder(tb);
@@ -214,6 +217,19 @@ class InjectionPanelAreaWashoff extends JPanel {
         spinnerWashoff.setEditor(washoffEditor);
         this.add(spinnerWashoff);
 
+        this.add(new JLabel("Washoff Mass:"));
+        labelTotalMass = new JLabel();
+        if (info.isInitilized()) {
+            if (info.getMass() > 10) {
+                labelTotalMass.setText(df2.format(info.getMass()) + "  kg , " + df2.format(info.effectiveArea / 10000.) + " ha");
+            } else {
+                labelTotalMass.setText(info.getMass() + "  kg , " + info.effectiveArea / 10000. + " ha");
+            }
+        } else {
+            labelTotalMass.setText(" ? kg");
+        }
+        this.add(labelTotalMass);
+
 //        spinnerDuration.setEnabled(checkInjection.isSelected());
 //        spinnerInjection.setEnabled(checkInjection.isSelected());
         this.spinnerMaterial.addChangeListener(new ChangeListener() {
@@ -298,7 +314,7 @@ class InjectionPanelAreaWashoff extends JPanel {
         if (comboRunoffParameter.getSelectedIndex() < 0) {
             labelRunoffParameter.setText("Select Runoff parameter ");
             labelRunoffParameter.setForeground(Color.RED);
-            labelRunoffParameter.setToolTipText("Cannot find requested Parameter '"+info.runoffParameterName+"' in model.");
+            labelRunoffParameter.setToolTipText("Cannot find requested Parameter '" + info.runoffParameterName + "' in model.");
         } else {
             labelRunoffParameter.setText("Runoff parameter ");
             labelRunoffParameter.setForeground(Color.black);

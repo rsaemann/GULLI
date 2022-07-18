@@ -831,7 +831,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                                         injection.calculateManholesArea();
                                     }
                                 }
-
+                                
                             } catch (SQLException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (IOException ex) {

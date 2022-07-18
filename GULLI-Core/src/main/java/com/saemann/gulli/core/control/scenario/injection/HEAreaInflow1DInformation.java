@@ -158,6 +158,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
         }
         this.mass = 0;
         for (AreaRunoffSplit ars : areaRunoffSplit) {
+//            if(ars.runoffVolume==0)continue;
             double upper = ars.runoffVolume * ars.fractionUpper;
             double lower = ars.runoffVolume * (1. - ars.fractionUpper);
             mass += ars.area * this.massload;
@@ -211,8 +212,8 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
         if (!initilized) {
             calculateManholesArea();
         }
-        //Statistics counter (for tooltips in GUI)
 
+        //Statistics counter (for tooltips in GUI)
         effectiveArea = 0;
         effectiveVolume = 0;
         numberAreaObjects = 0;
@@ -224,12 +225,18 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
         } else {
             considerwashofftype = true;
         }
+//        System.out.println("start creation of particles consider filter? "+considerwashofftype+" : "+runoffParameterName);
         for (AreaRunoffSplit ars : areaRunoffSplit) {
+            if (ars.runoffVolume == 0) {
+                //only consider runoff effective area
+                continue;
+            }
             if (considerwashofftype) {
                 if (!ars.washoffParameter.equals(runoffParameterName)) {
                     continue;
                 }
             }
+
             double areamasspotential = ars.area * massload;
             double washoffFraction = (Math.min(1, washoffConstant * ars.runofffraction * ars.totalPrecipitationMM));
             double washoffMass = areamasspotential * washoffFraction;
@@ -241,6 +248,7 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
             numberAreaObjects++;
         }
         mass = totalwashoffMass;
+//        System.out.println("firstpass mass-relation completed.start creating particle objects");
         if (inflowtype == RUNOFF_CONTROL.INFLOW_WASHOFF || inflowtype == RUNOFF_CONTROL.PRECIPITATION) {
 
             ArrayList<Particle> particles = new ArrayList<>(numberOfParticles);
@@ -426,6 +434,9 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
                     if (!ars.washoffParameter.equals(runoffParameterName)) {
                         continue;
                     }
+                }
+                if (ars.runoffVolume == 0) {
+                    continue;
                 }
                 if (verbose) {
                     System.out.println("Area " + ars.areaName + " A=" + ars.area + "m^2");
