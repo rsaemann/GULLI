@@ -134,13 +134,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected XYToolTipGenerator tooltipGenerator = new StandardXYToolTipGenerator() {
         @Override
         public String generateToolTip(XYDataset dataset, int series, int item) {
-//            System.out.println("search for tooltip in ");
-//            return "Toll";
             return "<html>" + numberFormat.format(dataset.getYValue(series, item)) + " " + ((SeriesKey) dataset.getSeriesKey(series)).unit + "<br>"
                     + ((SeriesKey) dataset.getSeriesKey(series)).name + "<br>" + dateFormat.format(dataset.getXValue(series, item)) + "</html>";
-//            return "Series " + series + " Item: " + item + " Value: "
-//                    + dataset.getXValue(series, item) + ";"
-//                    + dataset.getYValue(series, item);
         }
 
     };
@@ -172,11 +167,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected final Controller controller;
 
     ArrayList<PipeResultData> container;
-//    protected BasicStroke stroke0 = new BasicStroke(2);
-//    protected BasicStroke stroke1 = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0.1f, 6}, 0);
-//    protected BasicStroke stroke2 = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{1, 3, 7, 3}, 0);
-//    protected BasicStroke stroke3 = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 0, new float[]{1, 3, 2, 5}, 0);
-//    protected BasicStroke stroke5Dot = new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{1, Float.POSITIVE_INFINITY}, 0);
 
     public boolean prepareTimelinesInThread = false;
 
@@ -860,6 +850,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             long moveVisiblePointToIntervalMid = 0;
             if (tlm.getContainer().timecontinuousMeasures) {
                 moveVisiblePointToIntervalMid = (long) (-tlm.getTimes().getDeltaTimeMS() / 2);
+//                System.out.println(getClass()+":: move pointer to interval width @"+moveVisiblePointToIntervalMid/1000+"s");
             }
 
             for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
@@ -867,6 +858,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 long timeMeasurement = 0;
                 if (tlm.getContainer().getSamplesInTimeInterval(i) > 0) {
                     timeMeasurement = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i);
+//                    System.out.println("Messzeit für intervall "+i+" is "+timeMeasurement/1000+" statt "+tlm.getContainer().getTimeMillisecondsAtIndex(i)/1000+" mit "+tlm.getContainer().getSamplesInTimeInterval(i)+" messungen");
                 } else {
                     //Use regular time of the planned sample
                     timeMeasurement = tlm.getContainer().getTimeMillisecondsAtIndex(i);

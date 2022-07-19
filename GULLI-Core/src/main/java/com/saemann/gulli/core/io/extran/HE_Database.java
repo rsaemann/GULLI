@@ -67,6 +67,7 @@ import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
+import java.io.InvalidObjectException;
 import org.geotools.referencing.CRS;
 import org.locationtech.jts.geom.Coordinate;
 import org.opengis.geometry.MismatchedDimensionException;
@@ -1495,18 +1496,25 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
+                int heID;
+                String heName;
+                float inflow;
+                float h;
                 while (res.next()) {
                     counter++;
-                    int heID = res.getInt(1);
-//                    String heName = res.getString(2);
-                    float inflow = res.getFloat(3);
-                    float h = res.getFloat(4);
+                    heID = res.getInt(1);
+                    heName = res.getString(2);
+                    inflow = res.getFloat(3);
+                    h = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
                         id = heID;
                         timeIndex = 0;
                     }
                     if (mh != null) {
+                        if (!heName.equals(mh.getName())) {
+                            throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
+                        }
                         if (mh.getStatusTimeLine() != null) {
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterZ(h, timeIndex);
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterLevel(h - mh.getSole_height(), timeIndex);
@@ -1544,16 +1552,23 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
+                int heID ;
+                String heName;
+                float outflow;
                 while (res.next()) {
                     counter++;
-                    int heID = res.getInt(1);
-                    float outflow = res.getFloat(4);
+                    heID= res.getInt(1);
+                    heName=res.getString(2);
+                     outflow= res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID((long) heID);
                         id = heID;
                         timeIndex = 0;
                     }
                     if (mh != null && mh.getStatusTimeLine() != null) {
+                        if (!heName.equals(mh.getName())) {
+                            throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
+                        }
                         ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setFluxToSurface(outflow, timeIndex);
                     }
                     timeIndex++;
@@ -1745,7 +1760,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * @throws Exception
      */
     public ArrayTimeLineManholeContainer applyTimelinesManholes(Collection<? extends StorageVolume> manholes, boolean shiftToZeroTime) throws SQLException, IOException, Exception {
-
+//        System.out.println("APPLY TIMELINE MANHOLES");
         long[] times = loadTimeStepsNetwork(shiftToZeroTime);
 
         ArrayTimeLineManholeContainer manholeContainer = new ArrayTimeLineManholeContainer(times, manholes.size());
@@ -1779,6 +1794,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     if (mh == null) {
                         System.err.println(getClass() + ": could not find manhole DBid:" + heID + ", name: " + heName + "  in the network.");
                         continue;
+                    }
+                    if (!heName.equals(mh.getName())) {
+                        throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
                     }
                     id = heID;
                     timeIndex = 0;
@@ -1819,6 +1837,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     if (mh == null) {
                         System.err.println(getClass() + ": could not find manhole DBid:" + heID + ", name: " + heName + "  in the network.");
                         continue;
+                    }
+                    if (!heName.equals(mh.getName())) {
+                        throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
                     }
                     id = heID;
                     timeIndex = 0;

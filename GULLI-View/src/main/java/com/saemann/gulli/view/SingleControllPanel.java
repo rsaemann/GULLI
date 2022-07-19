@@ -495,7 +495,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         }
 
                         if (m == JOptionPane.YES_OPTION) {
-                            if (!c.isPipeNetworkLoaded() && c.getPipeNetwork() != null) {
+                            if (/*!c.isPipeNetworkLoaded() &&*/ c.getPipeNetwork() != null) {
                                 control.getLoadingCoordinator().setPipeNetworkFile(c.getPipeNetwork());
                             }
                             if (!c.isSurfaceTopologyLoaded() && c.getSurfaceDirectory() != null) {
