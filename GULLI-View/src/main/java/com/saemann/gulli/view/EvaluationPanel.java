@@ -27,6 +27,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.particle.Particle;
+import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Manhole;
 import java.awt.BorderLayout;
 import java.awt.Font;
@@ -185,6 +186,10 @@ public class EvaluationPanel extends JPanel {
                                 //Left through outlet
                                 summarizers[materialIndex][3] += p.getParticleMass();
                                 counter[materialIndex][3]++;
+                            }else if (p.getSurrounding_actual() != null && p.getSurrounding_actual().getClass() == Surface.class) {
+                                //Left through outlet
+                                summarizers[materialIndex][4] += p.getParticleMass();
+                                counter[materialIndex][4]++;
                             } else {
                                 System.err.println("unknown left simulation case " + p + " in Pipe?" + p.isInPipeNetwork() + "  on Surface?" + p.isOnSurface() + "  active?" + p.isActive() + " surrounding=" + p.getSurrounding_actual());
                             }
