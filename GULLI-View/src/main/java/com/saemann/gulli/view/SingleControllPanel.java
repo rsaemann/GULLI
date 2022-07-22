@@ -163,6 +163,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
     protected JFrame frame;
 
+    protected JButton buttonEvaluationFrame;
+    protected JFrame frameEvaluation;
+    protected EvaluationPanel panelEvaluation;
+
     public SingleControllPanel(final ThreadController controller, final Controller control, final JFrame frame, PaintManager pm) {
         super();
 //        BoxLayout layout = new BoxLayout(this, BoxLayout.Y_AXIS);
@@ -402,6 +406,29 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
         panelTabSimulation.add(panelCalculation);
 
+        buttonEvaluationFrame = new JButton("Evaluation");
+        buttonEvaluationFrame.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (panelEvaluation == null) {
+                    panelEvaluation = new EvaluationPanel(control);
+                }
+                if (frameEvaluation == null || !frameEvaluation.isDisplayable()) {
+                    frameEvaluation = new JFrame();
+                    frameEvaluation.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    frameEvaluation.add(panelEvaluation);
+                    frameEvaluation.setBounds(getX() + getWidth()+20, getY() + getHeight() / 2, 450, 300);
+                }
+                frameEvaluation.setVisible(true);
+                frameEvaluation.toFront();
+                if (frameEvaluation.getState() == JFrame.ICONIFIED) {
+                    frameEvaluation.setState(JFrame.NORMAL);
+                }
+            }
+        }
+        );
+        panelTabSimulation.add(buttonEvaluationFrame);
+
         /////////////////////
         ///// ACTION Listener
         buttonFileNetwork.addActionListener(new ActionListener() {
@@ -495,7 +522,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         }
 
                         if (m == JOptionPane.YES_OPTION) {
-                            if (/*!c.isPipeNetworkLoaded() &&*/ c.getPipeNetwork() != null) {
+                            if (/*!c.isPipeNetworkLoaded() &&*/c.getPipeNetwork() != null) {
                                 control.getLoadingCoordinator().setPipeNetworkFile(c.getPipeNetwork());
                             }
                             if (!c.isSurfaceTopologyLoaded() && c.getSurfaceDirectory() != null) {

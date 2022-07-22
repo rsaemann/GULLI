@@ -201,6 +201,7 @@ public class InjectionOrganisatorPanel extends JPanel {
                 HEAreaInflow1DInformation ininfo = new HEAreaInflow1DInformation(null, m, 100000);//(m, control.getNetwork(), 0.1, 50000);
                 ininfo.massload = 0.001;
                 ininfo.setWashoffConstant(0.2);
+                ininfo.runoffParameterName="...";//<- this is not a valid parameters. so the initial showing up will guide the user to chose the correct parameter
                 control.getLoadingCoordinator().addManualInjection(ininfo);
                 control.recalculateInjections();
             }

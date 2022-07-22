@@ -4110,7 +4110,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
         ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
         rs.next();
         double fractionUpper = (100 - rs.getDouble(1)) / 100.;
-        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
+        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name WHERE FLAECHE.ABFLUSS>0";//
         boolean where_used = false;
         boolean runofffilter = false;
         boolean substancefilter = false;
