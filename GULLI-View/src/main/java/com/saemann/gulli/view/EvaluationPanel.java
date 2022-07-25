@@ -30,9 +30,9 @@ import com.saemann.gulli.core.model.particle.Particle;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.topology.Manhole;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
@@ -43,6 +43,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
 /**
@@ -56,6 +57,10 @@ public class EvaluationPanel extends JPanel {
     DefaultTableModel model;
     JTable table;
     JScrollPane scrollTable;
+
+    DefaultTableModel modelWashoff;
+    JTable tableWashoff;
+    JScrollPane scrollTableWashoff;
 
     JButton buttonUpdate;
 
@@ -75,7 +80,7 @@ public class EvaluationPanel extends JPanel {
     }
 
     private void initLayout() {
-        model = new DefaultTableModel(7, 3);
+        model = new DefaultTableModel(8, 3);
         table = new JTable(model) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -83,8 +88,19 @@ public class EvaluationPanel extends JPanel {
             }
         };
         scrollTable = new JScrollPane(table);
-
         table.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+
+        modelWashoff = new DefaultTableModel(6, 3);
+        tableWashoff = new JTable(modelWashoff) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        scrollTableWashoff = new JScrollPane(tableWashoff);
+        tableWashoff.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+        scrollTableWashoff.setBorder(new TitledBorder("Washoff behaviour"));
+        scrollTableWashoff.setPreferredSize(new Dimension(300, 140));
 
         textcomputtaionTime = new JTextField();
         textcomputtaionTime.setEditable(false);
@@ -96,6 +112,7 @@ public class EvaluationPanel extends JPanel {
         panelNoth.add(buttonUpdate);
         this.add(panelNoth, BorderLayout.NORTH);
         this.add(scrollTable, BorderLayout.CENTER);
+        this.add(scrollTableWashoff, BorderLayout.SOUTH);
 
         buttonUpdate.addActionListener(new ActionListener() {
             @Override
@@ -143,8 +160,7 @@ public class EvaluationPanel extends JPanel {
             double[][] summarizers;
             double[][] counter;
 
-            model.setColumnCount(3);
-            model.setRowCount(9);
+            model.setRowCount(8);
             model.setValueAt("-  Unreleased", 0, 0);
             model.setValueAt("- + Released", 1, 0);
             model.setValueAt("  - + Completed", 2, 0);
@@ -154,9 +170,25 @@ public class EvaluationPanel extends JPanel {
             model.setValueAt("    -  in Pipe", 6, 0);
             model.setValueAt("    -  on Surface", 7, 0);
 
+            double[][] washoff;
+            int[][] washoffCounter;
+
+            modelWashoff.setRowCount(6);
+            modelWashoff.setValueAt("- + Start on Surface", 0, 0);
+            modelWashoff.setValueAt("  - Stay on Surface", 1, 0);
+            modelWashoff.setValueAt("  - Washed to Pipe", 2, 0);
+            modelWashoff.setValueAt("- + Start in Pipe", 3, 0);
+            modelWashoff.setValueAt("  - Stay in Pipe", 4, 0);
+            modelWashoff.setValueAt("  - Spilled to Surface", 5, 0);
+
             if (numberMaterials > 0) {
+
                 summarizers = new double[numberMaterials][8];
                 counter = new double[numberMaterials][8];
+
+                washoff = new double[numberMaterials][6];
+                washoffCounter = new int[numberMaterials][6];
+
                 for (Particle p : control.getThreadController().getParticles()) {
                     int materialIndex = control.getScenario().getMaterials().indexOf(p.getMaterial());
                     if (materialIndex < 0) {
@@ -186,7 +218,7 @@ public class EvaluationPanel extends JPanel {
                                 //Left through outlet
                                 summarizers[materialIndex][3] += p.getParticleMass();
                                 counter[materialIndex][3]++;
-                            }else if (p.getSurrounding_actual() != null && p.getSurrounding_actual().getClass() == Surface.class) {
+                            } else if (p.getSurrounding_actual() != null && p.getSurrounding_actual().getClass() == Surface.class) {
                                 //Left through outlet
                                 summarizers[materialIndex][4] += p.getParticleMass();
                                 counter[materialIndex][4]++;
@@ -209,37 +241,92 @@ public class EvaluationPanel extends JPanel {
                                 System.err.println("unknown inside simulation case " + p);
                             }
                         }
+
+                        // Count for washoff table (only released particles)
+                        if (p.getInjectionInformation().spillOnSurface()) {
+                            //Start on surface
+                            washoffCounter[materialIndex][0]++;
+                            washoff[materialIndex][1] += p.getParticleMass();
+                            if (p.toPipenetwork == null) {
+                                //Nover washed to pipe system -> stayed on the surface
+                                washoffCounter[materialIndex][1]++;
+                                washoff[materialIndex][1] += p.getParticleMass();
+                            } else {
+                                //Washed to pipe system at least one time
+                                washoffCounter[materialIndex][2]++;
+                                washoff[materialIndex][2] += p.getParticleMass();
+                            }
+                        } else if (p.getInjectionInformation().spillinPipesystem()) {
+                            //Released in Pipe system
+                            washoffCounter[materialIndex][3]++;
+                            washoff[materialIndex][3] += p.getParticleMass();
+                            if (p.toSurface == null) {
+                                //Nover spilled to surface -> stayed in pipe system
+                                washoffCounter[materialIndex][4]++;
+                                washoff[materialIndex][4] += p.getParticleMass();
+                            } else {
+                                //Spilled to surface at least one time
+                                washoffCounter[materialIndex][5]++;
+                                washoff[materialIndex][5] += p.getParticleMass();
+                            }
+                        }
                     }
                 }
                 if (numberMaterials > 1) {
-                    model.setColumnCount(3 + numberMaterials);
-                    model.setRowCount(9);
-                    String[] header = new String[3 + numberMaterials];
+                    model.setColumnCount(3 + numberMaterials * 2);
+                    model.setRowCount(8);
+                    String[] header = new String[3 + numberMaterials * 2];
                     header[0] = "Case";
                     header[1] = "mass total";
                     header[2] = "n total";
                     for (int i = 0; i < numberMaterials; i++) {
                         Material m = control.getScenario().getMaterials().get(i);
-                        header[1 + i * 2] = "mass " + m.getName();
-                        header[2 + i * 2] = "n " + m.getName();
+                        header[3 + i * 2] = "mass " + m.getName();
+                        header[4 + i * 2] = "n " + m.getName();
                     }
                     model.setColumnIdentifiers(header);
                     for (int i = 0; i < counter[0].length; i++) {
                         int c = 0;
                         double m = 0;
-                        for (int j = 0; j < counter.length; j++) {
-                            c += counter[j][i];
-                            m += summarizers[j][i];
-                            model.setValueAt(df2.format(summarizers[j][i]), i, 1 + i * 2);
-                            model.setValueAt((int) (counter[j][i]), i, 2 + i * 2);
+                        for (int material = 0; material < counter.length; material++) {
+                            c += counter[material][i];
+                            m += summarizers[material][i];
+                            model.setValueAt(df2.format(summarizers[material][i]), i, 3 + material * 2);
+                            model.setValueAt((int) (counter[material][i]), i, 4 + material * 2);
                         }
-                        model.setValueAt(df2.format(m), 1 + i, 1);
-                        model.setValueAt((int) c + "", 1 + i, 2);
+                        model.setValueAt(df2.format(m), i, 1);
+                        model.setValueAt((int) c + "", i, 2);
+                    }
+
+                    //WAshoff entries
+                    modelWashoff.setColumnCount(3 + numberMaterials);
+                    modelWashoff.setRowCount(6);
+//                    header = new String[3 + numberMaterials];
+//                    header[0] = "Case";
+//                    header[1] = "mass total";
+//                    header[2] = "n total";
+//                    for (int i = 0; i < numberMaterials; i++) {
+//                        Material m = control.getScenario().getMaterials().get(i);
+//                        header[1 + i * 2] = "mass " + m.getName();
+//                        header[2 + i * 2] = "n " + m.getName();
+//                    }
+                    modelWashoff.setColumnIdentifiers(header);
+                    for (int i = 0; i < washoffCounter[0].length; i++) {
+                        int c = 0;
+                        double m = 0;
+                        for (int j = 0; j < washoffCounter.length; j++) {
+                            c += washoffCounter[j][i];
+                            m += washoff[j][i];
+                            modelWashoff.setValueAt(df2.format(washoff[j][i]), i, 3 + j * 2);
+                            modelWashoff.setValueAt((int) (washoffCounter[j][i]), i, 4 + j * 2);
+                        }
+                        modelWashoff.setValueAt(df2.format(m), i, 1);
+                        modelWashoff.setValueAt((int) c + "", i, 2);
                     }
 
                 } else {
                     model.setColumnCount(3);
-                    model.setRowCount(9);
+                    model.setRowCount(8);
                     String[] header = new String[3];
                     header[0] = "Case";
                     header[1] = "mass total";
@@ -249,6 +336,14 @@ public class EvaluationPanel extends JPanel {
                         model.setValueAt(df2.format(summarizers[0][i]), i, 1);
                         model.setValueAt((int) counter[0][i], i, 2);
                     }
+
+                    modelWashoff.setColumnCount(3);
+                    modelWashoff.setRowCount(6);
+                    modelWashoff.setColumnIdentifiers(header);
+                    for (int i = 0; i < washoffCounter[0].length; i++) {
+                        modelWashoff.setValueAt(df2.format(washoff[0][i]), i, 1);
+                        modelWashoff.setValueAt((int) washoffCounter[0][i], i, 2);
+                    }
                 }
 
             }
@@ -256,6 +351,7 @@ public class EvaluationPanel extends JPanel {
         } else {
             //Scenario is NULL
             model.setColumnCount(3);
+            modelWashoff.setColumnCount(3);
             String[] header = new String[3];
             header[0] = "Case";
             header[1] = "mass total";
@@ -264,6 +360,11 @@ public class EvaluationPanel extends JPanel {
             for (int i = 1; i < model.getRowCount(); i++) {
                 model.setValueAt("-", i, 1);
                 model.setValueAt("-", i, 2);
+            }
+            modelWashoff.setColumnIdentifiers(header);
+            for (int i = 1; i < modelWashoff.getRowCount(); i++) {
+                modelWashoff.setValueAt("-", i, 1);
+                modelWashoff.setValueAt("-", i, 2);
             }
         }
     }

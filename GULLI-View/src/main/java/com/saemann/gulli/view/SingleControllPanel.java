@@ -414,10 +414,10 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     panelEvaluation = new EvaluationPanel(control);
                 }
                 if (frameEvaluation == null || !frameEvaluation.isDisplayable()) {
-                    frameEvaluation = new JFrame();
+                    frameEvaluation = new JFrame("Evaluation");
                     frameEvaluation.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                     frameEvaluation.add(panelEvaluation);
-                    frameEvaluation.setBounds(getX() + getWidth()+20, getY() + getHeight() / 2, 450, 300);
+                    frameEvaluation.setBounds(getX() + getWidth()+20, getY() + getHeight() / 2, 450, 390);
                 }
                 frameEvaluation.setVisible(true);
                 frameEvaluation.toFront();
