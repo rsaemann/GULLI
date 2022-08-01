@@ -246,7 +246,7 @@ public class EvaluationPanel extends JPanel {
                         if (p.getInjectionInformation().spillOnSurface()) {
                             //Start on surface
                             washoffCounter[materialIndex][0]++;
-                            washoff[materialIndex][1] += p.getParticleMass();
+                            washoff[materialIndex][0] += p.getParticleMass();
                             if (p.toPipenetwork == null) {
                                 //Nover washed to pipe system -> stayed on the surface
                                 washoffCounter[materialIndex][1]++;
