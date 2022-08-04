@@ -38,8 +38,6 @@ import com.saemann.gulli.core.control.scenario.injection.InjectionSubArealInform
 import com.saemann.gulli.core.model.GeoPosition;
 import com.saemann.gulli.core.model.material.Material;
 import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Calculator;
-import com.saemann.gulli.core.model.material.dispersion.pipe.Dispersion1D_Constant;
-import com.saemann.gulli.core.model.material.dispersion.surface.Dispersion2D_Constant;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;

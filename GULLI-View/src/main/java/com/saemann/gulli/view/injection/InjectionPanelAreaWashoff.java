@@ -85,6 +85,7 @@ class InjectionPanelAreaWashoff extends JPanel {
 
     private final JLabel labelTotalMass;
     private static final DecimalFormat df2 = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance(StartParameters.formatLocale));
+    private static final DecimalFormat df5 = new DecimalFormat("0.#####", DecimalFormatSymbols.getInstance(StartParameters.formatLocale));
 
     private boolean selfChanging = false;
 
@@ -99,7 +100,7 @@ class InjectionPanelAreaWashoff extends JPanel {
         this.paintManager = paintManager;
 
         //Statistics string used for tooltip
-        String tooltip = new String("<html>" + info.getRunoffParameterName() + "<br>" + info.numberAreaObjects + " Area elements<br>" + (int) (info.effectiveArea) + "m² <br>" + (int) info.effectiveVolume + "m³ volume");
+        String tooltip = new String("<html>" + info.getRunoffParameterName() + "<br>" + info.numberAreaObjects + " Area elements<br>" + (int) (info.effectiveArea) + " m² <br>" + (int) info.effectiveVolume + " m³ volume<br>Accumulated:" + df5.format(info.getAccumulated_mass()) + " kg<br>Washoff: " + df5.format(info.getWashoff_mass()) + "kg <br>Particlemass: " + df5.format(info.getMass()) + " kg<br>Particles :" + info.getNumberOfCreatedParticles() + " </html>");
         this.setToolTipText(tooltip);
         //Name
         spinnerMaterial = new JSpinner(new SpinnerNumberModel(info.getMaterial().materialIndex, -1, Integer.MAX_VALUE, 1));
@@ -220,10 +221,10 @@ class InjectionPanelAreaWashoff extends JPanel {
         this.add(new JLabel("Washoff Mass:"));
         labelTotalMass = new JLabel();
         if (info.isInitilized()) {
-            if (info.getMass() > 10) {
-                labelTotalMass.setText(df2.format(info.getMass()) + "  kg , " + df2.format(info.effectiveArea / 10000.) + " ha");
+            if (info.getMass() > 5) {
+                labelTotalMass.setText(df2.format(info.getMass()) + " / " + df2.format(info.getAccumulated_mass()) + " kg , " + df2.format(info.effectiveArea / 10000.) + " ha");
             } else {
-                labelTotalMass.setText(info.getMass() + "  kg , " + info.effectiveArea / 10000. + " ha");
+             labelTotalMass.setText(df5.format(info.getMass()) + " / " + df5.format(info.getAccumulated_mass()) + " kg , " + df5.format(info.effectiveArea / 10000.) + " ha");
             }
         } else {
             labelTotalMass.setText(" ? kg");

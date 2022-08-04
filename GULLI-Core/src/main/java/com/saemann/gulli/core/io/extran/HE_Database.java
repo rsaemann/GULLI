@@ -1552,14 +1552,14 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
-                int heID ;
+                int heID;
                 String heName;
                 float outflow;
                 while (res.next()) {
                     counter++;
-                    heID= res.getInt(1);
-                    heName=res.getString(2);
-                     outflow= res.getFloat(4);
+                    heID = res.getInt(1);
+                    heName = res.getString(2);
+                    outflow = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID((long) heID);
                         id = heID;
@@ -4276,6 +4276,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
 //        public double washoffMass;
 //        public String substance;
         public String pipename;
+        /**
+         * [0..1] of totel precipitation to outflow.
+         */
         public double runofffraction;
         public double totalPrecipitationMM;
     }

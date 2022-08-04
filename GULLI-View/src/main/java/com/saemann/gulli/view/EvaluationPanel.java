@@ -98,8 +98,9 @@ public class EvaluationPanel extends JPanel {
             }
         };
         scrollTableWashoff = new JScrollPane(tableWashoff);
+        scrollTableWashoff.setBorder(new TitledBorder("Status"));
         tableWashoff.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
-        scrollTableWashoff.setBorder(new TitledBorder("Washoff behaviour"));
+        scrollTableWashoff.setBorder(new TitledBorder("Washoff"));
         scrollTableWashoff.setPreferredSize(new Dimension(300, 140));
 
         textcomputtaionTime = new JTextField();
