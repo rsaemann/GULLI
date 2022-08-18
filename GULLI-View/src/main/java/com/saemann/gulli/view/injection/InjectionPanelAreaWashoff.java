@@ -38,10 +38,12 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import javax.swing.ButtonGroup;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerDateModel;
 import javax.swing.SpinnerNumberModel;
@@ -69,6 +71,11 @@ class InjectionPanelAreaWashoff extends JPanel {
 //    private final JSpinner.DateEditor dateEditorInjection;
     private final JCheckBox checkInjection;
 
+    private final JRadioButton radioPipe, radioManhole;
+    private final ButtonGroup radioGroupInjectionCapacity;
+
+    private final JCheckBox checkLinearTimeinjection;
+
     private JLabel labelRunoffParameter;
     private final JComboBox<HEAreaInflow1DInformation.RUNOFF_CONTROL> comboInflowControl;
 //    private final SpinnerNumberModel modelDuration;
@@ -91,7 +98,7 @@ class InjectionPanelAreaWashoff extends JPanel {
 
     protected InjectionPanelAreaWashoff(final HEAreaInflow1DInformation info, PaintManager paintManager) {
         super();
-        setLayout(new GridLayout(7, 2));
+        setLayout(new GridLayout(8, 2));
         lb = new LineBorder(Color.green.darker(), 1, true);
         tb = new TitledBorder(lb, "Area Washoff 1D");
         this.setBorder(tb);
@@ -165,6 +172,44 @@ class InjectionPanelAreaWashoff extends JPanel {
             }
         });
 
+        this.radioPipe = new JRadioButton("Pipe", false);
+        this.radioManhole = new JRadioButton("Manholes", false);
+        radioGroupInjectionCapacity = new ButtonGroup();
+        radioGroupInjectionCapacity.add(radioPipe);
+        radioGroupInjectionCapacity.add(radioManhole);
+        if (info != null) {
+            selfChanging = true;
+            if (info.isPipeInjection()) {
+                radioPipe.setSelected(true);
+            } else {
+                radioManhole.setSelected(true);
+            }
+            selfChanging = false;
+        }
+
+        radioPipe.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selfChanging) {
+                    return;
+                }
+                info.setPipeInjection(radioPipe.isSelected());
+                checkActiveAndChangeState();
+            }
+        });
+        radioManhole.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selfChanging) {
+                    return;
+                }
+                info.setPipeInjection(!radioManhole.isSelected());
+                checkActiveAndChangeState();
+            }
+        });
+        this.add(radioPipe);
+        this.add(radioManhole);
+
         //Load        
         checkInjection = new JCheckBox("Areal load [kg/ha] ", info.isActive());
         checkInjection.setToolTipText("<html>Enables the spill at this start time after simulation start. <br>If disabled: no spill is released.</html>");
@@ -198,8 +243,25 @@ class InjectionPanelAreaWashoff extends JPanel {
 
         f.setDecimalFormatSymbols(dfs);
         spinnerParticles.setEditor(particlesEditor);
-        this.add(new JLabel("Particles:"));
+        checkLinearTimeinjection = new JCheckBox("Inject linear, Particles:");
+        this.add(checkLinearTimeinjection);//new JLabel("Particles:"));
         this.add(spinnerParticles);
+
+        if (info != null) {
+            selfChanging = true;
+            checkLinearTimeinjection.setSelected(info.isLinearInjection());
+            selfChanging = false;
+        }
+        checkLinearTimeinjection.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selfChanging) {
+                    return;
+                }
+                info.setLinearInjection(checkLinearTimeinjection.isSelected());
+                checkActiveAndChangeState();
+            }
+        });
 
         //Washoff constant s [1/mm]        
         this.add(new JLabel("Washoff fraction [1/mm]"));
@@ -224,7 +286,7 @@ class InjectionPanelAreaWashoff extends JPanel {
             if (info.getMass() > 5) {
                 labelTotalMass.setText(df2.format(info.getMass()) + " / " + df2.format(info.getAccumulated_mass()) + " kg , " + df2.format(info.effectiveArea / 10000.) + " ha");
             } else {
-             labelTotalMass.setText(df5.format(info.getMass()) + " / " + df5.format(info.getAccumulated_mass()) + " kg , " + df5.format(info.effectiveArea / 10000.) + " ha");
+                labelTotalMass.setText(df5.format(info.getMass()) + " / " + df5.format(info.getAccumulated_mass()) + " kg , " + df5.format(info.effectiveArea / 10000.) + " ha");
             }
         } else {
             labelTotalMass.setText(" ? kg");
@@ -294,8 +356,8 @@ class InjectionPanelAreaWashoff extends JPanel {
             }
         });
 
-        this.setPreferredSize(new Dimension(160, 120));
-        this.setMinimumSize(new Dimension(160, 110));
+        this.setPreferredSize(new Dimension(160, 160));
+        this.setMinimumSize(new Dimension(160, 140));
 
         checkActiveAndChangeState();
     }
@@ -329,6 +391,17 @@ class InjectionPanelAreaWashoff extends JPanel {
 
         }
         repaint();
+        if (info != null) {
+            if (radioPipe.isSelected() != info.isPipeInjection()) {
+                selfChanging = true;
+                if (info.isPipeInjection()) {
+                    radioPipe.setSelected(true);
+                } else {
+                    radioManhole.setSelected(true);
+                }
+                selfChanging = false;
+            }
+        }
     }
 
 }

@@ -381,6 +381,58 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         return list;
     }
 
+    /**
+     * Calculates an array of doubles (0...1) which give the relative distance
+     * to each other to fulfill the increasing or decresing injection of
+     * particles. Multiply the double values with the timeinterval to get the
+     * injection time for each particle. Double values are placed at the begin
+     * of each intervals. First is =0 , last is <1.
+     *
+     * Can capture constant, increasing and decreasing linear changes of
+     * intensity.
+     *
+     * @param startIntensity
+     * @param endIntensity
+     * @param numberOfElements
+     * @return relative time distance of particles to each other
+     */
+    public static double[] calcInjectiontimesForGradientIntensities(double startIntensity, double endIntensity, int numberOfElements) {
+        double s = (endIntensity - startIntensity);
+        double[] times = new double[numberOfElements];
+        if (Math.abs(s) < 0.000001) {
+            //Constant
+            double dt = 1. / (double) numberOfElements;
+            for (int i = 0; i < times.length; i++) {
+                times[i] = i * dt;
+            }
+        } else if (s > 0) {
+            //increasing injection
+            // PQ-Formel
+            double p = startIntensity / s;
+            double maxQ = -numberOfElements * 2. * 1 / Math.abs(s);
+            double maxT = (-p + Math.sqrt(p * p - maxQ));
+            double factor = 1. / maxT;
+            for (int i = 0; i < numberOfElements; i++) {
+                double q = -i * 2. * 1. / (s);
+                double t = (-p + Math.sqrt(p * p - q)) * factor;
+                times[i] = t;
+            }
+        } else {
+            //decreasing injection
+            // PQ-Formel
+            double p = startIntensity / s;
+            double maxQ = -numberOfElements * 2. * 1. / Math.abs(s);
+            double maxT = (-p - Math.sqrt(p * p - maxQ));
+            double factor = 1 / maxT;
+            for (int i = 0; i < numberOfElements; i++) {
+                double q = -(numberOfElements - i) * 1 * 2. / (Math.abs(s));
+                double t = 1 - (-p - Math.sqrt(p * p - q)) * factor;
+                times[i] = t;
+            }
+        }
+        return times;
+    }
+
     private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, ParticleInjection injectionCapacityInformation, Material material, double starttimeAfterScenarioStart, double duration) {
         long scenarioStarttime = 0;
         if (scenario != null) {
@@ -831,7 +883,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                                         injection.calculateManholesArea();
                                     }
                                 }
-                                
+
                             } catch (SQLException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (IOException ex) {

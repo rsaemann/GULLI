@@ -348,6 +348,12 @@ public class Setup_IO {
                     bw.newLine();
                     bw.write("\t\t<Washoff unit='1/mm'>" + ai.getWashoffConstant() + "</>");
                     bw.newLine();
+                    bw.write("\t\t<InPipe>" + ai.isPipeInjection() + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<Position in Pipe>" + ai.relativePosition + "</>");
+                    bw.newLine();
+                    bw.write("\t\t<Linear Timeinterpolation>" + ai.isLinearInjection() + "</>");
+                    bw.newLine();
                 } else if (inj instanceof InjectionInflowInformation) {
                     InjectionInflowInformation ai = (InjectionInflowInformation) inj;
                     bw.write("\t\t<Diffusive>false</>");
@@ -423,6 +429,10 @@ public class Setup_IO {
         String injection_substance = null;
         String injection_runoff = null;
         double injection_load = 0;
+
+        boolean injection_inpipe = true;
+        double injection_pipeposition = 0.5;
+        boolean injection_linearGradient = true;
 
         double injectionStart = 0;
         double injectionDuration = 0;
@@ -709,12 +719,15 @@ public class Setup_IO {
                                         if (injection_washofftype != null) {
                                             ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.valueOf(injection_washofftype));
                                         } else {
-                                            ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.INFLOW_WASHOFF);
+                                            ainj.setInflowtype(HEAreaInflow1DInformation.RUNOFF_CONTROL.HHF_Hypot_Homogene_Flow_from_areas);
                                             System.out.println("Washoff type not recognised. use standard " + ainj.inflowtype);
 
                                         }
                                         ainj.setSubstanceParameterName(injection_substance);
                                         ainj.setMassload(injection_load);
+                                        ainj.setPipeInjection(injection_inpipe);
+                                        ainj.relativePosition = injection_pipeposition;
+                                        ainj.setLinearInjection(injection_linearGradient);
                                         inj = ainj;
                                     } else {
                                         if (injectionOnSurface) {
@@ -801,6 +814,12 @@ public class Setup_IO {
                                 injection_substance = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                             } else if (line.contains("Runoff_Parameter")) {
                                 injection_runoff = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
+                            } else if (line.contains("<InPipe>")) {
+                                injection_inpipe = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("<Position in Pipe>")) {
+                                injection_pipeposition = Double.parseDouble(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
+                            } else if (line.contains("<Linear Timeinterpolation>")) {
+                                injection_linearGradient = Boolean.parseBoolean(line.substring(line.indexOf(">") + 1, line.indexOf("</")));
                             }
 
                         }

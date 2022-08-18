@@ -4110,26 +4110,18 @@ public class HE_Database implements SparseTimeLineDataProvider {
         ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
         rs.next();
         double fractionUpper = (100 - rs.getDouble(1)) / 100.;
-        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name WHERE FLAECHE.ABFLUSS>0";//
+        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,ABfluss/(Regensumme*Flaeche.Groesse*10) AS ABFLUSSBEIWERT,Regenschreiberzuordnung.Regensumme FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID  INNER JOIN REGENSCHREIBERZUORDNUNG ON FLAECHE.RegenschreiberRef=regenschreiberzuordnung.RegenschreiberRef WHERE FLAECHE.ABFLUSS>0";//
+        //Old version (buggy abflussbeiwert & incorrect bruttoregen :"SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name WHERE FLAECHE.ABFLUSS>0";//
         boolean where_used = false;
         boolean runofffilter = false;
         boolean substancefilter = false;
 
         if (washoff_parameterset != null && !washoff_parameterset.isEmpty()) {
-            query += "WHERE Parametersatz='" + washoff_parameterset + "'";
+            query += " WHERE Parametersatz='" + washoff_parameterset + "'";
             where_used = true;
             runofffilter = true;
         }
-//        if (substancename != null && !substancename.isEmpty()) {
-//            if (where_used) {
-//                query += "AND ";
-//            } else {
-//                query += "WHERE ";
-//            }
-//            query += "AND STOFFGROESSE='" + substancename + "'";
-//            where_used = true;
-//            substancefilter = true;
-//        }
+
         rs = con.createStatement().executeQuery(query);
         //typ:0= Waterheight [m aSl], 1 = Zufluss [L/s], 2: Discharge [cbm/s]
         if (!rs.isBeforeFirst()) {
@@ -4150,9 +4142,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
             ars.lowerManholeName = rs.getString(8);
             ars.upperManholeName = rs.getString(7);
             ars.fractionUpper = fractionUpper;
-//            ars.substance = rs.getString(10);
-//            ars.washoffMass=rs.getDouble(11);
-            ars.runofffraction = rs.getDouble(10) / 100f;
+            ars.runofffraction = rs.getDouble(10); // is relatitive [0..1]
             ars.totalPrecipitationMM = rs.getDouble(11);
 //            System.out.println("Abflussbeiwert "+ars.areaName+", "+ars.washoffParameter+" : "+((int)(ars.runofffraction*100))+"% von "+(int)(rs.getDouble(13)+0.1)+"mm => "+ars.runoffVolume +"m³ bei "+ars.area+"m²");
             list.add(ars);
