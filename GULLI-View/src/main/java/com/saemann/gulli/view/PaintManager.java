@@ -422,6 +422,16 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         if (PaintManager.timeToShow == timeToShow) {
             return;
         }
+        if (surfaceShows != null) {
+            for (SURFACESHOW ss : surfaceShows) {
+                if (ss.theme == null) {
+                    continue;
+                }
+                if (ss.theme.isDynamic()) {
+                    ss.theme.setDisplayTime(timeToShow);
+                }
+            }
+        }
         PaintManager.timeToShow = timeToShow;
         mapViewer.repaint();
     }
@@ -2535,7 +2545,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         str.append("(fill ").append((int) (mh.getWaterlevel() / (mh.getTop_height() - mh.getSole_height()))).append(" %)");
                     }
                     Inlet inlet = surf.getInlet((int) id);
-                    if (mh != null) {
+                    if (inlet != null) {
                         str.append(";Inlet ").append(inlet.toString());
                     }
                     float[] wls;

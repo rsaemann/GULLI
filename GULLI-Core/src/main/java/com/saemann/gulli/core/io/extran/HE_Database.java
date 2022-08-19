@@ -67,6 +67,7 @@ import com.saemann.gulli.core.model.topology.StorageVolume;
 import com.saemann.gulli.core.model.topology.graph.Pair;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.core.model.topology.profile.Profile;
+import java.io.InvalidObjectException;
 import org.geotools.referencing.CRS;
 import org.locationtech.jts.geom.Coordinate;
 import org.opengis.geometry.MismatchedDimensionException;
@@ -1495,18 +1496,25 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
+                int heID;
+                String heName;
+                float inflow;
+                float h;
                 while (res.next()) {
                     counter++;
-                    int heID = res.getInt(1);
-//                    String heName = res.getString(2);
-                    float inflow = res.getFloat(3);
-                    float h = res.getFloat(4);
+                    heID = res.getInt(1);
+                    heName = res.getString(2);
+                    inflow = res.getFloat(3);
+                    h = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID(heID);
                         id = heID;
                         timeIndex = 0;
                     }
                     if (mh != null) {
+                        if (!heName.equals(mh.getName())) {
+                            throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
+                        }
                         if (mh.getStatusTimeLine() != null) {
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterZ(h, timeIndex);
                             ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setWaterLevel(h - mh.getSole_height(), timeIndex);
@@ -1544,16 +1552,23 @@ public class HE_Database implements SparseTimeLineDataProvider {
                 int id = Integer.MIN_VALUE;
                 int timeIndex = 0;
                 Manhole mh = null;
+                int heID;
+                String heName;
+                float outflow;
                 while (res.next()) {
                     counter++;
-                    int heID = res.getInt(1);
-                    float outflow = res.getFloat(4);
+                    heID = res.getInt(1);
+                    heName = res.getString(2);
+                    outflow = res.getFloat(4);
                     if (id != heID) {
                         mh = net.getManholeByManualID((long) heID);
                         id = heID;
                         timeIndex = 0;
                     }
                     if (mh != null && mh.getStatusTimeLine() != null) {
+                        if (!heName.equals(mh.getName())) {
+                            throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
+                        }
                         ((ArrayTimeLineManhole) mh.getStatusTimeLine()).setFluxToSurface(outflow, timeIndex);
                     }
                     timeIndex++;
@@ -1745,7 +1760,7 @@ public class HE_Database implements SparseTimeLineDataProvider {
      * @throws Exception
      */
     public ArrayTimeLineManholeContainer applyTimelinesManholes(Collection<? extends StorageVolume> manholes, boolean shiftToZeroTime) throws SQLException, IOException, Exception {
-
+//        System.out.println("APPLY TIMELINE MANHOLES");
         long[] times = loadTimeStepsNetwork(shiftToZeroTime);
 
         ArrayTimeLineManholeContainer manholeContainer = new ArrayTimeLineManholeContainer(times, manholes.size());
@@ -1779,6 +1794,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     if (mh == null) {
                         System.err.println(getClass() + ": could not find manhole DBid:" + heID + ", name: " + heName + "  in the network.");
                         continue;
+                    }
+                    if (!heName.equals(mh.getName())) {
+                        throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
                     }
                     id = heID;
                     timeIndex = 0;
@@ -1819,6 +1837,9 @@ public class HE_Database implements SparseTimeLineDataProvider {
                     if (mh == null) {
                         System.err.println(getClass() + ": could not find manhole DBid:" + heID + ", name: " + heName + "  in the network.");
                         continue;
+                    }
+                    if (!heName.equals(mh.getName())) {
+                        throw new InvalidObjectException("Missmatch between Manhole ID and Manhole Name between Model database and result database. Manhole with id=" + heID + " has model name '" + mh.getName() + "' and result name '" + heName + "'. Check corresponding model database.");
                     }
                     id = heID;
                     timeIndex = 0;
@@ -4082,39 +4103,30 @@ public class HE_Database implements SparseTimeLineDataProvider {
         return list;
     }
 
-    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset, String substancename) throws SQLException, IOException {
+    public ArrayList<AreaRunoffSplit> readRunoffSplit(String washoff_parameterset) throws SQLException, IOException {
         if (con == null || con.isClosed()) {
             con = getConnection();
         }
         ResultSet rs = con.createStatement().executeQuery("SELECT AnteilUntererSchacht FROM HYSTEMPARAMETER");
         rs.next();
         double fractionUpper = (100 - rs.getDouble(1)) / 100.;
-        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,STOFFGROESSE,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN FRACHTABFLUSSOBERFLAECHE ON ROHR.ID=FRACHTABFLUSSOBERFLAECHE.ROHRREF INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name";//
+        String query = "SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,ABfluss/(Regensumme*Flaeche.Groesse*10) AS ABFLUSSBEIWERT,Regenschreiberzuordnung.Regensumme FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID  INNER JOIN REGENSCHREIBERZUORDNUNG ON FLAECHE.RegenschreiberRef=regenschreiberzuordnung.RegenschreiberRef WHERE FLAECHE.ABFLUSS>0";//
+        //Old version (buggy abflussbeiwert & incorrect bruttoregen :"SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,FLAECHE.Abfluss,FLAECHE.groesse,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ,Abflussbeiwert,RegenBrutto FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID INNER JOIN Wasserbilanzparameter ON FLAECHE.Parametersatz=Wasserbilanzparameter.name WHERE FLAECHE.ABFLUSS>0";//
         boolean where_used = false;
         boolean runofffilter = false;
         boolean substancefilter = false;
 
         if (washoff_parameterset != null && !washoff_parameterset.isEmpty()) {
-            query += "WHERE Parametersatz='" + washoff_parameterset + "'";
+            query += " WHERE Parametersatz='" + washoff_parameterset + "'";
             where_used = true;
             runofffilter = true;
         }
-        if (substancename != null && !substancename.isEmpty()) {
-            if (where_used) {
-                query += "AND ";
-            } else {
-                query += "WHERE ";
-            }
-            query += "AND STOFFGROESSE='" + substancename + "'";
-            where_used = true;
-            substancefilter = true;
-        }
+
         rs = con.createStatement().executeQuery(query);
-//        rs = con.createStatement().executeQuery("SELECT FLAECHE.ID, FLAECHE.Name,HAltung,HAltungRef,Abfluss,BEFESTIGTEFLAECHE,SCHACHTOBEN,SCHACHTUNTEN,PARAMETERSATZ FROM FLAECHE  INNER JOIN ROHR ON HaltungRef=ROHR.ID " + (washoff_parameterset != null ? "WHERE PARAMETERSATZ='" + washoff_parameterset + "'" : ""));
         //typ:0= Waterheight [m aSl], 1 = Zufluss [L/s], 2: Discharge [cbm/s]
         if (!rs.isBeforeFirst()) {
             if (verbose) {
-                System.err.println("No Values for Flaeche with Parametersatz '" + washoff_parameterset + "'");
+                System.err.println("No Values for Flaeche with Parametersatz '" + washoff_parameterset + "' runoff filter=" + runofffilter + "/" + washoff_parameterset);
             }
             rs.close();
             return null;
@@ -4130,14 +4142,15 @@ public class HE_Database implements SparseTimeLineDataProvider {
             ars.lowerManholeName = rs.getString(8);
             ars.upperManholeName = rs.getString(7);
             ars.fractionUpper = fractionUpper;
-            ars.substance = rs.getString(10);
-//            ars.washoffMass=rs.getDouble(11);
-            ars.runofffraction = rs.getDouble(11) / 100f;
-            ars.totalPrecipitationMM = rs.getDouble(12);
+            ars.runofffraction = rs.getDouble(10); // is relatitive [0..1]
+            ars.totalPrecipitationMM = rs.getDouble(11);
 //            System.out.println("Abflussbeiwert "+ars.areaName+", "+ars.washoffParameter+" : "+((int)(ars.runofffraction*100))+"% von "+(int)(rs.getDouble(13)+0.1)+"mm => "+ars.runoffVolume +"m³ bei "+ars.area+"m²");
             list.add(ars);
         }
         rs.close();
+        if (verbose) {
+            System.out.println("returned " + list.size() + " area-manhole-relations");
+        }
         return list;
     }
 
@@ -4251,8 +4264,11 @@ public class HE_Database implements SparseTimeLineDataProvider {
          */
         public double runoffVolume;
 //        public double washoffMass;
-        public String substance;
+//        public String substance;
         public String pipename;
+        /**
+         * [0..1] of totel precipitation to outflow.
+         */
         public double runofffraction;
         public double totalPrecipitationMM;
     }

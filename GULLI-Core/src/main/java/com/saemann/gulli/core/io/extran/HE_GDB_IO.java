@@ -346,7 +346,11 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
      * @return
      */
     public boolean hasVelocities() {
+<<<<<<< HEAD
         return layerVelocity != null&&velocityTimeSteps>1;
+=======
+        return layerVelocity != null && velocityTimeSteps > 1;
+>>>>>>> abb206796900e64bd4f42c059d3af5ed740152fe
     }
 
     /**
@@ -538,10 +542,9 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
     }
 
     /**
-     *
-     * @param surf
-     * @param arraylength size of the output array.
-     * @return
+     * Read the maximum waterlevel for all surface cells.
+     * @param surf Surface with cell information
+     * @return maximum water levels [m]. Array index is cell id.
      */
     public double[] loadMaxWaterlevels(Surface surf) {
         if (layerWaterHeight == null) {
@@ -554,7 +557,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
         //Normal Surface with all triangles.
         for (GeoFeature f : layer) {
             int idf = f.getValue(indexWLid).intValue();
-            int id=idf;
+            int id = idf;
             if (surf.mapIndizes != null) {
                 try {
                     id = surf.mapIndizes.get(idf);
@@ -569,13 +572,13 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
 
             if (id >= waterlevel.length) {
                 try {
-                    throw new ArrayIndexOutOfBoundsException("Id of read id (" + idf + "->"+id+") is higher than array length(" + (waterlevel.length) + ")");
-                    
+                    throw new ArrayIndexOutOfBoundsException("Id of read id (" + idf + "->" + id + ") is higher than array length(" + (waterlevel.length) + ")");
+
                 } catch (ArrayIndexOutOfBoundsException es) {
                     System.out.println(es.getLocalizedMessage());
                     continue;
                 }
-}
+            }
             waterlevel[id] = f.getValue(indexWLmax).doubleValue();
         }
         return waterlevel;

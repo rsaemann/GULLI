@@ -121,8 +121,8 @@ public class Controller implements SimulationActionListener, LoadingActionListen
     protected boolean traceParticles = false;
 
     protected int tracerParticleCount = 0;
-    
-    public static final String ACTION_KEY_NEWSETUP="CleanProject";
+
+    public static final String ACTION_KEY_NEWSETUP = "CleanProject";
 
     /**
      * Create all basic classes needed for the calculation. Automatically uses
@@ -379,6 +379,58 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         }
 
         return list;
+    }
+
+    /**
+     * Calculates an array of doubles (0...1) which give the relative distance
+     * to each other to fulfill the increasing or decresing injection of
+     * particles. Multiply the double values with the timeinterval to get the
+     * injection time for each particle. Double values are placed at the begin
+     * of each intervals. First is =0 , last is <1.
+     *
+     * Can capture constant, increasing and decreasing linear changes of
+     * intensity.
+     *
+     * @param startIntensity
+     * @param endIntensity
+     * @param numberOfElements
+     * @return relative time distance of particles to each other
+     */
+    public static double[] calcInjectiontimesForGradientIntensities(double startIntensity, double endIntensity, int numberOfElements) {
+        double s = (endIntensity - startIntensity);
+        double[] times = new double[numberOfElements];
+        if (Math.abs(s) < 0.000001) {
+            //Constant
+            double dt = 1. / (double) numberOfElements;
+            for (int i = 0; i < times.length; i++) {
+                times[i] = i * dt;
+            }
+        } else if (s > 0) {
+            //increasing injection
+            // PQ-Formel
+            double p = startIntensity / s;
+            double maxQ = -numberOfElements * 2. * 1 / Math.abs(s);
+            double maxT = (-p + Math.sqrt(p * p - maxQ));
+            double factor = 1. / maxT;
+            for (int i = 0; i < numberOfElements; i++) {
+                double q = -i * 2. * 1. / (s);
+                double t = (-p + Math.sqrt(p * p - q)) * factor;
+                times[i] = t;
+            }
+        } else {
+            //decreasing injection
+            // PQ-Formel
+            double p = startIntensity / s;
+            double maxQ = -numberOfElements * 2. * 1. / Math.abs(s);
+            double maxT = (-p - Math.sqrt(p * p - maxQ));
+            double factor = 1 / maxT;
+            for (int i = 0; i < numberOfElements; i++) {
+                double q = -(numberOfElements - i) * 1 * 2. / (Math.abs(s));
+                double t = 1 - (-p - Math.sqrt(p * p - q)) * factor;
+                times[i] = t;
+            }
+        }
+        return times;
     }
 
     private ArrayList<Particle> createParticlesOverTimespan(int numberOfParticles, double massPerParticle, ParticleInjection injectionCapacityInformation, Material material, double starttimeAfterScenarioStart, double duration) {
@@ -796,55 +848,73 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                     injection_.setActive(false);
                 }
             } else if (injection_ instanceof HEAreaInflow1DInformation) {
-//                System.out.println("Create particles of " + injection_);
                 HEAreaInflow1DInformation injection = (HEAreaInflow1DInformation) injection_;
 
                 if (injection.isActive()) {
+                    boolean runoffinfo_available = true;
                     if (!injection.isInitilized()) {
                         if (network != null) {
                             injection.setNetwork(network);
                         }
+
                         HE_Database he = loadingCoordinator.requestHE_ResultDatabase();
+//                        System.out.println("Need to initialize Area to manhole relations for " + getClass().getSimpleName() + " with database " + he);
                         if (he != null) {
                             try {
-                                injection.areaRunoffSplit = he.readRunoffSplit(null, null);
+                                ArrayList<HE_Database.AreaRunoffSplit> runoffinfo = he.readRunoffSplit(null);
+                                if (runoffinfo == null) {
+                                    runoffinfo_available = false;
+                                    if (verbose) {
+                                        System.out.println("No pollution runoff information from 1D areas in HE Resultdatabase. ");
+                                    }
+                                } else {
+                                    runoffinfo_available = true;
+                                    injection.setAreaRunoffSplit(runoffinfo);
+                                    try {
+                                        injection.setPrecipitation(he.readRegenreihe());
+                                    } catch (SQLException ex) {
+                                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                                    } catch (IOException ex) {
+                                        Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
+                                    } catch (Exception ex) {
+
+                                    }
+                                    if (injection.effectiveRunoffVolume != null) {
+                                        injection.calculateManholesArea();
+                                    }
+                                }
+
                             } catch (SQLException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (IOException ex) {
                                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
                             } catch (Exception ex) {
-
-                            }
-                            try {
-                                injection.setPrecipitation(he.readRegenreihe());
-                            } catch (SQLException ex) {
-                                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-                            } catch (IOException ex) {
-                                Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-                            } catch (Exception ex) {
-
-                            }
-                            he.verbose = false;
-                            if (injection.effectiveRunoffVolume != null) {
-                                injection.calculateManholesArea();
+                                ex.printStackTrace();
                             }
                         }
-                    } else {
-//                        System.out.println("is initialized");
                     }
 
-                    ArrayList<Particle> particles = injection.createParticles();
-                    float mass = 0;
-                    for (Particle particle : particles) {
-                        mass += particle.getParticleMass();
+                    if (runoffinfo_available) {
+                        //only initialize the particles, if there is information about the pollution load.
+                        try {
+
+                            ArrayList<Particle> particles = injection.createParticles();
+                            float mass = 0;
+                            for (Particle particle : particles) {
+                                mass += particle.getParticleMass();
+                            }
+                            System.out.println("Created " + particles.size() + " particles for washoff '" + injection.runoffParameterName + "' with " + mass + "kg");
+                            allParticles.addAll(particles);
+                            injection.resetChanged();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        //If no information about load is given. show this by nulling the input information.
+                        injection.setActive(false);
+                        injection.resetChanged();
                     }
-                    System.out.println("Created " + particles.size() + " particles for washoff '" + injection.runoffParameterName + "' with " + mass + "kg");
-//                        ArealInjection ai = new ArealInjection(surface);
-//                        ArrayList<Particle> particles = createParticlesOverTimespan(injection.getNumberOfParticles(), injection.getMass() / (double) injection.getNumberOfParticles(), ai, injection.getMaterial(), injection.getStarttimeSimulationsAfterSimulationStart(), injection.getDurationSeconds());
-                    allParticles.addAll(particles);
-//                        ai.setParticleIDs(particles.get(0).getId(), particles.get(particles.size() - 1).getId());
                 }
-                injection.resetChanged();
 
             } else if (injection_ instanceof InjectionSubArealInformation) {
                 if (surface != null) {

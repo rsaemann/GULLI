@@ -134,13 +134,8 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected XYToolTipGenerator tooltipGenerator = new StandardXYToolTipGenerator() {
         @Override
         public String generateToolTip(XYDataset dataset, int series, int item) {
-//            System.out.println("search for tooltip in ");
-//            return "Toll";
             return "<html>" + numberFormat.format(dataset.getYValue(series, item)) + " " + ((SeriesKey) dataset.getSeriesKey(series)).unit + "<br>"
                     + ((SeriesKey) dataset.getSeriesKey(series)).name + "<br>" + dateFormat.format(dataset.getXValue(series, item)) + "</html>";
-//            return "Series " + series + " Item: " + item + " Value: "
-//                    + dataset.getXValue(series, item) + ";"
-//                    + dataset.getYValue(series, item);
         }
 
     };
@@ -172,11 +167,6 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     protected final Controller controller;
 
     ArrayList<PipeResultData> container;
-//    protected BasicStroke stroke0 = new BasicStroke(2);
-//    protected BasicStroke stroke1 = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{0.1f, 6}, 0);
-//    protected BasicStroke stroke2 = new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[]{1, 3, 7, 3}, 0);
-//    protected BasicStroke stroke3 = new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 0, new float[]{1, 3, 2, 5}, 0);
-//    protected BasicStroke stroke5Dot = new BasicStroke(5, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{1, Float.POSITIVE_INFINITY}, 0);
 
     public boolean prepareTimelinesInThread = false;
 
@@ -218,6 +208,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     private final TimeSeries m_n = new TimeSeries(new SeriesKey("#Measurements ", "#", "-", Color.DARK_GRAY), "Time", "");
     private final TimeSeries v0 = new TimeSeries(new SeriesKey("Velocity", "u", "m/s", Color.red, new AxisKey("V", "Velocity [m/s]"), 0), "Time", "m/s");
     private final TimeSeries q0 = new TimeSeries(new SeriesKey("Discharge", "q", "m³/s", Color.green, new AxisKey("Q", "Discharge [m³/s]"), 0), "Time", "m³/s");
+    private final TimeSeries q_sum = new TimeSeries(new SeriesKey("\u03a3 Discharge", "V", "m³", Color.green.darker(), new AxisKey("Vol", "Volume [m³]")), "Time", "m³/s");
 
     private final TimeSeries hpipe0 = new TimeSeries(new SeriesKey("Waterlevel", "h", "m", Color.blue, new AxisKey("lvl"), 0), "Time", "m");
     private final TimeSeries volpipe0 = new TimeSeries(new SeriesKey("Volume", "V", "m³", new Color(100, 0, 255), new AxisKey("Vol", "Volume [m³]"), 0), "Time", "m³");
@@ -339,6 +330,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) volpipe0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) v0.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q0.getKey()).name, false);
+        StartParameters.enableTimelineVisibilitySaving(((SeriesKey) q_sum.getKey()).name, false);
 
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment0_particleMass.getKey()).name, false);
         StartParameters.enableTimelineVisibilitySaving(((SeriesKey) moment1_delta.getKey()).name, false);
@@ -659,10 +651,11 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
 
         updateDateAxis(tl.getTimeContainer());
 
-        TimeSeries v, q, vol;
+        TimeSeries v, q, vol, q_sum;
         TimeSeries hpipe;
         v = v0;
         q = q0;
+        q_sum = this.q_sum;
         vol = volpipe0;
         v.clear();
         q.clear();
@@ -748,6 +741,9 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             }
 
             double refMassSum = 0;
+            double last_q0 = 0;
+            double lastV = 0;
+            long lasttime = tl.getTimeContainer().getTimeMilliseconds(0);
             for (int i = 0; i < tl.getTimeContainer().getNumberOfTimes(); i++) {
                 Date d;
                 long timeMilliseconds = tl.getTimeContainer().getTimeMilliseconds(i);
@@ -769,7 +765,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 q.addOrUpdate(time, tl.getDischarge(i));
                 hpipe.addOrUpdate(time, tl.getWaterlevel(i));
                 vol.addOrUpdate(time, tl.getVolume(i));
-
+                lastV += (tl.getDischarge(i) * last_q0) * 0.5 * (timeMilliseconds - lasttime) / 1000.;
+                last_q0 = tl.getDischarge(i);
+                lasttime = timeMilliseconds;
+                q_sum.addOrUpdate(time, lastV);
                 try {
                     moment1_refvorgabe.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment1[i]);
                     moment2_ref.addOrUpdate(time, ((ArrayTimeLinePipeContainer) tl.getTimeContainer()).moment2[i]);
@@ -860,6 +859,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
             long moveVisiblePointToIntervalMid = 0;
             if (tlm.getContainer().timecontinuousMeasures) {
                 moveVisiblePointToIntervalMid = (long) (-tlm.getTimes().getDeltaTimeMS() / 2);
+//                System.out.println(getClass()+":: move pointer to interval width @"+moveVisiblePointToIntervalMid/1000+"s");
             }
 
             for (int i = 0; i < tlm.getContainer().getTimes().getNumberOfTimes(); i++) {
@@ -867,6 +867,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
                 long timeMeasurement = 0;
                 if (tlm.getContainer().getSamplesInTimeInterval(i) > 0) {
                     timeMeasurement = tlm.getContainer().getMeasurementTimestampAtTimeIndex(i);
+//                    System.out.println("Messzeit für intervall "+i+" is "+timeMeasurement/1000+" statt "+tlm.getContainer().getTimeMillisecondsAtIndex(i)/1000+" mit "+tlm.getContainer().getSamplesInTimeInterval(i)+" messungen");
                 } else {
                     //Use regular time of the planned sample
                     timeMeasurement = tlm.getContainer().getTimeMillisecondsAtIndex(i);
@@ -1030,6 +1031,7 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
         this.collection.addSeries(q);
         this.collection.addSeries(hpipe);
         this.collection.addSeries(vol);
+        this.collection.addSeries(q_sum);
 
         if ((refMassfluxTotal.getMaxY() > 0 || refMassfluxTotal.getMinY() < 0) && ref_massFlux_Type.size() > 1) {
             this.collection.addSeries(refMassfluxTotal);

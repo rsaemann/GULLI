@@ -94,13 +94,16 @@ public class Routing_Homogene implements Routing_Calculator {
         if (forward) {
             //Positive Flow, Particle will leave in direction of flow
             float qsum = 0;
-
+            Connection_Manhole_Pipe firstCon = null;
             for (Connection_Manhole_Pipe connection : mh.getConnections()) {
                 if (connection.getHeight() <= h) {
                     if (connection.isFlowInletToPipe()) {
                         //Water in this connection
                         qsum += Math.abs(connection.getPipe().getFlowActual());
                         counter++;
+                        if (firstCon == null) {
+                            firstCon = connection;
+                        }
                     }
                 } else {
                     //Connections are odereder first-low.
@@ -115,7 +118,11 @@ public class Routing_Homogene implements Routing_Calculator {
                     qsum += mh.getStatusTimeLine().getActualFlowToSurface();
                     counter++;
 //                    System.out.println("add outflow to surface "+mh.getStatusTimeLine().getActualFlowToSurface());
+                } else if (counter == 1) {
+                    return firstCon;
                 }
+            } else if (counter == 1) {
+                return firstCon;
             }
             if (counter == 0 || qsum < 0.00001) {
                 if (verbose) {

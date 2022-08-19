@@ -1584,7 +1584,7 @@ public class LoadingCoordinator {
             if (verbose) {
                 System.out.println("found best fit to " + pipeResult.getName() + "  to be " + bestFilePipeNetwork);
             }
-            if (bestFilePipeNetwork != null && (bestFilePipeNetwork.getName().endsWith("idbf") || bestFilePipeNetwork.getName().endsWith("idbr"))) {
+            if (bestFilePipeNetwork != null && (bestFilePipeNetwork.getName().endsWith("idbf") || bestFilePipeNetwork.getName().endsWith("idbr") || bestFilePipeNetwork.getName().endsWith("idbm"))) {
                 if (bestFilePipeNetwork != null && bestFilePipeNetwork.exists()) {
                     if (control.getNetwork() != null && control.getNetwork().getPipes() != null) {
                         if (control.getNetwork().getPipes().size() == HE_Database.readNumberOfPipes(bestFilePipeNetwork)) {
@@ -1723,16 +1723,35 @@ public class LoadingCoordinator {
             if (tempFBDB == null || !tempFBDB.getDatabaseFile().equals(resultFile)) {
                 tempFBDB = new HE_Database(resultFile, true);
             }
-            String filePath = resultFile.getParentFile().getParent() + File.separator + tempFBDB.readModelnamePipeNetwork();//HE_Database.readModelnamePipeNetwork(resultFile);
+            try {
+                String modelfilename = tempFBDB.readModelnamePipeNetwork();
+                File candidateFile = new File(resultFile.getParentFile(), modelfilename);
+                if (candidateFile.exists()) {
+                    if (verbose) {
+                        System.out.println("Network corresponding file: " + candidateFile);
+                    }
+                    return candidateFile;
+                }
+                //One directory higher
+                candidateFile = new File(resultFile.getParentFile().getParentFile(), modelfilename);
+                if (candidateFile.exists()) {
+                    if (verbose) {
+                        System.out.println("Network corresponding file: " + candidateFile);
+                    }
+                    return candidateFile;
+                }
+                //One directory higher
+                candidateFile = new File(resultFile.getParentFile().getParentFile().getParent(), modelfilename);
+                if (candidateFile.exists()) {
+                    if (verbose) {
+                        System.out.println("Network corresponding file: " + candidateFile);
+                    }
+                    return candidateFile;
+                }
+            } catch (Exception exception) {
+            }
 
-            if (verbose) {
-                System.out.println("Network corresponding file: " + filePath);
-            }
-            File f = new File(filePath);
-            if (f.exists()) {
-                return f;
-            }
-            return resultFile; //information about the pipe network can also be found inside the result.
+            return resultFile; //information about the pipe network can also be found inside the result. Use this as a backup solution
         } else if (resultFile.getName().endsWith("rpt")) {
             // SWMM Report file
             String newfile = resultFile.getAbsolutePath();
@@ -1778,6 +1797,44 @@ public class LoadingCoordinator {
         return null;
     }
 
+    /**
+     * Tests if two network objects have identical name, number of manholes and
+     * pipes. No deep check is performed.
+     *
+     * @param nw1
+     * @param nw2
+     * @return true if two networks share same attributes.
+     */
+    public static boolean isNetworkEquals(Network nw1, Network nw2) {
+        if (nw1 == null) {
+            return false;
+        }
+        if (nw2 == null) {
+            return false;
+        }
+        if (nw1 == nw2) {
+            return true;
+        }
+
+        if (!nw1.getName().equals(nw2.getName())) {
+            return false;
+        }
+        if (nw1.getManholes().size() != nw2.getManholes().size()) {
+            return false;
+        }
+        if (nw1.getPipes().size() != nw2.getPipes().size()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 
+     * @param resultFile
+     * @return
+     * @throws SQLException
+     * @throws IOException 
+     */
     public static File findCorrespondingSurfaceDirectory(File resultFile) throws SQLException, IOException {
         if (resultFile.getName().endsWith("rpt")) {
             return null;
