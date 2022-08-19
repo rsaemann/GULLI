@@ -195,6 +195,9 @@ public class SurfaceTheme_DynWaterlevel extends SurfaceThemeLayer {
         if (creationThread != null && creationThread.isAlive()) {
             creationThread.interrupt();
         }
+        if (timeupdateThread != null && timeupdateThread.isAlive()) {
+            timeupdateThread.interrupt();
+        }
         mapviewer.clearLayer(layerSurfaceWaterlevel);
         mapviewer.clearLayer(layerLabelWaterlevel);
         mapviewer.recalculateShapes();
