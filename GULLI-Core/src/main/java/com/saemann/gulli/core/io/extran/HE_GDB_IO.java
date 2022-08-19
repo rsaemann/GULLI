@@ -346,11 +346,7 @@ public class HE_GDB_IO implements SurfaceWaterlevelLoader, SurfaceVelocityLoader
      * @return
      */
     public boolean hasVelocities() {
-<<<<<<< HEAD
-        return layerVelocity != null&&velocityTimeSteps>1;
-=======
         return layerVelocity != null && velocityTimeSteps > 1;
->>>>>>> abb206796900e64bd4f42c059d3af5ed740152fe
     }
 
     /**
