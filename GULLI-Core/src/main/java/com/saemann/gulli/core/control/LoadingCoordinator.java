@@ -43,6 +43,7 @@ import com.saemann.gulli.core.io.extran.HE_Database;
 import com.saemann.gulli.core.io.SHP_IO_GULLI;
 import com.saemann.gulli.core.io.Setup_IO;
 import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
+import com.saemann.gulli.core.io.Surface_CSV_IO;
 import com.saemann.gulli.core.io.extran.GdalIO;
 import com.saemann.gulli.core.io.swmm.SWMM_IO;
 import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
@@ -75,6 +76,7 @@ import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
+import com.saemann.gulli.core.model.timeline.array.TimeIndexCalculator;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelineManhole;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -103,7 +105,7 @@ public class LoadingCoordinator {
      * Types of input files, than can be handled.
      */
     public enum FILETYPE {
-        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1
+        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1, COUD_CSV
     };
 
     protected FILETYPE filetype;
@@ -427,6 +429,8 @@ public class LoadingCoordinator {
                             }
                             fileSurfaceWaterlevels = fileSurfaceCoordsDAT;
                             loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
+                        } else if (filetype == FILETYPE.COUD_CSV) {
+                            //DO nothing. the velocity and scenario have already been initialized.
                         } else {
                             long start = 0;
                             long end = 0;
@@ -902,23 +906,50 @@ public class LoadingCoordinator {
         action.progress = 0;
         action.description = "Load surface grid";
         fireLoadingActionUpdate();
-        try {
-            long start = System.currentTimeMillis();
-            if (this.surface != null) {
-                this.surface.freeMemory();
-                this.surface = null;
-                control.loadSurface(surface, this);
-                if (scenario != null) {
-                    scenario.setMeasurementsSurface(null);
-                    scenario.setStatusTimesSurface(null);
-                }
-                System.gc();
+        long start = System.currentTimeMillis();
+        if (this.surface != null) {
+            this.surface.freeMemory();
+            this.surface = null;
+            control.loadSurface(surface, this);
+            if (scenario != null) {
+                scenario.setMeasurementsSurface(null);
+                scenario.setStatusTimesSurface(null);
             }
-            HE_SurfaceIO.loadingAction = action;
-            Surface surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
-            crsSurface = surf.getSpatialReferenceCode();
+            System.gc();
+        }
+        if (fileSurfaceCoordsDAT != null) {
+            Surface surf = null;
+            if (fileSurfaceCoordsDAT.getName().endsWith(".dat")) {
+                //HYSTEM EXTRAN SURFACE           
+                try {
 
-            start = System.currentTimeMillis();
+                    HE_SurfaceIO.loadingAction = action;
+                    surf = HE_SurfaceIO.loadSurface(fileSurfaceCoordsDAT, fileSurfaceTriangleIndicesDAT, FileTriangleNeumannNeighboursDAT, fileSurfaceReferenceSystem);
+                    crsSurface = surf.getSpatialReferenceCode();
+
+//            System.gc();
+                } catch (Exception ex) {
+                    loadingSurface = LOADINGSTATUS.ERROR;
+                    action.description = ex.getLocalizedMessage();
+                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            } else if (fileSurfaceCoordsDAT.getName().endsWith(".csv")) {
+                try {
+                    //CoUD Labs File format
+                    if (Surface_CSV_IO.is_readable_scheme(fileSurfaceCoordsDAT)) {
+                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT);
+                        filetype = FILETYPE.COUD_CSV;
+                    }
+                } catch (Exception ex) {
+                    Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            if (cancelLoading) {
+                loadingSurface = LOADINGSTATUS.REQUESTED;
+                return null;
+            }
+//            start = System.currentTimeMillis();
 
             //Reset triangle IDs from Injections because the coordinate might have changed
             for (InjectionInfo injection : manualInjections) {
@@ -928,23 +959,13 @@ public class LoadingCoordinator {
                     }
                 }
             }
-            if (cancelLoading) {
-                loadingSurface = LOADINGSTATUS.REQUESTED;
-//                System.gc();
-                return null;
-            }
             changedSurface = true;
             action.description = "Surface loaded";
             fireLoadingActionUpdate();
             loadingSurface = LOADINGSTATUS.LOADED;
-//            System.gc();
             return surf;
-        } catch (Exception ex) {
-            loadingSurface = LOADINGSTATUS.ERROR;
-            action.description = ex.getLocalizedMessage();
-            Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
         }
-//        System.gc();
+        System.gc();
         return null;
     }
 
@@ -979,7 +1000,28 @@ public class LoadingCoordinator {
                 if (lowername.endsWith("shp")) {
                     SHP_IO_GULLI.readTriangleFileToSurface(fileSurfaceWaterlevels, surface, verbose);
                 } else if (lowername.endsWith("csv")) {
-                    CSV_IO.readTriangleWaterlevels(surface, fileSurfaceWaterlevels);
+
+                    //First attempt is to load CoUD Labs csv scheme
+                    if (Surface_CSV_IO.is_readable_scheme(fileSurfaceWaterlevels)) {
+                        filetype = FILETYPE.COUD_CSV;
+                        sparseSurfaceLoading = false;
+                        Surface_CSV_IO.readSurfaceCellVelocities(surface, fileSurfaceWaterlevels);
+                        TimeIndexContainer tic = new TimeIndexContainer(createTimeContainer(0, 3 * 60 * 60 * 1000, 2));
+                        surface.setTimeContainer(tic);
+                        if (scenario == null) {
+                            scenario = new SpillScenario(surface, totalInjections);
+                            scenario.setStatusTimesSurface(surface);
+                        } else {
+
+                            scenario.setStatusTimesSurface(surface);
+                        }
+
+                        scenario.setName(fileSurfaceWaterlevels.getParent() + "/" + fileSurfaceWaterlevels.getName());
+
+                    } else {
+                        //If this does not fit (wrong header), we try to go with the old GDAL csv scheme
+                        CSV_IO.readTriangleWaterlevels(surface, fileSurfaceWaterlevels);
+                    }
                 } else if (lowername.endsWith("gdb")) {
                     action.description = "Reading GDB surface";
                     fireLoadingActionUpdate();
@@ -1117,17 +1159,13 @@ public class LoadingCoordinator {
                 starttime = System.currentTimeMillis();
 
                 // Calculate surface velocites from waterlevels.
-                if (!loadGDBVelocity) {
-                    surface.calcNeighbourVelocityFromTriangleVelocity();
-                }
-                if (!sparseSurfaceLoading) {
-                    try {
-//                        surface.calculateNeighbourVelocitiesFromWaterlevels();
-//                        surface.calculateVelocities2d();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
+                if (filetype == FILETYPE.HYSTEM_EXTRAN_8 || filetype == FILETYPE.HYSTEM_EXTRAN_7) {
+                    if (!loadGDBVelocity) {
+                        surface.calcNeighbourVelocityFromTriangleVelocity();
                     }
-                } else {
+                }
+
+                if (sparseSurfaceLoading) {
                     // Sparse loading
                     // Prepare for surfacecomputing2D
                     surface.waterlevelLoader = waterlevelLoader;
@@ -1138,6 +1176,13 @@ public class LoadingCoordinator {
                             surface.initSparseTriangleVelocityLoading(null, true, false);
                         }
                     }
+                } else {
+//                    try {
+////                        surface.calculateNeighbourVelocitiesFromWaterlevels();
+////                        surface.calculateVelocities2d();
+//                    } catch (Exception ex) {
+//                        ex.printStackTrace();
+//                    }
                 }
                 if (scenario != null) {
                     long surfaceTimestepMS = 0;
@@ -1145,21 +1190,28 @@ public class LoadingCoordinator {
                         if (resultDatabase != null) {
                             surfaceTimestepMS = (long) (resultDatabase.read2DExportTimeStep() * 60000);
                         }
-                    }
-
-                    if (surface.getNumberOfTimestamps() < 2) {
-                        surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), 2));
-                        scenario.setStatusTimesSurface(surface);
+                    } else if (filetype == FILETYPE.COUD_CSV) {
+                        TimeIndexContainer tic = (TimeIndexContainer) surface.getTimes();
+                        scenario.setStatusTimesPipe(null);
+                        scenario.setTimesManhole(null);
+                        scenario.setStatusTimesSurface(tic);
+                        scenario.setMeasurementsSurface(new SurfaceMeasurementTriangleRaster(this.surface, 1, tic, control.getThreadController().getNumberOfParallelThreads()));
+                        scenario.setStatusTimesSurface(tic);
                     } else {
-                        TimeIndexContainer tc;
-                        if (surfaceTimestepMS > 0) {
-                            tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps(), surfaceTimestepMS);
+                        if (surface.getNumberOfTimestamps() < 2) {
+                            surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), 2));
+                            scenario.setStatusTimesSurface(surface);
+
                         } else {
-                            tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps());
+                            TimeIndexContainer tc;
+                            if (surfaceTimestepMS > 0) {
+                                tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps(), surfaceTimestepMS);
+                            } else {
+                                tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps());
+                            }
+                            surface.setTimeContainer(tc);
+                            scenario.setStatusTimesSurface(surface);
                         }
-//                        System.out.println("Dt for surface: "+tc.getDeltaTimeMS()/1000+"   defined dt: "+surfaceTimestepMS/1000);
-                        surface.setTimeContainer(tc);
-                        scenario.setStatusTimesSurface(surface);
                     }
                 } else {
                     System.err.println("No Scenario loaded, can not calculate timeintervalls for surface waterheight and velocities.");
@@ -1201,7 +1253,9 @@ public class LoadingCoordinator {
                 System.err.println("Cannot apply manholes. File not set. " + fileSurfaceManholes);
             }
         } else {
-            System.out.println("manhole references already loaded: " + manhRefs.size());
+            if (verbose) {
+                System.out.println("manhole references already loaded: " + manhRefs.size());
+            }
         }
 
         if (manhRefs != null) {
@@ -1252,7 +1306,9 @@ public class LoadingCoordinator {
             System.out.println("send interrupt signal");
             threadLoadingRequests.interrupt();
         }
-        list_loadingPipeResults.clear();
+        if (list_loadingPipeResults != null) {
+            list_loadingPipeResults.clear();
+        }
         threadLoadingRequests = null;
         if (loadingPipeResult == LOADINGSTATUS.LOADING) {
             loadingPipeResult = LOADINGSTATUS.REQUESTED;
@@ -1384,7 +1440,11 @@ public class LoadingCoordinator {
 
     public void setPipeNetworkFile(File networkFile) {
         this.fileNetwork = networkFile;
-        this.loadingpipeNetwork = LOADINGSTATUS.REQUESTED;
+        if (networkFile != null) {
+            this.loadingpipeNetwork = LOADINGSTATUS.REQUESTED;
+        } else {
+            this.loadingpipeNetwork = LOADINGSTATUS.NOT_REQUESTED;
+        }
     }
 
     public void setPipeResultsFile(File pipeResultFile, boolean clearOtherFiles) {
@@ -1405,6 +1465,40 @@ public class LoadingCoordinator {
             this.clearOtherResults = false;
             this.loadingPipeResult = LOADINGSTATUS.REQUESTED;
 //            this.loadOnlyMainFile = false;
+        }
+    }
+
+    public void setSurfaceTopologyFile(File surfaceTopologyFile) throws FileNotFoundException {
+        if (surfaceTopologyFile == null) {
+            this.loadingSurface = LOADINGSTATUS.NOT_REQUESTED;
+            this.fileSurfaceCoordsDAT = null;
+            this.fileSurfaceTriangleIndicesDAT = null;
+            this.FileTriangleNeumannNeighboursDAT = null;
+            this.fileSurfaceReferenceSystem = null;
+            this.fileSurfaceInlets = null;
+            this.fileSurfaceManholes = null;
+//            this.fileSufaceNode2Triangle = null;
+//            this.fileTriangleMooreNeighbours = null;
+            return;
+        }
+        if (surfaceTopologyFile.isDirectory()) {
+            setSurfaceTopologyDirectory(surfaceTopologyFile);
+            return;
+        }
+        if (surfaceTopologyFile.getName().endsWith(".dat")) {
+            setSurfaceTopologyDirectory(surfaceTopologyFile.getParentFile());
+            return;
+        }
+        if (surfaceTopologyFile.getName().endsWith(".csv")) {
+            this.fileSurfaceTriangleIndicesDAT = null;
+            this.FileTriangleNeumannNeighboursDAT = null;
+            this.fileSurfaceReferenceSystem = null;
+            this.fileSurfaceInlets = null;
+            this.fileSurfaceManholes = null;
+            this.fileSurfaceCoordsDAT = surfaceTopologyFile;
+            this.fileSurfaceTriangleIndicesDAT = surfaceTopologyFile;
+            this.loadingSurface = LOADINGSTATUS.REQUESTED;
+            return;
         }
     }
 
@@ -1829,11 +1923,11 @@ public class LoadingCoordinator {
     }
 
     /**
-     * 
+     *
      * @param resultFile
      * @return
      * @throws SQLException
-     * @throws IOException 
+     * @throws IOException
      */
     public static File findCorrespondingSurfaceDirectory(File resultFile) throws SQLException, IOException {
         if (resultFile.getName().endsWith("rpt")) {
@@ -2111,13 +2205,15 @@ public class LoadingCoordinator {
             this.setPipeNetworkFile(files.pipeNetwork);
             changedPipeNetwork = true;
         }
+
         if (this.fileMainPipeResult != files.pipeResult) {
             this.setPipeResultsFile(files.pipeResult, true);
         }
-        if (files.surfaceDirectory != null) {
-            if (this.fileSurfaceCoordsDAT != files.surfaceDirectory) {
+
+        if (files.surfaceGeometry != null) {
+            if (this.fileSurfaceCoordsDAT != files.surfaceGeometry) {
                 try {
-                    this.setSurfaceTopologyDirectory(files.surfaceDirectory);
+                    this.setSurfaceTopologyFile(files.surfaceGeometry);
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(LoadingCoordinator.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -2149,7 +2245,7 @@ public class LoadingCoordinator {
         Setup setup = new Setup();
         setup.files = new FileContainer(fileMainPipeResult, fileNetwork, fileSurfaceWaterlevels, null, null);
         if (fileSurfaceTriangleIndicesDAT != null) {
-            setup.files.surfaceDirectory = fileSurfaceCoordsDAT.getParentFile();
+            setup.files.surfaceGeometry = fileSurfaceCoordsDAT;
         }
         setup.files.setCrsPipes(crsNetwork);
         setup.files.setCrsSurface(crsSurface);

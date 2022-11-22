@@ -89,18 +89,22 @@ public class Setup_IO {
             bw.write("\t\t<NetworkTopology>" + files.getPipeNetwork() + "</>");
             bw.newLine();
             try {
-                bw.write("\t\t<RelativeNetworkTopology>" + file.getParentFile().toPath().relativize(files.getPipeNetwork().toPath()) + "</>");
-                bw.newLine();
+                if (files.getPipeNetwork() != null) {
+                    bw.write("\t\t<RelativeNetworkTopology>" + file.getParentFile().toPath().relativize(files.getPipeNetwork().toPath()) + "</>");
+                    bw.newLine();
+                }
             } catch (Exception iOException) {
             }
             bw.write("\t\t<CRS>" + files.getCrsPipes() + "</>");
             bw.newLine();
             bw.write("\t\t<NetworkFlowField>" + files.getPipeResult() + "</>");
             bw.newLine();
-            try {
-                bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
-                bw.newLine();
-            } catch (Exception exception) {
+            if (files.getPipeResult() != null) {
+                try {
+                    bw.write("\t\t<RelativeNetworkFlowField>" + file.getParentFile().toPath().relativize(files.getPipeResult().toPath()) + "</>");
+                    bw.newLine();
+                } catch (Exception exception) {
+                }
             }
             bw.write("\t\t<Sparse>" + setup.isSparsePipeVelocity() + "</>");
             bw.newLine();
@@ -108,11 +112,11 @@ public class Setup_IO {
             bw.newLine();
             bw.write("\t<Surface>");
             bw.newLine();
-            bw.write("\t\t<SurfaceTopology>" + files.getSurfaceDirectory() + "</>");
+            bw.write("\t\t<SurfaceTopology>" + files.getSurfaceGeometry() + "</>");
             bw.newLine();
-            if (files.getSurfaceDirectory() != null) {
+            if (files.getSurfaceGeometry() != null) {
                 try {
-                    bw.write("\t\t<RelativeSurfaceTopology>" + file.getParentFile().toPath().relativize(files.getSurfaceDirectory().toPath()) + "</>");
+                    bw.write("\t\t<RelativeSurfaceTopology>" + file.getParentFile().toPath().relativize(files.getSurfaceGeometry().toPath()) + "</>");
                     bw.newLine();
                     bw.write("\t\t<CRS>" + files.getCrsSurface() + "</>");
                     bw.newLine();
@@ -471,38 +475,46 @@ public class Setup_IO {
                     //InputFiles
                     if (line.contains("<NetworkTopology>")) {
                         String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                        File f = new File(pathNetworkTopology);
-                        setup.files.pipeNetwork = f;
+                        if (pathNetworkTopology != null && !pathNetworkTopology.equals("null")) {
+                            File f = new File(pathNetworkTopology);
+                            setup.files.pipeNetwork = f;
+                        }
                     } else if (line.contains("<RelativeNetworkTopology>")) {
                         String pathNetworkTopology = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                        File f = new File(file.getParentFile(), pathNetworkTopology);
-                        if (f.exists()) {
-                            setup.files.pipeNetwork = f;
+                        if (pathNetworkTopology != null && !pathNetworkTopology.equals("null")) {
+                            File f = new File(file.getParentFile(), pathNetworkTopology);
+                            if (f.exists()) {
+                                setup.files.pipeNetwork = f;
+                            }
                         }
                     } else if (line.contains("<NetworkFlowField>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                        File f = new File(path);
-                        setup.files.pipeResult = f;
+                        if (path != null && !path.equals("null")) {
+                            File f = new File(path);
+                            setup.files.pipeResult = f;
+                        }
                     } else if (line.contains("<RelativeNetworkFlowField>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
-                        File f = new File(file.getParentFile(), path);
-                        if (f.exists()) {
-                            setup.files.pipeResult = f;
+                        if (path != null && !path.equals("null")) {
+                            File f = new File(file.getParentFile(), path);
+                            if (f.exists()) {
+                                setup.files.pipeResult = f;
+                            }
                         }
                     } else if (line.contains("<SurfaceTopology>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                         if (path.isEmpty() || path.equals("null")) {
-                            setup.files.surfaceDirectory = null;
+                            setup.files.surfaceGeometry = null;
                         } else {
                             File f = new File(path);
-                            setup.files.surfaceDirectory = f;
+                            setup.files.surfaceGeometry = f;
                         }
                     } else if (line.contains("<RelativeSurfaceTopology>")) {
                         String path = line.substring(line.indexOf(">") + 1, line.indexOf("</"));
                         if (!path.isEmpty() && (!path.equals("null"))) {
                             File f = new File(file.getParentFile(), path);
                             if (f.exists()) {
-                                setup.files.surfaceDirectory = f;
+                                setup.files.surfaceGeometry = f;
                             }
                         }
                     } else if (line.contains("<SurfaceFlowField>")) {

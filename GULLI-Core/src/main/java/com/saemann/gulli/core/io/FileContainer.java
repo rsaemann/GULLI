@@ -35,7 +35,7 @@ public class FileContainer {
     public File pipeNetwork;
 
     public File surfaceResult;
-    public File surfaceDirectory;
+    public File surfaceGeometry;
     private File inlets;
 
     private String crsPipes = null, crsSurface = null;
@@ -46,7 +46,7 @@ public class FileContainer {
         this.pipeResult = pipeResult;
         this.pipeNetwork = pipeNetwork;
         this.surfaceResult = surfaceResult;
-        this.surfaceDirectory = surfaceDirectory;
+        this.surfaceGeometry = surfaceDirectory;
         this.inlets = inlets;
     }
 
@@ -94,8 +94,8 @@ public class FileContainer {
         return surfaceResult;
     }
 
-    public File getSurfaceDirectory() {
-        return surfaceDirectory;
+    public File getSurfaceGeometry() {
+        return surfaceGeometry;
     }
 
     public File getInlets() {
@@ -120,6 +120,6 @@ public class FileContainer {
 
     @Override
     public String toString() {
-        return "FileContainer{" + "pipeResult=" + pipeResult + ", pipeNetwork=" + pipeNetwork + ", surfaceResult=" + surfaceResult + ", surfaceDirectory=" + surfaceDirectory + ", inlets=" + inlets + ", pipeResultLoaded=" + pipeResultLoaded + ", pipeNetworkLoaded=" + pipeNetworkLoaded + ", surfaceResultLoaded=" + surfaceResultLoaded + ", surfaceTopologyLoaded=" + surfaceTopologyLoaded + '}';
+        return "FileContainer{" + "pipeResult=" + pipeResult + ", pipeNetwork=" + pipeNetwork + ", surfaceResult=" + surfaceResult + ", surfaceDirectory=" + surfaceGeometry + ", inlets=" + inlets + ", pipeResultLoaded=" + pipeResultLoaded + ", pipeNetworkLoaded=" + pipeNetworkLoaded + ", surfaceResultLoaded=" + surfaceResultLoaded + ", surfaceTopologyLoaded=" + surfaceTopologyLoaded + '}';
     }
 }

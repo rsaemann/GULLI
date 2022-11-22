@@ -166,6 +166,12 @@ public abstract class Scenario {
         }
         this.starttime = newStart;
         this.endtime = newEnd;
+//        System.out.println("start:" + starttime + " -> " + endtime +"  "+(timesPipe!=null?"Pipes ("+timesPipe.getEndTime()+") ":"")+(timesManhole!=null?"Manholes ("+timesManhole.getEndTime()+") ":"")+(timesSurface!=null?"Surface ("+timesSurface.getEndTime()+") ":""));
+//        try{
+//            throw new Exception("Surfacetime = "+timesSurface.getStartTime()+" - "+timesSurface.getEndTime());
+//        }catch(Exception e){
+//            e.printStackTrace();
+//        }
     }
 
     public TimeIndexCalculator getStatusTimesPipe() {
@@ -244,5 +250,5 @@ public abstract class Scenario {
     public void setMaterials(ArrayList<Material> materials) {
         this.materials = materials;
     }
-    
+
 }

@@ -417,7 +417,7 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                     frameEvaluation = new JFrame("Evaluation");
                     frameEvaluation.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                     frameEvaluation.add(panelEvaluation);
-                    frameEvaluation.setBounds(getX() + getWidth()+20, getY() + getHeight() / 2, 450, 390);
+                    frameEvaluation.setBounds(getX() + getWidth() + 20, getY() + getHeight() / 2, 450, 390);
                 }
                 frameEvaluation.setVisible(true);
                 frameEvaluation.toFront();
@@ -503,8 +503,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                                 question += " LOADED";
                             }
                         }
-                        if (c.getSurfaceDirectory() != null) {
-                            question += "\n" + c.getSurfaceDirectory().getParentFile().getName();
+                        if (c.getSurfaceGeometry() != null) {
+                            question += "\n" + c.getSurfaceGeometry().getParentFile().getName();
                             if (c.isSurfaceTopologyLoaded()) {
                                 question += " LOADED";
                             }
@@ -525,8 +525,8 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                             if (/*!c.isPipeNetworkLoaded() &&*/c.getPipeNetwork() != null) {
                                 control.getLoadingCoordinator().setPipeNetworkFile(c.getPipeNetwork());
                             }
-                            if (!c.isSurfaceTopologyLoaded() && c.getSurfaceDirectory() != null) {
-                                control.getLoadingCoordinator().setSurfaceTopologyDirectory(c.getSurfaceDirectory());
+                            if (!c.isSurfaceTopologyLoaded() && c.getSurfaceGeometry() != null) {
+                                control.getLoadingCoordinator().setSurfaceTopologyDirectory(c.getSurfaceGeometry());
                             }
                             if (!c.isSurfaceResultLoaded() && c.getSurfaceResult() != null) {
                                 control.getLoadingCoordinator().setSurfaceFlowfieldFile(c.getSurfaceResult());
@@ -568,6 +568,9 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         if (file.getName().endsWith(".dat")) {
                             return true;
                         }
+                        if (file.getName().endsWith(".csv")) {
+                            return true;
+                        }
                         return false;
                     }
                 };
@@ -579,8 +582,12 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
                         @Override
                         public void run() {
                             try {
-                                control.getLoadingCoordinator().setSurfaceTopologyDirectory(fc.getCurrentDirectory());
-                                buttonFileSurface.setToolTipText("Triangles: " + fc.getSelectedFile().getAbsolutePath());
+                                if (fc.getSelectedFile().getName().endsWith(".dat")) {
+                                    control.getLoadingCoordinator().setSurfaceTopologyDirectory(fc.getCurrentDirectory());
+                                    buttonFileSurface.setToolTipText("Triangles: " + fc.getSelectedFile().getAbsolutePath());
+                                } else {
+                                    control.getLoadingCoordinator().setSurfaceTopologyFile(fc.getSelectedFile());
+                                }
                                 updateGUI();
                             } catch (IOException ex) {
                                 Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
@@ -621,17 +628,17 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
 
                 int n = fc.showOpenDialog(SingleControllPanel.this);
                 if (n == fc.APPROVE_OPTION) {
-                    new Thread("Select waterlevel file") {
+                    new Thread("Select waterlevel/velocity file") {
 
                         @Override
                         public void run() {
-                            if (control.getSurface() == null) {
-                                System.err.println("No surface set in controller.");
-                                return;
-                            }
+//                            if (control.getSurface() == null) {
+//                                System.err.println("No surface set in controller.");
+//                                return;
+//                            }
                             try {
                                 control.getLoadingCoordinator().setSurfaceFlowfieldFile(fc.getSelectedFile());
-                                buttonFileWaterdepths.setToolTipText("Waterlevel: " + fc.getSelectedFile().getAbsolutePath());
+                                buttonFileWaterdepths.setToolTipText("Surface dynamics: " + fc.getSelectedFile().getAbsolutePath());
                                 updateGUI();
                             } catch (Exception ex) {
                                 Logger.getLogger(SingleControllPanel.class.getName()).log(Level.SEVERE, null, ex);
@@ -1644,7 +1651,11 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         buttonFileSurface.setBackground(getLoadingColor(lc.getLoadingSurface()));
         buttonFileSurface.setIcon(getLoadingIcon(lc.getLoadingSurface()));
         if (lc.getFileSurfaceTriangleIndicesDAT() != null) {
-            buttonFileSurface.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileSurfaceTriangleIndicesDAT().getParent());
+            if (lc.getFileSurfaceTriangleIndicesDAT().getName().endsWith(".dat")) {
+                buttonFileSurface.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileSurfaceTriangleIndicesDAT().getParent());
+            } else {
+                buttonFileSurface.setToolTipText(lc.getLoadingSurface() + ": " + lc.getFileSurfaceTriangleIndicesDAT().getAbsolutePath());
+            }
         } else {
             buttonFileSurface.setToolTipText("Not set");
         }

@@ -46,7 +46,7 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class SurfaceTheme_Cells extends SurfaceThemeLayer {
 
-    public final static String layerSurfaceGrid = PaintManager.layerTriangle+"_SURFGRID";
+    public final static String layerSurfaceGrid = PaintManager.layerTriangle + "_SURFGRID";
     private final DoubleColorHolder chTrianglesGrid = new DoubleColorHolder(Color.orange, new Color(1f, 1f, 1f, 0f), "Surface Triangles");
 
     @Override
@@ -58,52 +58,67 @@ public class SurfaceTheme_Cells extends SurfaceThemeLayer {
             layer_ = new Layer(layerSurfaceGrid, chTrianglesGrid);
             mapViewer.getLayers().add(layer_);
         }
-        final Layer layer=layer_;
+        final Layer layer = layer_;
         new Thread() {
             public void run() {
-                progress=0;
-                if (asNodes) {
-                    int id = 0;
-
-                    for (double[] triangleMid : c.getSurface().getTriangleMids()) {
-                        try {
-                            NodePainting np = new NodePainting(id, c.getSurface().getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
-                            id++;
-                            layer.add(np, false);
-                            if (id > maximumNumberOfSurfaceShapes) {
-                                break;
+                progress = 0;
+                if (c.getSurface() != null) {
+                    if (asNodes) {
+                        int id = 0;
+                        if (c.getSurface().getTriangleMids() != null) {
+                            for (double[] triangleMid : c.getSurface().getTriangleMids()) {
+                                try {
+                                    NodePainting np = new NodePainting(id, c.getSurface().getGeotools().toGlobal(new Coordinate(triangleMid[0], triangleMid[1])), chTrianglesGrid);
+                                    id++;
+                                    layer.add(np, false);
+                                    if (id > maximumNumberOfSurfaceShapes) {
+                                        break;
+                                    }
+                                } catch (TransformException ex) {
+                                    Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                                }
                             }
+                        } else {
+                            System.err.println("Cell mid vertices of surface not defined yet.");
+                        }
+                    } else {
+                        try {
+                            AreaPainting[] shapes =null;
+                            if(maximumNumberOfSurfaceShapes<surface.getTriangleNodes().length){
+                                shapes= new AreaPainting[ maximumNumberOfSurfaceShapes+1];
+                            }else{
+                                shapes= new AreaPainting[(surface.getTriangleNodes().length)];
+                            }
+                            int id = 0;
+                            Coordinate[] coords = new Coordinate[4];
+                            for (int[] nodes : surface.getTriangleNodes()) {
+
+                                for (int j = 0; j < 3; j++) {
+                                    coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
+                                }
+                                coords[3] = coords[0];//Close ring
+                                AreaPainting ap = new AreaPainting(id, chTrianglesGrid, c.getSurface().getGeotools().gf.createLinearRing(coords));
+                                shapes[id] = ap;
+
+                                id++;
+                                if (id > maximumNumberOfSurfaceShapes) {
+                                    break;
+                                }
+                                if(id%100000==0){
+                                    System.out.println("Gridshape "+(id*100/c.getSurface().getTriangleNodes().length)+"% loaded.");
+                                }
+                            }
+                            layer.setPaintElements(shapes);
                         } catch (TransformException ex) {
                             Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                         }
                     }
-                } else {
-                    try {
-                        int id = 0;
-                        Coordinate[] coords = new Coordinate[4];
-                        for (int[] nodes : surface.getTriangleNodes()) {
-
-                            for (int j = 0; j < 3; j++) {
-                                coords[j] = surface.getGeotools().toGlobal(new Coordinate(surface.getVerticesPosition()[nodes[j]][0], surface.getVerticesPosition()[nodes[j]][1]));
-                            }
-                            coords[3] = coords[0];//Close ring
-                            AreaPainting ap = new AreaPainting(id, chTrianglesGrid, c.getSurface().getGeotools().gf.createLinearRing(coords));
-                            layer.add(ap, false);
-                            id++;
-                            if (id > maximumNumberOfSurfaceShapes) {
-                                break;
-                            }
-                        }
-
-                    } catch (TransformException ex) {
-                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
-                    }
                 }
-                progress=1;
+                progress = 1;
                 mapViewer.recalculateShapes();
                 mapViewer.recomputeLegend();
                 mapViewer.repaint();
-            }           
+            }
         }.start();
         return true;
     }
@@ -122,9 +137,5 @@ public class SurfaceTheme_Cells extends SurfaceThemeLayer {
     public String getDisplayName() {
         return "Grid";
     }
-
-    
-
-              
 
 }

@@ -27,7 +27,7 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.scenario.injection.InjectionInfo;
 import java.util.ArrayList;
 import java.util.Date;
-import com.saemann.gulli.core.model.timeline.array.TimeContainer;
+import com.saemann.gulli.core.model.timeline.array.TimeIndexCalculator;
 
 /**
  * Informtion about the time and spill sources of one simulation
@@ -38,7 +38,7 @@ public class SpillScenario extends Scenario {
 
     private final ArrayList<InjectionInfo> injections;
 
-    public SpillScenario(TimeContainer container, ArrayList<InjectionInfo> injections) {
+    public SpillScenario(TimeIndexCalculator container, ArrayList<InjectionInfo> injections) {
         super();
         if (injections == null) {
             this.injections = new ArrayList<>(1);
@@ -47,7 +47,11 @@ public class SpillScenario extends Scenario {
         }
 
 //        if (container instanceof ArrayTimeLinePipeContainer) {
-        this.setStatusTimesPipe(timesPipe);
+        if (container != null) {
+            this.starttime = container.getStartTime();
+            this.endtime = container.getEndTime();
+            this.setStatusTimesPipe(container);
+        }
 //        }else if(container instanceof SparseTimeLinePipeContainer){
 //            this.setStatusTimesPipe(timesPipe);
 //        }

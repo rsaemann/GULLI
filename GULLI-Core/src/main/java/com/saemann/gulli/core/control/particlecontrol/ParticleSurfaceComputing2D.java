@@ -935,7 +935,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
             lengthfactor = 1;
             bwindex = -1;
 
-            internal.calculateLengthfactorNew();
+                internal.calculateLengthfactorNew();
             if (lengthfactor < 1 && bwindex < 0) {
                 System.out.println("lengthfactor: " + lengthfactor + " bwindex:" + bwindex + "   Weights:" + temp_barycentricWeights[0] + "," + temp_barycentricWeights[1] + "," + temp_barycentricWeights[2]);
 
@@ -1230,7 +1230,7 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
         moveToSurroundingCell(p, vertex0, vertex1, vertex2);
 
         if (Double.isNaN(posxneu)) {
-            System.out.println("0Set Position to NaN of particle " + p.getId() + " in cell " + cellID + "   vx:" + particlevelocity[0] + ", vy=" + particlevelocity[1] + " loop:" + loopcounter + " length:" + lengthfactor + " timeleft:" + timeLeft);
+            System.out.println("0Set Position to NaN of particle " + p.getId() + " in cell " + cellID + "   vx:" + particlevelocity[0] + ", vy=" + particlevelocity[1] + " loop:" + loopcounter + " length:" + lengthfactor + " timeleft:" + timeLeft+" totalvelocity="+totalvelocity);
             posxneu = surface.getTriangleMids()[cellID][0];
             posyneu = surface.getTriangleMids()[cellID][1];
         }
@@ -1371,8 +1371,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                     p.setPosition1d_actual(inlet.getPipeposition1d());
                     p.setInPipenetwork();
                     p.toPipenetwork = inlet.getNetworkCapacity();
-                    p.lastSurfaceCellID=triangleID;
-                    p.surfaceCellID=triangleID;
+                    p.lastSurfaceCellID = triangleID;
+                    p.surfaceCellID = triangleID;
                     //Create Shortcut
                     if (p.toSurface != null) {
                         surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), inlet, null, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
@@ -1391,8 +1391,8 @@ public class ParticleSurfaceComputing2D implements ParticleSurfaceComputing {
                 p.setPosition1d_actual(0);
                 p.setInPipenetwork();
                 p.toPipenetwork = m;
-                p.lastSurfaceCellID=triangleID;
-                p.surfaceCellID=triangleID;
+                p.lastSurfaceCellID = triangleID;
+                p.surfaceCellID = triangleID;
                 if (p.toSurface != null) {
                     surface.addStatistic(p, ((Manhole) p.toSurface).getSurfaceTriangleID(), null, m, ThreadController.getSimulationTimeMS() - p.toSurfaceTimestamp);
                 }

@@ -90,9 +90,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     private float[] triangleArea;
 
     public SurfaceTriangle[] triangleCapacitys;
-    
+
     /**
-     * When cells are excluded, the 
+     * When cells are excluded, the
      */
     public final HashMap<Integer, Integer> mapIndizes;
 
@@ -127,6 +127,13 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //    private float[][][] velocityNodes;
 
     private final float[] zeroVelocity = new float[2];
+
+    /**
+     * Placeholder to be added to the 3d array when nothing was found in the
+     * database. Lowers costs because it reduced the "new" call for empty
+     * values.
+     */
+    private float[][] zeroVelocityinTimesteps;
 
     public int status = -1, vstatus = -1;
 
@@ -360,7 +367,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     /**
-     * Calculate distances between neumannNeighbours at initialization.
+     * Calculate distances between neumannNeighbours only required for 1D
+     * surface path
      */
     protected void calculateDistances() {
         neighbourDistances = new float[neumannNeighbours.length][3];
@@ -672,7 +680,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             System.out.println("Surface: Triangle Mid Points trying to be set (" + triangleMids.length + ") have not the same size as number of triangles (" + this.triangleNodes.length + ")");
         }
         this.triangleMids = triangleMids;
-        calculateDistances();
+//        calculateDistances();
     }
 
     /**
@@ -762,6 +770,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         this.numberOfTimestamps = numberOfTimes;
         this.neighbourvelocity = new float[numberOfTriangles][][];
         this.waterlevels = new float[numberOfTriangles][];
+        zeroVelocityinTimesteps=new float[numberOfTimes][2];
     }
 
     /**
@@ -883,6 +892,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     }
                 }
                 neighbourvelocity[id] = new float[3][numberOfTimestamps];
+                calculateDistances();
                 if (wls == null) {
                     //This triangle Id has net been in the database. Initialize as 0 values
 //                    System.err.println("waterlevels on "+id+" == null");
@@ -1329,7 +1339,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 triangleVelocity[triangleID] = velocityLoader.loadVelocity(triangleID);
             } catch (Exception e) {
                 //Id Not found or equal exception. This triangle has no velocity information -> set everything to zero.
-                triangleVelocity[triangleID] = new float[numberOfTimestamps][2];
+//                if (zeroVelocityinTimesteps == null) {
+//                    zeroVelocityinTimesteps = new float[numberOfTimestamps][2];
+//                }
+                triangleVelocity[triangleID] = zeroVelocityinTimesteps;
             }
         }
         return triangleVelocity[triangleID];
@@ -1555,16 +1568,14 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         this.timeFrac = timeIndex % 1.;
         this.timeinvFrac = 1. - timeFrac;
         this.timeIndexInt = (int) this.timeIndex;
-//        if (actualVelocity != null) {
-//            actualVelocity = new double[triangleNodes.length][];
-//        }
+
         if (actualVelocityUsed && actualVelocitySet != null) {
             for (int i = 0; i < actualVelocitySet.length; i++) {
                 if (actualVelocitySet[i]) {
                     actualVelocitySet[i] = false;
                 }
             }
-//            actualVelocitySet = new boolean[triangleNodes.length];
+
             actualVelocityUsed = false;
         }
     }
@@ -1689,12 +1700,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
     }
 
     public void applyStreetInlets(Network network, ArrayList<HE_InletReference> inletRefs) throws TransformException {
-//        inlets = new ConcurrentHashMap<>(inletRefs.size());//new Inlet[triangleNodes.length];
         if (capacityNames == null || capacityNames.isEmpty()) {
             capacityNames = buildNamedCapacityMap(network);
         }
         ArrayList<Inlet> inletList = new ArrayList<>(inletRefs.size());
-//        manholes = new Manhole[triangleNodes.length];
         inletArray = new Inlet[manholes.length];//=getMaxTriangleID() + 1
         Coordinate pipestart = new CoordinateXY(), pipeend = new CoordinateXY();
         for (HE_InletReference inletRef : inletRefs) {
@@ -1712,9 +1721,11 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
             //Transform Pipe to surface coordinates
             double distancealongPipe = 0;
-            double[] tpos = getTriangleMids()[triangleID];
-            Coordinate tposUTM = new Coordinate(tpos[0], tpos[1], tpos[2]);
-            Coordinate tposWGS84 = geotools.toGlobal(tposUTM, true);
+            double[] tposUTM = getTriangleMids()[triangleID];
+            double[] tposWGS84 = new double[3];
+            geotools.toGlobal(tposUTM, tposWGS84, true);
+//            Coordinate tposUTM = new Coordinate(tposUTM[0], tposUTM[1], tposUTM[2]);
+//            Coordinate tposWGS84 = geotools.toGlobal(tposUTM, true);
 
 //            System.out.println("Inlet "+inletRef.inlet_Name+"  "+tposWGS84.x+"  "+tposWGS84.y+" <-- "+tposUTM.x+" / "+tposUTM.y+" <-- "+tpos[0]+" / "+tpos[1]);
 //            System.out.println("Inlet " + inletRef.inlet_Name + " at cell " + inletRef.triangleID + "  connects to " + cap);
@@ -1724,7 +1735,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 Coordinate start = geotools.toUTM(pipe.getStartConnection().getPosition());
                 Coordinate end = geotools.toUTM(pipe.getEndConnection().getPosition());
 
-                distancealongPipe = GeometryTools.distancePointAlongLine(start.x, start.y, end.x, end.y, tposUTM.x, tposUTM.y);
+                distancealongPipe = GeometryTools.distancePointAlongLine(start.x, start.y, end.x, end.y, tposUTM[0], tposUTM[1]);
 
             } else if (cap instanceof Manhole) {
                 //MAp inlet pipe
@@ -1738,7 +1749,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                     Pipe p = connection.getPipe();
                     pipestart = geotools.toUTM(p.getStartConnection().getPosition().lonLatCoordinate(), true);
                     pipeend = geotools.toUTM(p.getEndConnection().getPosition().lonLatCoordinate(), true);
-                    double dist = GeometryTools.distancePointToLineSegment(pipestart.x, pipestart.y, pipeend.x, pipeend.y, tposUTM.x, tposUTM.y);
+                    double dist = GeometryTools.distancePointToLineSegment(pipestart.x, pipestart.y, pipeend.x, pipeend.y, tposUTM[0], tposUTM[1]);
                     if (inletRef.triangleID == 327176) {
 //                            System.out.println("distance of "+p+" is "+dist+"   refCap is "+inletRef.capacityName+" pipestart:"+pipestart);
                     }
@@ -1777,7 +1788,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
 
             try {
-                Inlet inlet = new Inlet(new Position3D(tposWGS84.x, tposWGS84.y, tposUTM.x, tposUTM.y, tposUTM.z), cap, distancealongPipe);
+                Inlet inlet = new Inlet(new Position3D(tposWGS84[0], tposWGS84[1], tposUTM[0], tposUTM[1], tposUTM[2]), cap, distancealongPipe);
                 inletList.add(inlet);
                 inlet.originalDestination = inletRef.capacityName;
 //                inlets.put(triangleID, inlet);
@@ -2738,7 +2749,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 //Parallel movement& boundary -> Set to this tringle's midpoint
                 p.surfaceCellID = id;
                 p.setPosition3D(triangleMids[id][0], triangleMids[id][1]);
-//                throw new BoundHitException(id, triangleMids[id][0], triangleMids[id][1]);
                 return id;
             } else {
                 if (secondBest >= 0) {
@@ -3206,9 +3216,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 // with a-c triangle side vector and b-d particle path vector
 //                int[] min = {0, 1, 2}; // variation der dreiecksknoten um die drei seiten zu testen
 //                int[] max = {1, 2, 0};
+                double[] a, c;
                 for (int t = 0; t < 3; t++) {           // every triangle side is tested
-                    double[] a = vertices[triangleNodes[triangleID][t % 3]];  //vertices[triangleNodes[triangleID][min[t]]];
-                    double[] c = vertices[triangleNodes[triangleID][(t + 1) % 3]];
+                    a = vertices[triangleNodes[triangleID][t % 3]];  //vertices[triangleNodes[triangleID][min[t]]];
+                    c = vertices[triangleNodes[triangleID][(t + 1) % 3]];
 
                     // check if lines are paralell, if not get intersection point if existing
                     if (Math.abs((y - yold) / (x - xold) - (c[1] - a[1]) / (c[0] - a[0])) > 0.0000001) {
@@ -3270,10 +3281,6 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 
     public Inlet[] getInlets() {
         return inletArray;
-//        if (inlets == null) {
-//            return null;
-//        }
-//        return inlets.values().toArray(new Inlet[inlets.size()]);
     }
 
 //    public TriangleMeasurement[] getTriangleMeasurements() {
@@ -3313,6 +3320,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         if (this.measurementRaster != null) {
             this.measurementRaster.setTimeContainer(times);
         }
+        this.zeroVelocityinTimesteps=new float[numberOfTimestamps][2];
     }
 
     public void setMeasurementRaster(SurfaceMeasurementRaster measurementRaster) {

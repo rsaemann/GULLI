@@ -104,7 +104,7 @@ public class GdalIO {
         return false;
     }
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         try {
             //Test installation
             verbose = true;

@@ -1234,6 +1234,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             if (surface.getMeasurementRaster() == null && surface.getTimes() != null) {
                 surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getNumberOfParallelThreads()));
             }
+        }else{
+            //Loading null is requested-> clear references to surface
+            
         }
         for (LoadingActionListener ll : actionListener) {
             currentAction.description = "contrl. loadsurface inform " + ll;

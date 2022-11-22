@@ -22,7 +22,6 @@ import java.util.LinkedList;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import com.saemann.gulli.core.model.GeoTools;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.core.model.surface.measurement.SurfaceMeasurementTriangleRaster;
@@ -217,7 +216,7 @@ public class HE_SurfaceIO {
         fr = new FileReader(fileTriangleIndizes);
         br = new BufferedReader(fr);
         line = br.readLine();
-        int numberofTriangles = Integer.parseInt(line.split(" ")[0]);
+//        int numberofTriangles = Integer.parseInt(line.split(" ")[0]);
         LinkedList<int[]> triangleIndizesL = new LinkedList<>();
         LinkedList<double[]> triangleMidPointsL = new LinkedList<>();
         HashMap<Integer, Integer> mapTriangleIndizes = new HashMap<>();//Maps the original index to the filtered index.
@@ -269,6 +268,8 @@ public class HE_SurfaceIO {
         }
         br.close();
         fr.close();
+        verticesIndex.clear();
+        verticesIndex = null;
 //        System.out.println(triangleIndizesL.size() + " triangleindizes to Linkedlist");
         int[][] triangleIndizes = new int[triangleIndizesL.size()][3];
         counter = 0;
@@ -407,11 +408,6 @@ public class HE_SurfaceIO {
             loadingAction.updateProgress();
         }
 
-//        String seperator = " ";
-//        Pattern splitter = Pattern.compile(seperator);
-        int lines = 0;
-//        int parts = 0;
-
         NumberConverter nc = new NumberConverter(br);
         double[] dataparts = new double[3];
         while (br.ready()) {
@@ -428,6 +424,10 @@ public class HE_SurfaceIO {
         }
         br.close();
         fr.close();
+        if (loadingAction != null) {
+            loadingAction.progress = 1;
+            loadingAction.updateProgress();
+        }
 //        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
         String epsgCode = crs;//"EPSG:25832"; //Use this standard code for Hannover
@@ -470,13 +470,13 @@ public class HE_SurfaceIO {
                 second = integerParts[1];
                 third = integerParts[2];
 
-                if (first >= 0) {
+                if (!verticesUsed[first]) {
                     verticesUsed[first] = true;
                 }
-                if (second >= 0) {
+                if (!verticesUsed[second]) {
                     verticesUsed[second] = true;
                 }
-                if (third >= 0) {
+                if (!verticesUsed[third]) {
                     verticesUsed[third] = true;
                 }
 
@@ -484,9 +484,9 @@ public class HE_SurfaceIO {
                 triangleIndizes[index][1] = second;
                 triangleIndizes[index][2] = third;
 
-                triangleMidPoints[index][0] = (vertices[first][0] * oneThird + vertices[second][0] * oneThird + vertices[third][0] * oneThird);
-                triangleMidPoints[index][1] = (vertices[first][1] * oneThird + vertices[second][1] * oneThird + vertices[third][1] * oneThird);
-                triangleMidPoints[index][2] = (vertices[first][2] * oneThird + vertices[second][2] * oneThird + vertices[third][2] * oneThird);
+                triangleMidPoints[index][0] = (vertices[first][0]  + vertices[second][0]  + vertices[third][0]) * oneThird;
+                triangleMidPoints[index][1] = (vertices[first][1]  + vertices[second][1]  + vertices[third][1]) * oneThird;
+                triangleMidPoints[index][2] = (vertices[first][2]  + vertices[second][2]  + vertices[third][2]) * oneThird;
 
                 index++;
 
@@ -498,6 +498,10 @@ public class HE_SurfaceIO {
         }
         br.close();
         fr.close();
+        if (loadingAction != null) {
+            loadingAction.progress = 1;
+            loadingAction.updateProgress();
+        }
 //        System.out.println("   Building triangles took " + (System.currentTimeMillis() - start) + "ms");
 
         int used = 0;
@@ -506,11 +510,11 @@ public class HE_SurfaceIO {
                 used++;
             }
         }
-        System.out.println(used + " / " + verticesUsed.length + " Vertices are used by triangles ("+((int)(used*100/(double)verticesUsed.length))+"%)");
-       
+        System.out.println(used + " / " + verticesUsed.length + " Vertices are used by triangles (" + ((int) (used * 100 / (double) verticesUsed.length)) + "%)");
+
         if (used < verticesUsed.length && condenseUnusedVertices) {
             long start = System.currentTimeMillis();
-            HashMap<Integer, Integer> oldToNew=null;
+            
             if (loadingAction != null) {
                 loadingAction.progress = 0.f;
                 loadingAction.hasProgress = true;
@@ -518,7 +522,7 @@ public class HE_SurfaceIO {
                 loadingAction.updateProgress();
             }
             double[][] verticesNew = new double[used][3];
-            oldToNew = new HashMap<>(used);
+            HashMap<Integer, Integer> oldToNew = new HashMap<>(used);
             int newIndex = 0;
             //Reorder Vertices
             for (int i = 0; i < verticesUsed.length; i++) {
@@ -543,13 +547,13 @@ public class HE_SurfaceIO {
                     loadingAction.updateProgress();
                 }
             }
-            numberofVertices=used;
-            vertices=null;
+            numberofVertices = used;
+            vertices = null;
             vertices = verticesNew;
-            verticesUsed=null;
+            verticesUsed = null;
             oldToNew.clear();
-            oldToNew=null;
-            System.out.println("Reordering vertices took " + ((System.currentTimeMillis() - start)) + " ms.");
+            oldToNew = null;
+            //System.out.println("Reordering vertices took " + ((System.currentTimeMillis() - start)) + " ms.");
             if (loadingAction != null) {
                 loadingAction.progress = 1;
                 loadingAction.updateProgress();
@@ -570,7 +574,7 @@ public class HE_SurfaceIO {
         int[][] neighbours = new int[numberofTriangles][3];
         index = 0;
         integerParts = new int[9];
-        lines = 0;
+        int lines = 0;
         try {
             nc.setReader(br);
             while (br.ready()) {
@@ -740,7 +744,7 @@ public class HE_SurfaceIO {
 //        MathTransform transform2UTM = CRS.findMathTransform(Network.crsWGS84, nw.crsUTM);
         int index = 0;
         for (Manhole manhole : nw.getManholes()) {
-            Coordinate cll = manhole.getPosition().lonLatCoordinate();
+//            Coordinate cll = manhole.getPosition().lonLatCoordinate();
             //switch coordinates
             m[index] = geotools.toUTM(manhole.getPosition());
             index++;

@@ -59,6 +59,7 @@ import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Analysisraster;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Cells;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_DynWaterlevel;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_HeatMap;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Neighbours;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_ParticleRemain;
 import com.saemann.rgis.control.LocationIDListener;
 import com.saemann.rgis.view.ColorHolder;
@@ -150,7 +151,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     private final Coordinate zeroCoordinate = new Coordinate(0, 0, 0);
 
     public static int maximumNumberOfParticleShapes = Integer.MAX_VALUE;
-    public static int maximumNumberOfSurfaceShapes = Integer.MAX_VALUE;
+    public static int maximumNumberOfSurfaceShapes = 2000000;
 
     private final ColorHolder chPipes = new ColorHolder(Color.GRAY, "Pipe");
     private final ColorHolder chPipesOverlay = new ColorHolder(Color.GRAY, "Pipe Overlay");
@@ -246,7 +247,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(new SurfaceTheme_DynWaterlevel()), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, SLOPE, VERTEX_HEIGHT;
+        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(new SurfaceTheme_DynWaterlevel()), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, NEIGHBOURS(new SurfaceTheme_Neighbours()),SLOPE, VERTEX_HEIGHT;
         public SurfaceThemeLayer theme;
 
         SURFACESHOW() {
@@ -2481,6 +2482,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         information += ";spilled @" + st.manhole;
 
                     }
+                    
                 }
 
                 if (p.getClass().equals(HistoryParticle.class)) {
@@ -2565,6 +2567,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         str.append(";Max WL: ").append(df3.format(max)).append("m");
                         str.append(";now WL: ").append(df3.format(actualWL)).append("m");
 
+                    }
+                    //Velocity information
+                    if(surf.getTriangleVelocity()!=null){
+                        float[] v = surf.getTriangleVelocity((int) id, surf.getActualTimeIndex_double());
+                        str.append(";Vx :").append(df3.format(v[0])).append(" m/s");
+                        str.append(";Vy :").append(df3.format(v[1])).append(" m/s");
                     }
 
                     //display Measurements so far
@@ -3453,6 +3461,23 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     @Override
     public void loadSurface(Surface surface, Object caller) {
         this.setSurface(surface);
+        if(network==null){
+            if(surfaceShows.isEmpty()){
+                //If nothing is shown. then move the map to where the action will be if a showlayer is enabled
+                if(surface!=null&&surface.getGeotools()!=null&&surface.getTriangleMids()!=null){
+                    //Move map to the first coordinate that is in the data
+                    Coordinate c=new CoordinateXY(surface.getTriangleMids()[0][0],surface.getTriangleMids()[0][1]);
+                    try {
+                        Coordinate global = surface.getGeotools().toGlobal(c,false);
+                        mapViewer.setDisplayPositionByLatLon(global.x, global.y, 15);
+                    } catch (TransformException ex) {
+                        Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }else{
+                mapViewer.zoomToFitLayer();
+            }
+        }
     }
 
     @Override

@@ -515,7 +515,7 @@ public class Domain3DIO {
         return domain;
     }
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         File file = new File("X:\\Abschlussarbeiten\\Li_Xinrui\\Masterarbeit_FLUENT_velocity.vtu");
         try {
             Domain3D domain = read3DFlowFieldDX(file, "EPSG:4647", "EPSG:4647");
