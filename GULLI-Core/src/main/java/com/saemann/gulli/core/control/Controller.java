@@ -304,7 +304,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         ArrayList<Particle> list = new ArrayList<>(numberOfParticles);
         if (duration < 0.1) {
             //Instant injection
-            System.out.println("   instantInjection");
+//            System.out.println("   instantInjection");
             for (int i = 0; i < numberOfParticles; i++) {
                 Particle particle;
                 long injectiontime = (long) (scenarioStarttime + (starttimeAfterScenarioStart) * 1000L);
@@ -323,11 +323,11 @@ public class Controller implements SimulationActionListener, LoadingActionListen
         double s = (endIntensity - startIntensity) / duration;
         //if slope is 0 we can use the constant injection
         if (Math.abs(s) < 0.000001) {
-            System.out.println("   constant Injection");
+//            System.out.println("   constant Injection");
             return createParticlesOverTimespan(numberOfParticles, massPerParticle, injectionCapacityInformation, material, starttimeAfterScenarioStart, duration);
         }
         if (s > 0) {
-            System.out.println("   gradient inc Injection");
+//            System.out.println("   gradient inc Injection");
             //increasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);
@@ -352,7 +352,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                 list.add(particle);
             }
         } else {
-            System.out.println("   gradient decr. Injection");
+//            System.out.println("   gradient decr. Injection");
             //decreasing injection
             double p = startIntensity / s;
 //            System.out.println("q1-q0/dt = " + s + "\tp=" + p);

@@ -89,8 +89,8 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
             int indexV = 7; //Velocity in y direction (m/s)
 
             //Create Vertices
-            float xfactor = 1;//(float) (xsize / (double) coordinates.length);
-            float yfactor = 1;//(float) (ysize / (double) coordinates[0].length);
+            float xfactor = (float) (xsize / (double) coordinates.length);
+            float yfactor = (float) (ysize / (double) coordinates[0].length);
 
             String[] parts;
             while (br.ready()) {
@@ -102,7 +102,6 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
 
 //                float x = Float.parseFloat(parts[indexXcoord]);
 //                float y = Float.parseFloat(parts[indexYcoord]);
-
                 coordinates[ix][iy][0] = ix * xfactor;
                 coordinates[ix][iy][1] = iy * yfactor;
 
@@ -135,7 +134,7 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
                 vertices[iv][2] = 0;
 //                System.out.println("x="+ix+", y="+iy+" \t#"+iv+" : ("+vertices[iv][0]+",\t "+vertices[iv][1]+" ,\t "+vertices[iv][2] +"') " );
             }
-            iv = iv = (ix + 1) * (coordinates[0].length + 1) - 1;
+            iv = (ix + 1) * (coordinates[0].length + 1) - 1;
 //            System.out.println("add extra vertex #" + iv);
             vertices[iv][0] = coordinates[ix][coordinates[0].length - 1][0] + dxh;
             vertices[iv][1] = coordinates[ix][coordinates[0].length - 1][1] + dyh;
@@ -148,33 +147,47 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
             for (int iy = 0; iy < coordinates[0].length; iy++) {
                 iVll = ix * (coordinates[0].length + 1) + iy;
                 it = (ix * (coordinates[0].length) + iy) * 2;
-                triangleNodes[it][0] = iVll;
-                triangleNodes[it][1] = iVll + 1;
-                triangleNodes[it][2] = iVll + 1 + coordinates[0].length;
+                triangleNodes[it][0] = iVll; //lower left
+                triangleNodes[it][1] = iVll + 1; //upper left
+                triangleNodes[it][2] = iVll  + coordinates[0].length + 1;//lower right
 
-                triangleNodes[it + 1][0] = iVll + 1;
-                triangleNodes[it + 1][1] = iVll + coordinates[0].length + 2;
-                triangleNodes[it + 1][2] = iVll + coordinates[0].length + 1;
+                triangleNodes[it + 1][0] = iVll + 1; //upper left
+                triangleNodes[it + 1][1] = iVll + coordinates[0].length + 2; //upper right
+                triangleNodes[it + 1][2] = iVll + coordinates[0].length + 1; //lower right
 
                 //Neighbours
-                neighbours[it][0] = it - 2 * (coordinates[0].length) + 1;;
-                neighbours[it][1] = it + 1;
+                //Neighbours are ordered according to the nodes. A neighbour reference is always on the opposite edge to a node
+                
+                //Left neighbour opposite to third node
+                if (ix == 0) {
+                    neighbours[it][2] = -1; //-1=noflow
+                } else {
+                    neighbours[it][2] = it - 2 * (coordinates[0].length) + 1;
+                }
+                //inter rectangle connection up
+                neighbours[it][0] = it + 1;
 
                 if (iy == 0) {//Lower boundary
-                    neighbours[it][2] = -2; //-1=noflow boundary, -2=Open boundary, particles traveling over the edge will be out of domain
+                    neighbours[it][1] = -2; //-1=noflow boundary, -2=Open boundary, particles traveling over the edge will be out of domain
                 } else {
-                    neighbours[it][2] = it - 1;
+                    neighbours[it][1] = it - 1;
                 }
 
-                neighbours[it + 1][0] = it;// - 2 * (coordinates[0].length - 1)+1 ;//
+                //inter rectangle connection down
+                neighbours[it + 1][1] = it;// - 2 * (coordinates[0].length - 1)+1 ;//
 
                 if (iy == coordinates[0].length - 1) {//upper boundary
-                    neighbours[it + 1][1] = -2;
+                    neighbours[it + 1][2] = -2;
                 } else {
-                    neighbours[it + 1][1] = it + 2;
+                    neighbours[it + 1][2] = it + 2;
 
                 }
-                neighbours[it + 1][2] = it + 2 * (coordinates[0].length);
+                //right nighbour
+                if (ix == coordinates.length-2) {
+                    neighbours[it + 1][0] = -1; //-1=noflow
+                } else {
+                    neighbours[it + 1][0] = it + 2 * (coordinates[0].length);
+                }
 
 //                System.out.println("x="+ix+", y="+iy+" \t#"+it+" : v0="+triangleNodes[it][0]+", v1="+triangleNodes[it][1]+" , v2="+triangleNodes[it][2] +"\t " );
             }
@@ -279,8 +292,8 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
                 int ix = Integer.parseInt(parts[0]);
                 int iy = Integer.parseInt(parts[1]);
 
-                float vx = Float.parseFloat(parts[indexU])*xfactor;
-                float vy = Float.parseFloat(parts[indexV])*yfactor;
+                float vx = Float.parseFloat(parts[indexU]) * xfactor;
+                float vy = Float.parseFloat(parts[indexV]) * yfactor;
 
                 try {
                     iT = (ix * height + iy) * 2;

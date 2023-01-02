@@ -938,7 +938,7 @@ public class LoadingCoordinator {
                 try {
                     //CoUD Labs File format
                     if (Surface_CSV_IO.is_readable_scheme(fileSurfaceCoordsDAT)) {
-                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT, 40, 80);
+                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT, 400, 800);
                         filetype = FILETYPE.COUD_CSV;
                     }
                 } catch (Exception ex) {

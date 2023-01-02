@@ -26,14 +26,11 @@ package com.saemann.gulli.view.themelayer.surface;
 import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.model.surface.Surface;
 import com.saemann.gulli.view.PaintManager;
-import static com.saemann.gulli.view.PaintManager.maximumNumberOfSurfaceShapes;
 import com.saemann.gulli.view.themelayer.SurfaceThemeLayer;
 import com.saemann.rgis.view.DoubleColorHolder;
 import com.saemann.rgis.view.MapViewer;
-import com.saemann.rgis.view.shapes.AreaPainting;
 import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.LinePainting;
-import com.saemann.rgis.view.shapes.NodePainting;
 import java.awt.Color;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,6 +47,7 @@ public class SurfaceTheme_Neighbours extends SurfaceThemeLayer {
 
     public final static String layerSurfaceNeighbours = PaintManager.layerTriangle + "_Neighbours";
     private final DoubleColorHolder chNeighbour1 = new DoubleColorHolder(Color.yellow, new Color(1f, 1f, 1f, 0f), "Surface Neighbours");
+    public static int maxShapeCount=1000000;
 
     @Override
     public boolean initializeTheme(MapViewer mapViewer, Controller c, PaintManager pm, boolean asNodes) {
@@ -72,8 +70,11 @@ public class SurfaceTheme_Neighbours extends SurfaceThemeLayer {
                         int index = 0;
                         Coordinate start = new CoordinateXY(), end = new CoordinateXY();
                         Coordinate startWGS = new CoordinateXY(), endWGS = new CoordinateXY();
-                        for (int i = 0; i < c.getSurface().vertices.length; i++) {
-                            if(index>100000)break;
+                        for (int i = 0; i < mids.length; i++) {
+                            if(index>maxShapeCount){
+                                System.out.println("Limit maximum number of neighbour-shapes to "+getClass()+".maxShapeCount="+maxShapeCount);
+                                break;
+                            }
                             try {
                                 start.x = mids[i][0];
                                 start.y = mids[i][1];
@@ -98,7 +99,7 @@ public class SurfaceTheme_Neighbours extends SurfaceThemeLayer {
                                 Logger.getLogger(SurfaceTheme_Neighbours.class.getName()).log(Level.SEVERE, null, ex);
                             }
                         }
-                        System.out.println("Neighbour layer created.");
+//                        System.out.println(layer.size()+" Neighbour layer created.");
                     }
 
 //                    if (asNodes) {

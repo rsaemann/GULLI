@@ -190,7 +190,7 @@ public class Setup_IO {
         bw.newLine();
         bw.write("\t\t\t<Timecontinuous>" + setup.isSurfaceMeasurementTimeContinuous() + "</>");
         bw.newLine();
-        bw.write("\t\t\t<Spatialconsistent>" + setup.isPipeMeasurementSpatialConsistent() + "</>");
+        bw.write("\t\t\t<Spatialconsistent>" + setup.isSurfaceMeasurementSpatialConsistent() + "</>");
         bw.newLine();
         bw.write("\t\t\t<Synchronize Writing>" + setup.isSurfaceMeasurementSynchronize() + "</>");
         bw.newLine();
