@@ -82,6 +82,7 @@ public class SurfaceMeasurementTriangleRaster extends SurfaceMeasurementRaster {
         if (c.getSurface().getMeasurementRaster() != null) {
             tic = c.getSurface().getMeasurementRaster().getIndexContainer();
         } else {
+            System.out.println(SurfaceMeasurementTriangleRaster.class+"::init    surface.times="+c.getSurface().getTimes());
             tic = new TimeIndexContainer(c.getSurface().getTimes());
         }
         SurfaceMeasurementTriangleRaster smr = new SurfaceMeasurementTriangleRaster(c.getSurface(), numberMaterials, tic, c.getThreadController().getNumberOfParallelThreads());

@@ -165,6 +165,11 @@ public class InjectionPanelPointlocation extends JPanel {
                 //surface position
                 if (info.getPosition() != null) {
                     buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
+                    if (info.getCapacityID() >= 0) {
+                        buttonSetPosition.setToolTipText("Cell "+info.getCapacityID());
+                    }else{
+                        buttonSetPosition.setToolTipText("Click here to select position on map. Cell:"+info.getCapacityID());
+                    }
                 } else if (info.getCapacityID() >= 0) {
                     buttonSetPosition.setText(info.getCapacityID() + " Triangle");
                 }
@@ -290,6 +295,7 @@ public class InjectionPanelPointlocation extends JPanel {
             @Override
             public void mouseReleased(MouseEvent me) {
                 if (me.getButton() == 1) {
+                    map.removeMouseListener(this);
                     Point2D.Double latlon = map.clickPoint;
                     GeoPosition p = new GeoPosition(latlon.x, latlon.y);
                     info.setPosition(p);
@@ -298,8 +304,11 @@ public class InjectionPanelPointlocation extends JPanel {
                     info.setTriangleID(-1);
                     info.spillOnSurface = checkSurface.isSelected();
 //                    System.out.println("clicked on " + latlon);
-                    map.removeMouseListener(this);
+                    
                     buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
+                    if (info.isChanged()) {
+                        setBorder(new TitledBorder("changed"));
+                    }
                 }
 
             }

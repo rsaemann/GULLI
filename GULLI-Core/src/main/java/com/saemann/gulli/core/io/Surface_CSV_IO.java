@@ -42,7 +42,18 @@ import java.util.logging.Logger;
  */
 public class Surface_CSV_IO implements SurfaceVelocityLoader {
 
-    public static Surface createTriangleSurfaceGeometry(File f) throws Exception {
+    /**
+     * Create a triangle based surface from the geometry information in the
+     * file. As filecontent about x/y dimension are useless, you can specify the
+     * length and height directly.
+     *
+     * @param f
+     * @param xsize [m]
+     * @param ysize [m]
+     * @return Triangle based surface
+     * @throws Exception
+     */
+    public static Surface createTriangleSurfaceGeometry(File f, double xsize, double ysize) throws Exception {
         float[][][] coordinates = null;
         try (FileReader fr = new FileReader(f)) {
             BufferedReader br = new BufferedReader(fr);
@@ -78,8 +89,8 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
             int indexV = 7; //Velocity in y direction (m/s)
 
             //Create Vertices
-            float xfactor = 1;
-            float yfactor = 1;
+            float xfactor = 1;//(float) (xsize / (double) coordinates.length);
+            float yfactor = 1;//(float) (ysize / (double) coordinates[0].length);
 
             String[] parts;
             while (br.ready()) {
@@ -89,11 +100,13 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
                 int ix = Integer.parseInt(parts[0]);
                 int iy = Integer.parseInt(parts[1]);
 
-                float x = Float.parseFloat(parts[indexXcoord]);
-                float y = Float.parseFloat(parts[indexYcoord]);
+//                float x = Float.parseFloat(parts[indexXcoord]);
+//                float y = Float.parseFloat(parts[indexYcoord]);
 
-                coordinates[ix][iy][0] = x * xfactor;
-                coordinates[ix][iy][1] = y * yfactor;
+                coordinates[ix][iy][0] = ix * xfactor;
+                coordinates[ix][iy][1] = iy * yfactor;
+
+//                System.out.println("Vertex "+(iy*coordinates.length+ix)+": ix="+ix+"\tiy="+iy+"\t, x= "+coordinates[ix][iy][0]+"\t y= "+coordinates[ix][iy][1]);
             }
 
             br.close();
@@ -107,43 +120,61 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
         }
         //Transform to required data types
         double[][] vertices = new double[(coordinates.length + 1) * (coordinates[0].length + 1)][3];
-        int[][] triangleNodes = new int[coordinates.length * coordinates[0].length * 2][3];
+        int[][] triangleNodes = new int[(coordinates.length) * (coordinates[0].length) * 2][3];
         int[][] neighbours = new int[triangleNodes.length][3];
 
         //Vertices
         int iv;
+        double dxh = (coordinates[1][0][0] - coordinates[0][0][0]) * 0.5;
+        double dyh = (coordinates[1][0][1] - coordinates[0][0][1]) * 0.5;
         for (int ix = 0; ix < coordinates.length; ix++) {
             for (int iy = 0; iy < coordinates[0].length; iy++) {
-                iv = ix * coordinates[0].length + iy;
-                vertices[iv][0] = coordinates[ix][iy][0];
-                vertices[iv][1] = coordinates[ix][iy][1];
+                iv = ix * (coordinates[0].length + 1) + iy;
+                vertices[iv][0] = coordinates[ix][iy][0] - dxh;
+                vertices[iv][1] = coordinates[ix][iy][1] - dyh;
                 vertices[iv][2] = 0;
 //                System.out.println("x="+ix+", y="+iy+" \t#"+iv+" : ("+vertices[iv][0]+",\t "+vertices[iv][1]+" ,\t "+vertices[iv][2] +"') " );
-
             }
+            iv = iv = (ix + 1) * (coordinates[0].length + 1) - 1;
+//            System.out.println("add extra vertex #" + iv);
+            vertices[iv][0] = coordinates[ix][coordinates[0].length - 1][0] + dxh;
+            vertices[iv][1] = coordinates[ix][coordinates[0].length - 1][1] + dyh;
+            vertices[iv][2] = 0;
         }
+
         //Triangles
         int it, iVll;
         for (int ix = 0; ix < coordinates.length - 1; ix++) {
-            for (int iy = 0; iy < coordinates[0].length - 1; iy++) {
-                iVll = ix * coordinates[0].length + iy;
-                it = (ix * (coordinates[0].length - 1) + iy) * 2;
+            for (int iy = 0; iy < coordinates[0].length; iy++) {
+                iVll = ix * (coordinates[0].length + 1) + iy;
+                it = (ix * (coordinates[0].length) + iy) * 2;
                 triangleNodes[it][0] = iVll;
                 triangleNodes[it][1] = iVll + 1;
                 triangleNodes[it][2] = iVll + 1 + coordinates[0].length;
 
-                triangleNodes[it + 1][0] = iVll;
-                triangleNodes[it + 1][1] = iVll + coordinates[0].length + 1;
-                triangleNodes[it + 1][2] = iVll + coordinates[0].length;
+                triangleNodes[it + 1][0] = iVll + 1;
+                triangleNodes[it + 1][1] = iVll + coordinates[0].length + 2;
+                triangleNodes[it + 1][2] = iVll + coordinates[0].length + 1;
 
                 //Neighbours
-                neighbours[it][0] = it + 3;
+                neighbours[it][0] = it - 2 * (coordinates[0].length) + 1;;
                 neighbours[it][1] = it + 1;
-                neighbours[it][2] = it - 2 * (coordinates[0].length - 1) + 1;
+
+                if (iy == 0) {//Lower boundary
+                    neighbours[it][2] = -2; //-1=noflow boundary, -2=Open boundary, particles traveling over the edge will be out of domain
+                } else {
+                    neighbours[it][2] = it - 1;
+                }
 
                 neighbours[it + 1][0] = it;// - 2 * (coordinates[0].length - 1)+1 ;//
-                neighbours[it + 1][1] = it - 2;
-                neighbours[it + 1][2] = it+ 2 * (coordinates[0].length - 1);
+
+                if (iy == coordinates[0].length - 1) {//upper boundary
+                    neighbours[it + 1][1] = -2;
+                } else {
+                    neighbours[it + 1][1] = it + 2;
+
+                }
+                neighbours[it + 1][2] = it + 2 * (coordinates[0].length);
 
 //                System.out.println("x="+ix+", y="+iy+" \t#"+it+" : v0="+triangleNodes[it][0]+", v1="+triangleNodes[it][1]+" , v2="+triangleNodes[it][2] +"\t " );
             }
@@ -153,11 +184,17 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
         for (int t = 0; t < triangleNodes.length; t++) {
             for (int v = 0; v < 3; v++) {
                 for (int d = 0; d < 3; d++) {
-                    triangleMids[t][d] += vertices[triangleNodes[t][v]][d] * 0.3333;
+                    double s = vertices[triangleNodes[t][v]][d];
+//                    if(s==0 && d<2){
+//                        System.out.println("Vertex "+triangleNodes[t][v]+" is 0 x or y");
+//                    }
+                    triangleMids[t][d] += s * 0.3333;
+
                 }
 
             }
-
+//            System.out.println("Mid " + t + " " + triangleMids[t][0]
+//                    + ", " + triangleMids[t][1] + "\t from #" + triangleNodes[t][0] + ", " + triangleNodes[t][1] + ", " + triangleNodes[t][2]);
         }
 
         Surface surf = new Surface(vertices, triangleNodes, neighbours, null, "EPSG:3857");
@@ -228,9 +265,9 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
             int indexU = 8; //Velocity in x direction (m/s)
             int indexV = 7; //Velocity in y direction (m/s)
 
-            //Create Vertices
-            float xfactor = 1;
-            float yfactor = 1;
+            //Create Velocities
+            float xfactor = 0.1f;
+            float yfactor = 0.1f;
 
             String[] parts;
             int timestep = 0;
@@ -242,8 +279,8 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
                 int ix = Integer.parseInt(parts[0]);
                 int iy = Integer.parseInt(parts[1]);
 
-                float vx = Float.parseFloat(parts[indexU]);
-                float vy = Float.parseFloat(parts[indexV]);
+                float vx = Float.parseFloat(parts[indexU])*xfactor;
+                float vy = Float.parseFloat(parts[indexV])*yfactor;
 
                 try {
                     iT = (ix * height + iy) * 2;
@@ -283,7 +320,7 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
     }
 
     public static void readSurfaceCellVelocities(Surface surf, File csvFile) throws Exception {
-        surf.setTriangleVelocity(loadVelocityField(csvFile));        
+        surf.setTriangleVelocity(loadVelocityField(csvFile));
     }
 
     /**
@@ -340,7 +377,7 @@ public class Surface_CSV_IO implements SurfaceVelocityLoader {
     public static void main(String[] args) {
         try {
             File f = new File("D:/CoUD/Test 1 16X16.csv");
-            Surface surf = createTriangleSurfaceGeometry(f);
+            Surface surf = createTriangleSurfaceGeometry(f, 4, 8);
 
             float[][][] v = loadVelocityField(f);
             surf.setTriangleVelocity(v);

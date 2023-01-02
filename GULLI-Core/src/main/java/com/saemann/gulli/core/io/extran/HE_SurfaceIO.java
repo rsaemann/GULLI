@@ -72,6 +72,8 @@ public class HE_SurfaceIO {
      */
     public static boolean condenseUnusedVertices = true;
 
+    public static boolean calculateSlopes = true;
+
 //    public static MultiPolygon initPolygon() {
 //        GeometryFactory gf = new GeometryFactory();
 //        Coordinate[] cs = new Coordinate[5];
@@ -369,29 +371,8 @@ public class HE_SurfaceIO {
         return loadSurface(fileCoordinates, fileTriangleIndizes, fileNeighbours, coordReferenceXML, null);
     }
 
-    /**
-     *
-     * @param fileCoordinates Vertex coordinates e.g. "X.dat"
-     * @param fileTriangleIndizes Indices of verties to form triangles
-     * "TRIMOD2.dat"
-     * @param fileNeighbours Neighbours per triangle e.g. "TRIMOD1.dat"
-     * @param coordReferenceXML File where the coordinate reference is defined
-     * @param crs Manual override of CoordinateReference e.g. "EPSG:25832"
-     * @return
-     * @throws FileNotFoundException
-     * @throws IOException
-     */
-    public static Surface loadSurface(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML, String crs) throws FileNotFoundException, IOException {
-
-        if (loadingAction != null) {
-            loadingAction.progress = 0.f;
-            loadingAction.hasProgress = true;
-            loadingAction.description = "Init surface topography loading";
-            loadingAction.updateProgress();
-        }
-//Coordinates   //X.dat
-//        long start = System.currentTimeMillis();
-        FileReader fr = new FileReader(fileCoordinates);
+    public static double[][] readVertices(File xdatFile) throws IOException {
+        FileReader fr = new FileReader(xdatFile);
         BufferedReader br = new BufferedReader(fr);
         String line = br.readLine();
         String[] values;
@@ -428,6 +409,32 @@ public class HE_SurfaceIO {
             loadingAction.progress = 1;
             loadingAction.updateProgress();
         }
+        return vertices;
+    }
+
+    /**
+     *
+     * @param fileCoordinates Vertex coordinates e.g. "X.dat"
+     * @param fileTriangleIndizes Indices of verties to form triangles
+     * "TRIMOD2.dat"
+     * @param fileNeighbours Neighbours per triangle e.g. "TRIMOD1.dat"
+     * @param coordReferenceXML File where the coordinate reference is defined
+     * @param crs Manual override of CoordinateReference e.g. "EPSG:25832"
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public static Surface loadSurface(File fileCoordinates, File fileTriangleIndizes, File fileNeighbours, File coordReferenceXML, String crs) throws FileNotFoundException, IOException {
+
+        if (loadingAction != null) {
+            loadingAction.progress = 0.f;
+            loadingAction.hasProgress = true;
+            loadingAction.description = "Init surface topography loading";
+            loadingAction.updateProgress();
+        }
+//Coordinates   //X.dat
+        double[][] vertices = readVertices(fileCoordinates);
+        int numberofVertices = vertices.length;
 //        System.out.println("  Reading Coords took " + (System.currentTimeMillis() - start) + "ms.");
         //Load coordinate reference System
         String epsgCode = crs;//"EPSG:25832"; //Use this standard code for Hannover
@@ -441,19 +448,19 @@ public class HE_SurfaceIO {
 
         }
 //        System.out.println("   Decoding CRS took "+(System.currentTimeMillis()-start)+"ms");
-
         //fileTriangleIndizes  //TRIMOD2.dat
 //        start = System.currentTimeMillis();
-        fr = new FileReader(fileTriangleIndizes);
-        br = new BufferedReader(fr);
-        line = br.readLine();
+        FileReader fr = new FileReader(fileTriangleIndizes);
+        BufferedReader br = new BufferedReader(fr);
+        String line = br.readLine();
         int numberofTriangles = Integer.parseInt(line.split(" ")[0]);
         int[][] triangleIndizes = new int[numberofTriangles][3];
         double[][] triangleMidPoints = new double[numberofTriangles][3];
+
         boolean[] verticesUsed = new boolean[numberofVertices];
-        index = 0;
+        int index = 0;
         double oneThird = 1. / 3.;
-        nc.setReader(br);
+        NumberConverter nc = new NumberConverter(br);
         int[] integerParts = new int[3];
         int first, second, third;
 
@@ -470,13 +477,13 @@ public class HE_SurfaceIO {
                 second = integerParts[1];
                 third = integerParts[2];
 
-                if (!verticesUsed[first]) {
+                if (condenseUnusedVertices && !verticesUsed[first]) {
                     verticesUsed[first] = true;
                 }
-                if (!verticesUsed[second]) {
+                if (condenseUnusedVertices && !verticesUsed[second]) {
                     verticesUsed[second] = true;
                 }
-                if (!verticesUsed[third]) {
+                if (condenseUnusedVertices && !verticesUsed[third]) {
                     verticesUsed[third] = true;
                 }
 
@@ -484,9 +491,9 @@ public class HE_SurfaceIO {
                 triangleIndizes[index][1] = second;
                 triangleIndizes[index][2] = third;
 
-                triangleMidPoints[index][0] = (vertices[first][0]  + vertices[second][0]  + vertices[third][0]) * oneThird;
-                triangleMidPoints[index][1] = (vertices[first][1]  + vertices[second][1]  + vertices[third][1]) * oneThird;
-                triangleMidPoints[index][2] = (vertices[first][2]  + vertices[second][2]  + vertices[third][2]) * oneThird;
+                triangleMidPoints[index][0] = (vertices[first][0] + vertices[second][0] + vertices[third][0]) * oneThird;
+                triangleMidPoints[index][1] = (vertices[first][1] + vertices[second][1] + vertices[third][1]) * oneThird;
+                triangleMidPoints[index][2] = (vertices[first][2] + vertices[second][2] + vertices[third][2]) * oneThird;
 
                 index++;
 
@@ -510,11 +517,13 @@ public class HE_SurfaceIO {
                 used++;
             }
         }
-        System.out.println(used + " / " + verticesUsed.length + " Vertices are used by triangles (" + ((int) (used * 100 / (double) verticesUsed.length)) + "%)");
+        if (condenseUnusedVertices) {
+            System.out.println(used + " / " + verticesUsed.length + " Vertices are used by triangles (" + ((int) (used * 100 / (double) verticesUsed.length)) + "%)");
+        }
 
         if (used < verticesUsed.length && condenseUnusedVertices) {
             long start = System.currentTimeMillis();
-            
+
             if (loadingAction != null) {
                 loadingAction.progress = 0.f;
                 loadingAction.hasProgress = true;
@@ -561,59 +570,62 @@ public class HE_SurfaceIO {
         }
 
         //fileNeighbours
-        if (loadingAction != null) {
-            loadingAction.progress = 0.f;
-            loadingAction.hasProgress = true;
-            loadingAction.description = "Surface: " + LoadingCoordinator.df1k.format(numberofTriangles) + " Neighbours...";
-            loadingAction.updateProgress();
-        }
+        int[][] neighbours = null;
+        if (fileNeighbours != null && fileNeighbours.exists()) {
+            if (loadingAction != null) {
+                loadingAction.progress = 0.f;
+                loadingAction.hasProgress = true;
+                loadingAction.description = "Surface: " + LoadingCoordinator.df1k.format(numberofTriangles) + " Neighbours...";
+                loadingAction.updateProgress();
+            }
 //        start = System.currentTimeMillis();
-        fr = new FileReader(fileNeighbours);
-        br = new BufferedReader(fr);
+            fr = new FileReader(fileNeighbours);
+            br = new BufferedReader(fr);
 //        System.out.println("Number of triangles: "+numberofTriangles);
-        int[][] neighbours = new int[numberofTriangles][3];
-        index = 0;
-        integerParts = new int[9];
-        int lines = 0;
-        try {
-            nc.setReader(br);
-            while (br.ready()) {
-                lines++;
-                if (nc.readNextLineInteger(integerParts)) {
-                    neighbours[index][0] = integerParts[0];
-                    neighbours[index][1] = integerParts[1];
-                    neighbours[index][2] = integerParts[2];
+            neighbours = new int[numberofTriangles][3];
+            index = 0;
+            integerParts = new int[9];
+            int lines = 0;
+            try {
+                nc.setReader(br);
+                while (br.ready()) {
+                    lines++;
+                    if (nc.readNextLineInteger(integerParts)) {
+                        neighbours[index][0] = integerParts[0];
+                        neighbours[index][1] = integerParts[1];
+                        neighbours[index][2] = integerParts[2];
 
-                    // -1 = House: no flow boundary
-                    // -2 = outflow boundary / trespassable
-                    if (integerParts[0] < 0) {
-                        if (integerParts[6] == 1) {
-                            neighbours[index][0] = -2;
+                        // -1 = House: no flow boundary
+                        // -2 = outflow boundary / trespassable
+                        if (integerParts[0] < 0) {
+                            if (integerParts[6] == 1) {
+                                neighbours[index][0] = -2;
+                            }
                         }
-                    }
-                    if (integerParts[1] < 0) {
-                        if (integerParts[7] == 1) {
-                            neighbours[index][1] = -2;
+                        if (integerParts[1] < 0) {
+                            if (integerParts[7] == 1) {
+                                neighbours[index][1] = -2;
+                            }
                         }
-                    }
-                    if (integerParts[2] < 0) {
-                        if (integerParts[8] == 1) {
-                            neighbours[index][2] = -2;
+                        if (integerParts[2] < 0) {
+                            if (integerParts[8] == 1) {
+                                neighbours[index][2] = -2;
+                            }
                         }
-                    }
-                    index++;
-                    if (index % 300 == 0 && loadingAction != null) {
-                        loadingAction.progress = index / (float) numberofTriangles;
-                        loadingAction.updateProgress();
+                        index++;
+                        if (index % 300 == 0 && loadingAction != null) {
+                            loadingAction.progress = index / (float) numberofTriangles;
+                            loadingAction.updateProgress();
+                        }
                     }
                 }
+            } catch (Exception ex) {
+                System.err.println("Problem in line " + lines + " of " + fileNeighbours);
+                ex.printStackTrace();
             }
-        } catch (Exception ex) {
-            System.err.println("Problem in line " + lines + " of " + fileNeighbours);
-            ex.printStackTrace();
+            br.close();
+            fr.close();
         }
-        br.close();
-        fr.close();
 //        System.out.println("HE_SurfaceIO.loadSurface parsed " + lines + " into " + parts + " split parts.");
 //        System.out.println("   Building Neighbours took " + (System.currentTimeMillis() - start) + "ms");
 //        start = System.currentTimeMillis();
@@ -623,7 +635,7 @@ public class HE_SurfaceIO {
             loadingAction.description = "Completing Surface Topography...";
             loadingAction.updateProgress();
         }
-        Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode);
+        Surface surf = new Surface(vertices, triangleIndizes, neighbours, null, epsgCode, calculateSlopes);
         surf.setTriangleMids(triangleMidPoints);
         surf.fileTriangles = fileCoordinates.getParentFile();
         if (loadingAction != null) {
@@ -1878,6 +1890,31 @@ public class HE_SurfaceIO {
         bw.close();
         fw.close();
         System.out.println("Neumannneighbours written to " + fileNeumannNeighbours.getAbsolutePath());
+    }
+
+    /**
+     * Write the vertices in the X.dat format.
+     *
+     * @param surface
+     * @param fileVertices
+     * @throws IOException
+     */
+    public static void writeVertices(Surface surface, File fileVertices) throws IOException {
+        DecimalFormat df5 = new DecimalFormat("#.00000", DecimalFormatSymbols.getInstance(Locale.US));
+
+        //Write Vertices
+        FileWriter fw = new FileWriter(fileVertices);
+        BufferedWriter bw = new BufferedWriter(fw);
+        bw.write(surface.vertices.length + " " + surface.vertices.length + " " + surface.vertices.length);
+        bw.newLine();
+        for (int i = 0; i < surface.vertices.length; i++) {
+            bw.write(df5.format(surface.vertices[i][0]) + " " + df5.format(surface.vertices[i][1]) + "  " + df5.format(surface.vertices[i][2]));
+            bw.newLine();
+            bw.flush();
+        }
+        bw.flush();
+        bw.close();
+        fw.close();
     }
 
     /**

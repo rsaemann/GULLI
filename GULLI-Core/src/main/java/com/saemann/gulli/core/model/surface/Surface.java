@@ -229,6 +229,40 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @param spatialReferenceSystem
      */
     public Surface(double[][] vertices, int[][] triangleNodes, int[][] neighbours, HashMap<Integer, Integer> mapIndizes, String spatialReferenceSystem) {
+        this(vertices, triangleNodes, neighbours, mapIndizes, spatialReferenceSystem, true);
+//        super(new CircularProfile(1));
+//        this.vertices = vertices;
+//        this.triangleNodes = triangleNodes;
+//        this.neumannNeighbours = neighbours;
+//        this.mapIndizes = mapIndizes;
+//        this.spatialReferenceCode = spatialReferenceSystem;
+//        try {
+//            this.geotools = new GeoTools("EPSG:4326", /*"EPSG:25832"*/ spatialReferenceSystem, StartParameters.JTS_WGS84_LONGITUDE_FIRST);
+//        } catch (Exception ex) {
+//            Logger.getLogger(Surface.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+////        this.triangleCapacity = new HashMap<>(100);
+////        
+////        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
+//        this.paths = new HashMap<>(0);
+//        if (triangleNodes != null) {
+//            actualVelocity = new float[triangleNodes.length][2];
+//            actualVelocitySet = new boolean[actualVelocity.length];
+//            calculateDownhillSlopes();
+//        }
+
+    }
+
+    /**
+     *
+     * @param vertices positions of nodes [nodecount][3]
+     * @param triangleNodes nodes for each triangle [trianglecount][3]
+     * @param neighbours neumannNeighbours for each triangle [trianglecount][3]
+     * @param mapIndizes
+     * @param spatialReferenceSystem
+     * @param calculateSlopes
+     */
+    public Surface(double[][] vertices, int[][] triangleNodes, int[][] neighbours, HashMap<Integer, Integer> mapIndizes, String spatialReferenceSystem, boolean calculateSlopes) {
         super(new CircularProfile(1));
         this.vertices = vertices;
         this.triangleNodes = triangleNodes;
@@ -240,11 +274,8 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         } catch (Exception ex) {
             Logger.getLogger(Surface.class.getName()).log(Level.SEVERE, null, ex);
         }
-//        this.triangleCapacity = new HashMap<>(100);
-//        
-//        measurementRaster = new SurfaceMeasurementTriangleRaster(this, numberOfMaterials, null);//new TriangleMeasurement[triangleNodes.length]; SurfaceMeasurementRectangleRaster.SurfaceMeasurementRectangleRaster(this, 1000, 1000);//
         this.paths = new HashMap<>(0);
-        if (triangleNodes != null) {
+        if (triangleNodes != null && calculateSlopes) {
             actualVelocity = new float[triangleNodes.length][2];
             actualVelocitySet = new boolean[actualVelocity.length];
             calculateDownhillSlopes();
@@ -770,7 +801,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         this.numberOfTimestamps = numberOfTimes;
         this.neighbourvelocity = new float[numberOfTriangles][][];
         this.waterlevels = new float[numberOfTriangles][];
-        zeroVelocityinTimesteps=new float[numberOfTimes][2];
+        zeroVelocityinTimesteps = new float[numberOfTimes][2];
     }
 
     /**
@@ -3320,7 +3351,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         if (this.measurementRaster != null) {
             this.measurementRaster.setTimeContainer(times);
         }
-        this.zeroVelocityinTimesteps=new float[numberOfTimestamps][2];
+        this.zeroVelocityinTimesteps = new float[numberOfTimestamps][2];
     }
 
     public void setMeasurementRaster(SurfaceMeasurementRaster measurementRaster) {

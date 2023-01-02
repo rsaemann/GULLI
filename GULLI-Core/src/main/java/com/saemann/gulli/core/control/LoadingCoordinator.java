@@ -938,7 +938,7 @@ public class LoadingCoordinator {
                 try {
                     //CoUD Labs File format
                     if (Surface_CSV_IO.is_readable_scheme(fileSurfaceCoordsDAT)) {
-                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT);
+                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT, 40, 80);
                         filetype = FILETYPE.COUD_CSV;
                     }
                 } catch (Exception ex) {
@@ -1129,7 +1129,7 @@ public class LoadingCoordinator {
                         }
                     } else {
                         loadingSurfaceVelocity = LOADINGSTATUS.ERROR;
-                        action.description = "GDB has not a result database.";
+                        action.description = "GDB is not a result database.";
                         System.err.println(action.description);
                     }
 //                    }
@@ -1177,12 +1177,6 @@ public class LoadingCoordinator {
                         }
                     }
                 } else {
-//                    try {
-////                        surface.calculateNeighbourVelocitiesFromWaterlevels();
-////                        surface.calculateVelocities2d();
-//                    } catch (Exception ex) {
-//                        ex.printStackTrace();
-//                    }
                 }
                 if (scenario != null) {
                     long surfaceTimestepMS = 0;
@@ -1190,6 +1184,14 @@ public class LoadingCoordinator {
                         if (resultDatabase != null) {
                             surfaceTimestepMS = (long) (resultDatabase.read2DExportTimeStep() * 60000);
                         }
+                        TimeIndexContainer tc;
+                        if (surfaceTimestepMS > 0) {
+                            tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps(), surfaceTimestepMS);
+                        } else {
+                            tc = createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), surface.getNumberOfTimestamps());
+                        }
+                        surface.setTimeContainer(tc);
+                        scenario.setStatusTimesSurface(surface);
                     } else if (filetype == FILETYPE.COUD_CSV) {
                         TimeIndexContainer tic = (TimeIndexContainer) surface.getTimes();
                         scenario.setStatusTimesPipe(null);
@@ -1197,6 +1199,7 @@ public class LoadingCoordinator {
                         scenario.setStatusTimesSurface(tic);
                         scenario.setMeasurementsSurface(new SurfaceMeasurementTriangleRaster(this.surface, 1, tic, control.getThreadController().getNumberOfParallelThreads()));
                         scenario.setStatusTimesSurface(tic);
+                        surface.setTimeContainer(tic);
                     } else {
                         if (surface.getNumberOfTimestamps() < 2) {
                             surface.setTimeContainer(createTimeContainer(scenario.getStartTime(), scenario.getEndTime(), 2));
@@ -1216,6 +1219,12 @@ public class LoadingCoordinator {
                 } else {
                     System.err.println("No Scenario loaded, can not calculate timeintervalls for surface waterheight and velocities.");
                 }
+
+//                //Check if timeindexcontainer is initialized
+//                System.out.println(LoadingCoordinator.class + "::loadSurface    Surface=" + surface + "\tScenario=" + scenario);
+//                System.out.println(LoadingCoordinator.class + "::loadSurface    scenario.timecontainer=" + scenario.getStatusTimesSurface());
+//                System.out.println(LoadingCoordinator.class + "::loadSurface    Surface.timecontainer=" + surface.getTimes());
+//                System.out.println(LoadingCoordinator.class + "::loadSurface    Surface.measurementraster=" + surface.getMeasurementRaster());
 
                 loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
                 action.description = "Surface velocity loaded";

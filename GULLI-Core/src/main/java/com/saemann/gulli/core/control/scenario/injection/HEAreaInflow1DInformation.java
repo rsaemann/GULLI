@@ -1115,4 +1115,11 @@ public class HEAreaInflow1DInformation implements InjectionInfo {
         changed=true;
     }
 
+    @Override
+    public String toString() {
+        return "HEAreaInflow1DInformation{ id=" + id + ", " + "inflowtype=" + inflowtype + ", materialID=" + materialID + ", numberOfCreatedParticles=" + numberOfCreatedParticles + ", runoffParameterName=" + runoffParameterName + ", substanceParameterName=" + substanceParameterName + ", massload=" + massload + ", washoffConstant=" + washoffConstant + ", active=" + active + ", numberAreaObjects=" + numberAreaObjects + ", effectiveArea=" + effectiveArea + '}';
+    }
+    
+    
+
 }

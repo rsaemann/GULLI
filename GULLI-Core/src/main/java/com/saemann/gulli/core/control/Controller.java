@@ -843,6 +843,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         allParticles.addAll(particles);
                         ai.setParticleIDs(particles.get(0).getId(), particles.get(particles.size() - 1).getId());
                     }
+                    injection_.setId(counter);
                     injection.resetChanged();
                 } else {
                     injection_.setActive(false);
@@ -852,6 +853,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
                 if (injection.isActive()) {
                     boolean runoffinfo_available = true;
+                    injection_.setId(counter);
                     if (!injection.isInitilized()) {
                         if (network != null) {
                             injection.setNetwork(network);
@@ -928,12 +930,14 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                         allParticles.addAll(particles);
                         ai.setParticleIDs(particles.get(0).getId(), particles.get(particles.size() - 1).getId());
                     }
+                    injection_.setId(counter);
                     injection.resetChanged();
                 } else {
                     injection_.setActive(false);
                 }
             } else if (injection_ instanceof InjectionInflowInformation) {
                 if (injection_.isActive()) {
+                    injection_.setId(counter);
                     InjectionInflowInformation injection = (InjectionInflowInformation) injection_;
                     if (injection.getNetwork() != network) {
                         //Need to update the injections for a new network
@@ -958,6 +962,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
 
             } else if (injection_ instanceof InjectionInformation) {
 //                System.out.println("  Injectioninformation");
+                injection_.setId(counter);
                 InjectionInformation injection = (InjectionInformation) injection_;
                 if (injection.spillOnSurface()) {
                     if (getSurface() == null) {
@@ -1234,9 +1239,9 @@ public class Controller implements SimulationActionListener, LoadingActionListen
             if (surface.getMeasurementRaster() == null && surface.getTimes() != null) {
                 surface.setMeasurementRaster(new SurfaceMeasurementTriangleRaster(surface, 0, surface.getTimes(), threadController.getNumberOfParallelThreads()));
             }
-        }else{
+        } else {
             //Loading null is requested-> clear references to surface
-            
+
         }
         for (LoadingActionListener ll : actionListener) {
             currentAction.description = "contrl. loadsurface inform " + ll;

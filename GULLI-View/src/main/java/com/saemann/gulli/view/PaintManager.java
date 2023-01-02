@@ -247,7 +247,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(new SurfaceTheme_DynWaterlevel()), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, NEIGHBOURS(new SurfaceTheme_Neighbours()),SLOPE, VERTEX_HEIGHT;
+        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(new SurfaceTheme_DynWaterlevel()), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, NEIGHBOURS(new SurfaceTheme_Neighbours()), SLOPE, VERTEX_HEIGHT;
         public SurfaceThemeLayer theme;
 
         SURFACESHOW() {
@@ -300,7 +300,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         initColoHolderConcentration(Color.green, Color.red);
         initColoHolderVelocity(Color.blue, Color.red);
         initColoHolderWaterlevel(Color.white, Color.blue);
-        int numberofParticles = con.getThreadController().getNumberOfTotalParticles();
+        int numberofParticles = 0;
+        if (con != null && con.getThreadController() != null) {
+            numberofParticles = con.getThreadController().getNumberOfTotalParticles();
+        }
         particlePaintings = new ParticleNodePainting[Math.max(0, numberofParticles)];
         mapViewer.addListener(this);
 
@@ -927,7 +930,8 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                     if (manhole.getStatusTimeLine() != null) {
                         for (int t = 0; t < times; t++) {
                             if (manhole.getStatusTimeLine().getFlowToSurface(t) > 0) {
-                                NodePainting np = new NodePainting(manhole.getAutoID(), manhole.getPosition().lonLatCoordinate(), chSpillover);
+                                System.out.println("Overspilling manhole: " + manhole.getName() + ": " + manhole.getAutoID() + "   " + manhole.getPosition().lonLatCoordinate());
+                                NodePainting np = new NodePainting(manhole.getAutoID(), manhole.getPosition().getLongitude(), manhole.getPosition().getLatitude(), chSpillover);
                                 np.setShapeRound(true);
                                 np.setRadius(4);
                                 mapViewer.addPaintInfoToLayer(layerManholesOverspilling, np);
@@ -2252,7 +2256,10 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
         int nb_surface = 0;
         int nB_network = 0;
         int positionnull = 0;
-        Particle[] ps = control.getThreadController().getParticles();
+        Particle[] ps = null;
+        if (control != null && control.getThreadController() != null) {
+            ps = control.getThreadController().getParticles();
+        }
         if (ps != null) {
             if (arraySurface == null || arraySurface.length != ps.length || surfaceLayer.getElements().length != arraySurface.length) {
                 arraySurface = new ParticleNodePainting[ps.length];
@@ -2482,7 +2489,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                         information += ";spilled @" + st.manhole;
 
                     }
-                    
+
                 }
 
                 if (p.getClass().equals(HistoryParticle.class)) {
@@ -2569,7 +2576,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
                     }
                     //Velocity information
-                    if(surf.getTriangleVelocity()!=null){
+                    if (surf.getTriangleVelocity() != null) {
                         float[] v = surf.getTriangleVelocity((int) id, surf.getActualTimeIndex_double());
                         str.append(";Vx :").append(df3.format(v[0])).append(" m/s");
                         str.append(";Vy :").append(df3.format(v[1])).append(" m/s");
@@ -2622,28 +2629,30 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 mapViewer.recalculateShapes();
                 mapViewer.repaint();
             } else if (string.equals(layerInjectionLocation)) {
-                for (InjectionInfo injection : injections) {
-                    if (injection.getId() % injections.size() == id) {
-                        if (injection.getPosition() == null) {
-                            return;
-                        }
-                        StringBuilder str = new StringBuilder("Injection id:").append(id);
-                        if (injection.spillOnSurface()) {
-                            if (injection instanceof InjectionInformation) {
-                                str.append(";to Surface triangle").append(((InjectionInformation) injection).getCapacityID());
+                if (id >= 0) {
+                    for (InjectionInfo injection : injections) {
+                        if (injection.getId() == id) {
+                            if (injection.getPosition() == null) {
+                                return;
                             }
-                        } else {
-                            str.append(";").append(injection.getCapacity());
+                            StringBuilder str = new StringBuilder("Injection id:").append(id);
+                            if (injection.spillOnSurface()) {
+                                if (injection instanceof InjectionInformation) {
+                                    str.append(";to Surface triangle").append(((InjectionInformation) injection).getCapacityID());
+                                }
+                            } else {
+                                str.append(";").append(injection.getCapacity());
+                            }
+                            str.append(";").append(df3.format(injection.getMass())).append(" kg of;").append(injection.getMaterial());
+                            str.append("; during ").append(injection.getNumberOfIntervals()).append(" timesteps");
+                            LabelPainting lp = new LabelPainting(0, MapViewer.COLORHOLDER_LABEL, new com.saemann.rgis.model.GeoPosition(injection.getPosition().getLatitude(), injection.getPosition().getLongitude()), str.toString().split(";"));
+                            mapViewer.addPaintInfoToLayer(mapViewer.LAYER_KEY_LABEL, lp);
+                            selectedLayer = string;
+                            selectedID = id;
+                            mapViewer.recalculateShapes();
+                            mapViewer.repaint();
+                            break;
                         }
-                        str.append(";").append(df3.format(injection.getMass())).append(" kg of;").append(injection.getMaterial());
-                        str.append("; during ").append(injection.getNumberOfIntervals()).append(" timesteps");
-                        LabelPainting lp = new LabelPainting(0, MapViewer.COLORHOLDER_LABEL, new com.saemann.rgis.model.GeoPosition(injection.getPosition().getLatitude(), injection.getPosition().getLongitude()), str.toString().split(";"));
-                        mapViewer.addPaintInfoToLayer(mapViewer.LAYER_KEY_LABEL, lp);
-                        selectedLayer = string;
-                        selectedID = id;
-                        mapViewer.recalculateShapes();
-                        mapViewer.repaint();
-                        break;
                     }
                 }
             } else if (string.equals(layerInlets)) {
@@ -3334,7 +3343,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public void setInjectionLocation(Collection<InjectionInfo> injections) throws Exception {
         this.injections.clear();
-        int counter = 0;
+        int counter = -1;
         for (InjectionInfo in : injections) {
             counter++;
             if (injections.size() > 100) {
@@ -3348,6 +3357,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 if (in.getPosition() != null) {
                     pos = in.getPosition();
                 } else {
+                    //Try to find the correct position from the linked capacity object
                     if (in instanceof InjectionInformation) {
                         if (in.spillOnSurface()) {
                             //Calculate from triangle ID
@@ -3366,21 +3376,26 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
                 //Build Shape
                 if (pos != null) {
 //                    PaintInfo pi = new ShapePainting(pos, ShapeEditor.SHAPES.CROSS.getShape(), 0, 0, id++, chInjectionLocation, chInjectionLocation.getStroke());
-                    NodePainting np = new NodePainting(in.getId(), new com.saemann.rgis.model.GeoPosition(pos.getLatitude(), pos.getLongitude()), chInjectionLocation);
+                    NodePainting np = new NodePainting(in.getId(), pos.getLongitude(), pos.getLatitude(), chInjectionLocation);
 //                    {
 //                        @Override
 //                        public boolean paint(Graphics2D g2) {
-//                            g2.setColor(chInjectionLocation.getColor());
-//                            g2.setStroke(chInjectionLocation.getStroke());
-//                            g2.translate(refPointX, refPointY);
-//                            g2.draw(ShapeEditor.SHAPES.CROSS.getShape());
+//                            super.paint(g2);
+////                            g2.setColor(chInjectionLocation.getColor());
+////                            g2.setStroke(chInjectionLocation.getStroke());
+////                            g2.translate(refPointX, refPointY);
+//                            System.out.println(this.refLongitude+", "+this.refLatitude+" -> "+this.refPointX+", "+this.refPointY);
+////                            System.out.println();
+////                            g2.draw(ShapeEditor.SHAPES.CROSS.getShape());
 //                            return true;
 //                        }
 //                    };
                     np.radius = 5;
-                    np.setShapeRound(true);
+
+//                    np.setShapeRound(true);
                     mapViewer.addPaintInfoToLayer(layerInjectionLocation, np);
                 }
+                mapViewer.recalculateShapes();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -3461,20 +3476,20 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
     @Override
     public void loadSurface(Surface surface, Object caller) {
         this.setSurface(surface);
-        if(network==null){
-            if(surfaceShows.isEmpty()){
+        if (network == null) {
+            if (surfaceShows.isEmpty()) {
                 //If nothing is shown. then move the map to where the action will be if a showlayer is enabled
-                if(surface!=null&&surface.getGeotools()!=null&&surface.getTriangleMids()!=null){
+                if (surface != null && surface.getGeotools() != null && surface.getTriangleMids() != null) {
                     //Move map to the first coordinate that is in the data
-                    Coordinate c=new CoordinateXY(surface.getTriangleMids()[0][0],surface.getTriangleMids()[0][1]);
+                    Coordinate c = new CoordinateXY(surface.getTriangleMids()[0][0], surface.getTriangleMids()[0][1]);
                     try {
-                        Coordinate global = surface.getGeotools().toGlobal(c,false);
+                        Coordinate global = surface.getGeotools().toGlobal(c, false);
                         mapViewer.setDisplayPositionByLatLon(global.x, global.y, 15);
                     } catch (TransformException ex) {
                         Logger.getLogger(PaintManager.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
-            }else{
+            } else {
                 mapViewer.zoomToFitLayer();
             }
         }
@@ -3584,13 +3599,12 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
             }
             ParticleNodePainting np;
 
-            if (p.getClass().equals(HistoryParticle.class
-            )) {
+            if (p.getClass().equals(HistoryParticle.class)) {
                 HistoryParticle hp = (HistoryParticle) p;
                 np = new ParticleNodePainting(p, p.getId(), new Coordinate(0, 0), chParticles);
 
-                np.setRadius(4);
-                np.setShapeRound(true);
+                np.setRadius(3);
+//                np.setShapeRound(true);  //round shapes have currently a display failure
             } else {
                 np = new ParticleNodePainting(p, p.getId(), new Coordinate(0, 0), chParticles);
                 np.radius = 1;
