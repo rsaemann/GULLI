@@ -1225,7 +1225,6 @@ public class LoadingCoordinator {
 //                System.out.println(LoadingCoordinator.class + "::loadSurface    scenario.timecontainer=" + scenario.getStatusTimesSurface());
 //                System.out.println(LoadingCoordinator.class + "::loadSurface    Surface.timecontainer=" + surface.getTimes());
 //                System.out.println(LoadingCoordinator.class + "::loadSurface    Surface.measurementraster=" + surface.getMeasurementRaster());
-
                 loadingSurfaceVelocity = LOADINGSTATUS.LOADED;
                 action.description = "Surface velocity loaded";
                 action.progress = 1f;
@@ -2138,7 +2137,7 @@ public class LoadingCoordinator {
         this.manualInjections.clear();
         if (setup.injections != null && setup.injections.size() > 0) {
             for (InjectionInfo in : setup.injections) {
-                this.manualInjections.add(in);
+                addManualInjection(in);
             }
         }
         if (this.scenario == null) {
@@ -2173,10 +2172,12 @@ public class LoadingCoordinator {
         } catch (Exception e) {
         }
 
-        if (scenario != null && setup.materials != null) {
-            scenario.setMaterials(new ArrayList<Material>(setup.materials));
+        if (scenario != null) {
+//            scenario.getInjections().addAll(totalInjections);
+            if (setup.materials != null) {
+                scenario.setMaterials(new ArrayList<Material>(setup.materials));
+            }
         }
-
         control.getThreadController().setDeltaTime(setup.getTimestepTransport());
         ParticleSurfaceComputing2D.timeIntegration = setup.getTimeIntegration();
 
@@ -2213,6 +2214,11 @@ public class LoadingCoordinator {
         if (files.pipeNetwork != null) {
             this.setPipeNetworkFile(files.pipeNetwork);
             changedPipeNetwork = true;
+        } else {
+            if (this.fileNetwork != null) {
+                this.setPipeNetworkFile(null);
+                changedPipeNetwork = true;
+            }
         }
 
         if (this.fileMainPipeResult != files.pipeResult) {
