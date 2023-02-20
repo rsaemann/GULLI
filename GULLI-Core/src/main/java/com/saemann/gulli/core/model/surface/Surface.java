@@ -2226,8 +2226,32 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return
      */
     public int findContainingTriangle(double x, double y, double minDistance) {
+        double jumpdistance = 10 * minDistance;
+        int jumped = 0;
+        int lastchecked=-1;
         for (int i = 0; i < triangleMids.length; i++) {
             double[] mid = triangleMids[i];
+//            if (jumped <= 0 || jumped == 10) {
+//                
+//                if (Math.abs(mid[0] - x) > jumpdistance && Math.abs(mid[1] - y) > jumpdistance) {
+//                    //This node is very far away, we can skip some tests because they all of them are around here
+//                    lastchecked=i;
+//                    i = i + 10;
+//                    jumped = 10;
+//                    continue;
+//                } else {
+//                    //This index is close to the one that we need to investigate. 
+//                    //Stop jumping und also scan the 9 previous cells
+//                    if (jumped == 10) {
+//                        i = lastchecked;
+//                        jumped = 9;
+//                        continue;
+//                    }
+//                }
+//            } else {
+//                jumped--;
+//            }
+//            lastchecked=i;
             if (Math.abs(mid[0] - x) > minDistance) {
                 continue;
             }
@@ -2244,6 +2268,38 @@ public class Surface extends Capacity implements TimeIndexCalculator {
             }
         }
         return -1;
+    }
+
+    /**
+     * Checks every triangle center distance to the given position. The
+     * tposition is only tested, when the midpoint distance is below the
+     * minDistance parameter.
+     *
+     * @param x
+     * @param y
+     * @param minDistance should be around maximum edge length
+     * @return id of closest triangle
+     */
+    public int findClosestTriangleMid(double x, double y, double minDistance) {
+        int bestID = -1;
+        double bestDistance = Double.POSITIVE_INFINITY;
+        double dist = 0;
+        for (int i = 0; i < triangleMids.length; i++) {
+            double[] mid = triangleMids[i];
+            if (Math.abs(mid[0] - x) > minDistance) {
+                continue;
+            }
+            if (Math.abs(mid[1] - y) > minDistance) {
+                continue;
+            }
+            dist = (x - mid[0]) * (x - mid[0]) + (y - mid[1]) * (y - mid[1]);
+            if (dist < bestDistance) {
+                bestDistance = dist;
+                bestID = i;
+            }
+
+        }
+        return bestID;
     }
 
     public int crawlNearestTriangle(double x, double y, int startTriangleID) {

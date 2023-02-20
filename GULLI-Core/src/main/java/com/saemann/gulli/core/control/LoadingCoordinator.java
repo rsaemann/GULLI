@@ -44,6 +44,7 @@ import com.saemann.gulli.core.io.SHP_IO_GULLI;
 import com.saemann.gulli.core.io.Setup_IO;
 import com.saemann.gulli.core.io.SparseTimeLineDataProvider;
 import com.saemann.gulli.core.io.Surface_CSV_IO;
+import com.saemann.gulli.core.io.bentley.BentleyDatabase;
 import com.saemann.gulli.core.io.extran.GdalIO;
 import com.saemann.gulli.core.io.swmm.SWMM_IO;
 import com.saemann.gulli.core.io.extran.HE_SurfaceIO;
@@ -76,7 +77,6 @@ import com.saemann.gulli.core.model.timeline.sparse.SparseTimelinePipe;
 import com.saemann.gulli.core.model.timeline.array.TimeIndexContainer;
 import com.saemann.gulli.core.model.timeline.MeasurementContainer;
 import com.saemann.gulli.core.model.timeline.array.TimeContainer;
-import com.saemann.gulli.core.model.timeline.array.TimeIndexCalculator;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimeLineManholeContainer;
 import com.saemann.gulli.core.model.timeline.sparse.SparseTimelineManhole;
 import com.saemann.gulli.core.model.topology.Capacity;
@@ -105,7 +105,7 @@ public class LoadingCoordinator {
      * Types of input files, than can be handled.
      */
     public enum FILETYPE {
-        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1, COUD_CSV
+        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1,BENTLEY, COUD_CSV
     };
 
     protected FILETYPE filetype;
@@ -573,6 +573,13 @@ public class LoadingCoordinator {
             } else if (fileNetwork.getName().endsWith(".inp")) {
                 nw = SWMM_IO.readNetwork(fileNetwork, crsNetwork);
                 this.filetype = FILETYPE.SWMM_5_1;
+            } else if (fileNetwork.getName().endsWith(".sqlite")) {
+                BentleyDatabase bentleyDB=new BentleyDatabase(fileNetwork);
+                if(crsNetwork==null||crsNetwork.isEmpty()){
+                    crsNetwork="EPSG:2178";
+                }
+                nw = bentleyDB.loadNetwork(crsNetwork);
+                this.filetype = FILETYPE.BENTLEY;
             } else {
                 loadingpipeNetwork = LOADINGSTATUS.ERROR;
                 throw new Exception("File extension not known for '" + fileNetwork.getName() + "'");
@@ -1980,7 +1987,7 @@ public class LoadingCoordinator {
         if (f.getName().toLowerCase().endsWith(".inp")) {
             return SWMM_IO.readNetwork(f);
         }
-        if (f.getName().toLowerCase().endsWith(".idbf") || f.getName().toLowerCase().endsWith(".idbr")) {
+        if (f.getName().toLowerCase().endsWith(".idbf") || f.getName().toLowerCase().endsWith(".idbm") ||f.getName().toLowerCase().endsWith(".idbr")) {
             if (tempFBDB == null || !tempFBDB.getDatabaseFile().equals(f)) {
                 tempFBDB = new HE_Database(f, true);
             }

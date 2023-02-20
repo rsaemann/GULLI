@@ -1185,6 +1185,10 @@ public class CapacityTimelinePanel extends JPanel implements CapacitySelectionLi
     }
 
     private void buildManholeTimeline(StorageVolume vol) {
+        if(vol.getStatusTimeLine()==null){
+            panelChart.getChart().setTitle("Manhole "+vol.getName()+" has no Timeline.");
+            return;
+        }
         TimeSeries h = new TimeSeries(new SeriesKey("Waterheight", "h", "m", Color.BLUE, new AxisKey("h")), "m", "Time");
         TimeSeries lvl = new TimeSeries(new SeriesKey("Waterlvl", "lvl", "m", Color.cyan), "m", "Time");
         TimeSeries lflow = new TimeSeries(new SeriesKey("Flux to Surface", "q_spill", "m³/s", Color.magenta), "m³/s", "Time");

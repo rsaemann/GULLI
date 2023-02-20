@@ -131,6 +131,7 @@ public class HE_SurfaceIO {
         File fileManhole2Surface = new File(directory.getAbsolutePath(), "SEWER-SURF_NODES.dat");
         if (!fileManhole2Surface.exists()) {
             System.err.println("File for Manhole position could not be found: " + fileManhole2Surface.getAbsolutePath());
+            fileManhole2Surface=null;
         }
 
         Surface surf = loadSurface(fileCoordinates, fileTriangle, fileNeighbours, fileCoordinateReference);
@@ -146,11 +147,11 @@ public class HE_SurfaceIO {
             exception.printStackTrace();
         }
 
-        if (fileManhole2Surface != null) {
+        if (fileManhole2Surface != null&&fileManhole2Surface.exists()) {
             ArrayList<Pair<String, Integer>> manholeRef = loadManholeToTriangleReferences(fileManhole2Surface);
             System.out.println("found " + manholeRef.size() + " manhole refs.");
         }
-        if (fileStreetInlets != null) {
+        if (fileStreetInlets != null&&fileStreetInlets.exists()) {
             ArrayList<Pair<String, Integer>> inletRef = loadStreetInletReferences(fileStreetInlets);
             System.out.println("found " + inletRef.size() + " inlet refs.");
         }
@@ -1634,6 +1635,34 @@ public class HE_SurfaceIO {
         return manhole2Triangle;
     }
 
+    /**
+     * Read the height information of the triangles' center position given in
+     * the Ztriang.dat file.
+     *
+     * @param filetriangleZ Path to Ztriang.dat file
+     * @param numberOftriangles
+     * @return
+     */
+    public static double[] loadTriangleZ(File filetriangleZ, int numberOftriangles) {
+        double[] z = new double[numberOftriangles];
+        try (FileReader fr = new FileReader(filetriangleZ); BufferedReader br = new BufferedReader(fr)) {
+            int index = 0;
+            String[] s = null;
+            while (br.ready()) {
+                s = br.readLine().split(" ");
+                if (s != null & s.length > 1) {
+                    z[index] = Double.parseDouble(s[1]);
+                    index++;
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(HE_SurfaceIO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return z;
+    }
+
     public static void writeRasterContaminationCSV(SurfaceMeasurementRaster raster, File outFile) throws IOException, TransformException {
         if (!outFile.getParentFile().exists()) {
             outFile.getParentFile().mkdirs();
@@ -1908,7 +1937,7 @@ public class HE_SurfaceIO {
         bw.write(surface.vertices.length + " " + surface.vertices.length + " " + surface.vertices.length);
         bw.newLine();
         for (int i = 0; i < surface.vertices.length; i++) {
-            bw.write(df5.format(surface.vertices[i][0]) + " " + df5.format(surface.vertices[i][1]) + "  " + df5.format(surface.vertices[i][2]));
+            bw.write(df5.format(surface.vertices[i][0]) + " " + df5.format(surface.vertices[i][1]) + " " + df5.format(surface.vertices[i][2]));
             bw.newLine();
             bw.flush();
         }
@@ -1933,12 +1962,36 @@ public class HE_SurfaceIO {
         DecimalFormat df3 = new DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.US));
         for (int i = 0; i < triangleMids.length; i++) {
             double[] triangleMid = triangleMids[i];
-            bw.write(" " + df3.format(triangleMid[2]) + " 101   -1   -1   -1   0    0");
+            bw.write(" " + df3.format(triangleMid[2]) + "   0   -1   -1   -1");// " 101   -1   -1   -1   0    0");
             bw.newLine();
             bw.flush();
         }
         bw.close();
         fw.close();
+        System.out.println("Triangle heights written to " + outputFile);
+    }
+
+    /**
+     * Writes the z coorztriang.dat content to the given file.
+     *
+     * @param triangleZs
+     * @param outputFile
+     * @throws IOException
+     */
+    public static void writeTriangleZ(double[] triangleZs, File outputFile) throws IOException {
+        if (outputFile.exists()) {
+            throw new IOException("File '" + outputFile + " already exists.");
+        }
+        try (FileWriter fw = new FileWriter(outputFile)) {
+            BufferedWriter bw = new BufferedWriter(fw);
+            DecimalFormat df3 = new DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.US));
+            for (int i = 0; i < triangleZs.length; i++) {
+                bw.write(" " + df3.format(triangleZs[i]) + "   0   -1   -1   -1");// " 101   -1   -1   -1   0    0");
+                bw.newLine();
+                bw.flush();
+            }
+            bw.close();
+        }
         System.out.println("Triangle heights written to " + outputFile);
     }
 

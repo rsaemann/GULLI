@@ -1007,6 +1007,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                             int id = getSurface().findContainingTriangle(position.x, position.y, 50);
                             if (id >= 0) {
                                 surfaceCell = id;
+                                injection.setTriangleID(id);
                             }
                         }
                     }

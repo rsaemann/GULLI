@@ -2728,14 +2728,18 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
         str += "Top   " + df3.format(mh.getTop_height()) + " m üNN;"
                 + "Tiefe   " + df3.format(mh.getTop_height() - mh.getSole_height()) + " m;"
-                + "Sohle " + df3.format(mh.getSole_height()) + " m üNN; ;"
-                + "Waterlvl " + df3.format(mh.getWaterlevel()) + "m;"
-                + "Water h  " + df3.format(mh.getWaterHeight()) + "m üNN;";
+                + "Sohle " + df3.format(mh.getSole_height()) + " m üNN; ;";
+        if (mh.getStatusTimeLine() != null) {
+            str += "Waterlvl " + df3.format(mh.getWaterlevel()) + "m;"
+                    + "Water h  " + df3.format(mh.getWaterHeight()) + "m üNN;";
+        }
 
         for (int j = mh.getConnections().length - 1; j >= 0; j--) {
             Connection_Manhole_Pipe connection = mh.getConnections()[j];
 //        for (Connection_Manhole_Pipe connection : mh.getConnections()) {
-            str += j + " : " + df3.format(mh.getWaterHeight() - connection.getHeight()) + "m ";
+            if (mh.getStatusTimeLine() != null) {
+                str += j + " : " + df3.format(mh.getWaterHeight() - connection.getHeight()) + "m ";
+            }
             try {
                 if (connection.isFlowInletToPipe()) {
                     str += " out - to " + connection.getPipe().getAutoID() + ";";
