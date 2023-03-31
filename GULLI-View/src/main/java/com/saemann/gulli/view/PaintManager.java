@@ -56,9 +56,11 @@ import com.saemann.gulli.core.model.topology.Position3D;
 import com.saemann.gulli.core.model.topology.profile.CircularProfile;
 import com.saemann.gulli.view.themelayer.SurfaceThemeLayer;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Analysisraster;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_CellCluster;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Cells;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_DynWaterlevel;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_HeatMap;
+import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Neighbourhood;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_Neighbours;
 import com.saemann.gulli.view.themelayer.surface.SurfaceTheme_ParticleRemain;
 import com.saemann.rgis.control.LocationIDListener;
@@ -72,8 +74,10 @@ import com.saemann.rgis.view.shapes.LabelPainting;
 import com.saemann.rgis.view.shapes.Layer;
 import com.saemann.rgis.view.shapes.LinePainting;
 import com.saemann.rgis.view.shapes.NodePainting;
+import java.awt.HeadlessException;
 import java.util.HashMap;
 import java.util.Random;
+import javax.swing.JOptionPane;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.projection.ProjectionException;
 import org.locationtech.jts.geom.Coordinate;
@@ -247,7 +251,7 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public enum SURFACESHOW {
 
-        NONE(null), GRID(new SurfaceTheme_Cells()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(new SurfaceTheme_DynWaterlevel()), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, NEIGHBOURS(new SurfaceTheme_Neighbours()), SLOPE, VERTEX_HEIGHT;
+        NONE(null), GRID(new SurfaceTheme_Cells()), GRID_AROUND(new SurfaceTheme_CellCluster()), ANALYSISRASTER(new SurfaceTheme_Analysisraster()), WATERLEVEL(new SurfaceTheme_DynWaterlevel()), WATERLEVELMAX, HEATMAP_LIN(new SurfaceTheme_HeatMap(false)), HEATMAP_LOG(new SurfaceTheme_HeatMap(true)), HEATMAP_LIN_BAGATELL(new SurfaceTheme_HeatMap(true)), HEATMAP_MASS_LEVEL, SPECTRALMAP, CONTAMINATIONCLUSTER, PARTICLETRACE, PARTICLETRACE_OUTLET, REMAIN(new SurfaceTheme_ParticleRemain()), VELOCITY, NEIGHBOURS(new SurfaceTheme_Neighbours()), NEIGHBOURHOOD(new SurfaceTheme_Neighbourhood()), SLOPE, VERTEX_HEIGHT;
         public SurfaceThemeLayer theme;
 
         SURFACESHOW() {
@@ -2966,8 +2970,75 @@ public class PaintManager implements LocationIDListener, LoadingActionListener, 
 
     public void addSurfaceShow(SURFACESHOW surfaceshow) {
         if (!surfaceShows.contains(surfaceshow)) {
+            // Add a new Theme layer
             if (surfaceshow.theme != null) {
                 System.out.println("Adding theme " + surfaceshow.theme.getDisplayName());
+                //Check if it requires additional information
+                //Requires additional information?
+                if (surfaceshow == SURFACESHOW.GRID_AROUND) {
+                    int cellID = -1;
+                    String cellIDstr = null;
+                    try {
+                        cellIDstr = JOptionPane.showInputDialog(mapViewer, "Select center cell ID", "Grid geometry around center", JOptionPane.QUESTION_MESSAGE, null, null, SurfaceTheme_CellCluster.laststartCell).toString();
+                    } catch (Exception headlessException) {
+                        return;
+                    }
+                    try {
+                        cellID = Integer.parseInt(cellIDstr);
+                    } catch (Exception exception) {
+                        System.err.println(exception.getLocalizedMessage());
+                    }
+                    if (cellID < 0) {
+                        return;
+                    }
+                    String cellcountstr = JOptionPane.showInputDialog(mapViewer, "Select number of neighbours", "Grid geometry around center", JOptionPane.QUESTION_MESSAGE, null, null, SurfaceTheme_CellCluster.lastNeighbours).toString();
+                    int nbs = -1;
+                    try {
+                        nbs = Integer.parseInt(cellcountstr);
+                    } catch (Exception exception) {
+                        System.err.println(exception.getLocalizedMessage());
+                    }
+                    if (nbs < 1) {
+                        return;
+                    }
+                    SurfaceTheme_CellCluster nbhd = (SurfaceTheme_CellCluster) surfaceshow.theme;
+                    nbhd.neighbours = nbs;
+                    nbhd.startCell = cellID;
+                    SurfaceTheme_CellCluster.lastNeighbours = nbs;
+                    SurfaceTheme_CellCluster.laststartCell = cellID;
+                } else if (surfaceshow == SURFACESHOW.NEIGHBOURHOOD) {
+                    String cellIDstr = null;
+                    try {
+                        cellIDstr = JOptionPane.showInputDialog(mapViewer, "Select center cell ID", "Neighbourhood", JOptionPane.QUESTION_MESSAGE, null, null, SurfaceTheme_Neighbourhood.laststartCell).toString();
+                    } catch (Exception headlessException) {
+                        return;
+                    }
+                    int cellID = -1;
+                    try {
+                        cellID = Integer.parseInt(cellIDstr);
+                    } catch (Exception exception) {
+                        System.err.println(exception.getLocalizedMessage());
+                    }
+                    if (cellID < 0) {
+                        return;
+                    }
+                    String cellcountstr = JOptionPane.showInputDialog(mapViewer, "Select number of neighbours", "Neighbourhood", JOptionPane.QUESTION_MESSAGE, null, null, SurfaceTheme_Neighbourhood.lastNeighbours).toString();
+                    int nbs = -1;
+                    try {
+                        nbs = Integer.parseInt(cellcountstr);
+                    } catch (Exception exception) {
+                        System.err.println(exception.getLocalizedMessage());
+                    }
+                    if (nbs < 1) {
+                        return;
+                    }
+                    SurfaceTheme_Neighbourhood nbhd = (SurfaceTheme_Neighbourhood) surfaceshow.theme;
+                    nbhd.neighbours = nbs;
+                    nbhd.startCell = cellID;
+                    SurfaceTheme_Neighbourhood.lastNeighbours = nbs;
+                    SurfaceTheme_Neighbourhood.laststartCell = cellID;
+                }
+
                 if (surfaceshow.theme.initializeTheme(mapViewer, control, this, drawTrianglesAsNodes)) {
                     surfaceShows.add(surfaceshow);
                 }

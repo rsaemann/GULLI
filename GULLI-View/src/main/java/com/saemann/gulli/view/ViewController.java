@@ -333,7 +333,7 @@ public class ViewController {
                             Rectangle rec = new Rectangle(0, 0, mapViewer.getWidth(), mapViewer.getHeight());
 
                             TikzPDFGraphics2D g2d = new TikzPDFGraphics2D(output.getParentFile(), output.getName(), rec);
-                            g2d.prefereCenterAnchor=false;
+                            g2d.prefereCenterAnchor = false;
                             mapViewer.recalculateShapes(g2d);
                             mapViewer.recomputeLegend(g2d);
                             mapViewer.paintMapView(g2d);
@@ -378,6 +378,18 @@ public class ViewController {
             public void actionPerformed(ActionEvent e) {
                 JFrame frame = new JFrame("Search");
                 frame.add(new SearchPanel(control, paintManager));
+                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                frame.setBounds(itemSearch.getX(), itemSearch.getY(), 200, 150);
+                frame.setVisible(true);
+            }
+        });
+        JMenuItem itemSurfaceClick = new JMenuItem("Surface Cell");
+        menuSearch.add(itemSurfaceClick);
+        itemSurfaceClick.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFrame frame = new JFrame("Search");
+                frame.add(new SearchClickPanel(control, mapViewer));
                 frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 frame.setBounds(itemSearch.getX(), itemSearch.getY(), 200, 150);
                 frame.setVisible(true);

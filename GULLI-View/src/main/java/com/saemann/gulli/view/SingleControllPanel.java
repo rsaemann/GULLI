@@ -1616,6 +1616,14 @@ public class SingleControllPanel extends JPanel implements LoadingActionListener
         updateSimulationRunInformation();
 
         updateScenarioLabel();
+
+        if (control != null && control.getLoadingCoordinator() != null && control.getLoadingCoordinator().getFiletype() == LoadingCoordinator.FILETYPE.COUD_CSV) {
+//            BackgroundTileSource ts=new BackgroundTileSource(mapViewer);
+//            mapViewer.setBaseLayer(ts);
+//            mapViewer.setTileSource(ts);
+//            mapViewer.setTileLoader(ts);
+            System.out.println("Set backgroundtilesource with maxZoom=" + mapViewer.getTileSource().getMaxZoom());
+        }
 //        if (control != null && control.getScenario() != null) {
 //            labelSetupName.setText(control.getScenario().getName());
 //        }

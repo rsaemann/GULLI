@@ -131,7 +131,7 @@ public class HE_SurfaceIO {
         File fileManhole2Surface = new File(directory.getAbsolutePath(), "SEWER-SURF_NODES.dat");
         if (!fileManhole2Surface.exists()) {
             System.err.println("File for Manhole position could not be found: " + fileManhole2Surface.getAbsolutePath());
-            fileManhole2Surface=null;
+            fileManhole2Surface = null;
         }
 
         Surface surf = loadSurface(fileCoordinates, fileTriangle, fileNeighbours, fileCoordinateReference);
@@ -147,11 +147,11 @@ public class HE_SurfaceIO {
             exception.printStackTrace();
         }
 
-        if (fileManhole2Surface != null&&fileManhole2Surface.exists()) {
+        if (fileManhole2Surface != null && fileManhole2Surface.exists()) {
             ArrayList<Pair<String, Integer>> manholeRef = loadManholeToTriangleReferences(fileManhole2Surface);
             System.out.println("found " + manholeRef.size() + " manhole refs.");
         }
-        if (fileStreetInlets != null&&fileStreetInlets.exists()) {
+        if (fileStreetInlets != null && fileStreetInlets.exists()) {
             ArrayList<Pair<String, Integer>> inletRef = loadStreetInletReferences(fileStreetInlets);
             System.out.println("found " + inletRef.size() + " inlet refs.");
         }
@@ -473,35 +473,42 @@ public class HE_SurfaceIO {
         }
 
         while (br.ready()) {
-            if (nc.readNextLineInteger(integerParts)) {
-                first = integerParts[0];
-                second = integerParts[1];
-                third = integerParts[2];
+            try {
+                if (nc.readNextLineInteger(integerParts)) {
+                    first = integerParts[0];
+                    second = integerParts[1];
+                    third = integerParts[2];
 
-                if (condenseUnusedVertices && !verticesUsed[first]) {
-                    verticesUsed[first] = true;
+                    if (condenseUnusedVertices && !verticesUsed[first]) {
+                        verticesUsed[first] = true;
+                    }
+                    if (condenseUnusedVertices && !verticesUsed[second]) {
+                        verticesUsed[second] = true;
+                    }
+                    if (condenseUnusedVertices && !verticesUsed[third]) {
+                        verticesUsed[third] = true;
+                    }
+
+                    triangleIndizes[index][0] = first;
+                    triangleIndizes[index][1] = second;
+                    triangleIndizes[index][2] = third;
+
+                    triangleMidPoints[index][0] = (vertices[first][0] + vertices[second][0] + vertices[third][0]) * oneThird;
+                    triangleMidPoints[index][1] = (vertices[first][1] + vertices[second][1] + vertices[third][1]) * oneThird;
+                    triangleMidPoints[index][2] = (vertices[first][2] + vertices[second][2] + vertices[third][2]) * oneThird;
+
+                    index++;
+
+                    if (index % 300 == 0 && loadingAction != null) {
+                        loadingAction.progress = index / (float) numberofTriangles;
+                        loadingAction.updateProgress();
+                    }
                 }
-                if (condenseUnusedVertices && !verticesUsed[second]) {
-                    verticesUsed[second] = true;
-                }
-                if (condenseUnusedVertices && !verticesUsed[third]) {
-                    verticesUsed[third] = true;
-                }
-
-                triangleIndizes[index][0] = first;
-                triangleIndizes[index][1] = second;
-                triangleIndizes[index][2] = third;
-
-                triangleMidPoints[index][0] = (vertices[first][0] + vertices[second][0] + vertices[third][0]) * oneThird;
-                triangleMidPoints[index][1] = (vertices[first][1] + vertices[second][1] + vertices[third][1]) * oneThird;
-                triangleMidPoints[index][2] = (vertices[first][2] + vertices[second][2] + vertices[third][2]) * oneThird;
-
-                index++;
-
-                if (index % 300 == 0 && loadingAction != null) {
-                    loadingAction.progress = index / (float) numberofTriangles;
-                    loadingAction.updateProgress();
-                }
+            } catch (Exception exception) {
+                System.err.println("Problem reading Node " + index + " : " + exception.getLocalizedMessage() + "  from file " + fileTriangleIndizes);
+                System.out.println("TrianglesArray.length: " + triangleIndizes.length + "\t VerticesArray.length=" + vertices.length);
+                exception.printStackTrace();
+                break;
             }
         }
         br.close();
@@ -1878,7 +1885,7 @@ public class HE_SurfaceIO {
         bw.write(surface.vertices.length + " " + surface.vertices.length + " " + surface.vertices.length);
         bw.newLine();
         for (int i = 0; i < surface.vertices.length; i++) {
-            bw.write(df5.format(surface.vertices[i][0]) + " " + df5.format(surface.vertices[i][1]) + "       " + df5.format(surface.vertices[i][2]));
+            bw.write(df5.format(surface.vertices[i][0]) + " " + df5.format(surface.vertices[i][1]) + " " + df5.format(surface.vertices[i][2]));
             bw.newLine();
             bw.flush();
         }
@@ -1904,21 +1911,64 @@ public class HE_SurfaceIO {
         System.out.println("Triangles written to " + fileTriangles.getAbsolutePath());
 
         //Write Neighbours (vonNeumann) to TRIMOD1.dat
-        fw = new FileWriter(fileNeumannNeighbours);
-        bw = new BufferedWriter(fw);
+        writeTRIMOD1dat(surface, fileNeumannNeighbours);
+//        fw = new FileWriter(fileNeumannNeighbours);
+//        bw = new BufferedWriter(fw);
+//
+//        for (int i = 0; i < surface.neumannNeighbours.length; i++) {
+//            bw.write(surface.neumannNeighbours[i][0] + " " + surface.neumannNeighbours[i][1] + " " + surface.neumannNeighbours[i][2]);
+//            bw.write("   " + (surface.neumannNeighbours[i][0] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][1] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][2] < 0 ? "-1" : "0"));
+//            //bw.write("    " + (surface.neumannNeighbours[i][0] < 0 ? "1" : "-1") + " " + (surface.neumannNeighbours[i][1] < 0 ? "1" : "-1") + " " + (surface.neumannNeighbours[i][2] < 0 ? "1" : "-1"));
+//            //bw.write("    ");
+//            bw.newLine();
+//            bw.flush();
+//        }
+//        bw.flush();
+//        bw.close();
+//        fw.close();
+        System.out.println("Neumannneighbours written to " + fileNeumannNeighbours.getAbsolutePath());
+    }
 
-        for (int i = 0; i < surface.neumannNeighbours.length; i++) {
-            bw.write(surface.neumannNeighbours[i][0] + " " + surface.neumannNeighbours[i][1] + " " + surface.neumannNeighbours[i][2]);
-            bw.write("   " + (surface.neumannNeighbours[i][0] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][1] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][2] < 0 ? "-1" : "0"));
-            bw.write("    " + (surface.neumannNeighbours[i][0] < 0 ? "1" : "-1") + " " + (surface.neumannNeighbours[i][1] < 0 ? "1" : "-1") + " " + (surface.neumannNeighbours[i][2] < 0 ? "1" : "-1"));
-            bw.write("    ");
-            bw.newLine();
+    /**
+     * Write the TRIMOD1.dat file with information about 3 neighbours and the
+     * neighbour orientation.
+     *
+     * @param surface
+     * @param fileTRIMOD1dat
+     * @throws IOException
+     */
+    public static void writeTRIMOD1dat(Surface surface, File fileTRIMOD1dat) throws IOException {
+        try ( //Write Neighbours (vonNeumann) to TRIMOD1.dat
+                FileWriter fw = new FileWriter(fileTRIMOD1dat); BufferedWriter bw = new BufferedWriter(fw)) {
+            int[] neighboursNeighbours;
+            for (int id = 0; id < surface.neumannNeighbours.length; id++) {
+                bw.append(surface.neumannNeighbours[id][0] + " " + surface.neumannNeighbours[id][1] + " " + surface.neumannNeighbours[id][2] + "  ");
+                //+ " " + (surface.neumannNeighbours[i][1] < 0 ? "-1" : "0") + " " + (surface.neumannNeighbours[i][2] < 0 ? "-1" : "0"));
+
+                //NB Orientation
+                for (int nb = 0; nb < 3; nb++) {
+                    int nbid = surface.neumannNeighbours[id][nb];
+                    if (nbid < 0) {
+                        //open boundary
+                        bw.append(" -1");
+                    } else {
+                        //If we are close to the boundary, we need an open boundary.
+
+                        neighboursNeighbours = surface.neumannNeighbours[nbid];
+                        for (int i = 0; i < neighboursNeighbours.length; i++) {
+                            if (neighboursNeighbours[i] == id) {
+                                bw.append(" " + i);
+                                break;
+                            }
+                        }
+                    }
+
+                }
+                bw.newLine();
+                bw.flush();
+            }
             bw.flush();
         }
-        bw.flush();
-        bw.close();
-        fw.close();
-        System.out.println("Neumannneighbours written to " + fileNeumannNeighbours.getAbsolutePath());
     }
 
     /**
@@ -2150,6 +2200,58 @@ public class HE_SurfaceIO {
             index++;
         }
         return array;
+    }
+
+    public static int[][] readHystemDatTriangles(File hystemdatfile, String[] areas) throws FileNotFoundException, IOException {
+        if (!hystemdatfile.exists()) {
+            return null;
+        }
+        FileReader fr = new FileReader(hystemdatfile);
+        BufferedReader br = new BufferedReader(fr);
+        String line;
+        String[] splits;
+        int counterfound = 0;
+        String area;
+        String gap = " ";
+        boolean foundname;
+        int[][] triangles = new int[areas.length][];
+        int areaIndex = 0;
+        int gappos=0;
+        while (br.ready()) {
+            line = br.readLine();
+            gappos=line.indexOf(gap);
+            if(gappos<0)continue;
+            area = line.substring(0, gappos);
+            //check if this area is in the list of interesting areas
+            foundname = false;
+            areaIndex = 0;
+            for (String a : areas) {
+                if (area.equals(a)) {
+                    foundname = true;
+                    break;
+                }
+                areaIndex++;
+            }
+            if (foundname) {
+                splits = line.split(gap);
+                if (splits.length > 1) {
+                    int[] triangleIDs = new int[splits.length - 1];
+                    for (int i = 0; i < splits.length - 1; i++) {
+                        triangleIDs[i] = Integer.parseInt(splits[i + 1]);
+                    }
+                    triangles[areaIndex] = triangleIDs;
+                } else {
+                    triangles[areaIndex] = new int[0];
+                }
+                counterfound++;
+                if (counterfound >= areas.length) {
+                    return triangles;
+                }
+            }
+        }
+        br.close();
+        fr.close();
+        return triangles;
     }
 
 }

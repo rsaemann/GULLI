@@ -105,7 +105,7 @@ public class LoadingCoordinator {
      * Types of input files, than can be handled.
      */
     public enum FILETYPE {
-        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1,BENTLEY, COUD_CSV
+        HYSTEM_EXTRAN_7, HYSTEM_EXTRAN_8, SWMM_5_1, BENTLEY, COUD_CSV
     };
 
     protected FILETYPE filetype;
@@ -574,9 +574,9 @@ public class LoadingCoordinator {
                 nw = SWMM_IO.readNetwork(fileNetwork, crsNetwork);
                 this.filetype = FILETYPE.SWMM_5_1;
             } else if (fileNetwork.getName().endsWith(".sqlite")) {
-                BentleyDatabase bentleyDB=new BentleyDatabase(fileNetwork);
-                if(crsNetwork==null||crsNetwork.isEmpty()){
-                    crsNetwork="EPSG:2178";
+                BentleyDatabase bentleyDB = new BentleyDatabase(fileNetwork);
+                if (crsNetwork == null || crsNetwork.isEmpty()) {
+                    crsNetwork = "EPSG:2178";
                 }
                 nw = bentleyDB.loadNetwork(crsNetwork);
                 this.filetype = FILETYPE.BENTLEY;
@@ -945,7 +945,7 @@ public class LoadingCoordinator {
                 try {
                     //CoUD Labs File format
                     if (Surface_CSV_IO.is_readable_scheme(fileSurfaceCoordsDAT)) {
-                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT, 400, 800);
+                        surf = Surface_CSV_IO.createTriangleSurfaceGeometry(fileSurfaceCoordsDAT, 2, 8);
                         filetype = FILETYPE.COUD_CSV;
                     }
                 } catch (Exception ex) {
@@ -1550,7 +1550,7 @@ public class LoadingCoordinator {
 
         // Files with information about the coordinate reference system.
         File fileCoordinateReference = new File(surfaceTopologyDirectory, "polyg.xml");
-        if (!fileNeighbours.exists()) {
+        if (!fileCoordinateReference.exists()) {
             fileCoordinateReference = new File(surfaceTopologyDirectory, "city.xml");
             if (!fileNeighbours.exists()) {
                 throw new FileNotFoundException("File for CoordinateReference could not be found: " + fileNeighbours.getAbsolutePath());
@@ -1987,7 +1987,7 @@ public class LoadingCoordinator {
         if (f.getName().toLowerCase().endsWith(".inp")) {
             return SWMM_IO.readNetwork(f);
         }
-        if (f.getName().toLowerCase().endsWith(".idbf") || f.getName().toLowerCase().endsWith(".idbm") ||f.getName().toLowerCase().endsWith(".idbr")) {
+        if (f.getName().toLowerCase().endsWith(".idbf") || f.getName().toLowerCase().endsWith(".idbm") || f.getName().toLowerCase().endsWith(".idbr")) {
             if (tempFBDB == null || !tempFBDB.getDatabaseFile().equals(f)) {
                 tempFBDB = new HE_Database(f, true);
             }

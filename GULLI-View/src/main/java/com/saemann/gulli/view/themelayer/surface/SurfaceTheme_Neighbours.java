@@ -46,7 +46,7 @@ import org.opengis.referencing.operation.TransformException;
 public class SurfaceTheme_Neighbours extends SurfaceThemeLayer {
 
     public final static String layerSurfaceNeighbours = PaintManager.layerTriangle + "_Neighbours";
-    private final DoubleColorHolder chNeighbour1 = new DoubleColorHolder(Color.yellow, new Color(1f, 1f, 1f, 0f), "Surface Neighbours");
+    private final DoubleColorHolder chNeighbour1 = new DoubleColorHolder(Color.cyan, new Color(1f, 1f, 1f, 0f), "Surface Neighbours");
     public static int maxShapeCount=1000000;
 
     @Override
@@ -91,7 +91,7 @@ public class SurfaceTheme_Neighbours extends SurfaceThemeLayer {
                                 
                                     //Create line from the center towards the neighbouring cell. ended at the border=at the edge.
                                     LinePainting lp=new LinePainting(index++, startWGS.x, (startWGS.x+endWGS.x)*0.5,startWGS.y,  (startWGS.y+endWGS.y)*0.5, chNeighbour1);//, (startWGS.x+endWGS.x)*0.5, (startWGS.y+endWGS.y)*0.5
-                                    lp.arrowheadvisibleFromZoom=14;
+                                    lp.arrowheadvisibleFromZoom=21;
                                     layer.add(lp, false);
                                 
                                 }          

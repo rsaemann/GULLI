@@ -2226,11 +2226,13 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @return
      */
     public int findContainingTriangle(double x, double y, double minDistance) {
-        double jumpdistance = 10 * minDistance;
-        int jumped = 0;
-        int lastchecked=-1;
+//        double jumpdistance = 10 * minDistance;
+//        int jumped = 0;
+//        int lastchecked = -1;
+        double[] mid, p0, p1, p2;
+        int[] nodeIDs;
         for (int i = 0; i < triangleMids.length; i++) {
-            double[] mid = triangleMids[i];
+            mid = triangleMids[i];
 //            if (jumped <= 0 || jumped == 10) {
 //                
 //                if (Math.abs(mid[0] - x) > jumpdistance && Math.abs(mid[1] - y) > jumpdistance) {
@@ -2259,10 +2261,10 @@ public class Surface extends Capacity implements TimeIndexCalculator {
                 continue;
             }
             //is coordinate in triangle?
-            int[] nodeIDs = triangleNodes[i];
-            double[] p0 = vertices[nodeIDs[0]];
-            double[] p1 = vertices[nodeIDs[1]];
-            double[] p2 = vertices[nodeIDs[2]];
+            nodeIDs = triangleNodes[i];
+            p0 = vertices[nodeIDs[0]];
+            p1 = vertices[nodeIDs[1]];
+            p2 = vertices[nodeIDs[2]];
             if (GeometryTools.triangleContainsPoint(p0[0], p1[0], p2[0], p0[1], p1[1], p2[1], x, y)) {
                 return i;
             }
@@ -2284,8 +2286,9 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         int bestID = -1;
         double bestDistance = Double.POSITIVE_INFINITY;
         double dist = 0;
+        double[] mid = null;
         for (int i = 0; i < triangleMids.length; i++) {
-            double[] mid = triangleMids[i];
+            mid = triangleMids[i];
             if (Math.abs(mid[0] - x) > minDistance) {
                 continue;
             }
@@ -3572,5 +3575,130 @@ public class Surface extends Capacity implements TimeIndexCalculator {
         double[] vertex2 = getVerticesPosition()[node2];
 
         return GeometryTools.triangleContainsPoint(vertex0[0], vertex1[0], vertex2[0], vertex0[1], vertex1[1], vertex2[1], x, y);
+    }
+
+    /**
+     * Is searching through the neighbourhood of the given Cell to find as much
+     * neighbours as requested. The size of the return can be less than the
+     * requested size if the neighbour-references could not be extened.
+     *
+     * @param cellID
+     * @param numberSurroundingCells
+     * @return list containing the Cell IDs of the neighbourhood.
+     */
+    public ArrayList<Integer> getSurroundingCells(int cellID, int numberSurroundingCells) {
+        if (cellID < 0) {
+            return null;
+        }
+        if (numberSurroundingCells < 0) {
+            return null;
+        }
+        ArrayList<Integer> triangleQueue = new ArrayList<>((int) (numberSurroundingCells * 0.4));
+        ArrayList<Integer> checkedTriangles = new ArrayList<>(numberSurroundingCells);
+        //1. fill queue
+        for (int i : neumannNeighbours[cellID]) {
+            if (i < 0) {
+                continue;
+            }
+            triangleQueue.add(i);
+        }
+
+        checkedTriangles.add(cellID);
+        int id;
+        // poll ttriangles as long as the queue is filled.
+        // if a checked tirangle has a common changed node, then the triangle's neighbours are put into the queue.
+        while (!triangleQueue.isEmpty()) {
+            id = triangleQueue.remove(0);
+
+            //Check the Vertices of these neighbours
+            if (id < 0) {
+                continue;
+            }
+
+            //Put those neighbours into the query, that have not been added jet
+            for (int nb : neumannNeighbours[id]) {
+                if (checkedTriangles.contains(nb)) {
+                    continue;
+                }
+                if (triangleQueue.contains(nb)) {
+                    continue;
+                }
+                triangleQueue.add(nb);
+            }
+
+            checkedTriangles.add(id);
+            if (checkedTriangles.size() >= numberSurroundingCells) {
+                break;
+            }
+        }
+        triangleQueue.clear();
+        return checkedTriangles;
+
+    }
+
+    public void fillSurroundingCellArray(int[] arrayToFill, int cellIDStart) {
+        if (cellIDStart < 0) {
+            return;
+        }
+        if (arrayToFill.length < 2) {
+            return;
+        }
+        int fillposition = 0;
+        //1. fill queue
+        if (cellIDStart >= neumannNeighbours.length) {
+            for (int i = 0; i < arrayToFill.length; i++) {
+                arrayToFill[i] = -1;
+                return;
+            }
+        }
+        for (int i : neumannNeighbours[cellIDStart]) {
+            if (i < 0) {
+                continue;
+            }
+
+            arrayToFill[fillposition] = i;
+            fillposition++;
+            if (fillposition >= arrayToFill.length) {
+                return;
+            }
+        }
+
+//        int readposition=0;
+        // poll ttriangles as long as the queue is filled.
+        // if a checked tirangle has a common changed node, then the triangle's neighbours are put into the queue.
+        boolean found;
+        for (int readposition = 0; readposition < arrayToFill.length; readposition++) {
+
+            int id = arrayToFill[readposition];
+            //Check the Vertices of these neighbours
+            if (id < 0) {
+                continue;
+            }
+
+            //Put those neighbours into the query, that have not been added jet
+            for (int nb : neumannNeighbours[id]) {
+                //check if nb id is already contained
+                found = false;
+                for (int i = 0; i < fillposition; i++) {
+                    if (i == nb) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    arrayToFill[fillposition] = nb;
+                    fillposition++;
+                    if (fillposition >= arrayToFill.length) {
+                        return;
+                    }
+                }
+
+            }
+
+        }
+        //place -1 if there are no more Ids to find (clear the array from previous content)
+        for (int i = fillposition; i < arrayToFill.length; i++) {
+            arrayToFill[i] = -1;
+        }
     }
 }
