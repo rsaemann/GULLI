@@ -29,10 +29,12 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.DefaultFeatureCollection;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.SchemaException;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureImpl;
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.geotools.referencing.CRS;
@@ -723,11 +725,11 @@ public class SHP_IO_GULLI {
             boolean hasCatchmentAreaInformation = false;
             for (Geometry geometry : collection) {
                 if (geometry.getUserData() != null) {
-                    
+
                     if (geometry.getUserData() instanceof CatchmentAreaInformation) {
                         hasCatchmentAreaInformation = true;
-                    }else{
-                        hasUserdata=true;
+                    } else {
+                        hasUserdata = true;
                     }
                     break;
                 }
@@ -1224,6 +1226,131 @@ public class SHP_IO_GULLI {
      *
      * @param filePathName File to be used. *.shp .
      * @param geoms Polygons to store
+     * @param names Names of Polygons to be added to the attribute table.
+     * @param srid e.g. 25832
+     * @param epsgString e.g. "EPSG:25832
+     *
+     */
+    public static void writeMultiPolygons(String filePathName,String layername, Geometry[] geoms, String[] names, int srid, String epsgString) throws FactoryException {
+        try {
+
+            File directory = new File(filePathName).getParentFile();
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+            if (!filePathName.endsWith(".shp")) {
+                filePathName += ".shp";
+            }
+            File outfile = new File(filePathName);
+            if (outfile.exists()) {
+                outfile.delete();
+            }
+
+            ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
+            Transaction createtransaction = new DefaultTransaction("create");
+//            GeometryFactory gf = JTSFactoryFinder.getGeometryFactory();// new GeometryFactory();
+            Map<String, Serializable> params = new HashMap<String, Serializable>();
+            params.put("url", outfile.toURI().toURL());
+            params.put("create spatial index", Boolean.TRUE);
+            ShapefileDataStore datastore = (ShapefileDataStore) factory.createNewDataStore(params);
+
+            //Geometry
+            SimpleFeatureTypeBuilder builder=new SimpleFeatureTypeBuilder();
+            builder.setName(layername);
+            builder.setCRS(CRS.decode(epsgString));
+            builder.srid(srid);
+            builder.add("the_geom",MultiPolygon.class);
+            builder.add("name", String.class);
+            builder.add("area",Float.class);
+            final SimpleFeatureType SCHEMETYPE = builder.buildFeatureType();
+                    /*DataUtilities.createType("Geometry",
+                    "the_geom:Geometry:srid=" + srid + ","
+                    + // <- the geometry attribute
+                    "name:string,"
+                    + "area:float"
+            );*/
+
+            datastore.createSchema(SCHEMETYPE);
+            SimpleFeatureBuilder sfb = new SimpleFeatureBuilder(SCHEMETYPE);
+
+            DefaultFeatureCollection collection = new DefaultFeatureCollection();
+            int counter1 = 0;
+            for (int i = 0; i < geoms.length; i++) {
+
+                Geometry g = geoms[i];
+                if (g == null) {
+                    continue;
+                }
+//                MultiPolygon[] polys = null;
+//                if (g instanceof Polygon) {
+//                    polys = new Polygon[]{(Polygon) g};
+//                } else if (g instanceof MultiPolygon) {
+//                    MultiPolygon mp = (MultiPolygon) g;
+//                    polys = new Polygon[mp.getNumGeometries()];
+//                    int counter = 0;
+//                    for (int j = 0; j < g.getNumGeometries(); j++) {
+//                        Geometry g1 = g.getGeometryN(j);
+//                        if (g1 instanceof Polygon) {
+//                            polys[j] = (Polygon) g1;
+//                            counter++;
+//                        }
+//                    }
+//                    System.out.println("Split Geometry " + i + " into " + counter + " Polygons.");
+//                } else {
+//                    System.out.println("Could not build Polygon out of " + g.getGeometryType());
+//                }
+                if (g instanceof MultiPolygon) {
+                    sfb.add(g);
+                    sfb.add(names[i]);
+                    sfb.add(g.getArea());
+                    SimpleFeature f = sfb.buildFeature("" + counter1++);
+                    collection.add(f);
+                } else if (g instanceof Polygon) {
+                   
+                    
+                    sfb.add(g.getFactory().createMultiPolygon(new Polygon[]{(Polygon)g}));
+                    sfb.add(names[i]);
+                    sfb.add(g.getArea());
+                    SimpleFeature f = sfb.buildFeature("" + counter1++);
+                    collection.add(f);
+                }
+            }
+            String typeName = datastore.getTypeNames()[0];
+            SimpleFeatureSource featureSource = datastore.getFeatureSource(typeName);
+
+            if (featureSource instanceof SimpleFeatureStore) {
+                SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+
+                featureStore.setTransaction(createtransaction);
+                try {
+                    featureStore.addFeatures(collection);
+                    createtransaction.commit();
+
+                } catch (Exception problem) {
+                    problem.printStackTrace();
+                    createtransaction.rollback();
+
+                } finally {
+                    createtransaction.close();
+                }
+//                System.exit(0); // success!
+            } else {
+                System.out.println(typeName + " does not support read/write access");
+//                System.exit(1);
+            }
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(SHP_IO_GULLI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
+     * Stores Found Ponds in the given file. Mainly used for Surface-Pond-Metric
+     * output.
+     *
+     * @param filePathName File to be used. *.shp .
+     * @param geoms Polygons to store
      * @param id IDs of Polygons to be added to the attribute table. (Minimums
      * point id)
      * @param srid e.g. 25832
@@ -1329,7 +1456,6 @@ public class SHP_IO_GULLI {
             this.targetObjectID = targetObjectID;
             this.targetObjectName = targetObjectName;
         }
-        
-        
+
     }
 }

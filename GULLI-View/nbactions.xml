@@ -12,7 +12,7 @@
             <properties>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
                 <exec.executable>java</exec.executable>
-                <exec.vmArgs>-Xmx10G</exec.vmArgs>
+                <exec.vmArgs>-Xmx15G</exec.vmArgs>
                 <exec.appArgs></exec.appArgs>
                 <exec.mainClass>com.saemann.gulli.view.run.RunMainView</exec.mainClass>
             </properties>
@@ -30,7 +30,7 @@
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
                 <exec.executable>java</exec.executable>
                 <jpda.listen>true</jpda.listen>
-                <exec.vmArgs>-Xmx10G -agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address}</exec.vmArgs>
+                <exec.vmArgs>-Xmx15G -agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address}</exec.vmArgs>
                 <exec.appArgs></exec.appArgs>
                 <exec.mainClass>com.saemann.gulli.view.run.RunMainView</exec.mainClass>
             </properties>
@@ -47,7 +47,7 @@
             <properties>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
                 <exec.executable>java</exec.executable>
-                <exec.vmArgs>-Xmx10G</exec.vmArgs>
+                <exec.vmArgs>-Xmx15G</exec.vmArgs>
                 <exec.appArgs></exec.appArgs>
                 <exec.mainClass>com.saemann.gulli.view.run.RunMainView</exec.mainClass>
             </properties>

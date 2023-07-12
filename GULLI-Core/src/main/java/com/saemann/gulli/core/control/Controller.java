@@ -1005,6 +1005,7 @@ public class Controller implements SimulationActionListener, LoadingActionListen
                             //Try to find correct triangle at existing coordinates
 //                            System.out.println("   search for surface cell");
                             int id = getSurface().findContainingTriangle(position.x, position.y, 50);
+                            System.out.println("Search surface for Cell containing position "+position+" -> found Cell "+id);
                             if (id >= 0) {
                                 surfaceCell = id;
                                 injection.setTriangleID(id);

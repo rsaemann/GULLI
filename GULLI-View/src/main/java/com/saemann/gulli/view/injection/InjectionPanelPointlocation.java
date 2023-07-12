@@ -47,7 +47,7 @@ public class InjectionPanelPointlocation extends JPanel {
     protected JCheckBox checkSurface;
     protected JLabel labelCapacity;
     protected JButton buttonCoordinate;
-    public static final DecimalFormat df = new DecimalFormat("0.###", new DecimalFormatSymbols(StartParameters.formatLocale));
+    public static final DecimalFormat df = new DecimalFormat("0.#####", new DecimalFormatSymbols(StartParameters.formatLocale));
     protected JSpinner spinnerMaterial, spinnerInjection, spinnerDuration;
     protected JCheckBox checkInjectionDuration;
     protected SpinnerDateModel modelInjection;
@@ -303,7 +303,7 @@ public class InjectionPanelPointlocation extends JPanel {
                     info.setCapacityName(null);
                     info.setTriangleID(-1);
                     info.spillOnSurface = checkSurface.isSelected();
-//                    System.out.println("clicked on " + latlon);
+                    System.out.println("clicked on " + latlon +" -> "+info.getPosition());
                     
                     buttonSetPosition.setText(df.format(info.getPosition().getLatitude()) + "; " + df.format(info.getPosition().getLongitude()));
                     if (info.isChanged()) {

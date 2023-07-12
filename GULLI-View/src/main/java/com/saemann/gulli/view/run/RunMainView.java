@@ -4,12 +4,12 @@ import com.saemann.gulli.core.control.Controller;
 import com.saemann.gulli.core.control.LoadingCoordinator;
 import com.saemann.gulli.core.control.StartParameters;
 import com.saemann.gulli.core.control.listener.SimulationActionAdapter;
-import com.saemann.gulli.core.control.particlecontrol.ParticlePipeComputing;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.saemann.gulli.view.ViewController;
 import com.saemann.rgis.tileloader.source.MyOSMTileSource;
+import com.saemann.rgis.tileloader.source.OSMTileSource;
 import com.saemann.rgis.view.SimpleMapViewerFrame;
 
 /**
@@ -59,6 +59,11 @@ public class RunMainView {
         //Set the Background map for the main frame.
         vcontroller.getMapViewer().setBaseLayer(MyOSMTileSource.BaseLayer.CARTO_LIGHT.getSource());
         vcontroller.getMapViewer().recomputeCopyright();
+        
+        if(vcontroller.getMapViewer().getTileSource() instanceof OSMTileSource){
+            vcontroller.getMapViewer().setMaxZoom(30);
+            System.out.println("Maxzoom set to 30");
+        }
 
         //////////
         // Loading Simulation input files.

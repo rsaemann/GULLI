@@ -2223,7 +2223,7 @@ public class Surface extends Capacity implements TimeIndexCalculator {
      * @param x
      * @param y
      * @param minDistance should be around maximum edge length
-     * @return
+     * @return triangle id or -1 if nothing was found.
      */
     public int findContainingTriangle(double x, double y, double minDistance) {
 //        double jumpdistance = 10 * minDistance;
@@ -2254,6 +2254,54 @@ public class Surface extends Capacity implements TimeIndexCalculator {
 //                jumped--;
 //            }
 //            lastchecked=i;
+            if (Math.abs(mid[0] - x) > minDistance) {
+                continue;
+            }
+            if (Math.abs(mid[1] - y) > minDistance) {
+                continue;
+            }
+            //is coordinate in triangle?
+            nodeIDs = triangleNodes[i];
+            p0 = vertices[nodeIDs[0]];
+            p1 = vertices[nodeIDs[1]];
+            p2 = vertices[nodeIDs[2]];
+
+            // if triangles are build incorrect, they are skipped. The barycentric check will incorrectly detect that a point is contained in a triangle, if it is 1D.
+            if (p0[0] == p1[0] && p0[1] == p1[1]) {
+                continue;
+            }
+            if (p0[0] == p2[0] && p0[1] == p2[1]) {
+                continue;
+            }
+            if (p1[0] == p2[0] && p1[1] == p2[1]) {
+                continue;
+            }
+
+
+            if (GeometryTools.triangleContainsPoint(p0[0], p1[0], p2[0], p0[1], p1[1], p2[1], x, y)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Checks every triangle for contining the given point. The test via
+     * barycnetric coordinates is only done, when the midpoint distance is below
+     * the minDistance parameter. Search in Reverse order. Should be called if
+     * you know that the triangle is in the second half of the triangle list.
+     *
+     * @param x
+     * @param y
+     * @param minDistance should be around maximum edge length
+     * @return triangle id or -1 if nothing was found.
+     */
+    public int findContainingTriangleReverse(double x, double y, double minDistance) {
+
+        double[] mid, p0, p1, p2;
+        int[] nodeIDs;
+        for (int i = triangleMids.length - 1; i >= 0; i--) {
+            mid = triangleMids[i];
             if (Math.abs(mid[0] - x) > minDistance) {
                 continue;
             }

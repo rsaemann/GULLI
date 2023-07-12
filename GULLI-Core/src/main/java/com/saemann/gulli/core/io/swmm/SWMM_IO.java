@@ -163,7 +163,7 @@ public class SWMM_IO {
         readFile(file, Charset.defaultCharset());
     }
 
-    public void readFile(File file, Charset encoding) throws FileNotFoundException, IOException, FactoryException {
+    public void readFile(File file, Charset encoding) throws FileNotFoundException, IOException {
         try (//        FileReader fr = new FileReader(file);
                 FileInputStream fis = new FileInputStream(file); InputStreamReader isr = new InputStreamReader(fis, encoding); BufferedReader br = new BufferedReader(isr)) {
             String line;
